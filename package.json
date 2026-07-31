@@ -1,0 +1,61 @@
+{
+  "name": "playwright-score",
+  "version": "0.1.0",
+  "description": "Deterministic, AI-free Playwright spec quality score (sqs-v1). Lint + score with standard and guardian profiles.",
+  "type": "module",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "bin": {
+    "playwright-score": "./dist/src/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist/src",
+    "METHODOLOGY.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').chmodSync('dist/src/cli.js', 0o755)\"",
+    "test": "npm run build && node --test dist/tests/*.js",
+    "score": "npm run build && node dist/src/cli.js",
+    "dogfood": "npm run build && bash scripts/dogfood.sh",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "playwright",
+    "eslint",
+    "testing",
+    "quality",
+    "score",
+    "lint",
+    "e2e"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qa-guardian/playwright-score.git"
+  },
+  "bugs": {
+    "url": "https://github.com/qa-guardian/playwright-score/issues"
+  },
+  "homepage": "https://github.com/qa-guardian/playwright-score#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-playwright": "^2.1.0",
+    "glob": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  }
+}
