@@ -44,7 +44,7 @@
   "bugs": {
     "url": "https://github.com/qa-guardian/playwright-score/issues"
   },
-  "homepage": "https://github.com/qa-guardian/playwright-score#readme",
+  "homepage": "https://qaguardian.com/open-source/playwright-score",
   "engines": {
     "node": ">=18"
   },

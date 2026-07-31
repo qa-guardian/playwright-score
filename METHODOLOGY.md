@@ -2,6 +2,8 @@
 
 **Score version:** `sqs-v1`  
 **Package:** `playwright-score`  
+**Landing page:** https://qaguardian.com/open-source/playwright-score  
+**Maintainer:** [QA Guardian](https://qaguardian.com)  
 **Deterministic:** same inputs → same score  
 **AI-free:** no LLM calls in the scoring path
 

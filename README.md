@@ -2,6 +2,9 @@
 
 **Deterministic, AI-free quality score for Playwright specs** (`sqs-v1`).
 
+**Website:** [qaguardian.com/open-source/playwright-score](https://qaguardian.com/open-source/playwright-score)  
+**Built by:** [QA Guardian](https://qaguardian.com) — managed Playwright E2E (AI drafts, engineers verify, you own the code)
+
 Lint + score Playwright tests with:
 
 - **`standard`** — community best practices via [`eslint-plugin-playwright`](https://github.com/playwright-community/eslint-plugin-playwright) + suite metrics  
@@ -9,7 +12,7 @@ Lint + score Playwright tests with:
 
 The score never calls an LLM. AI may *generate* or *repair* code using findings; **rules grade code**.
 
-See [METHODOLOGY.md](./METHODOLOGY.md) for the frozen formula.
+See [METHODOLOGY.md](./METHODOLOGY.md) for the frozen formula, or the full product write-up on the [landing page](https://qaguardian.com/open-source/playwright-score).
 
 ## Install
 
