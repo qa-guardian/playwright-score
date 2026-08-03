@@ -2,7 +2,7 @@
 # Dogfood playwright-score against real Guardian sample specs.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-CLI="$ROOT/dist/src/cli.js"
+CLI="$ROOT/bin/playwright-score.js"
 GUARDIAN="$(cd "$ROOT/.." && pwd)"
 
 if [[ ! -f "$CLI" ]]; then

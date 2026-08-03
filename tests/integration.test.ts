@@ -101,4 +101,20 @@ describe('scorePaths integration', () => {
     assert.equal(a.summary.findings, b.summary.findings);
     assert.deepEqual(a.dimensions, b.dimensions);
   });
+
+  it('no matching files hard-fails with score 0', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'does-not-exist-xyz.spec.ts')],
+      profile: 'standard',
+      threshold: 80,
+      cwd: root,
+    });
+    assert.equal(result.score, 0);
+    assert.equal(result.grade, 'F');
+    assert.equal(result.pass, false);
+    assert.ok(
+      result.findings.some((f) => f.rule === 'playwright-score/no-files'),
+      'expected no-files finding'
+    );
+  });
 });

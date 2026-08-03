@@ -12,29 +12,44 @@ import { formatSarif } from './formatters/sarif.js';
 import type { ProfileName } from './types.js';
 
 function printHelp(): void {
-  console.log(`playwright-score — deterministic Playwright spec quality score (sqs-v1)
+  console.log(`@qaguardian/playwright-score — deterministic Playwright spec quality score (sqs-v1)
 
 Usage:
-  playwright-score <paths...> [options]
+  npx -p @qaguardian/playwright-score playwright-score <paths...> [options]
+  # after npm install -D @qaguardian/playwright-score:
+  npx playwright-score <paths...> [options]
 
 Options:
   --profile <standard|guardian>   Scoring profile (default: standard)
   --threshold <n>                 Pass threshold 0-100 (default: 80 standard / 75 guardian)
   --format <text|json|markdown|sarif>  Output format (default: text)
   --out <file>                    Write report to file
+  --version                       Print version
   --help                          Show help
 
 Exit codes:
   0  score >= threshold
-  1  score < threshold
+  1  score < threshold (or no files matched)
   2  tool error
 
-See METHODOLOGY.md for sqs-v1 formula.
+Website: https://qaguardian.com/open-source/playwright-score
+Methodology: METHODOLOGY.md (sqs-v1)
 `);
 }
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
+  if (args.includes('--version') || args.includes('-v')) {
+    try {
+      const { createRequire } = await import('node:module');
+      const require = createRequire(import.meta.url);
+      const pkg = require('../package.json') as { version?: string };
+      console.log(pkg.version ?? '0.0.0');
+    } catch {
+      console.log('0.1.1');
+    }
+    process.exit(0);
+  }
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     printHelp();
     process.exit(args.length === 0 ? 2 : 0);
@@ -70,6 +85,8 @@ async function main(): Promise<void> {
       format = f;
     } else if (a === '--out') {
       out = args[++i];
+    } else if (a === '--version' || a === '-v') {
+      continue;
     } else if (a.startsWith('-')) {
       console.error(`Unknown option: ${a}`);
       process.exit(2);

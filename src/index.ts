@@ -53,24 +53,42 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
 
   const files = expandPaths(options.paths, cwd);
   if (files.length === 0) {
-    return computeScore({
+    // Hard-fail: empty match must never look like a healthy suite (was ~99 PASS).
+    const findings: Finding[] = [
+      {
+        rule: 'playwright-score/no-files',
+        severity: 'error',
+        message: `No Playwright spec files matched: ${options.paths.join(', ') || '(no paths)'}`,
+        file: cwd,
+        dimension: 'structure',
+      },
+    ];
+    return {
+      scoreVersion: 'sqs-v1',
       profile,
+      score: 0,
+      grade: 'F',
+      pass: false,
       threshold,
-      findings: [
-        {
-          rule: 'playwright-score/no-files',
-          severity: 'error',
-          message: 'No Playwright spec files matched the given paths',
-          file: cwd,
-          dimension: 'structure',
-        },
-      ],
-      sloc: 1,
-      files: 0,
-      tests: 0,
-      nativeLocators: 0,
-      rawLocators: 0,
-    });
+      summary: {
+        files: 0,
+        tests: 0,
+        sloc: 0,
+        findings: 1,
+        errors: 1,
+        warnings: 0,
+        nativeLocators: 0,
+        rawLocators: 0,
+      },
+      dimensions: {
+        playwrightHygiene: 0,
+        assertions: 0,
+        locators: 0,
+        structure: 0,
+        ...(profile === 'guardian' ? { guardianConventions: 0 } : {}),
+      },
+      findings,
+    };
   }
 
   const eslintFindings = await runEslint({ files, profile, cwd });

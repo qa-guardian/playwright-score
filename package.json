@@ -1,29 +1,31 @@
 {
-  "name": "playwright-score",
-  "version": "0.1.0",
+  "name": "@qaguardian/playwright-score",
+  "version": "0.1.1",
   "description": "Deterministic, AI-free Playwright spec quality score (sqs-v1). Lint + score with standard and guardian profiles.",
   "type": "module",
-  "main": "./dist/src/index.js",
-  "types": "./dist/src/index.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "bin": {
-    "playwright-score": "./dist/src/cli.js"
+    "playwright-score": "bin/playwright-score.js"
   },
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
-      "import": "./dist/src/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "files": [
-    "dist/src",
+    "bin",
+    "dist",
     "METHODOLOGY.md",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc && node -e \"require('fs').chmodSync('dist/src/cli.js', 0o755)\"",
-    "test": "npm run build && node --test dist/tests/*.js",
-    "score": "npm run build && node dist/src/cli.js",
+    "build": "tsc && node -e \"require('fs').chmodSync('dist/cli.js',0o755); require('fs').chmodSync('bin/playwright-score.js',0o755)\"",
+    "build:tests": "tsc -p tsconfig.tests.json",
+    "test": "npm run build && npm run build:tests && node --test dist-tests/tests/*.js",
+    "score": "npm run build && node bin/playwright-score.js",
     "dogfood": "npm run build && bash scripts/dogfood.sh",
     "prepublishOnly": "npm run build"
   },
@@ -37,6 +39,10 @@
     "e2e"
   ],
   "license": "MIT",
+  "author": "QA Guardian <qag@qaguardian.com> (https://qaguardian.com)",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/qa-guardian/playwright-score.git"

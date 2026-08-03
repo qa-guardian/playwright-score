@@ -1,4 +1,4 @@
-# playwright-score
+# @qaguardian/playwright-score
 
 **Deterministic, AI-free quality score for Playwright specs** (`sqs-v1`).
 
@@ -17,15 +17,18 @@ See [METHODOLOGY.md](./METHODOLOGY.md) for the frozen formula, or the full produ
 ## Install
 
 ```bash
-npm install -D playwright-score
-# or run from this package
-npm install && npm run build
+npm install -D @qaguardian/playwright-score
 ```
+
+Package: [@qaguardian/playwright-score](https://www.npmjs.com/package/@qaguardian/playwright-score) on npm.
 
 ## CLI
 
 ```bash
-npx playwright-score ./tests --profile standard --threshold 80
+# One-shot (scoped package — use -p so the playwright-score binary is resolved)
+npx -p @qaguardian/playwright-score playwright-score ./tests --profile standard --threshold 80
+
+# After local install
 npx playwright-score ./flow.spec.ts --profile guardian --format json --out report.json
 ```
 
@@ -35,13 +38,14 @@ npx playwright-score ./flow.spec.ts --profile guardian --format json --out repor
 | `--threshold <n>` | Pass bar 0–100 |
 | `--format text\|json\|markdown\|sarif` | Output format |
 | `--out <file>` | Write report to file |
+| `--version` | Print version |
 
-**Exit codes:** `0` pass · `1` below threshold · `2` tool error  
+**Exit codes:** `0` pass · `1` below threshold **or no files matched** · `2` tool error  
 
 ## Library
 
 ```ts
-import { scorePaths } from 'playwright-score';
+import { scorePaths } from '@qaguardian/playwright-score';
 
 const result = await scorePaths({
   paths: ['tests/login.spec.ts'],
@@ -56,7 +60,7 @@ console.log(result.score, result.grade, result.pass, result.findings);
 
 ```yaml
 - name: Playwright Spec Score
-  run: npx playwright-score ./tests --profile standard --threshold 80 --format text
+  run: npx -p @qaguardian/playwright-score playwright-score ./tests --profile standard --threshold 80 --format text
 ```
 
 ## QA Guardian integration
