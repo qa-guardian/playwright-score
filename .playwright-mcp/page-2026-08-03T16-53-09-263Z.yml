@@ -1,0 +1,387 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e5]:
+      - link "QA Guardian QA Guardian" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - img "QA Guardian" [ref=e7]
+        - generic [ref=e8]: QA Guardian
+      - navigation [ref=e9]:
+        - link "AI Testing" [ref=e10] [cursor=pointer]:
+          - /url: /ai-testing
+        - link "Product" [ref=e11] [cursor=pointer]:
+          - /url: /product
+        - link "Pricing" [ref=e12] [cursor=pointer]:
+          - /url: /pricing
+        - link "Calculator" [ref=e13] [cursor=pointer]:
+          - /url: /calculator
+        - link "Why Choose Us" [ref=e14] [cursor=pointer]:
+          - /url: /why-choose-us
+      - generic [ref=e15]:
+        - link "Sign in" [ref=e16] [cursor=pointer]:
+          - /url: /login
+        - link "Book a Demo" [ref=e17] [cursor=pointer]:
+          - /url: /demo
+  - main [ref=e18]:
+    - generic [ref=e19]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "Ship with confidence. We manage the QA." [level=1] [ref=e24]:
+            - generic [ref=e25]: Ship with confidence.
+            - generic [ref=e26]: We manage the QA.
+          - paragraph [ref=e27]: Critical-path browser coverage in 30 days. AI drafts Playwright; senior engineers verify. Flat monthly pricing.
+          - generic [ref=e28]:
+            - link "Book a Demo" [ref=e29] [cursor=pointer]:
+              - /url: /demo
+            - link "View Pricing" [ref=e30] [cursor=pointer]:
+              - /url: /pricing
+          - paragraph [ref=e31]: 30-min call · free coverage analysis
+        - generic [ref=e34]:
+          - generic [ref=e35]:
+            - generic [ref=e36]:
+              - generic [ref=e37]: Before every merge
+              - generic [ref=e38]: Critical journeys · real browser · every PR
+            - generic [ref=e39]: Running
+          - generic [ref=e42]:
+            - generic [ref=e43]:
+              - generic [ref=e44]: Login journey
+              - generic [ref=e46]: 0.0s
+            - generic [ref=e47]:
+              - generic [ref=e48]: Checkout journey
+              - generic [ref=e50]: 0.0s
+            - generic [ref=e51]:
+              - generic [ref=e52]: Onboarding journey
+              - generic [ref=e54]: 0.0s
+            - generic [ref=e57]:
+              - generic [ref=e58]: Engineers review every failure
+              - paragraph [ref=e59]: Only real bugs reach you — with video and repro.
+      - generic [ref=e62]:
+        - generic [ref=e63]:
+          - heading "From $3,500/mo" [level=3] [ref=e67]
+          - paragraph [ref=e68]: Published flat rates. Unlimited concurrent runs. No per-test or run overages.
+        - generic [ref=e69]:
+          - heading "Playwright you own" [level=3] [ref=e75]
+          - paragraph [ref=e76]: One-click export anytime. Run anywhere — no proprietary lock-in.
+        - generic [ref=e77]:
+          - heading "AI + senior engineers" [level=3] [ref=e81]
+          - paragraph [ref=e82]: Models draft Playwright. Humans verify before you trust a run.
+        - generic [ref=e83]:
+          - heading "30 day critical path" [level=3] [ref=e87]
+          - paragraph [ref=e88]: Staging access to CI-green journeys — built for speed.
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - paragraph [ref=e92]: The gap
+          - heading "Shipping got faster. QA didn't." [level=2] [ref=e93]
+          - paragraph [ref=e94]: AI tools accelerated product. Regression safety did not keep up. That gap is where production bugs hide.
+        - generic [ref=e95]:
+          - generic [ref=e96]:
+            - generic [ref=e97]: "01"
+            - heading "AI ships 3× more code" [level=3] [ref=e98]
+            - paragraph [ref=e99]: Cursor and copilots sped up product. Your regression net is still last decade.
+          - generic [ref=e100]:
+            - generic [ref=e101]: "02"
+            - heading "Suites rot under you" [level=3] [ref=e102]
+            - paragraph [ref=e103]: Selectors break every redesign. Engineers burn sprints on flakes, not features.
+          - generic [ref=e104]:
+            - generic [ref=e105]: "03"
+            - heading "A hire is slow & expensive" [level=3] [ref=e106]
+            - paragraph [ref=e107]: A loaded SDET is ~$140k+ and months to ramp — while you keep shipping untested.
+      - generic [ref=e110]:
+        - generic [ref=e111]:
+          - paragraph [ref=e112]: How it works
+          - heading "AI writes fast. Engineers keep it real." [level=2] [ref=e113]:
+            - text: AI writes fast.
+            - generic [ref=e114]: Engineers keep it real.
+          - paragraph [ref=e115]: Pure AI is flaky. Pure manual is slow. We combine both — models draft Playwright in minutes; senior QA verifies before anything is trusted in CI.
+          - list [ref=e116]:
+            - listitem [ref=e117]: Apps shipping with Cursor, v0, Bolt, and similar tools
+            - listitem [ref=e121]: Chatbots, AI reports, and other shifting UI
+            - listitem [ref=e125]: Self-healing when the UI moves — engineers confirm what matters
+          - link "AI testing for modern apps" [ref=e129] [cursor=pointer]:
+            - /url: /ai-testing
+        - generic [ref=e131]:
+          - generic [ref=e136]:
+            - heading "AI drafts" [level=3] [ref=e137]
+            - paragraph [ref=e138]: Steps and boilerplate in minutes — not a blank-page sprint.
+          - generic [ref=e143]:
+            - heading "Engineers verify every failure" [level=3] [ref=e144]
+            - paragraph [ref=e145]: Humans separate real bugs from flake. You only get actionable reports.
+          - generic [ref=e152]:
+            - heading "CI keeps running" [level=3] [ref=e153]
+            - paragraph [ref=e154]: Every PR gets real browser coverage. Maintenance included.
+      - generic [ref=e156]:
+        - generic [ref=e157]:
+          - paragraph [ref=e158]: Onboarding
+          - heading "Critical coverage in 30 days" [level=2] [ref=e159]
+          - paragraph [ref=e160]: Process is the proof when you're early — a clear plan, not invented logos.
+        - generic [ref=e161]:
+          - generic [ref=e162]:
+            - generic [ref=e163]: "01"
+            - generic [ref=e164]: Days 1–3
+            - heading "Map what matters" [level=3] [ref=e165]
+            - paragraph [ref=e166]: Staging access, critical journeys, shared Slack. No RFP theater.
+          - generic [ref=e167]:
+            - generic [ref=e168]: "02"
+            - generic [ref=e169]: Days 4–14
+            - heading "AI drafts, engineers harden" [level=3] [ref=e170]
+            - paragraph [ref=e171]: Fast generation. Senior QA reviews selectors, waits, and edge cases.
+          - generic [ref=e172]:
+            - generic [ref=e173]: "03"
+            - generic [ref=e174]: Days 15–21
+            - heading "Green in your CI" [level=3] [ref=e175]
+            - paragraph [ref=e176]: Journeys run on PRs in GitHub Actions, GitLab CI, or your pipeline.
+          - generic [ref=e177]:
+            - generic [ref=e178]: "04"
+            - generic [ref=e179]: Days 22–30
+            - heading "Expand & own it" [level=3] [ref=e180]
+            - paragraph [ref=e181]: More coverage, flake SLA live, exportable suite whenever you want.
+      - generic [ref=e183]:
+        - generic [ref=e184]:
+          - heading "We test what users actually do" [level=2] [ref=e185]
+          - paragraph [ref=e186]: Unit checks can all pass while checkout is broken. We automate full journeys in a real browser.
+        - generic [ref=e187]:
+          - generic [ref=e188]:
+            - generic [ref=e189]: Common trap
+            - heading "100 green checks, broken product" [level=3] [ref=e190]
+            - paragraph [ref=e191]: Buttons render. Forms validate. None of that proves a customer can complete an order.
+            - paragraph [ref=e192]: “I can't complete my order.” — email after a green CI run.
+          - generic [ref=e193]:
+            - generic [ref=e194]: Guardian
+            - heading "One journey, start to finish" [level=3] [ref=e195]
+            - paragraph [ref=e196]: Browse → cart → ship → pay → confirm. If the path works in a real browser, the product works.
+            - paragraph [ref=e197]: "Checkout journey: passed"
+      - generic [ref=e202]:
+        - generic [ref=e203]:
+          - heading "What you get" [level=2] [ref=e204]
+          - paragraph [ref=e205]: One flat subscription — people, platform, runs, and maintenance.
+        - generic [ref=e206]:
+          - generic [ref=e207]:
+            - heading "Dedicated QA partner" [level=3] [ref=e214]
+            - paragraph [ref=e215]: A real person who learns your product.
+          - generic [ref=e216]:
+            - heading "Shared Slack" [level=3] [ref=e220]
+            - paragraph [ref=e221]: Direct line — not a ticket queue.
+          - generic [ref=e222]:
+            - heading "AI draft + human verify" [level=3] [ref=e226]
+            - paragraph [ref=e227]: Speed with judgment.
+          - generic [ref=e228]:
+            - heading "CI on every PR" [level=3] [ref=e234]
+            - paragraph [ref=e235]: Unlimited runs on plan.
+          - generic [ref=e236]:
+            - heading "Engineers review every failure" [level=3] [ref=e240]
+            - paragraph [ref=e241]: Flake-free for your team — real bugs only, with video + repro.
+          - generic [ref=e242]:
+            - heading "Maintenance SLA" [level=3] [ref=e247]
+            - paragraph [ref=e248]: UI shifts are our problem.
+          - generic [ref=e249]:
+            - heading "Portable Playwright" [level=3] [ref=e255]
+            - paragraph [ref=e256]: You own the TypeScript.
+          - generic [ref=e257]:
+            - heading "Staging only" [level=3] [ref=e262]
+            - paragraph [ref=e263]: No source-code access required.
+      - generic [ref=e266]:
+        - generic [ref=e267]:
+          - heading "Your staging URL. Our Playwright." [level=2] [ref=e268]:
+            - text: Your staging URL.
+            - generic [ref=e269]: Our Playwright.
+          - paragraph [ref=e270]: No source code required. We write clean Playwright you own — no proprietary lock-in.
+          - list [ref=e271]:
+            - listitem [ref=e272]:
+              - generic [ref=e276]:
+                - generic [ref=e277]: Staging access only
+                - generic [ref=e278]: Secrets encrypted. Production off by default.
+            - listitem [ref=e279]:
+              - generic [ref=e283]:
+                - generic [ref=e284]: You describe the journey
+                - generic [ref=e285]: “User logs in and buys a hat.” We automate it.
+            - listitem [ref=e286]:
+              - generic [ref=e290]:
+                - generic [ref=e291]: AI drafts · engineers merge
+                - generic [ref=e292]: Fast generation, human review, then CI.
+            - listitem [ref=e293]:
+              - generic [ref=e297]:
+                - generic [ref=e298]: Export anytime
+                - generic [ref=e299]: Standard TypeScript — runs without us.
+        - generic [ref=e301]:
+          - generic [ref=e302]:
+            - generic [ref=e303]: checkout.spec.ts
+            - generic [ref=e304]: TypeScript
+          - generic [ref=e305]: "import { test, expect } from '@playwright/test'; test('Guest checkout', async ({ page }) => { await page.goto('/product/sneakers'); await page.getByRole('button', { name: 'Add' }).click(); await page.goto('/checkout'); await page.getByTestId('shipping-name').fill('Jane'); await expect(page.getByText('Order Confirmed')) .toBeVisible(); });"
+          - generic [ref=e306]: You own this code
+      - generic [ref=e311]:
+        - generic [ref=e312]:
+          - paragraph [ref=e313]: Pricing
+          - heading "Flat rate. No per-test games." [level=2] [ref=e314]
+          - paragraph [ref=e315]: Know the number before sales. Published tiers. No run overages.
+        - generic [ref=e316]:
+          - generic [ref=e317]:
+            - generic [ref=e318]: Starter
+            - generic [ref=e319]: $3,500/mo
+            - paragraph [ref=e320]: Critical-path coverage to ship safely.
+          - generic [ref=e321]:
+            - generic [ref=e322]: Popular
+            - generic [ref=e323]: Pro
+            - generic [ref=e324]: $5,500/mo
+            - paragraph [ref=e325]: Fuller regression confidence for growing apps.
+          - generic [ref=e326]:
+            - generic [ref=e327]: Enterprise
+            - generic [ref=e328]: Custom
+            - paragraph [ref=e329]: Scale, environments, and support depth.
+        - generic [ref=e330]:
+          - link "See full pricing" [ref=e331] [cursor=pointer]:
+            - /url: /pricing
+          - link "Calculate vs hiring" [ref=e332] [cursor=pointer]:
+            - /url: /calculator
+      - generic [ref=e334]:
+        - generic [ref=e335]:
+          - heading "Why teams pick Guardian" [level=2] [ref=e336]
+          - paragraph [ref=e337]: Faster than hiring. Clearer than outsourcing. Less drama than tool-only AI.
+        - generic [ref=e338]:
+          - generic [ref=e339]:
+            - heading "In-House Team" [level=3] [ref=e340]
+            - list [ref=e346]:
+              - listitem [ref=e347]:
+                - generic [ref=e352]:
+                  - strong [ref=e353]: "High Costs:"
+                  - text: ~$140k+ cost per engineer (salary + 1.25× multiplier).
+              - listitem [ref=e354]:
+                - generic [ref=e359]:
+                  - strong [ref=e360]: "Slow Scaling:"
+                  - text: Months to hire and onboard; turnover disrupts coverage.
+              - listitem [ref=e361]:
+                - generic [ref=e366]:
+                  - strong [ref=e367]: "Opportunity Cost:"
+                  - text: Engineering time lost to QA maintenance instead of shipping features.
+              - listitem [ref=e368]:
+                - generic [ref=e373]:
+                  - strong [ref=e374]: "Infrastructure Debt:"
+                  - text: Your team must build and maintain the parallel runner grid.
+          - generic [ref=e375]:
+            - heading "Typical Outsourced QA" [level=3] [ref=e376]
+            - list [ref=e381]:
+              - listitem [ref=e382]:
+                - generic [ref=e387]:
+                  - strong [ref=e388]: "Outdated Pricing:"
+                  - text: Vendors keep AI savings for themselves instead of passing them to you.
+              - listitem [ref=e389]:
+                - generic [ref=e394]:
+                  - strong [ref=e395]: "Inflated test counts:"
+                  - text: Incentivized to split one journey into 10 billable tests.
+              - listitem [ref=e396]:
+                - generic [ref=e401]:
+                  - strong [ref=e402]: "High Maintenance:"
+                  - text: Fragmented tests lead to "flaky test fatigue" and slow releases.
+              - listitem [ref=e403]:
+                - generic [ref=e408]:
+                  - strong [ref=e409]: "Incentive Mismatch:"
+                  - text: Per-test billing rewards volume, not coverage value.
+          - generic [ref=e410]:
+            - generic [ref=e411]: Flat monthly
+            - heading "QA Guardian" [level=3] [ref=e412]
+            - list [ref=e413]:
+              - listitem [ref=e414]: Flat monthly fee (predictable)
+              - listitem [ref=e418]: You own the code. No vendor lock-in.
+              - listitem [ref=e422]: Unlimited parallel runs (built-in)
+              - listitem [ref=e426]: 24hr self-healing SLA
+              - listitem [ref=e430]: Engineers review every failure (flake stays with us)
+              - listitem [ref=e434]:
+                - link "AI + engineer verification" [ref=e438] [cursor=pointer]:
+                  - /url: /features/human-in-the-loop
+            - link "Calculate Savings" [ref=e440] [cursor=pointer]:
+              - /url: /calculator
+        - paragraph [ref=e441]:
+          - link "Full vendor comparisons" [ref=e442] [cursor=pointer]:
+            - /url: /compare
+      - generic [ref=e446]:
+        - heading "Hands-on by design" [level=2] [ref=e453]
+        - paragraph [ref=e454]: You work with a dedicated QA partner who learns your product and stays in Slack. We grow capacity carefully so early customers still get attention — not a call center.
+      - generic [ref=e456]:
+        - heading "Common questions" [level=2] [ref=e457]
+        - generic [ref=e458]:
+          - generic [ref=e459]:
+            - heading "What do I get?" [level=3] [ref=e460]
+            - paragraph [ref=e461]: A dedicated QA partner plus AI-drafted, engineer-verified Playwright coverage against your staging app. CI on your PRs, failure triage with video, maintenance included, and code you own. From $3,500/mo.
+          - generic [ref=e462]:
+            - heading "How fast can we get coverage?" [level=3] [ref=e463]
+            - paragraph [ref=e464]: "Most teams have critical journeys running in CI within about 30 days: access and mapping in week one, AI drafts hardened by engineers in weeks two–three, critical path live and expanding by day 30."
+          - generic [ref=e465]:
+            - heading "How much does it cost?" [level=3] [ref=e466]
+            - paragraph [ref=e467]: Starter $3,500/mo. Pro $5,500/mo. Annual contracts. No per-test or per-run fees.
+          - generic [ref=e468]:
+            - heading "What access do you need?" [level=3] [ref=e469]
+            - paragraph [ref=e470]: A staging URL and test credentials. We do not need your source code. Secrets are encrypted. We do not run against production by default.
+          - generic [ref=e471]:
+            - heading "Do we own the tests if we leave?" [level=3] [ref=e472]
+            - paragraph [ref=e473]: Yes. Coverage is standard Playwright TypeScript. Export and run it independently — no proprietary lock-in.
+        - paragraph [ref=e474]:
+          - text: More on the
+          - link "full FAQ" [ref=e475] [cursor=pointer]:
+            - /url: /faq
+          - text: .
+      - generic [ref=e477]:
+        - heading "See if Guardian fits in 30 minutes" [level=2] [ref=e478]
+        - paragraph [ref=e479]: Book a 30-min call. After we have staging access, we send a free coverage analysis and quote — useful even if you don't sign.
+        - paragraph [ref=e480]: From $3,500/mo · annual · no per-run fees
+        - generic [ref=e481]:
+          - link "Book a Demo" [ref=e482] [cursor=pointer]:
+            - /url: /demo
+          - link "View Pricing" [ref=e483] [cursor=pointer]:
+            - /url: /pricing
+  - contentinfo [ref=e484]:
+    - generic [ref=e486]:
+      - generic [ref=e487]:
+        - generic [ref=e488]:
+          - img "QA Guardian Logo" [ref=e489]
+          - generic [ref=e490]: QA Guardian
+        - paragraph [ref=e491]: Managed E2E testing. AI drafts. Engineers verify. You own the Playwright.
+        - paragraph [ref=e492]: © 2026 QA Guardian. All rights reserved.
+      - generic [ref=e493]:
+        - generic [ref=e494]:
+          - heading "Company" [level=3] [ref=e495]
+          - generic [ref=e496]:
+            - link "About" [ref=e497] [cursor=pointer]:
+              - /url: /about
+            - link "Why Us?" [ref=e498] [cursor=pointer]:
+              - /url: /why-choose-us
+            - link "Security & Trust" [ref=e499] [cursor=pointer]:
+              - /url: /security
+            - link "FAQ" [ref=e500] [cursor=pointer]:
+              - /url: /faq
+            - link "Contact" [ref=e501] [cursor=pointer]:
+              - /url: /contact
+        - generic [ref=e502]:
+          - heading "Product" [level=3] [ref=e503]
+          - generic [ref=e504]:
+            - link "AI Testing" [ref=e505] [cursor=pointer]:
+              - /url: /ai-testing
+            - link "Features" [ref=e506] [cursor=pointer]:
+              - /url: /features
+            - link "Flow-Based Coverage" [ref=e507] [cursor=pointer]:
+              - /url: /features/flow-based-coverage
+            - link "Human-in-the-Loop QA" [ref=e508] [cursor=pointer]:
+              - /url: /features/human-in-the-loop
+            - link "Playwright Infrastructure" [ref=e509] [cursor=pointer]:
+              - /url: /features/playwright-runner-infrastructure
+        - generic [ref=e510]:
+          - heading "Resources" [level=3] [ref=e511]
+          - generic [ref=e512]:
+            - link "Compare" [ref=e513] [cursor=pointer]:
+              - /url: /compare
+            - link "Blog" [ref=e514] [cursor=pointer]:
+              - /url: /blog
+            - link "Learn" [ref=e515] [cursor=pointer]:
+              - /url: /learn
+            - link "Solutions" [ref=e516] [cursor=pointer]:
+              - /url: /solutions
+            - link "Docs" [ref=e517] [cursor=pointer]:
+              - /url: /docs
+            - link "Open Source" [ref=e518] [cursor=pointer]:
+              - /url: /open-source
+            - link "playwright-score" [ref=e519] [cursor=pointer]:
+              - /url: /open-source/playwright-score
+        - generic [ref=e520]:
+          - heading "Legal" [level=3] [ref=e521]
+          - generic [ref=e522]:
+            - link "Privacy Policy" [ref=e523] [cursor=pointer]:
+              - /url: /privacy
+            - link "Terms of Service" [ref=e524] [cursor=pointer]:
+              - /url: /terms
