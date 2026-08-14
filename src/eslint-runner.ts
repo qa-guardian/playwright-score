@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { ESLint } from 'eslint';
+import { commonAncestorDir } from './fs-util.js';
 import type { Linter } from 'eslint';
 import playwright from 'eslint-plugin-playwright';
 import {
@@ -83,7 +84,18 @@ export async function runEslint(options: {
   profile: ProfileName;
   cwd?: string;
 }): Promise<Finding[]> {
-  const cwd = options.cwd ?? process.cwd();
+  // ESLint 9 flat config resolves a `basePath` from `cwd` and silently
+  // drops (as an untracked, ruleId-less message) any file that isn't
+  // underneath it — no error, no findings, just a quietly clean score.
+  // The caller's cwd (e.g. a runner process's install dir) has no reason
+  // to contain the spec files being scored, so it can never be trusted
+  // as the ESLint basePath. Derive a basePath that is guaranteed to
+  // contain every file instead; fall back to the caller's cwd only when
+  // there are no files (nothing to lint anyway).
+  const cwd =
+    options.files.length > 0
+      ? commonAncestorDir(options.files)
+      : (options.cwd ?? process.cwd());
   const overrideConfig = buildConfig(options.profile);
 
   // Try to attach typescript-eslint parser for .ts files

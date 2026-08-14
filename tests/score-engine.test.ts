@@ -10,6 +10,8 @@ import {
 } from '../src/score-engine.js';
 import type { Finding } from '../src/types.js';
 import { countSloc } from '../src/sloc.js';
+import { commonAncestorDir } from '../src/fs-util.js';
+import path from 'node:path';
 
 describe('sqs-v1 constants', () => {
   it('exposes frozen version and constants', () => {
@@ -154,5 +156,29 @@ describe('computeScore clean', () => {
     const a = computeScore(input);
     const b = computeScore(input);
     assert.deepEqual(a, b);
+  });
+});
+
+describe('commonAncestorDir', () => {
+  it('returns the dirname for a single file', () => {
+    const result = commonAncestorDir(['/repo/tests/a.spec.ts']);
+    assert.equal(result, path.resolve('/repo/tests'));
+  });
+
+  it('finds the shared parent across sibling directories', () => {
+    const result = commonAncestorDir([
+      '/repo/tests/a/one.spec.ts',
+      '/repo/tests/b/two.spec.ts',
+    ]);
+    assert.equal(result, path.resolve('/repo/tests'));
+  });
+
+  it('does not falsely match on a partial directory-name prefix', () => {
+    // /repo/tests-extra must not be treated as under /repo/tests
+    const result = commonAncestorDir([
+      '/repo/tests/one.spec.ts',
+      '/repo/tests-extra/two.spec.ts',
+    ]);
+    assert.equal(result, path.resolve('/repo'));
   });
 });

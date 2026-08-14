@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scorePaths } from '../src/index.js';
@@ -100,6 +101,28 @@ describe('scorePaths integration', () => {
     assert.equal(a.score, b.score);
     assert.equal(a.summary.findings, b.summary.findings);
     assert.deepEqual(a.dimensions, b.dimensions);
+  });
+
+  it('finds ESLint issues even when caller cwd is unrelated to the file (regression: basePath bug)', async () => {
+    // Real-world shape of the bug this guards: a host process (e.g. the
+    // Guardian runner) calls scorePaths with its own install dir as cwd,
+    // which has nothing to do with where the spec file lives. ESLint 9
+    // flat config silently drops files outside its basePath (derived from
+    // cwd) with no visible error — score looked "clean" for every file,
+    // 100% of the time, regardless of real content.
+    const file = path.join(fixtures, 'bad-waits.spec.ts');
+    const unrelatedCwd = os.tmpdir();
+    const result = await scorePaths({
+      paths: [file],
+      profile: 'standard',
+      threshold: 80,
+      cwd: unrelatedCwd,
+    });
+    assert.ok(
+      result.findings.some((f) => f.rule.includes('wait-for-timeout') || f.rule.includes('force')),
+      `expected wait/force findings even with unrelated cwd, got: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+    assert.ok(result.score < 100);
   });
 
   it('no matching files hard-fails with score 0', async () => {
