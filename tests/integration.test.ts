@@ -81,6 +81,71 @@ describe('scorePaths integration', () => {
     );
   });
 
+  it('guardian flags hardcoded secrets', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'bad-guardian-hardcoded-secret.spec.ts')],
+      profile: 'guardian',
+      threshold: 75,
+      cwd: root,
+    });
+    assert.ok(
+      result.findings.some((f) => f.rule === 'guardian/no-hardcoded-secrets'),
+      `expected hardcoded-secrets rule: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+  });
+
+  it('guardian flags non-standard timeout values', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'bad-guardian-long-timeout.spec.ts')],
+      profile: 'guardian',
+      threshold: 75,
+      cwd: root,
+    });
+    assert.ok(
+      result.findings.some((f) => f.rule === 'guardian/no-generic-long-timeout'),
+      `expected long-timeout rule: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+  });
+
+  it('guardian flags more than one describe/test per file', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'bad-guardian-multi-describe.spec.ts')],
+      profile: 'guardian',
+      threshold: 75,
+      cwd: root,
+    });
+    assert.ok(
+      result.findings.some((f) => f.rule === 'guardian/one-describe-one-test'),
+      `expected one-describe-one-test rule: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+  });
+
+  it('guardian suggests test.step when missing', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'bad-guardian-no-test-step.spec.ts')],
+      profile: 'guardian',
+      threshold: 75,
+      cwd: root,
+    });
+    assert.ok(
+      result.findings.some((f) => f.rule === 'guardian/require-test-step'),
+      `expected require-test-step rule: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+  });
+
+  it('guardian flags waitForLoadState', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'bad-guardian-wait-for-load-state.spec.ts')],
+      profile: 'guardian',
+      threshold: 75,
+      cwd: root,
+    });
+    assert.ok(
+      result.findings.some((f) => f.rule === 'guardian/no-wait-for-load-state'),
+      `expected no-wait-for-load-state rule: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+  });
+
   it('locator ratio is low for raw-heavy file', async () => {
     const result = await scorePaths({
       paths: [path.join(fixtures, 'bad-raw-locators.spec.ts')],

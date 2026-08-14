@@ -1,5 +1,9 @@
 # @qaguardian/playwright-score
 
+[![CI](https://github.com/qa-guardian/playwright-score/actions/workflows/ci.yml/badge.svg)](https://github.com/qa-guardian/playwright-score/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/@qaguardian/playwright-score.svg)](https://www.npmjs.com/package/@qaguardian/playwright-score)
+[![license](https://img.shields.io/npm/l/@qaguardian/playwright-score.svg)](./LICENSE)
+
 **Deterministic, AI-free quality score for Playwright specs** (`sqs-v1`).
 
 **Website:** [qaguardian.com/open-source/playwright-score](https://qaguardian.com/open-source/playwright-score)  

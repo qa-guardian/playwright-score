@@ -1,14 +1,71 @@
+import { parseForESLint } from '@typescript-eslint/parser';
 import type { Finding, LocatorCounts } from './types.js';
 import { countSloc } from './sloc.js';
 
-const NATIVE_RE =
-  /\.\s*getBy(?:Role|Label|TestId|Text|Placeholder)\s*\(/g;
-const RAW_RE = /(?:page|frame)\s*\.\s*locator\s*\(/g;
+const NATIVE_METHODS = new Set([
+  'getByRole',
+  'getByLabel',
+  'getByTestId',
+  'getByText',
+  'getByPlaceholder',
+]);
 
-/** Count native vs raw locator calls (simple statistical). */
+/**
+ * Generic ESTree walk (no visitor-keys dependency). `parent` is excluded so
+ * this stays a walk over a DAG even if a parent back-reference is ever
+ * attached to the tree upstream.
+ */
+function walk(node: unknown, visit: (node: Record<string, unknown>) => void): void {
+  if (!node || typeof node !== 'object') return;
+  if (Array.isArray(node)) {
+    for (const item of node) walk(item, visit);
+    return;
+  }
+  const obj = node as Record<string, unknown>;
+  if (typeof obj.type === 'string') visit(obj);
+  for (const key in obj) {
+    if (key === 'parent') continue;
+    walk(obj[key], visit);
+  }
+}
+
+/**
+ * Count native vs raw locator calls via the same AST the ESLint pass
+ * already parses (rather than a regex), so this ratio can't silently
+ * disagree with `no-raw-locators` findings. A regex anchored to literal
+ * `page`/`frame` receivers misses raw locators on any other receiver —
+ * e.g. `this.container.locator(...)` in a Page Object Model, or a second
+ * `.locator()` chained off a prior locator call — both common in
+ * real-world (and AI-generated) specs.
+ */
 export function countLocators(source: string): LocatorCounts {
-  const native = [...source.matchAll(NATIVE_RE)].length;
-  const raw = [...source.matchAll(RAW_RE)].length;
+  let native = 0;
+  let raw = 0;
+  let ast: unknown;
+  try {
+    ast = parseForESLint(source, {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+    }).ast;
+  } catch {
+    // Unparseable source: ESLint's own lint pass over the same file will
+    // surface the real parse error as a finding; report zero locators here.
+    return { native, raw };
+  }
+  walk(ast, (node) => {
+    if (
+      node.type !== 'CallExpression' ||
+      (node as { callee?: Record<string, unknown> }).callee?.type !== 'MemberExpression'
+    ) {
+      return;
+    }
+    const callee = (node as { callee: Record<string, unknown> }).callee;
+    if (callee.computed) return;
+    const property = callee.property as { type?: string; name?: string } | undefined;
+    if (property?.type !== 'Identifier') return;
+    if (NATIVE_METHODS.has(property.name ?? '')) native++;
+    else if (property.name === 'locator') raw++;
+  });
   return { native, raw };
 }
 

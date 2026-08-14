@@ -46,7 +46,7 @@ async function main(): Promise<void> {
       const pkg = require('../package.json') as { version?: string };
       console.log(pkg.version ?? '0.0.0');
     } catch {
-      console.log('0.1.1');
+      console.log('0.1.3');
     }
     process.exit(0);
   }

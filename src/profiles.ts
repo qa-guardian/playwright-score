@@ -120,15 +120,6 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
     dimension: 'guardianConventions',
     severityOverride: 'warning',
   },
-  'guardian/prefer-uuid': {
-    dimension: 'guardianConventions',
-    severityOverride: 'warning',
-  },
-  'guardian/fixtures-import': {
-    dimension: 'guardianConventions',
-    severityOverride: 'info',
-    reportOnly: true,
-  },
 
   // Metrics injected as synthetic findings
   'metrics/no-empty-test': { dimension: 'assertions' },

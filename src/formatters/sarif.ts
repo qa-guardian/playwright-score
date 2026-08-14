@@ -21,7 +21,7 @@ export function formatSarif(result: ScoreResult): string {
         tool: {
           driver: {
             name: 'playwright-score',
-            informationUri: 'https://github.com/qaguardian/playwright-score',
+            informationUri: 'https://github.com/qa-guardian/playwright-score',
             version: result.scoreVersion,
             rules: [...rulesMap.values()],
           },

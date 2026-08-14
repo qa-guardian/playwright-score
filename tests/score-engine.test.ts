@@ -11,6 +11,7 @@ import {
 import type { Finding } from '../src/types.js';
 import { countSloc } from '../src/sloc.js';
 import { commonAncestorDir } from '../src/fs-util.js';
+import { countLocators } from '../src/metrics.js';
 import path from 'node:path';
 
 describe('sqs-v1 constants', () => {
@@ -180,5 +181,40 @@ describe('commonAncestorDir', () => {
       '/repo/tests-extra/two.spec.ts',
     ]);
     assert.equal(result, path.resolve('/repo'));
+  });
+});
+
+describe('countLocators (AST-based)', () => {
+  it('counts raw locators regardless of receiver (regression: regex only matched literal page/frame)', () => {
+    const source = `
+      class MyPage {
+        get container() { return this.page.locator('.container'); }
+        async submit() {
+          const cell = this.container.locator('.row').locator('.cell');
+          await cell.click();
+        }
+      }
+    `;
+    // this.page.locator(...) + this.container.locator(...) + chained .locator(...)
+    const result = countLocators(source);
+    assert.equal(result.raw, 3, `expected 3 raw locators, got ${result.raw}`);
+    assert.equal(result.native, 0);
+  });
+
+  it('counts native locator methods regardless of receiver', () => {
+    const source = `
+      test('x', async ({ page }) => {
+        await this.helper.getByRole('button').click();
+        await page.getByLabel('name').fill('x');
+      });
+    `;
+    const result = countLocators(source);
+    assert.equal(result.native, 2);
+    assert.equal(result.raw, 0);
+  });
+
+  it('returns zero counts (not a throw) for unparseable source', () => {
+    const result = countLocators('this is not { valid js (((');
+    assert.deepEqual(result, { native: 0, raw: 0 });
   });
 });

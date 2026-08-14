@@ -6,3 +6,5 @@ dist-tests/
 .DS_Store
 report.json
 *.tsbuildinfo
+.playwright-mcp/
+*.png

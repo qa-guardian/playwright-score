@@ -130,7 +130,8 @@ export async function runEslint(options: {
   const findings: Finding[] = [];
 
   for (const result of results) {
-    const file = path.resolve(result.filePath);
+    const absFile = path.resolve(result.filePath);
+    const file = path.relative(cwd, absFile) || path.basename(absFile);
     for (const msg of result.messages) {
       if (!msg.ruleId) continue;
       const mapping = mapRule(msg.ruleId);
