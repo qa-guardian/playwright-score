@@ -334,6 +334,31 @@ describe('scorePaths integration', () => {
     assert.deepEqual(a.dimensions, b.dimensions);
   });
 
+  it('directory scan excludes node_modules/dist/build/etc by default (regression: real bug scanning a project root swept in a vendored dependency spec)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-vendored-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'e2e'));
+      fs.mkdirSync(path.join(dir, 'node_modules', 'some-pkg', 'test'), { recursive: true });
+      fs.mkdirSync(path.join(dir, 'dist'), { recursive: true });
+      const realSpec = `import { test, expect } from '@playwright/test';\ntest('real', async ({ page }) => {\n  await page.goto('/');\n  await expect(page.getByRole('heading')).toBeVisible();\n});\n`;
+      fs.writeFileSync(path.join(dir, 'e2e', 'real.spec.ts'), realSpec);
+      fs.writeFileSync(
+        path.join(dir, 'node_modules', 'some-pkg', 'test', 'vendored.spec.ts'),
+        realSpec
+      );
+      fs.writeFileSync(path.join(dir, 'dist', 'built.spec.ts'), realSpec);
+
+      const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
+      assert.equal(
+        result.summary.files,
+        1,
+        `expected only the real spec, got ${result.summary.files}`
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('directory scan skips non-Playwright test files but explicit paths are always scored (regression: mixed Jest/Vitest monorepo)', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-mixed-'));
     try {

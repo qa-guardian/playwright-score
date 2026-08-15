@@ -5,6 +5,21 @@ methodology itself (`sqs-v1`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.m
 Any change to formulas, weights, or constants requires a new score version
 (`sqs-v2`), not a patch release.
 
+## 0.1.8 — 2026-08-15
+
+### Fixed
+- **Directory/glob scanning did not exclude `node_modules` (or `dist`,
+  `build`, `.next`, `coverage`, and similar vendored/generated
+  directories).** Verified as a real bug: running the CLI against a
+  project root that has any dependency shipping its own `*.spec.ts`/
+  `*.test.ts` files silently swept those in alongside real specs. Every
+  comparable tool in this space (ESLint, Prettier, Jest) default-excludes
+  these directories for the same reason. Re-verified against a real
+  823MB `node_modules` containing 385 spec-like files: now correctly
+  excluded, and fast (glob itself skips traversing into the ignored
+  directories, not just filtering results afterward). An explicit file
+  path always bypasses this, same as the non-Playwright-test filter.
+
 ## 0.1.7 — 2026-08-15
 
 Deeper real-world validation: ~10 more single-file pulls (API-only specs,

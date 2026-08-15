@@ -23,6 +23,29 @@ export { formatSarif } from './formatters/sarif.js';
 
 const SPEC_GLOBS = ['**/*.{spec,test}.{ts,tsx,js,jsx}', '**/*.spec.ts', '**/*.test.ts'];
 
+// Directory/glob expansion must never sweep in vendored or generated code —
+// verified as a real bug: scanning a project root with a plain node_modules
+// dependency that ships its own *.spec.ts files silently included them
+// alongside real specs. Every other JS tool in this space (ESLint,
+// Prettier, Jest) default-excludes these directories for the same reason;
+// an explicit file path always bypasses this (see `explicit` in
+// expandPaths), so this only affects auto-discovery.
+const DEFAULT_IGNORE_GLOBS = [
+  '**/node_modules/**',
+  '**/.git/**',
+  '**/dist/**',
+  '**/build/**',
+  '**/out/**',
+  '**/coverage/**',
+  '**/.next/**',
+  '**/.nuxt/**',
+  '**/.turbo/**',
+  '**/.cache/**',
+  '**/.svelte-kit/**',
+  '**/playwright-report/**',
+  '**/test-results/**',
+];
+
 /**
  * `explicit`: paths the caller named directly (a literal existing file) —
  * always scored, regardless of whether they look like a Playwright spec.
@@ -45,14 +68,24 @@ function expandPaths(
     }
     if (fs.existsSync(abs) && fs.statSync(abs).isDirectory()) {
       for (const g of SPEC_GLOBS) {
-        for (const f of globSync(g, { cwd: abs, absolute: true, nodir: true })) {
+        for (const f of globSync(g, {
+          cwd: abs,
+          absolute: true,
+          nodir: true,
+          ignore: DEFAULT_IGNORE_GLOBS,
+        })) {
           expanded.add(path.resolve(f));
         }
       }
       continue;
     }
     // treat as glob
-    for (const f of globSync(input, { cwd, absolute: true, nodir: true })) {
+    for (const f of globSync(input, {
+      cwd,
+      absolute: true,
+      nodir: true,
+      ignore: DEFAULT_IGNORE_GLOBS,
+    })) {
       expanded.add(path.resolve(f));
     }
   }
