@@ -120,30 +120,6 @@ export function countTests(source: string): number {
   return count;
 }
 
-/**
- * Detect test callbacks that appear to have zero expect( calls.
- * Heuristic: for each test( ... async (...) => { body }, check body for expect.
- */
-export function findEmptyExpectTests(
-  source: string,
-  file: string
-): Finding[] {
-  const findings: Finding[] = [];
-  // Rough scan: if file has test( but no expect( at all
-  const hasTest = /\btest(?:\.(?:only|skip|fixme|slow))?\s*\(/.test(source);
-  const hasExpect = /\bexpect\s*\(/.test(source);
-  if (hasTest && !hasExpect) {
-    findings.push({
-      rule: 'metrics/no-empty-test',
-      severity: 'error',
-      message: 'Test file has test() but no expect() assertions',
-      file,
-      dimension: 'assertions',
-    });
-  }
-  return findings;
-}
-
 export function findOversizedFile(
   source: string,
   file: string,
@@ -169,9 +145,15 @@ export function analyzeSource(source: string, file: string) {
     sloc: countSloc(source),
     tests: countTests(source),
     locators: countLocators(source, file),
-    findings: [
-      ...findEmptyExpectTests(source, file),
-      ...findOversizedFile(source, file),
-    ],
+    // No homegrown "has no assertions" check here: playwright/expect-expect
+    // (a real AST-based community rule, always enabled — see
+    // eslint-runner.ts) already covers this correctly, including
+    // expect.poll(...)/expect.soft(...) chained forms that a source-text
+    // regex would need to special-case. A prior regex-based version of
+    // this check (metrics/no-empty-test) only matched a bare `expect(`
+    // call and so false-positived at error severity on any file whose only
+    // assertions were expect.poll()/expect.soft() — verified against real
+    // production code.
+    findings: [...findOversizedFile(source, file)],
   };
 }

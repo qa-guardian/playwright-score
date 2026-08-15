@@ -68,6 +68,75 @@ describe('scorePaths integration', () => {
     );
   });
 
+  it('does not flag expect.poll() as a missing assertion (regression: real-world false positive found scoring web-facing code)', async () => {
+    // A prior source-text-regex assertion check only matched a bare
+    // `expect(` call and false-positived at error severity on files whose
+    // only assertion was expect.poll()/expect.soft() — verified against a
+    // real production file. That check has been removed; the AST-based
+    // community playwright/expect-expect rule (already active) covers
+    // this correctly on its own.
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'good-standard-poll-assertion.spec.ts')],
+      profile: 'standard',
+      threshold: 80,
+      cwd: root,
+    });
+    assert.equal(result.score, 100, `expected 100, got ${result.score}: ${JSON.stringify(result.findings)}`);
+    assert.equal(result.findings.length, 0);
+  });
+
+  it('does not flag Playwright\'s documented conditional test.skip(condition, reason) (regression: real-world false positive)', async () => {
+    // Verified against a real production file: eslint-plugin-playwright's
+    // no-skipped-test flags this identically to an always-skipped test
+    // declaration, even though playwright.dev documents this as the
+    // correct way to conditionally skip a test at runtime.
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'good-standard-conditional-skip.spec.ts')],
+      profile: 'standard',
+      threshold: 80,
+      cwd: root,
+    });
+    assert.ok(
+      !result.findings.some((f) => f.rule.includes('skipped-test')),
+      `expected no skip-related finding: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+  });
+
+  it('still flags a real always-skipped test declaration', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'bad-standard-blanket-skip.spec.ts')],
+      profile: 'standard',
+      threshold: 80,
+      cwd: root,
+    });
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-skipped-test-declaration'),
+      `expected pwscore/no-skipped-test-declaration: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+  });
+
+  it('drops noise from eslint-disable comments referencing rules we do not bundle (regression: real-world confusing non-finding)', async () => {
+    // // eslint-disable-next-line @typescript-eslint/no-unused-vars is
+    // extremely common in real TypeScript code; we only bundle the
+    // @typescript-eslint parser, not its rules, so ESLint reports
+    // "Definition for rule ... was not found" — a diagnostic about our own
+    // rule coverage, not the spec's quality. Verified against a real file.
+    const source = `import { test, expect } from '@playwright/test';\n\ntest('x', async ({\n  // eslint-disable-next-line @typescript-eslint/no-unused-vars\n  page,\n}) => {\n  expect(1).toBe(1);\n});\n`;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-disable-noise-'));
+    try {
+      const file = path.join(dir, 'noise.spec.ts');
+      fs.writeFileSync(file, source);
+      const result = await scorePaths({ paths: [file], profile: 'standard', cwd: dir });
+      assert.equal(
+        result.findings.length,
+        0,
+        `expected no findings: ${JSON.stringify(result.findings)}`
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('guardian flags Date.now', async () => {
     const result = await scorePaths({
       paths: [path.join(fixtures, 'bad-guardian-date-now.spec.ts')],

@@ -5,6 +5,48 @@ methodology itself (`sqs-v1`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.m
 Any change to formulas, weights, or constants requires a new score version
 (`sqs-v2`), not a patch release.
 
+## 0.1.5 — 2026-08-15
+
+Validated against ~16 real-world Playwright spec files pulled from public
+GitHub repos (react-joyride, openmrs, rancher-desktop, stylelint-demo,
+Microsoft's own Playwright test suite, and others) plus the sample suites
+already dogfooded internally, in addition to unit/integration coverage.
+Found and fixed three more real false positives this surfaced:
+
+### Fixed
+- **`expect.poll()`/`expect.soft()` assertions weren't recognized as
+  assertions at all.** A source-text-regex check (`metrics/no-empty-test`)
+  only matched a bare `expect(` call, so any file whose only assertion
+  used the poll/soft chained form was flagged at **error** severity as
+  having no assertions — on a real file that unambiguously polls until a
+  condition is true. The AST-based community `playwright/expect-expect`
+  rule (already active) handles this correctly on its own, so the
+  redundant, buggy regex check has been removed rather than patched
+  further.
+- **Playwright's own documented conditional `test.skip(condition, reason)`
+  was flagged identically to an always-skipped test declaration.**
+  `eslint-plugin-playwright`'s `no-skipped-test` doesn't distinguish
+  `test.skip('name', fn)` (a test that never runs — worth flagging) from
+  `test.skip(browserName === 'webkit', 'reason')` (Playwright's documented
+  API for conditionally skipping at runtime — playwright.dev/docs/test-annotations#conditionally-skip-a-test).
+  Verified against a real cross-browser test file where this generated
+  five warnings on entirely idiomatic code. Replaced with
+  `pwscore/no-skipped-test-declaration`, which tells the two apart by
+  whether the trailing argument is a function (a declaration always
+  supplies one; a conditional skip's second argument, if any, is the
+  reason string) — same severity for the real anti-pattern, none for the
+  documented one.
+- **`// eslint-disable-next-line @typescript-eslint/no-unused-vars` (and
+  any other disable comment referencing a rule we don't bundle) produced a
+  confusing non-finding.** We only embed `@typescript-eslint`'s *parser*,
+  not its rule set, so ESLint reports "Definition for rule '...' was not
+  found" for any disable directive targeting one of its rules — a
+  diagnostic about our own rule coverage, not the spec's quality. This
+  pattern is extremely common in real TypeScript code (any repo that also
+  lints with `@typescript-eslint`, react-hooks, import, etc.). These
+  messages are now dropped entirely instead of appearing as a report-only
+  finding.
+
 ## 0.1.4 — 2026-08-15
 
 Comprehensive correctness/hardening pass ahead of public launch.

@@ -7,6 +7,7 @@ import {
   guardianPlugin,
   guardianRuleConfigs,
 } from './rules/guardian-plugin.js';
+import { basePlugin } from './rules/base-plugin.js';
 import { mapRule } from './profiles.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
@@ -25,6 +26,7 @@ function buildConfig(profile: ProfileName): Linter.Config[] {
       },
       plugins: {
         playwright,
+        pwscore: basePlugin,
         ...(profile === 'guardian' ? { guardian: guardianPlugin } : {}),
       },
       rules: {
@@ -45,7 +47,15 @@ function buildConfig(profile: ProfileName): Linter.Config[] {
         'playwright/missing-playwright-await': 'error',
         'playwright/expect-expect': 'error',
         'playwright/no-focused-test': 'error',
-        'playwright/no-skipped-test': 'warn',
+        // Upstream flags every test.skip(...) form identically, including
+        // Playwright's own documented conditional runtime skip
+        // (test.skip(condition, reason)) — a false positive on entirely
+        // idiomatic cross-browser test code, verified against real-world
+        // suites. pwscore/no-skipped-test-declaration (below) replaces it
+        // with the same severity for the actual anti-pattern (an
+        // always-skipped test declaration) only.
+        'playwright/no-skipped-test': 'off',
+        'pwscore/no-skipped-test-declaration': 'warn',
         'playwright/no-raw-locators': 'warn',
         // Matches eslint-plugin-playwright's own recommended severity.
         'playwright/prefer-web-first-assertions': 'error',
@@ -142,6 +152,19 @@ export async function runEslint(options: {
     const absFile = path.resolve(result.filePath);
     const file = path.relative(cwd, absFile) || path.basename(absFile);
     for (const msg of result.messages) {
+      // A `// eslint-disable-next-line some/rule-we-dont-bundle` comment is
+      // extremely common in real-world code (any host project that lints
+      // with plugins we don't embed, e.g. react-hooks, import, sonarjs, or
+      // even @typescript-eslint's own rules — we only bundle its parser,
+      // not its rule set). ESLint reports these with a fixed message
+      // regardless of reportUnusedDisableDirectives config, since it can't
+      // even validate a rule id it has no definition for. This is a
+      // diagnostic about *our* rule coverage, not the spec's quality —
+      // surfacing it as a finding (even report-only) is pure confusion,
+      // not signal.
+      if (/^Definition for rule '.*' was not found\.$/.test(msg.message)) {
+        continue;
+      }
       if (msg.fatal) {
         // A file that doesn't parse can't be meaningfully scored at all —
         // surface it explicitly rather than silently dropping it (it has

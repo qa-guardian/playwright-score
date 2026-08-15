@@ -86,10 +86,10 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
 
   // Structure
   'playwright/no-focused-test': { dimension: 'structure' },
-  'playwright/no-skipped-test': {
-    dimension: 'structure',
-    severityOverride: 'warning',
-  },
+  // playwright/no-skipped-test is turned off in eslint-runner.ts in favor
+  // of pwscore/no-skipped-test-declaration, which doesn't false-positive
+  // on Playwright's documented conditional test.skip(condition, reason).
+  'pwscore/no-skipped-test-declaration': { dimension: 'structure' },
   'playwright/max-nested-describe': {
     dimension: 'structure',
     severityOverride: 'warning',
@@ -121,7 +121,6 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
   },
 
   // Metrics injected as synthetic findings
-  'metrics/no-empty-test': { dimension: 'assertions' },
   'metrics/oversized-file': {
     dimension: 'structure',
     severityOverride: 'warning',
