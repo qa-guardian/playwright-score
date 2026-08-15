@@ -30,6 +30,13 @@ Any change to formulas, weights, or constants requires a new score version
   workflow `publish.yml`) and npm CLI ≥11.5.1 / Node ≥22.14.0 in the runner
   (both satisfied by `actions/setup-node@v4` with `node-version: '22'`).
 
+## 0.1.10 — 2026-08-15
+
+### Chore
+- No functional change. Version bump to verify the new CI auto-publish
+  pipeline (`.github/workflows/publish.yml`, Trusted Publisher/OIDC) works
+  end-to-end against the real npm registry.
+
 ## 0.1.9 — 2026-08-15
 
 ### Fixed
