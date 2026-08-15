@@ -25,6 +25,12 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
+      # actions/setup-node's cached Node 22 build bundles an older npm
+      # (seen: 10.9.8) that predates trusted-publisher support and silently
+      # falls back to unauthenticated publish (npm then reports a
+      # confusing 404 instead of a real auth error). Force a recent npm.
+      - run: npm install -g npm@latest
+
       - run: npm ci
 
       - run: npm test
