@@ -312,6 +312,31 @@ describe('scorePaths integration', () => {
     );
   });
 
+  it('flags legacy page.click(selector)/page.type(selector, ...) as raw locator usage (regression: undetected classic anti-pattern)', async () => {
+    // page.click('#foo') is Playwright's older direct-action API taking a
+    // raw selector string — arguably the single most common raw-selector
+    // anti-pattern in naive/AI-generated code. Verified as undetected by
+    // both playwright/prefer-locator (mapped in profiles.ts but never
+    // actually enabled — completely inert) and our own locator-ratio
+    // counter (which only recognized .locator(...) and getBy*(...)): a
+    // realistic sample using nothing else scored a perfect 100 on the
+    // locators dimension before this fix.
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'bad-legacy-selector-actions.spec.ts')],
+      profile: 'standard',
+      threshold: 80,
+      cwd: root,
+    });
+    assert.ok(
+      result.dimensions.locators <= 40,
+      `expected low locator ratio score, got ${result.dimensions.locators}`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'playwright/prefer-locator'),
+      `expected playwright/prefer-locator finding: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+  });
+
   it('locator ratio is low for raw-heavy file', async () => {
     const result = await scorePaths({
       paths: [path.join(fixtures, 'bad-raw-locators.spec.ts')],

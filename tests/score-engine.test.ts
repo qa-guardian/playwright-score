@@ -236,6 +236,29 @@ describe('countLocators (AST-based)', () => {
     const result = countLocators(source, 'Counter.spec.tsx');
     assert.equal(result.native, 1, `expected 1 native locator, got ${result.native}`);
   });
+
+  it('counts legacy page.click(selector)-style calls as raw (regression: classic anti-pattern was invisible to the ratio)', () => {
+    const source = `
+      page.click('#foo');
+      page.dblclick('#bar');
+      page.hover('#baz');
+      page.check('#qux');
+      page.uncheck('#quux');
+      page.tap('#corge');
+      page.focus('#grault');
+    `;
+    assert.equal(countLocators(source).raw, 7);
+  });
+
+  it('does not count locator.click()/locator.fill(value) (no selector argument) as raw', () => {
+    const source = `
+      await locator.click();
+      await locator.fill('some value');
+      await locator.click({ force: true });
+    `;
+    const result = countLocators(source);
+    assert.equal(result.raw, 0, `expected 0 raw, got ${result.raw}`);
+  });
 });
 
 describe('looksLikeNonPlaywrightTest', () => {

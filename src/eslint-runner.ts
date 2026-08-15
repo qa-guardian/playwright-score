@@ -85,6 +85,18 @@ function buildConfig(profile: ProfileName, assertFunctionNames: string[]): Linte
         'playwright/no-skipped-test': 'off',
         'pwscore/no-skipped-test-declaration': 'warn',
         'playwright/no-raw-locators': 'warn',
+        // Both were mapped in profiles.ts (report-only, so they don't
+        // double-penalize the ratio-based locators dimension) but never
+        // actually enabled anywhere — completely inert. prefer-locator
+        // specifically catches Playwright's older direct-action API
+        // (page.click('#foo') instead of a locator or native locator),
+        // arguably the single most common raw-selector anti-pattern in
+        // naive/AI-generated code — verified against a realistic sample
+        // that scored a perfect 100 on the locators dimension despite
+        // using nothing but page.click(selector)/page.type(selector, ...)
+        // throughout, before this fix.
+        'playwright/prefer-locator': 'warn',
+        'playwright/prefer-native-locators': 'warn',
         // Matches eslint-plugin-playwright's own recommended severity.
         'playwright/prefer-web-first-assertions': 'error',
         ...(profile === 'guardian' ? { ...guardianRuleConfigs } : {}),

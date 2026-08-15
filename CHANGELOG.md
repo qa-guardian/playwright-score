@@ -5,6 +5,27 @@ methodology itself (`sqs-v1`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.m
 Any change to formulas, weights, or constants requires a new score version
 (`sqs-v2`), not a patch release.
 
+## 0.1.9 — 2026-08-15
+
+### Fixed
+- **`playwright/prefer-locator` and `playwright/prefer-native-locators` were
+  mapped in `profiles.ts` but never actually enabled — completely inert.**
+  `prefer-locator` specifically catches Playwright's older direct-action API
+  (`page.click('#foo')` instead of a locator or native locator), arguably
+  the single most common raw-selector anti-pattern in naive/AI-generated
+  code. Also extended `countLocators`'s raw/native ratio to recognize this
+  pattern (`click`/`dblclick`/`hover`/`check`/`uncheck`/`tap`/`focus` called
+  with a string selector as the first argument — methods a real `Locator`
+  never accepts a string for, so this is unambiguous regardless of receiver
+  name; `fill`/`type`/`press`/`selectOption` are deliberately excluded since
+  their first argument is legitimately a string on a `Locator` too).
+  Verified manually: a realistic "naive AI-generated" test sample using
+  nothing but `page.click(selector)`/`page.type(selector, ...)` went from a
+  misleading 85/B (PASS) to a correct 65/D (FAIL). Re-validated against the
+  full real-world corpus (~130 files across freeCodeCamp, OpenMRS, patient
+  chart, and Storybook e2e suites, plus 15 real Guardian specs) — no new
+  false positives.
+
 ## 0.1.8 — 2026-08-15
 
 ### Fixed

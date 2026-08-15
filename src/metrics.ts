@@ -90,6 +90,29 @@ function parseSource(source: string, file?: string): unknown {
  * `.locator()` chained off a prior locator call — both common in
  * real-world (and AI-generated) specs.
  */
+// Playwright's older direct-action API takes a raw selector string as the
+// first argument — page.click('#foo') instead of page.locator('#foo').click()
+// or a native locator. This is arguably the single most common raw-selector
+// anti-pattern in naive/AI-generated code (verified against a realistic
+// sample: a file using this exclusively scored a perfect 100 on the
+// locators dimension before this fix). Restricted to methods a Locator
+// itself takes zero required arguments for (click/dblclick/hover/check/
+// uncheck/tap/focus) — real Playwright types never allow a string there on
+// a Locator, so a string first argument unambiguously means the legacy
+// page/frame form regardless of receiver name. fill/type/press/
+// selectOption are deliberately excluded: their first argument is
+// legitimately a string on a Locator too (the value/key, not a selector),
+// so counting them would risk new false positives on correct code.
+const LEGACY_SELECTOR_ACTION_METHODS = new Set([
+  'click',
+  'dblclick',
+  'hover',
+  'check',
+  'uncheck',
+  'tap',
+  'focus',
+]);
+
 export function countLocators(source: string, file?: string): LocatorCounts {
   let native = 0;
   let raw = 0;
@@ -106,8 +129,15 @@ export function countLocators(source: string, file?: string): LocatorCounts {
     if (callee.computed) return;
     const property = callee.property as { type?: string; name?: string } | undefined;
     if (property?.type !== 'Identifier') return;
-    if (NATIVE_METHODS.has(property.name ?? '')) native++;
-    else if (property.name === 'locator') raw++;
+    if (NATIVE_METHODS.has(property.name ?? '')) {
+      native++;
+    } else if (property.name === 'locator') {
+      raw++;
+    } else if (LEGACY_SELECTOR_ACTION_METHODS.has(property.name ?? '')) {
+      const args = (node as { arguments?: Array<{ type?: string; value?: unknown }> }).arguments;
+      const first = args?.[0];
+      if (first?.type === 'Literal' && typeof first.value === 'string') raw++;
+    }
   });
   return { native, raw };
 }
