@@ -1,0 +1,47 @@
+name: Publish to npm
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - package.json
+  workflow_dispatch:
+
+jobs:
+  publish:
+    if: github.repository == 'qa-guardian/playwright-score'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+
+      - run: npm test
+
+      # npm versions are immutable — publish only fires when package.json's
+      # version isn't already on the registry, so ordinary pushes to main
+      # (docs, fixtures, non-release commits) are always safe no-ops here.
+      - name: Check if this version is already published
+        id: check
+        run: |
+          LOCAL_VERSION=$(node -p "require('./package.json').version")
+          PUBLISHED_VERSION=$(npm view "$(node -p "require('./package.json').name")" version 2>/dev/null || echo "none")
+          echo "local=$LOCAL_VERSION published=$PUBLISHED_VERSION"
+          if [ "$LOCAL_VERSION" = "$PUBLISHED_VERSION" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish
+        if: steps.check.outputs.skip == 'false'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
