@@ -11,14 +11,18 @@ jobs:
   publish:
     if: github.repository == 'qa-guardian/playwright-score'
     runs-on: ubuntu-latest
+    # id-token: write is what lets npm's trusted-publisher OIDC flow work —
+    # no NPM_TOKEN secret to store, rotate, or have expire.
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
+      # Trusted publishing requires npm CLI >=11.5.1 and Node >=22.14.0.
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
       - run: npm ci
@@ -40,8 +44,10 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # No token/secret here — npm CLI >=11.5.1 auto-detects the OIDC token
+      # this job's id-token: write permission makes available, and exchanges
+      # it for a short-lived publish credential once the trusted publisher
+      # is configured on npmjs.com for this repo + workflow file.
       - name: Publish
         if: steps.check.outputs.skip == 'false'
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

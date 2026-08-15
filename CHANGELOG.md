@@ -18,6 +18,17 @@ Any change to formulas, weights, or constants requires a new score version
   workflow — validated locally by running the same commands/JSON parsing
   the action performs against the built CLI, not by an actual GitHub
   Actions run.
+- **CI auto-publish** (`.github/workflows/publish.yml`): on push to `main`
+  touching `package.json`, builds, tests, and publishes to npm only if the
+  local version isn't already on the registry. Authenticates via npm's
+  **Trusted Publisher (OIDC)** flow (`id-token: write`, no stored token) —
+  chosen over a classic automation token specifically because npm is
+  restricting 2FA-bypass tokens for direct publishing starting January 2027;
+  OIDC isn't affected and has nothing to rotate or expire. Requires the
+  trusted publisher configured once on npmjs.com (package settings →
+  Trusted Publisher → GitHub Actions → repo `qa-guardian/playwright-score`,
+  workflow `publish.yml`) and npm CLI ≥11.5.1 / Node ≥22.14.0 in the runner
+  (both satisfied by `actions/setup-node@v4` with `node-version: '22'`).
 
 ## 0.1.9 — 2026-08-15
 
