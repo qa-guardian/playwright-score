@@ -61,10 +61,9 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
 
   // Assertions
   'playwright/expect-expect': { dimension: 'assertions' },
-  'playwright/prefer-web-first-assertions': {
-    dimension: 'assertions',
-    severityOverride: 'warning',
-  },
+  // No severityOverride: matches eslint-plugin-playwright's own
+  // recommended severity ('error'), set via eslint-runner.ts's rule config.
+  'playwright/prefer-web-first-assertions': { dimension: 'assertions' },
   'playwright/valid-expect': { dimension: 'assertions' },
   'playwright/no-standalone-expect': { dimension: 'assertions' },
 

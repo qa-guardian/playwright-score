@@ -11,7 +11,7 @@ import {
 import type { Finding } from '../src/types.js';
 import { countSloc } from '../src/sloc.js';
 import { commonAncestorDir } from '../src/fs-util.js';
-import { countLocators } from '../src/metrics.js';
+import { countLocators, looksLikeNonPlaywrightTest } from '../src/metrics.js';
 import path from 'node:path';
 
 describe('sqs-v1 constants', () => {
@@ -216,5 +216,61 @@ describe('countLocators (AST-based)', () => {
   it('returns zero counts (not a throw) for unparseable source', () => {
     const result = countLocators('this is not { valid js (((');
     assert.deepEqual(result, { native: 0, raw: 0 });
+  });
+
+  it('parses JSX in .tsx component-test files (regression: JSX disabled by default silently zeroed every count)', () => {
+    const source = `
+      test('counter increments', async ({ mount }) => {
+        const component = await mount(<Counter />);
+        await component.getByRole('button').click();
+      });
+    `;
+    // Without file, JSX is off and this source fails to parse — falls back
+    // to {0,0} rather than throwing.
+    assert.deepEqual(countLocators(source), { native: 0, raw: 0 });
+    // With a .tsx file, JSX must be enabled so the real call is counted.
+    const result = countLocators(source, 'Counter.spec.tsx');
+    assert.equal(result.native, 1, `expected 1 native locator, got ${result.native}`);
+  });
+});
+
+describe('looksLikeNonPlaywrightTest', () => {
+  it('does not flag a direct @playwright/test import', () => {
+    assert.equal(
+      looksLikeNonPlaywrightTest(`import { test, expect } from '@playwright/test';`),
+      false
+    );
+  });
+
+  it('does not flag a custom fixtures wrapper with an arbitrarily-named fixture (regression: real-world false negative)', () => {
+    // test/expect re-exported from a local module (base.extend()) is a
+    // very common real-world pattern, and the fixture the test destructures
+    // can be named anything — not necessarily page/context/browser/request.
+    // Verified against real production specs: an earlier "positively
+    // detect Playwright" version of this check silently skipped 18 of 19
+    // genuine specs in one real suite because their tests destructured a
+    // custom fixture (e.g. `bomPage`) instead of the stock ones.
+    assert.equal(
+      looksLikeNonPlaywrightTest(
+        `import { test, expect } from '../../src/shared/fixtures';\ntest('x', async ({ bomPage }, testInfo) => {});`
+      ),
+      false
+    );
+  });
+
+  it('flags a plain Vitest unit test', () => {
+    assert.ok(
+      looksLikeNonPlaywrightTest(
+        `import { describe, it, expect } from 'vitest';\ndescribe('add', () => { it('works', () => { expect(1).toBe(1); }); });`
+      )
+    );
+  });
+
+  it('flags a React Testing Library component test', () => {
+    assert.ok(
+      looksLikeNonPlaywrightTest(
+        `import { render, screen } from '@testing-library/react';\ntest('x', () => { render(<Foo />); expect(screen.getByRole('button')).toBeInTheDocument(); });`
+      )
+    );
   });
 });

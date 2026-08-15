@@ -34,6 +34,20 @@ export function formatText(result: ScoreResult): string {
       lines.push(`  … and ${result.findings.length - 50} more`);
     }
   }
+
+  if (result.skippedFiles?.length) {
+    lines.push('');
+    lines.push(
+      `Skipped (looks like a non-Playwright test — Jest/Vitest/RTL — ${result.skippedFiles.length}):`
+    );
+    for (const f of result.skippedFiles.slice(0, 20)) {
+      lines.push(`  ${f}`);
+    }
+    if (result.skippedFiles.length > 20) {
+      lines.push(`  … and ${result.skippedFiles.length - 20} more`);
+    }
+  }
+
   return lines.join('\n');
 }
 

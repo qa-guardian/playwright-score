@@ -3,7 +3,7 @@ import path from 'node:path';
 import { globSync } from 'glob';
 import { runEslint } from './eslint-runner.js';
 import { commonAncestorDir } from './fs-util.js';
-import { analyzeSource } from './metrics.js';
+import { analyzeSource, looksLikeNonPlaywrightTest } from './metrics.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
 import { computeScore } from './score-engine.js';
 import type { Finding, ProfileName, ScoreOptions, ScoreResult } from './types.js';
@@ -19,28 +19,80 @@ export { formatSarif } from './formatters/sarif.js';
 
 const SPEC_GLOBS = ['**/*.{spec,test}.{ts,tsx,js,jsx}', '**/*.spec.ts', '**/*.test.ts'];
 
-function expandPaths(inputs: string[], cwd: string): string[] {
-  const files = new Set<string>();
+/**
+ * `explicit`: paths the caller named directly (a literal existing file) —
+ * always scored, regardless of whether they look like a Playwright spec.
+ * `expanded`: everything else (matched via a directory scan or a glob
+ * pattern) — subject to the looksLikePlaywrightSpec filter in scorePaths,
+ * since a broad `**\/*.test.ts`-style match can just as easily sweep in
+ * unrelated Jest/Vitest/RTL unit tests sitting in the same repo.
+ */
+function expandPaths(
+  inputs: string[],
+  cwd: string
+): { explicit: string[]; expanded: string[] } {
+  const explicit = new Set<string>();
+  const expanded = new Set<string>();
   for (const input of inputs) {
     const abs = path.isAbsolute(input) ? input : path.resolve(cwd, input);
     if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
-      files.add(abs);
+      explicit.add(abs);
       continue;
     }
     if (fs.existsSync(abs) && fs.statSync(abs).isDirectory()) {
       for (const g of SPEC_GLOBS) {
         for (const f of globSync(g, { cwd: abs, absolute: true, nodir: true })) {
-          files.add(path.resolve(f));
+          expanded.add(path.resolve(f));
         }
       }
       continue;
     }
     // treat as glob
     for (const f of globSync(input, { cwd, absolute: true, nodir: true })) {
-      files.add(path.resolve(f));
+      expanded.add(path.resolve(f));
     }
   }
-  return [...files].sort();
+  // A file can be reached both explicitly and via expansion (e.g. an
+  // explicit path plus an overlapping glob); explicit intent wins.
+  for (const f of explicit) expanded.delete(f);
+  return { explicit: [...explicit].sort(), expanded: [...expanded].sort() };
+}
+
+function hardFail(
+  profile: ProfileName,
+  threshold: number,
+  findings: Finding[],
+  extra: Partial<ScoreResult['summary']> = {},
+  skippedFiles?: string[]
+): ScoreResult {
+  return {
+    scoreVersion: 'sqs-v1',
+    profile,
+    score: 0,
+    grade: 'F',
+    pass: false,
+    threshold,
+    summary: {
+      files: 0,
+      tests: 0,
+      sloc: 0,
+      findings: findings.length,
+      errors: findings.filter((f) => f.severity === 'error').length,
+      warnings: findings.filter((f) => f.severity === 'warning').length,
+      nativeLocators: 0,
+      rawLocators: 0,
+      ...extra,
+    },
+    dimensions: {
+      playwrightHygiene: 0,
+      assertions: 0,
+      locators: 0,
+      structure: 0,
+      ...(profile === 'guardian' ? { guardianConventions: 0 } : {}),
+    },
+    findings,
+    ...(skippedFiles && skippedFiles.length > 0 ? { skippedFiles } : {}),
+  };
 }
 
 /**
@@ -52,10 +104,11 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   const threshold =
     options.threshold ?? DEFAULT_THRESHOLDS[profile] ?? 80;
 
-  const files = expandPaths(options.paths, cwd);
-  if (files.length === 0) {
+  const { explicit, expanded } = expandPaths(options.paths, cwd);
+
+  if (explicit.length === 0 && expanded.length === 0) {
     // Hard-fail: empty match must never look like a healthy suite (was ~99 PASS).
-    const findings: Finding[] = [
+    return hardFail(profile, threshold, [
       {
         rule: 'playwright-score/no-files',
         severity: 'error',
@@ -63,33 +116,42 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
         file: cwd,
         dimension: 'structure',
       },
-    ];
-    return {
-      scoreVersion: 'sqs-v1',
+    ]);
+  }
+
+  // Directory/glob matches are excluded only on positive evidence of a
+  // non-Playwright test framework — see looksLikeNonPlaywrightTest. Paths
+  // the caller named explicitly are always scored regardless.
+  const skippedFiles: string[] = [];
+  const acceptedExpanded: string[] = [];
+  const skipBase = commonAncestorDir([...explicit, ...expanded]);
+  for (const f of expanded) {
+    const source = fs.readFileSync(f, 'utf8');
+    if (looksLikeNonPlaywrightTest(source)) {
+      skippedFiles.push(path.relative(skipBase, f) || path.basename(f));
+    } else {
+      acceptedExpanded.push(f);
+    }
+  }
+
+  const files = [...explicit, ...acceptedExpanded].sort();
+
+  if (files.length === 0) {
+    return hardFail(
       profile,
-      score: 0,
-      grade: 'F',
-      pass: false,
       threshold,
-      summary: {
-        files: 0,
-        tests: 0,
-        sloc: 0,
-        findings: 1,
-        errors: 1,
-        warnings: 0,
-        nativeLocators: 0,
-        rawLocators: 0,
-      },
-      dimensions: {
-        playwrightHygiene: 0,
-        assertions: 0,
-        locators: 0,
-        structure: 0,
-        ...(profile === 'guardian' ? { guardianConventions: 0 } : {}),
-      },
-      findings,
-    };
+      [
+        {
+          rule: 'playwright-score/no-files',
+          severity: 'error',
+          message: `${expanded.length} file(s) matched but all look like non-Playwright tests (Jest/Vitest/RTL) — nothing to score.`,
+          file: cwd,
+          dimension: 'structure',
+        },
+      ],
+      {},
+      skippedFiles
+    );
   }
 
   const eslintFindings = await runEslint({ files, profile, cwd });
@@ -120,7 +182,28 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   // Dedupe empty-test style: if guardian require-expect already fired, still ok
   const findings = [...eslintFindings, ...metricFindings];
 
-  return computeScore({
+  const parseErrors = findings.filter((f) => f.rule === 'playwright-score/parse-error');
+  if (parseErrors.length > 0) {
+    // A file that isn't valid JS/TS can't be executed, let alone scored on
+    // its merits. Diluting this into the normal per-dimension penalty math
+    // (a handful of exp-decay points on an otherwise large, clean batch)
+    // would let a broken file hide inside a passing score. Hard-fail
+    // instead, same as the no-matching-files case.
+    return hardFail(
+      profile,
+      threshold,
+      findings,
+      {
+        files: files.length,
+        sloc: Math.max(totalSloc, 1),
+        nativeLocators: native,
+        rawLocators: raw,
+      },
+      skippedFiles
+    );
+  }
+
+  const result = computeScore({
     profile,
     threshold,
     findings,
@@ -130,4 +213,6 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
     nativeLocators: native,
     rawLocators: raw,
   });
+
+  return skippedFiles.length > 0 ? { ...result, skippedFiles } : result;
 }

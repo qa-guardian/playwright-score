@@ -51,6 +51,15 @@ export interface ScoreResult {
   summary: ScoreSummary;
   dimensions: ScoreDimensions;
   findings: Finding[];
+  /**
+   * Files matched by a directory/glob input but skipped because they show
+   * positive evidence of being a non-Playwright test (an import from
+   * vitest/jest/mocha/jasmine/@testing-library, or React Testing Library's
+   * screen.getBy/toBeInTheDocument() APIs). Repo-relative paths. Files passed
+   * explicitly by the caller are always scored and never appear here, even
+   * if they'd otherwise be skipped.
+   */
+  skippedFiles?: string[];
 }
 
 export interface ScoreOptions {

@@ -28,7 +28,15 @@ function buildConfig(profile: ProfileName): Linter.Config[] {
         ...(profile === 'guardian' ? { guardian: guardianPlugin } : {}),
       },
       rules: {
-        // Ensure key hygiene rules even if recommended set differs by version
+        // Ensure key hygiene rules even if recommended set differs by
+        // version. A few (no-wait-for-timeout, no-force-option,
+        // no-wait-for-selector, expect-expect) are intentionally stricter
+        // than eslint-plugin-playwright's own "recommended" severity —
+        // these are patterns Playwright's own docs call out as anti-
+        // patterns (see playwright.dev/docs/best-practices), so sqs-v1
+        // treats them as errors rather than warnings. no-networkidle and
+        // no-raw-locators aren't part of upstream "recommended" at all but
+        // are enabled here for the same reason.
         'playwright/no-wait-for-timeout': 'error',
         'playwright/no-networkidle': 'error',
         'playwright/no-force-option': 'error',
@@ -39,7 +47,8 @@ function buildConfig(profile: ProfileName): Linter.Config[] {
         'playwright/no-focused-test': 'error',
         'playwright/no-skipped-test': 'warn',
         'playwright/no-raw-locators': 'warn',
-        'playwright/prefer-web-first-assertions': 'warn',
+        // Matches eslint-plugin-playwright's own recommended severity.
+        'playwright/prefer-web-first-assertions': 'error',
         ...(profile === 'guardian' ? { ...guardianRuleConfigs } : {}),
       },
     },
@@ -133,6 +142,23 @@ export async function runEslint(options: {
     const absFile = path.resolve(result.filePath);
     const file = path.relative(cwd, absFile) || path.basename(absFile);
     for (const msg of result.messages) {
+      if (msg.fatal) {
+        // A file that doesn't parse can't be meaningfully scored at all —
+        // surface it explicitly rather than silently dropping it (it has
+        // no ruleId) and letting an unparseable file default to a clean
+        // 100. scorePaths hard-fails the whole result when this rule id
+        // is present.
+        findings.push({
+          rule: 'playwright-score/parse-error',
+          severity: 'error',
+          message: msg.message,
+          file,
+          line: msg.line,
+          column: msg.column,
+          dimension: 'structure',
+        });
+        continue;
+      }
       if (!msg.ruleId) continue;
       const mapping = mapRule(msg.ruleId);
       findings.push({

@@ -27,5 +27,19 @@ export function formatMarkdown(result: ScoreResult): string {
       lines.push(`- **${f.severity}** \`${f.rule}\` \`${f.file}${loc}\` — ${f.message}`);
     }
   }
+
+  if (result.skippedFiles?.length) {
+    lines.push('');
+    lines.push(
+      `<details><summary>Skipped — looks like a non-Playwright test (Jest/Vitest/RTL) (${result.skippedFiles.length})</summary>`
+    );
+    lines.push('');
+    for (const f of result.skippedFiles) {
+      lines.push(`- \`${f}\``);
+    }
+    lines.push('');
+    lines.push('</details>');
+  }
+
   return lines.join('\n');
 }

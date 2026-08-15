@@ -107,6 +107,52 @@ describe('scorePaths integration', () => {
     );
   });
 
+  it('guardian does not flag variable/property names that merely contain "auth" or "timeout" as substrings (regression: false positives)', async () => {
+    // authorName (contains "auth") and sessionConfig.timeout (an unrelated
+    // business field, not a Playwright call option) previously tripped
+    // no-hardcoded-secrets and no-generic-long-timeout respectively.
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'good-guardian-no-secret-false-positive.spec.ts')],
+      profile: 'guardian',
+      threshold: 75,
+      cwd: root,
+    });
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'guardian/no-hardcoded-secrets'),
+      `expected no secret false positive: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'guardian/no-generic-long-timeout'),
+      `expected no timeout false positive: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+  });
+
+  it('guardian does not flag test.describe.serial with multiple tests as sprawl (regression: unrecognized describe form)', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'good-guardian-serial-describe.spec.ts')],
+      profile: 'guardian',
+      threshold: 75,
+      cwd: root,
+    });
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'guardian/one-describe-one-test'),
+      `expected no sprawl finding on describe.serial: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+  });
+
+  it('guardian require-expect recognizes test.fixme/only/skip (regression: only bare test() was recognized)', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'bad-guardian-fixme-no-expect.spec.ts')],
+      profile: 'guardian',
+      threshold: 75,
+      cwd: root,
+    });
+    assert.ok(
+      result.findings.some((f) => f.rule === 'guardian/require-expect'),
+      `expected require-expect to fire on test.fixme: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+  });
+
   it('guardian flags more than one describe/test per file', async () => {
     const result = await scorePaths({
       paths: [path.join(fixtures, 'bad-guardian-multi-describe.spec.ts')],
@@ -168,6 +214,43 @@ describe('scorePaths integration', () => {
     assert.deepEqual(a.dimensions, b.dimensions);
   });
 
+  it('directory scan skips non-Playwright test files but explicit paths are always scored (regression: mixed Jest/Vitest monorepo)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-mixed-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'e2e'));
+      fs.mkdirSync(path.join(dir, 'src'));
+      fs.writeFileSync(
+        path.join(dir, 'e2e', 'login.spec.ts'),
+        `import { test, expect } from '@playwright/test';\ntest('logs in', async ({ page }) => {\n  await page.goto('/login');\n  await expect(page.getByRole('heading')).toBeVisible();\n});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'src', 'math.test.ts'),
+        `import { describe, it, expect } from 'vitest';\ndescribe('add', () => { it('works', () => { expect(1 + 1).toBe(2); }); });\n`
+      );
+
+      const dirResult = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
+      assert.equal(dirResult.summary.files, 1, 'only the Playwright spec should be scored');
+      assert.ok(
+        dirResult.skippedFiles?.some((f) => f.includes('math.test.ts')),
+        `expected math.test.ts to be reported as skipped: ${JSON.stringify(dirResult.skippedFiles)}`
+      );
+
+      const explicitResult = await scorePaths({
+        paths: [path.join(dir, 'src', 'math.test.ts')],
+        profile: 'standard',
+        cwd: dir,
+      });
+      assert.equal(
+        explicitResult.summary.files,
+        1,
+        'an explicitly-named path is always scored, even if it looks like a non-Playwright test'
+      );
+      assert.equal(explicitResult.skippedFiles, undefined);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('finds ESLint issues even when caller cwd is unrelated to the file (regression: basePath bug)', async () => {
     // Real-world shape of the bug this guards: a host process (e.g. the
     // Guardian runner) calls scorePaths with its own install dir as cwd,
@@ -188,6 +271,28 @@ describe('scorePaths integration', () => {
       `expected wait/force findings even with unrelated cwd, got: ${result.findings.map((f) => f.rule).join(', ')}`
     );
     assert.ok(result.score < 100);
+  });
+
+  it('a file with a syntax error hard-fails instead of scoring clean (regression: silent fatal-parse-error drop)', async () => {
+    // ESLint reports parse errors as a message with fatal:true and
+    // ruleId:null. Findings with a null ruleId were being skipped
+    // entirely (that's also how the harmless "file ignored" notices are
+    // filtered), so a spec that isn't even valid JS/TS previously scored
+    // a perfect 100 — the worst possible failure mode for a tool whose
+    // main job is catching bad (including AI-generated) code.
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'bad-syntax-error.spec.ts')],
+      profile: 'standard',
+      threshold: 80,
+      cwd: root,
+    });
+    assert.equal(result.score, 0);
+    assert.equal(result.grade, 'F');
+    assert.equal(result.pass, false);
+    assert.ok(
+      result.findings.some((f) => f.rule === 'playwright-score/parse-error'),
+      `expected parse-error finding: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
   });
 
   it('no matching files hard-fails with score 0', async () => {
