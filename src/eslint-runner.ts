@@ -45,7 +45,26 @@ function buildConfig(profile: ProfileName): Linter.Config[] {
         'playwright/no-wait-for-selector': 'error',
         'playwright/no-wait-for-navigation': 'error',
         'playwright/missing-playwright-await': 'error',
-        'playwright/expect-expect': 'error',
+        // expect-expect can only see expect(...) calls written directly in
+        // the test body — it has no way to trace an assertion made inside
+        // a helper function the test calls (e.g. shared `audit(page, path)`
+        // or `expectRealButtonToBeVisible(page)` helpers used across many
+        // similar tests, a very common way to dedupe near-identical specs
+        // — both verified as real false positives against real-world
+        // code). assertFunctionPatterns is eslint-plugin-playwright's own
+        // documented escape hatch for exactly this; patterns are
+        // camelCase/exact-anchored (not bare prefixes) so e.g.
+        // "checkoutFlow" doesn't collide with "check*".
+        'playwright/expect-expect': [
+          'error',
+          {
+            assertFunctionPatterns: [
+              '^(assert|verify|validate|audit|expect)([A-Z]|$)',
+              '^checkA11y$',
+              '^checkAccessibility$',
+            ],
+          },
+        ],
         'playwright/no-focused-test': 'error',
         // Upstream flags every test.skip(...) form identically, including
         // Playwright's own documented conditional runtime skip

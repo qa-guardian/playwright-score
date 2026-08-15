@@ -5,6 +5,31 @@ methodology itself (`sqs-v1`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.m
 Any change to formulas, weights, or constants requires a new score version
 (`sqs-v2`), not a patch release.
 
+## 0.1.6 — 2026-08-15
+
+Further real-world validation: ~45 more spec files across single-file
+pulls (visual regression, accessibility, file upload, iframes, auth
+setup, Storybook) and three fully-cloned real e2e suites (openmrs-esm-core,
+openmrs-esm-patient-chart, storybook) scored as whole directories. No
+crashes across ~100+ real files total (this round plus 0.1.5's); all
+formatters (text/json/markdown/sarif) and `--out` file writing checked at
+that scale too.
+
+### Fixed
+- **`playwright/expect-expect` can only see `expect(...)` calls written
+  directly in a test body — it has no way to trace an assertion made
+  inside a helper function the test calls.** Delegating assertions to a
+  shared helper (e.g. an `audit(page, path)` a11y check reused across many
+  near-identical tests, or an `expectXToBeVisible(page)` helper) is a very
+  common way to dedupe similar specs, and was flagged as "no assertions"
+  at error severity — verified against two real production files (one
+  losing 2 tests' worth of real signal to this). Configured
+  `assertFunctionPatterns` (eslint-plugin-playwright's own documented
+  escape hatch for this) with a conservative, camelCase/exact-anchored
+  pattern set (`assert*`, `verify*`, `validate*`, `audit*`, `expect*`,
+  `checkA11y`, `checkAccessibility`) — anchored so e.g. `checkoutFlow`
+  doesn't collide with a bare `check*` prefix.
+
 ## 0.1.5 — 2026-08-15
 
 Validated against ~16 real-world Playwright spec files pulled from public

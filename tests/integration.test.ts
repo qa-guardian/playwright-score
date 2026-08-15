@@ -85,6 +85,22 @@ describe('scorePaths integration', () => {
     assert.equal(result.findings.length, 0);
   });
 
+  it('does not flag tests that delegate assertions to a shared assert*/verify*/expect* helper (regression: real-world false positive)', async () => {
+    // expect-expect can only see expect(...) calls written directly in the
+    // test body, not ones made inside a helper function the test calls —
+    // a very common way to dedupe near-identical specs (e.g. a shared
+    // `audit(page, path)` a11y check, or `expectXToBeVisible(page)`).
+    // Verified as a real false positive against two real production files.
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'good-standard-assertion-helper.spec.ts')],
+      profile: 'standard',
+      threshold: 80,
+      cwd: root,
+    });
+    assert.equal(result.score, 100, `expected 100, got ${result.score}: ${JSON.stringify(result.findings)}`);
+    assert.equal(result.findings.length, 0);
+  });
+
   it('does not flag Playwright\'s documented conditional test.skip(condition, reason) (regression: real-world false positive)', async () => {
     // Verified against a real production file: eslint-plugin-playwright's
     // no-skipped-test flags this identically to an always-skipped test
