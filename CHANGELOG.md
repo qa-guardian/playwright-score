@@ -5,6 +5,20 @@ methodology itself (`sqs-v1`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.m
 Any change to formulas, weights, or constants requires a new score version
 (`sqs-v2`), not a patch release.
 
+## Unreleased
+
+### Added
+- **Reusable GitHub Action** (`action.yml` at repo root, usable as
+  `qa-guardian/playwright-score@v1`). Runs the scorer, writes a job summary
+  (always — no extra permissions needed), optionally posts/updates a sticky
+  PR comment with the full findings, and gates or warns on the threshold
+  via `mode: gate|warn` (mirrors the existing `SPEC_SCORE_MODE` convention
+  from the QA Guardian integration). Exposes `score`/`grade`/`pass` as step
+  outputs. Not yet published to the Marketplace or exercised in a live
+  workflow — validated locally by running the same commands/JSON parsing
+  the action performs against the built CLI, not by an actual GitHub
+  Actions run.
+
 ## 0.1.9 — 2026-08-15
 
 ### Fixed

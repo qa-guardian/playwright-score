@@ -60,7 +60,35 @@ const result = await scorePaths({
 console.log(result.score, result.grade, result.pass, result.findings);
 ```
 
-## CI example
+## GitHub Action
+
+Drop this into a workflow to gate PRs on the score, post a job summary, and
+keep a sticky PR comment with the full findings up to date:
+
+```yaml
+- uses: qa-guardian/playwright-score@v1
+  with:
+    paths: tests e2e
+    profile: standard      # or guardian
+    # threshold: 80        # defaults to the profile's default
+    mode: gate              # gate: fail CI below threshold · warn: report only
+```
+
+| Input | Description | Default |
+|---|---|---|
+| `paths` | Space-separated paths/globs to score | `tests` |
+| `profile` | `standard` \| `guardian` | `standard` |
+| `threshold` | Pass bar 0–100 | profile default (80 / 75) |
+| `mode` | `gate` (fail CI below threshold) \| `warn` (report only) | `gate` |
+| `comment` | Post/update a sticky PR comment | `true` |
+| `version` | `@qaguardian/playwright-score` version to run | `latest` |
+| `github-token` | Token for the PR comment | `${{ github.token }}` |
+
+Outputs: `score`, `grade`, `pass` — usable by downstream steps (e.g. a
+custom badge, a Slack notification on regression, etc).
+
+Prefer a raw CLI call, or a non-GitHub CI system? See the [CLI](#cli)
+section above — same score, same exit codes:
 
 ```yaml
 - name: Playwright Spec Score

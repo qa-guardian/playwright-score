@@ -1,0 +1,139 @@
+name: 'Playwright Spec Score'
+description: 'Lint and score Playwright test specs against best-practice rules (sqs-v1, deterministic, AI-free). Posts a job summary and optional PR comment; gates CI on a threshold.'
+author: 'QA Guardian'
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  paths:
+    description: 'Space-separated paths/globs to score (e.g. "tests e2e")'
+    required: false
+    default: 'tests'
+  profile:
+    description: 'Scoring profile: standard | guardian'
+    required: false
+    default: 'standard'
+  threshold:
+    description: 'Pass threshold 0-100. Leave empty to use the profile default (80 standard / 75 guardian).'
+    required: false
+    default: ''
+  mode:
+    description: 'warn: report only, never fail the step. gate: fail the step when the score is below threshold.'
+    required: false
+    default: 'gate'
+  comment:
+    description: 'Post/update a sticky PR comment with the score report (pull_request events only)'
+    required: false
+    default: 'true'
+  version:
+    description: 'Version of @qaguardian/playwright-score to run (npm dist-tag or version range)'
+    required: false
+    default: 'latest'
+  github-token:
+    description: 'Token used to post the PR comment. Defaults to the workflow''s GITHUB_TOKEN.'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  score:
+    description: 'Overall score, 0-100'
+    value: ${{ steps.score.outputs.score }}
+  grade:
+    description: 'Letter grade, A-F'
+    value: ${{ steps.score.outputs.grade }}
+  pass:
+    description: '"true" or "false" — whether score >= threshold'
+    value: ${{ steps.score.outputs.pass }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Run Playwright Spec Score
+      id: score
+      shell: bash
+      env:
+        PWS_PATHS: ${{ inputs.paths }}
+        PWS_PROFILE: ${{ inputs.profile }}
+        PWS_THRESHOLD: ${{ inputs.threshold }}
+        PWS_VERSION: ${{ inputs.version }}
+      run: |
+        set -e
+        THRESHOLD_ARGS=()
+        if [ -n "$PWS_THRESHOLD" ]; then
+          THRESHOLD_ARGS=(--threshold "$PWS_THRESHOLD")
+        fi
+
+        set +e
+        npx --yes -p "@qaguardian/playwright-score@${PWS_VERSION}" playwright-score \
+          $PWS_PATHS --profile "$PWS_PROFILE" "${THRESHOLD_ARGS[@]}" \
+          --format json --out "$RUNNER_TEMP/pw-score.json"
+        SCORE_EXIT=$?
+        npx --yes -p "@qaguardian/playwright-score@${PWS_VERSION}" playwright-score \
+          $PWS_PATHS --profile "$PWS_PROFILE" "${THRESHOLD_ARGS[@]}" \
+          --format markdown --out "$RUNNER_TEMP/pw-score.md"
+        set -e
+
+        if [ "$SCORE_EXIT" -eq 2 ]; then
+          echo "::error::playwright-score exited with a tool error (exit 2) — see log above"
+          exit 2
+        fi
+
+        cat "$RUNNER_TEMP/pw-score.md" >> "$GITHUB_STEP_SUMMARY"
+
+        SCORE=$(jq -r '.score' "$RUNNER_TEMP/pw-score.json")
+        GRADE=$(jq -r '.grade' "$RUNNER_TEMP/pw-score.json")
+        PASS=$(jq -r '.pass' "$RUNNER_TEMP/pw-score.json")
+        echo "score=$SCORE" >> "$GITHUB_OUTPUT"
+        echo "grade=$GRADE" >> "$GITHUB_OUTPUT"
+        echo "pass=$PASS" >> "$GITHUB_OUTPUT"
+        echo "Playwright Spec Score: $SCORE/100 ($GRADE) — pass=$PASS"
+
+    - name: Comment on PR
+      if: ${{ inputs.comment == 'true' && github.event_name == 'pull_request' }}
+      uses: actions/github-script@v7
+      env:
+        PWS_REPORT_PATH: ${{ runner.temp }}/pw-score.md
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const fs = require('fs');
+          const marker = '<!-- playwright-spec-score-report -->';
+          const body = marker + '\n\n' + fs.readFileSync(process.env.PWS_REPORT_PATH, 'utf8');
+
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          const existing = comments.find((c) => c.body?.includes(marker));
+
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+          }
+
+    - name: Enforce threshold
+      if: ${{ inputs.mode == 'gate' }}
+      shell: bash
+      run: |
+        if [ "${{ steps.score.outputs.pass }}" != "true" ]; then
+          echo "::error::Playwright Spec Score ${{ steps.score.outputs.score }}/100 (${{ steps.score.outputs.grade }}) is below threshold. Set mode: warn to report without failing CI."
+          exit 1
+        fi
