@@ -3,7 +3,11 @@ import path from 'node:path';
 import { globSync } from 'glob';
 import { runEslint } from './eslint-runner.js';
 import { commonAncestorDir } from './fs-util.js';
-import { analyzeSource, looksLikeNonPlaywrightTest } from './metrics.js';
+import {
+  analyzeSource,
+  findLocalAssertionHelperNames,
+  looksLikeNonPlaywrightTest,
+} from './metrics.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
 import { computeScore } from './score-engine.js';
 import type { Finding, ProfileName, ScoreOptions, ScoreResult } from './types.js';
@@ -154,12 +158,31 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
     );
   }
 
-  const eslintFindings = await runEslint({ files, profile, cwd });
-
   // Relative to the files' own common ancestor (not the caller's cwd, which
   // may be unrelated) so findings stay portable across machines/CI and
   // formatters/sarif.ts can emit repo-relative artifactLocation URIs.
   const filesBase = commonAncestorDir(files);
+
+  // Read every file once, up front, so (a) we can feed ESLint's
+  // expect-expect a per-run list of local assertion-helper names before
+  // linting (see findLocalAssertionHelperNames) and (b) the metrics loop
+  // below doesn't re-read the same files ESLint already read internally.
+  const sources = new Map<string, string>();
+  const assertFunctionNames = new Set<string>();
+  for (const file of files) {
+    const source = fs.readFileSync(file, 'utf8');
+    sources.set(file, source);
+    for (const name of findLocalAssertionHelperNames(source, file)) {
+      assertFunctionNames.add(name);
+    }
+  }
+
+  const eslintFindings = await runEslint({
+    files,
+    profile,
+    cwd,
+    assertFunctionNames: [...assertFunctionNames],
+  });
 
   let totalSloc = 0;
   let totalTests = 0;
@@ -168,7 +191,7 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   const metricFindings: Finding[] = [];
 
   for (const file of files) {
-    const source = fs.readFileSync(file, 'utf8');
+    const source = sources.get(file) ?? '';
     const relFile = path.relative(filesBase, file) || path.basename(file);
     const m = analyzeSource(source, relFile);
     totalSloc += m.sloc;

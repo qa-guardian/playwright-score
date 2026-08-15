@@ -11,7 +11,11 @@ import {
 import type { Finding } from '../src/types.js';
 import { countSloc } from '../src/sloc.js';
 import { commonAncestorDir } from '../src/fs-util.js';
-import { countLocators, looksLikeNonPlaywrightTest } from '../src/metrics.js';
+import {
+  countLocators,
+  findLocalAssertionHelperNames,
+  looksLikeNonPlaywrightTest,
+} from '../src/metrics.js';
 import path from 'node:path';
 
 describe('sqs-v1 constants', () => {
@@ -272,5 +276,38 @@ describe('looksLikeNonPlaywrightTest', () => {
         `import { render, screen } from '@testing-library/react';\ntest('x', () => { render(<Foo />); expect(screen.getByRole('button')).toBeInTheDocument(); });`
       )
     );
+  });
+});
+
+describe('findLocalAssertionHelperNames', () => {
+  it('finds a function declaration whose body contains expect(...)', () => {
+    const source = `
+      async function audit(page, path) {
+        expect(true).toBe(true);
+      }
+    `;
+    assert.deepEqual(findLocalAssertionHelperNames(source), ['audit']);
+  });
+
+  it('finds a const-bound arrow function whose body contains expect.poll(...)', () => {
+    const source = `
+      const checkFlashMessageVisibility = async (page, message) => {
+        await expect.poll(() => page.isVisible(message)).toBe(true);
+      };
+    `;
+    assert.deepEqual(findLocalAssertionHelperNames(source), ['checkFlashMessageVisibility']);
+  });
+
+  it('does not include a helper with no expect call in its body', () => {
+    const source = `
+      async function goToSettings(page) {
+        await page.goto('/settings');
+      }
+    `;
+    assert.deepEqual(findLocalAssertionHelperNames(source), []);
+  });
+
+  it('returns an empty list (not a throw) for unparseable source', () => {
+    assert.deepEqual(findLocalAssertionHelperNames('this is not { valid js (((') , []);
   });
 });

@@ -5,6 +5,33 @@ methodology itself (`sqs-v1`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.m
 Any change to formulas, weights, or constants requires a new score version
 (`sqs-v2`), not a patch release.
 
+## 0.1.7 — 2026-08-15
+
+Deeper real-world validation: ~10 more single-file pulls (API-only specs,
+mobile device emulation, deeply-chained fixtures, Japanese-language
+content) plus a full clone of freeCodeCamp's e2e suite (89 spec files)
+scored as one directory. No crashes; UTF-8/multi-byte content (Japanese,
+Chinese, emoji seen across this and the previous round) parses and scores
+correctly throughout.
+
+### Fixed
+- **The `assertFunctionPatterns` name-guessing from 0.1.6 was still
+  fundamentally unbounded.** A fourth real production file used yet
+  another naming convention (`alertToBeVisible`, imported from another
+  module) for the exact same assertion-delegation shape, and a fifth
+  (`checkFlashMessageVisibility`) didn't match any reasonable prefix/suffix
+  pattern at all — real codebases name these helpers however they want.
+  Replaced pure name-guessing with `findLocalAssertionHelperNames`: a
+  same-file call-graph pass that discovers any function (declared or
+  const-bound to an arrow/function expression) whose own body actually
+  contains an `expect(...)`-shaped call, regardless of what it's named,
+  and feeds the result into `playwright/expect-expect`'s own
+  `assertFunctionNames` option per run. This is fully name-agnostic for
+  the common (same-file helper) case; the name-pattern list from 0.1.6
+  remains only as a fallback for helpers imported from another file, which
+  can't be resolved without following module specifiers — a narrower,
+  clearly-scoped residual limitation.
+
 ## 0.1.6 — 2026-08-15
 
 Further real-world validation: ~45 more spec files across single-file

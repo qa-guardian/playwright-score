@@ -11,7 +11,7 @@ import { basePlugin } from './rules/base-plugin.js';
 import { mapRule } from './profiles.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
-function buildConfig(profile: ProfileName): Linter.Config[] {
+function buildConfig(profile: ProfileName, assertFunctionNames: string[]): Linter.Config[] {
   const playwrightRecommended =
     playwright.configs?.['flat/recommended'] ??
     playwright.configs?.recommended;
@@ -47,21 +47,30 @@ function buildConfig(profile: ProfileName): Linter.Config[] {
         'playwright/missing-playwright-await': 'error',
         // expect-expect can only see expect(...) calls written directly in
         // the test body — it has no way to trace an assertion made inside
-        // a helper function the test calls (e.g. shared `audit(page, path)`
-        // or `expectRealButtonToBeVisible(page)` helpers used across many
-        // similar tests, a very common way to dedupe near-identical specs
-        // — both verified as real false positives against real-world
-        // code). assertFunctionPatterns is eslint-plugin-playwright's own
-        // documented escape hatch for exactly this; patterns are
-        // camelCase/exact-anchored (not bare prefixes) so e.g.
-        // "checkoutFlow" doesn't collide with "check*".
+        // a helper function the test calls. assertFunctionNames is
+        // populated per-run (see index.ts's findLocalAssertionHelperNames)
+        // with every same-file helper whose own body actually contains an
+        // expect(...)-shaped call, so this is name-agnostic for the common
+        // case regardless of what the helper is called. assertFunctionPatterns
+        // is a secondary, name-based fallback for helpers imported from
+        // another file (which we can't inspect the body of) — patterns are
+        // camelCase/exact-anchored so e.g. "checkoutFlow" doesn't collide
+        // with "check*"; the suffix pattern catches any name embedding a
+        // real Playwright matcher name (toBeVisible, toHaveText, ...).
+        // Verified against several real production files using several
+        // different naming conventions for the exact same delegation shape
+        // (audit, expectRealButtonToBeVisible, alertToBeVisible,
+        // checkFlashMessageVisibility) — all previously false-positived as
+        // "no assertions" at error severity.
         'playwright/expect-expect': [
           'error',
           {
+            assertFunctionNames,
             assertFunctionPatterns: [
               '^(assert|verify|validate|audit|expect)([A-Z]|$)',
               '^checkA11y$',
               '^checkAccessibility$',
+              '(ToBe|ToHave|ToContain|ToMatch|ToEqual)[A-Z]',
             ],
           },
         ],
@@ -121,6 +130,8 @@ export async function runEslint(options: {
   files: string[];
   profile: ProfileName;
   cwd?: string;
+  /** See findLocalAssertionHelperNames in metrics.ts. */
+  assertFunctionNames?: string[];
 }): Promise<Finding[]> {
   // ESLint 9 flat config resolves a `basePath` from `cwd` and silently
   // drops (as an untracked, ruleId-less message) any file that isn't
@@ -134,7 +145,7 @@ export async function runEslint(options: {
     options.files.length > 0
       ? commonAncestorDir(options.files)
       : (options.cwd ?? process.cwd());
-  const overrideConfig = buildConfig(options.profile);
+  const overrideConfig = buildConfig(options.profile, options.assertFunctionNames ?? []);
 
   // Try to attach typescript-eslint parser for .ts files
   try {

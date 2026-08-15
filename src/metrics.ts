@@ -59,6 +59,29 @@ function walk(node: unknown, visit: (node: Record<string, unknown>) => void): vo
 }
 
 /**
+ * Parses source into an ESTree-compatible AST for our own lightweight
+ * AST-walk checks (locator counting, local assertion-helper discovery).
+ * Returns undefined on any parse failure — callers degrade to "found
+ * nothing" rather than throwing; ESLint's own lint pass over the same
+ * file surfaces the real parse error as a finding.
+ */
+function parseSource(source: string, file?: string): unknown {
+  try {
+    return parseForESLint(source, {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      // JSX must be extension-driven, not always-on: a bare .ts file can
+      // legally use the old-style `<Type>value` cast syntax, which is
+      // ambiguous with — and would be misparsed as — a JSX element if JSX
+      // were enabled unconditionally.
+      ecmaFeatures: { jsx: /\.(tsx|jsx)$/.test(file ?? '') },
+    }).ast;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Count native vs raw locator calls via the same AST the ESLint pass
  * already parses (rather than a regex), so this ratio can't silently
  * disagree with `no-raw-locators` findings. A regex anchored to literal
@@ -70,22 +93,8 @@ function walk(node: unknown, visit: (node: Record<string, unknown>) => void): vo
 export function countLocators(source: string, file?: string): LocatorCounts {
   let native = 0;
   let raw = 0;
-  let ast: unknown;
-  try {
-    ast = parseForESLint(source, {
-      ecmaVersion: 2022,
-      sourceType: 'module',
-      // JSX must be extension-driven, not always-on: a bare .ts file can
-      // legally use the old-style `<Type>value` cast syntax, which is
-      // ambiguous with — and would be misparsed as — a JSX element if JSX
-      // were enabled unconditionally.
-      ecmaFeatures: { jsx: /\.(tsx|jsx)$/.test(file ?? '') },
-    }).ast;
-  } catch {
-    // Unparseable source: ESLint's own lint pass over the same file will
-    // surface the real parse error as a finding; report zero locators here.
-    return { native, raw };
-  }
+  const ast = parseSource(source, file);
+  if (!ast) return { native, raw };
   walk(ast, (node) => {
     if (
       node.type !== 'CallExpression' ||
@@ -101,6 +110,78 @@ export function countLocators(source: string, file?: string): LocatorCounts {
     else if (property.name === 'locator') raw++;
   });
   return { native, raw };
+}
+
+function isExpectCallee(callee: Record<string, unknown> | undefined): boolean {
+  if (!callee) return false;
+  if (callee.type === 'Identifier') return callee.name === 'expect';
+  if (callee.type === 'MemberExpression') {
+    // Walk down to the root of a member chain, e.g. expect.poll(fn).toBe(x)
+    // — the callee of the outer .toBe() call is `expect.poll(fn).toBe`,
+    // whose object is the `expect.poll(fn)` CallExpression.
+    let obj = callee.object as Record<string, unknown> | undefined;
+    while (obj?.type === 'MemberExpression') obj = obj.object as Record<string, unknown> | undefined;
+    if (obj?.type === 'Identifier' && obj.name === 'expect') return true;
+    if (obj?.type === 'CallExpression') {
+      return isExpectCallee(obj.callee as Record<string, unknown> | undefined);
+    }
+  }
+  return false;
+}
+
+function containsExpectCall(node: unknown): boolean {
+  let found = false;
+  walk(node, (n) => {
+    if (found || n.type !== 'CallExpression') return;
+    if (isExpectCallee(n.callee as Record<string, unknown> | undefined)) found = true;
+  });
+  return found;
+}
+
+/**
+ * Names of same-file functions (function declarations, or a const bound to
+ * an arrow/function expression) whose own body contains an expect(...)-
+ * shaped call anywhere. Fed into playwright/expect-expect's own
+ * assertFunctionNames option (see eslint-runner.ts) so a test that
+ * delegates its assertion to a locally-defined helper — `audit(page,
+ * path)`, `checkFlashMessageVisibility(page, msg)`, `assertDashboardLoaded`
+ * — isn't flagged as having no assertions, regardless of what the helper
+ * happens to be named. expect-expect can only see expect() calls written
+ * directly in the test body, so without this, delegating to a helper at
+ * all — an extremely common way to dedupe near-identical specs — reads as
+ * "no assertions"; verified against several real production files using
+ * several different naming conventions for the exact same shape.
+ * Deliberately local-only: a helper imported from another file can't be
+ * resolved without following module specifiers and parsing that file too,
+ * well beyond what a fast, per-file syntactic check should attempt.
+ */
+export function findLocalAssertionHelperNames(source: string, file?: string): string[] {
+  const ast = parseSource(source, file);
+  if (!ast) return [];
+  const names = new Set<string>();
+  walk(ast, (node) => {
+    let name: string | undefined;
+    let body: unknown;
+    if (node.type === 'FunctionDeclaration') {
+      const id = node.id as { type?: string; name?: string } | undefined;
+      if (id?.type === 'Identifier') {
+        name = id.name;
+        body = node;
+      }
+    } else if (node.type === 'VariableDeclarator') {
+      const id = node.id as { type?: string; name?: string } | undefined;
+      const init = node.init as { type?: string } | undefined;
+      if (
+        id?.type === 'Identifier' &&
+        (init?.type === 'ArrowFunctionExpression' || init?.type === 'FunctionExpression')
+      ) {
+        name = id.name;
+        body = init;
+      }
+    }
+    if (name && body && containsExpectCall(body)) names.add(name);
+  });
+  return [...names];
 }
 
 const TEST_NON_DECL_RE =

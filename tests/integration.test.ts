@@ -101,6 +101,41 @@ describe('scorePaths integration', () => {
     assert.equal(result.findings.length, 0);
   });
 
+  it('does not flag delegation to a local helper regardless of its name, only whether its body asserts (regression: name-pattern list is unbounded in practice)', async () => {
+    // Real code uses unlimited naming conventions for the exact same
+    // "delegates the assertion" shape (seen: audit, expectXToBeVisible,
+    // alertToBeVisible, checkFlashMessageVisibility — none overlapping).
+    // findLocalAssertionHelperNames discovers same-file helpers by
+    // checking whether their own body contains an expect() call, so this
+    // isn't a name-pattern guess at all.
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'good-standard-local-assertion-helper.spec.ts')],
+      profile: 'standard',
+      threshold: 80,
+      cwd: root,
+    });
+    assert.equal(result.score, 100, `expected 100, got ${result.score}: ${JSON.stringify(result.findings)}`);
+    assert.equal(result.findings.length, 0);
+  });
+
+  it('still flags a test that only calls a non-asserting local helper', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-nonassert-'));
+    try {
+      const file = path.join(dir, 'nonassert.spec.ts');
+      fs.writeFileSync(
+        file,
+        `import { test } from '@playwright/test';\n\nasync function goToSettings(page) {\n  await page.goto('/settings');\n}\n\ntest('does something', async ({ page }) => {\n  await goToSettings(page);\n});\n`
+      );
+      const result = await scorePaths({ paths: [file], profile: 'standard', cwd: dir });
+      assert.ok(
+        result.findings.some((f) => f.rule === 'playwright/expect-expect'),
+        `expected expect-expect to still fire: ${result.findings.map((f) => f.rule).join(', ')}`
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('does not flag Playwright\'s documented conditional test.skip(condition, reason) (regression: real-world false positive)', async () => {
     // Verified against a real production file: eslint-plugin-playwright's
     // no-skipped-test flags this identically to an always-skipped test
