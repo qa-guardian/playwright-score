@@ -5,6 +5,43 @@ methodology itself (`sqs-v1`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.m
 Any change to formulas, weights, or constants requires a new score version
 (`sqs-v2`), not a patch release.
 
+## 0.1.11 — 2026-08-17
+
+### Fixed
+- **Page Object Model suites read as 0/100 on the locators dimension even
+  when the suite uses native locators throughout.** A spec file that routes
+  all interaction through an imported class (`canvas.addNode(...)` instead
+  of `page.getByRole(...)` directly) has zero locator calls of its own —
+  the real `getByRole`/`getByTestId`/`.locator()` calls live in a separate
+  page-object file the scorer never looked at. Verified against a real,
+  large suite (n8n's own e2e tests: 256 spec files, 1,046 tests, every one
+  of them at 0 direct locator calls) — it scored 79/C and *failed* the
+  default threshold for this reason alone; the suite's actual page objects
+  use native locators almost exclusively.
+  `src/import-graph.ts` now follows a spec file's *relative* imports
+  (`./`, `../` only — never a bare package specifier, npm dependency, or
+  path alias, which would need a real module resolver to resolve safely)
+  to locate local dependency files within the scanned directory, and folds
+  their locator counts into the suite-level ratio. Dependency files are
+  never linted and never count toward SLOC/tests/findings — only their
+  locator calls are attributed to the suite. Bounded deliberately (depth
+  and file-count capped, confined to the scanned directory) so a large or
+  circular import graph can't blow up cost. Re-scoring n8n's suite with
+  this fix: 79/C (FAIL) → 95/A (PASS).
+  As a byproduct of the same infrastructure, assertion delegated to an
+  *imported* helper function (not just a same-file one, which already
+  worked — see 0.1.7) is now also recognized by `expect-expect`.
+- Fixed a related bug found while building the above: the import-tracing
+  boundary was initially set to the scored spec files' own common
+  ancestor, which is *narrower* than the actual project directory whenever
+  specs live in a dedicated `tests/` folder sibling to `pages/`/
+  `fixtures/` (the normal shape for this pattern) — every import climbing
+  back out of `tests/` was rejected as "outside the boundary." Fixed by
+  widening the boundary to the directory the caller actually pointed the
+  scanner at. Does not apply when every input is an explicit file path
+  with no directory to widen to — see the new regression test documenting
+  that limitation.
+
 ## Unreleased
 
 ### Added

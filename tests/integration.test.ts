@@ -480,4 +480,128 @@ describe('scorePaths integration', () => {
       'expected no-files finding'
     );
   });
+
+  it('directory scan traces locators through an imported Page Object Model (regression: n8n-style suite scored 0/100 on locators despite using native locators throughout)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-pom-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'tests'), { recursive: true });
+      fs.mkdirSync(path.join(dir, 'pages'), { recursive: true });
+      // The spec itself calls zero page/locator methods directly — every
+      // interaction and assertion is delegated to an imported page object,
+      // the same shape as a real Page Object Model suite.
+      fs.writeFileSync(
+        path.join(dir, 'tests', 'canvas.spec.ts'),
+        `import { test } from '@playwright/test';\n` +
+          `import { CanvasPage } from '../pages/CanvasPage';\n` +
+          `test('adds a node', async ({ page }) => {\n` +
+          `  const canvas = new CanvasPage(page);\n` +
+          `  await canvas.addNode('HTTP Request');\n` +
+          `  await canvas.expectNodeVisible('HTTP Request');\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'pages', 'CanvasPage.ts'),
+        `import { expect, type Page } from '@playwright/test';\n` +
+          `export class CanvasPage {\n` +
+          `  constructor(private page: Page) {}\n` +
+          `  async addNode(name: string) {\n` +
+          `    await this.page.getByRole('button', { name: 'Add node' }).click();\n` +
+          `    await this.page.getByTestId('node-creator-item').getByText(name).click();\n` +
+          `  }\n` +
+          `  async expectNodeVisible(name: string) {\n` +
+          `    await expect(this.page.getByTestId('canvas-node').getByText(name)).toBeVisible();\n` +
+          `  }\n` +
+          `}\n`
+      );
+
+      const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
+
+      assert.equal(result.summary.files, 1, 'only the spec file counts as a scored file');
+      assert.equal(result.summary.sloc, 7, 'the page object must not inflate suite SLOC');
+      assert.ok(
+        result.summary.nativeLocators >= 3,
+        `expected CanvasPage.ts's getByRole/getByTestId calls to be counted: got ${result.summary.nativeLocators}`
+      );
+      assert.equal(
+        result.dimensions.locators,
+        100,
+        `expected a clean locators score once the page object's native locators are counted, got ${result.dimensions.locators}`
+      );
+      assert.ok(
+        !result.findings.some((f) => f.file.includes('CanvasPage')),
+        `the page object must never appear in findings (it is not a scored test file): ${JSON.stringify(result.findings)}`
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('traces assertion delegation through an imported helper the same way as a same-file helper', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-pom-assert-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'tests'), { recursive: true });
+      fs.mkdirSync(path.join(dir, 'helpers'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'tests', 'login.spec.ts'),
+        `import { test } from '@playwright/test';\n` +
+          `import { verifyLoggedIn } from '../helpers/assertions';\n` +
+          `test('logs in', async ({ page }) => {\n` +
+          `  await page.goto('/login');\n` +
+          `  await verifyLoggedIn(page);\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'helpers', 'assertions.ts'),
+        `import { expect, type Page } from '@playwright/test';\n` +
+          `export async function verifyLoggedIn(page: Page) {\n` +
+          `  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();\n` +
+          `}\n`
+      );
+
+      const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
+      assert.ok(
+        !result.findings.some((f) => f.rule === 'playwright/expect-expect'),
+        `expected the delegated assertion to be recognized: ${JSON.stringify(result.findings)}`
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('explicit single-file scoring stays bounded to that file (does not widen to sibling directories)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-pom-explicit-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'tests'), { recursive: true });
+      fs.mkdirSync(path.join(dir, 'pages'), { recursive: true });
+      const specFile = path.join(dir, 'tests', 'canvas.spec.ts');
+      fs.writeFileSync(
+        specFile,
+        `import { test } from '@playwright/test';\n` +
+          `import { CanvasPage } from '../pages/CanvasPage';\n` +
+          `test('adds a node', async ({ page }) => {\n` +
+          `  const canvas = new CanvasPage(page);\n` +
+          `  await canvas.addNode('X');\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'pages', 'CanvasPage.ts'),
+        `import type { Page } from '@playwright/test';\n` +
+          `export class CanvasPage {\n` +
+          `  constructor(private page: Page) {}\n` +
+          `  async addNode(name: string) {\n` +
+          `    await this.page.getByRole('button', { name }).click();\n` +
+          `  }\n` +
+          `}\n`
+      );
+
+      // Only the spec file is passed explicitly — no directory input to
+      // widen the import-tracing boundary to, so the sibling pages/
+      // directory is never reached. Documents the current, deliberate
+      // limitation rather than letting it silently drift either way.
+      const result = await scorePaths({ paths: [specFile], profile: 'standard', cwd: dir });
+      assert.equal(result.summary.nativeLocators, 0);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

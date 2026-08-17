@@ -3,8 +3,10 @@ import path from 'node:path';
 import { globSync } from 'glob';
 import { runEslint } from './eslint-runner.js';
 import { commonAncestorDir } from './fs-util.js';
+import { collectLocallyImportedFiles } from './import-graph.js';
 import {
   analyzeSource,
+  countLocators,
   findLocalAssertionHelperNames,
   looksLikeNonPlaywrightTest,
 } from './metrics.js';
@@ -57,9 +59,10 @@ const DEFAULT_IGNORE_GLOBS = [
 function expandPaths(
   inputs: string[],
   cwd: string
-): { explicit: string[]; expanded: string[] } {
+): { explicit: string[]; expanded: string[]; scanRootDirs: string[] } {
   const explicit = new Set<string>();
   const expanded = new Set<string>();
+  const scanRootDirs = new Set<string>();
   for (const input of inputs) {
     const abs = path.isAbsolute(input) ? input : path.resolve(cwd, input);
     if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
@@ -67,6 +70,13 @@ function expandPaths(
       continue;
     }
     if (fs.existsSync(abs) && fs.statSync(abs).isDirectory()) {
+      // The directory the caller actually pointed at — not just wherever a
+      // spec glob happened to match inside it. A Page Object Model's
+      // classes typically live in a sibling directory to the specs
+      // themselves (tests/ next to pages/, fixtures/), so import-graph.ts
+      // needs this wider boundary, not the narrower common ancestor of
+      // only the matched spec files.
+      scanRootDirs.add(abs);
       for (const g of SPEC_GLOBS) {
         for (const f of globSync(g, {
           cwd: abs,
@@ -92,7 +102,11 @@ function expandPaths(
   // A file can be reached both explicitly and via expansion (e.g. an
   // explicit path plus an overlapping glob); explicit intent wins.
   for (const f of explicit) expanded.delete(f);
-  return { explicit: [...explicit].sort(), expanded: [...expanded].sort() };
+  return {
+    explicit: [...explicit].sort(),
+    expanded: [...expanded].sort(),
+    scanRootDirs: [...scanRootDirs].sort(),
+  };
 }
 
 function hardFail(
@@ -141,7 +155,7 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   const threshold =
     options.threshold ?? DEFAULT_THRESHOLDS[profile] ?? 80;
 
-  const { explicit, expanded } = expandPaths(options.paths, cwd);
+  const { explicit, expanded, scanRootDirs } = expandPaths(options.paths, cwd);
 
   if (explicit.length === 0 && expanded.length === 0) {
     // Hard-fail: empty match must never look like a healthy suite (was ~99 PASS).
@@ -196,6 +210,16 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   // formatters/sarif.ts can emit repo-relative artifactLocation URIs.
   const filesBase = commonAncestorDir(files);
 
+  // Wider than filesBase on purpose: a Page Object Model's classes
+  // typically live in a directory *sibling* to the specs themselves
+  // (tests/ next to pages/, fixtures/), so bounding import-graph.ts's
+  // traversal to just the matched spec files' own common ancestor would
+  // reject every import that climbs back out of tests/ — verified against
+  // a real suite (n8n) where this was the exact reason locator counts from
+  // its page objects were being discarded. Falls back to filesBase itself
+  // when every input was an explicit file (no directory to widen to).
+  const importBoundary = commonAncestorDir([...files, ...scanRootDirs]);
+
   // Read every file once, up front, so (a) we can feed ESLint's
   // expect-expect a per-run list of local assertion-helper names before
   // linting (see findLocalAssertionHelperNames) and (b) the metrics loop
@@ -205,6 +229,19 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   for (const file of files) {
     const source = fs.readFileSync(file, 'utf8');
     sources.set(file, source);
+    for (const name of findLocalAssertionHelperNames(source, file)) {
+      assertFunctionNames.add(name);
+    }
+  }
+
+  // Page Object Model suites route locator calls through imported classes
+  // (`n8n.canvas.click(...)`) rather than calling `page.locator()`/
+  // `getByRole()` directly in the spec file — see import-graph.ts. These
+  // dependency files are never linted or counted toward sloc/tests/
+  // findings; they only contribute locator counts (and, the same way,
+  // any assertion-helper names) to the suite-level totals below.
+  const importedFiles = collectLocallyImportedFiles(sources, importBoundary);
+  for (const [file, source] of importedFiles) {
     for (const name of findLocalAssertionHelperNames(source, file)) {
       assertFunctionNames.add(name);
     }
@@ -233,6 +270,12 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
     raw += m.locators.raw;
     // metrics/no-empty-test duplicates guardian/require-expect under guardian — keep both mild
     metricFindings.push(...m.findings);
+  }
+
+  for (const [file, source] of importedFiles) {
+    const counts = countLocators(source, file);
+    native += counts.native;
+    raw += counts.raw;
   }
 
   // Dedupe empty-test style: if guardian require-expect already fired, still ok

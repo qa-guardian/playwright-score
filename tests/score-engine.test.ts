@@ -16,7 +16,10 @@ import {
   findLocalAssertionHelperNames,
   looksLikeNonPlaywrightTest,
 } from '../src/metrics.js';
+import { collectLocallyImportedFiles } from '../src/import-graph.js';
 import path from 'node:path';
+import fs from 'node:fs';
+import os from 'node:os';
 
 describe('sqs-v1 constants', () => {
   it('exposes frozen version and constants', () => {
@@ -332,5 +335,103 @@ describe('findLocalAssertionHelperNames', () => {
 
   it('returns an empty list (not a throw) for unparseable source', () => {
     assert.deepEqual(findLocalAssertionHelperNames('this is not { valid js (((') , []);
+  });
+});
+
+describe('collectLocallyImportedFiles', () => {
+  function tmpDir(): string {
+    return fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-import-graph-'));
+  }
+
+  it('follows a relative import up out of a sibling tests/ dir into pages/ (regression: n8n-style POM was invisible to the locator ratio)', () => {
+    const root = tmpDir();
+    try {
+      fs.mkdirSync(path.join(root, 'tests'), { recursive: true });
+      fs.mkdirSync(path.join(root, 'pages'), { recursive: true });
+      const specFile = path.join(root, 'tests', 'canvas.spec.ts');
+      const pageFile = path.join(root, 'pages', 'CanvasPage.ts');
+      fs.writeFileSync(
+        specFile,
+        `import { CanvasPage } from '../pages/CanvasPage';\nexport const x = CanvasPage;\n`
+      );
+      fs.writeFileSync(
+        pageFile,
+        `export class CanvasPage {\n  addNode() { return this.page.getByTestId('add-node'); }\n}\n`
+      );
+      const sources = new Map([[specFile, fs.readFileSync(specFile, 'utf8')]]);
+      const result = collectLocallyImportedFiles(sources, root);
+      assert.ok(result.has(pageFile), `expected CanvasPage.ts to be discovered: ${[...result.keys()]}`);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('never resolves outside the given boundary directory', () => {
+    const root = tmpDir();
+    try {
+      fs.mkdirSync(path.join(root, 'inside', 'tests'), { recursive: true });
+      fs.mkdirSync(path.join(root, 'outside'), { recursive: true });
+      const specFile = path.join(root, 'inside', 'tests', 'x.spec.ts');
+      fs.writeFileSync(specFile, `import { y } from '../../outside/y';\nexport const z = y;\n`);
+      fs.writeFileSync(path.join(root, 'outside', 'y.ts'), `export const y = 1;\n`);
+      const sources = new Map([[specFile, fs.readFileSync(specFile, 'utf8')]]);
+      // Boundary is `inside/`, not `root` — the import climbs out of it.
+      const result = collectLocallyImportedFiles(sources, path.join(root, 'inside'));
+      assert.equal(result.size, 0, `expected nothing resolved outside the boundary: ${[...result.keys()]}`);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('ignores bare/package import specifiers (never treated as local files)', () => {
+    const root = tmpDir();
+    try {
+      const specFile = path.join(root, 'x.spec.ts');
+      fs.writeFileSync(
+        specFile,
+        `import { test } from '@playwright/test';\nimport { helper } from 'some-package';\ntest('x', () => {});\n`
+      );
+      const sources = new Map([[specFile, fs.readFileSync(specFile, 'utf8')]]);
+      const result = collectLocallyImportedFiles(sources, root);
+      assert.equal(result.size, 0);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('is cycle-safe (two files importing each other does not hang or throw)', () => {
+    const root = tmpDir();
+    try {
+      const specFile = path.join(root, 'x.spec.ts');
+      const aFile = path.join(root, 'a.ts');
+      const bFile = path.join(root, 'b.ts');
+      fs.writeFileSync(specFile, `import { a } from './a';\nexport const x = a;\n`);
+      fs.writeFileSync(aFile, `import { b } from './b';\nexport const a = b;\n`);
+      fs.writeFileSync(bFile, `import { a } from './a';\nexport const b = a;\n`);
+      const sources = new Map([[specFile, fs.readFileSync(specFile, 'utf8')]]);
+      const result = collectLocallyImportedFiles(sources, root);
+      assert.equal(result.size, 2);
+      assert.ok(result.has(aFile) && result.has(bFile));
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it('never includes a file already present in the input spec sources', () => {
+    const root = tmpDir();
+    try {
+      const specA = path.join(root, 'a.spec.ts');
+      const specB = path.join(root, 'b.spec.ts');
+      fs.writeFileSync(specA, `import { b } from './b.spec';\nexport const a = b;\n`);
+      fs.writeFileSync(specB, `export const b = 1;\n`);
+      const sources = new Map([
+        [specA, fs.readFileSync(specA, 'utf8')],
+        [specB, fs.readFileSync(specB, 'utf8')],
+      ]);
+      const result = collectLocallyImportedFiles(sources, root);
+      assert.equal(result.size, 0, 'specB was already a seed file, not a new dependency');
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
   });
 });
