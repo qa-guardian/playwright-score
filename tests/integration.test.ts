@@ -568,6 +568,54 @@ describe('scorePaths integration', () => {
     }
   });
 
+  it('traces a two-level Page Object Model assertion delegated through an imported class (regression: n8n NotificationsPage.waitForNotificationAndClose)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-pom-two-level-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'tests'), { recursive: true });
+      fs.mkdirSync(path.join(dir, 'pages'), { recursive: true });
+      // The spec calls a class method two levels removed from any expect()
+      // call — waitForNotificationAndClose calls this.waitForNotification,
+      // which calls .waitFor(). Neither the spec nor the immediate method
+      // it calls contains expect() or waitFor() directly.
+      fs.writeFileSync(
+        path.join(dir, 'tests', 'pdf-embed.spec.ts'),
+        `import { test } from '@playwright/test';\n` +
+          `import { NotificationsPage } from '../pages/NotificationsPage';\n` +
+          `test('embeds a pdf', async ({ page }) => {\n` +
+          `  const notifications = new NotificationsPage(page);\n` +
+          `  await page.goto('/import');\n` +
+          `  await notifications.waitForNotificationAndClose('Node executed successfully');\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'pages', 'NotificationsPage.ts'),
+        `import type { Page } from '@playwright/test';\n` +
+          `export class NotificationsPage {\n` +
+          `  constructor(private page: Page) {}\n` +
+          `  async waitForNotification(text: string) {\n` +
+          `    await this.page.getByRole('alert').getByText(text).first().waitFor({ state: 'visible' });\n` +
+          `  }\n` +
+          `  async waitForNotificationAndClose(text: string) {\n` +
+          `    await this.waitForNotification(text);\n` +
+          `    await this.page.getByRole('button', { name: 'Close' }).click();\n` +
+          `  }\n` +
+          `}\n`
+      );
+
+      const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
+      assert.ok(
+        !result.findings.some((f) => f.rule === 'playwright/expect-expect'),
+        `expected the two-level delegated assertion to be recognized: ${JSON.stringify(result.findings)}`
+      );
+      assert.ok(
+        !result.findings.some((f) => f.file.includes('NotificationsPage')),
+        'the page object must never appear in findings (it is not a scored test file)'
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('explicit single-file scoring stays bounded to that file (does not widen to sibling directories)', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-pom-explicit-'));
     try {

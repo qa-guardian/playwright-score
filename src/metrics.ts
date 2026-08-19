@@ -169,26 +169,81 @@ function containsExpectCall(node: unknown): boolean {
 }
 
 /**
- * Names of same-file functions (function declarations, or a const bound to
- * an arrow/function expression) whose own body contains an expect(...)-
- * shaped call anywhere. Fed into playwright/expect-expect's own
- * assertFunctionNames option (see eslint-runner.ts) so a test that
- * delegates its assertion to a locally-defined helper — `audit(page,
- * path)`, `checkFlashMessageVisibility(page, msg)`, `assertDashboardLoaded`
- * — isn't flagged as having no assertions, regardless of what the helper
- * happens to be named. expect-expect can only see expect() calls written
- * directly in the test body, so without this, delegating to a helper at
- * all — an extremely common way to dedupe near-identical specs — reads as
- * "no assertions"; verified against several real production files using
- * several different naming conventions for the exact same shape.
- * Deliberately local-only: a helper imported from another file can't be
- * resolved without following module specifiers and parsing that file too,
- * well beyond what a fast, per-file syntactic check should attempt.
+ * `locator.waitFor({ state: ... })` (state defaults to `'visible'` when
+ * omitted) has no purpose other than verifying the element reaches a
+ * state — unlike an action method (`.click()`, `.fill()`) that also
+ * happens to throw on failure as a side effect, this call exists only to
+ * check something, functionally equivalent to
+ * `expect(locator).toBeVisible()`/`toBeHidden()`. Matched on the exact
+ * property name `waitFor` (not a prefix), so it can't be confused with
+ * Page's differently-named `waitForEvent`/`waitForURL`/`waitForResponse`/
+ * `waitForLoadState`/`waitForTimeout`, none of which are assertions.
+ */
+function containsWaitForCall(node: unknown): boolean {
+  let found = false;
+  walk(node, (n) => {
+    if (found || n.type !== 'CallExpression') return;
+    const callee = (n as { callee?: Record<string, unknown> }).callee;
+    if (callee?.type !== 'MemberExpression' || callee.computed) return;
+    const property = callee.property as { type?: string; name?: string } | undefined;
+    if (property?.type === 'Identifier' && property.name === 'waitFor') found = true;
+  });
+  return found;
+}
+
+/** Does `node`'s body contain a call (any receiver, matched by name only —
+ * same name-based matching eslint-plugin-playwright's own
+ * assertFunctionNames option uses) to one of `names`? */
+function containsCallToAnyName(node: unknown, names: Set<string>): boolean {
+  if (names.size === 0) return false;
+  let found = false;
+  walk(node, (n) => {
+    if (found || n.type !== 'CallExpression') return;
+    const callee = (n as { callee?: Record<string, unknown> }).callee;
+    let name: string | undefined;
+    if (callee?.type === 'Identifier') {
+      name = (callee as { name?: string }).name;
+    } else if (callee?.type === 'MemberExpression' && !callee.computed) {
+      const property = callee.property as { type?: string; name?: string } | undefined;
+      if (property?.type === 'Identifier') name = property.name;
+    }
+    if (name && names.has(name)) found = true;
+  });
+  return found;
+}
+
+/**
+ * Names of same-file assertion helpers — function declarations, a const
+ * bound to an arrow/function expression, or a class method (`kind:
+ * 'method'`, e.g. a Page Object Model's `async expectNodeVisible(name) {
+ * await expect(...) }`) — whose own body contains an expect(...)-shaped
+ * call, a `.waitFor(...)` call (see containsWaitForCall), or a call to a
+ * name already recognized by an earlier round (so e.g.
+ * `waitForNotificationAndClose()` calling `this.waitForNotification()`,
+ * itself resolved to a direct `.waitFor()` call, is recognized too —
+ * verified against a real Page Object Model, n8n's NotificationsPage,
+ * where the assertion sits two calls deep). Fed into
+ * playwright/expect-expect's own assertFunctionNames option (see
+ * eslint-runner.ts) so a test that delegates its assertion to a helper —
+ * `audit(page, path)`, `canvas.expectNodeVisible(name)`,
+ * `n8n.notifications.waitForNotificationAndClose(text)` — isn't flagged as
+ * having no assertions, regardless of what the helper is named or how
+ * deep the delegation chain runs *within this one file*. Matching is by
+ * name only, any receiver — the same tradeoff eslint-plugin-playwright's
+ * own option already makes, so this doesn't introduce a new risk, just
+ * extends an already-accepted one from free functions to methods too; a
+ * coincidental name collision between an asserting and non-asserting
+ * function is the known, accepted failure mode, same as before.
+ * Deliberately single-file only: resolving `this.foo()` across file
+ * boundaries needs real type resolution, well beyond what a fast,
+ * syntactic per-file check should attempt (cross-*file* delegation is
+ * handled separately, at the call site in index.ts, by running this same
+ * function against each imported dependency file too).
  */
 export function findLocalAssertionHelperNames(source: string, file?: string): string[] {
   const ast = parseSource(source, file);
   if (!ast) return [];
-  const names = new Set<string>();
+  const candidates: Array<{ name: string; body: unknown }> = [];
   walk(ast, (node) => {
     let name: string | undefined;
     let body: unknown;
@@ -208,9 +263,33 @@ export function findLocalAssertionHelperNames(source: string, file?: string): st
         name = id.name;
         body = init;
       }
+    } else if (node.type === 'MethodDefinition') {
+      const key = node.key as { type?: string; name?: string } | undefined;
+      if (!node.computed && key?.type === 'Identifier' && node.kind === 'method') {
+        name = key.name;
+        body = node.value;
+      }
     }
-    if (name && body && containsExpectCall(body)) names.add(name);
+    if (name && body) candidates.push({ name, body });
   });
+
+  const names = new Set<string>();
+  for (const c of candidates) {
+    if (containsExpectCall(c.body) || containsWaitForCall(c.body)) names.add(c.name);
+  }
+  // Fixed-point: naturally bounded by candidates.length rounds, since each
+  // round adds at least one name or the loop stops.
+  let added = true;
+  while (added) {
+    added = false;
+    for (const c of candidates) {
+      if (names.has(c.name)) continue;
+      if (containsCallToAnyName(c.body, names)) {
+        names.add(c.name);
+        added = true;
+      }
+    }
+  }
   return [...names];
 }
 

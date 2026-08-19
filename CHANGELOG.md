@@ -5,6 +5,41 @@ methodology itself (`sqs-v1`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.m
 Any change to formulas, weights, or constants requires a new score version
 (`sqs-v2`), not a patch release.
 
+## 0.1.12 — 2026-08-19
+
+### Fixed
+- **Assertion-helper delegation was invisible for class-based Page Object
+  Models — `findLocalAssertionHelperNames` only recognized free functions
+  and `const`-bound arrows, never a class method.** Since almost every
+  real-world POM is written as a class, this meant the cross-file
+  assertion-delegation tracing shipped in 0.1.11 didn't actually reach the
+  common case. Now also collects `MethodDefinition` (`kind: 'method'`)
+  candidates.
+- **`.waitFor({ state })` (state defaults to `'visible'`) is now recognized
+  as an assertion equivalent to `expect(...)`.** It exists only to verify
+  a state, unlike an action method that merely throws on failure as a
+  side effect — functionally the same as `expect(locator).toBeVisible()`.
+  Matched on the exact property name `waitFor`, never confused with
+  `waitForEvent`/`waitForURL`/`waitForResponse`/`waitForLoadState`/
+  `waitForTimeout`, none of which are assertions.
+- **Delegation through more than one call is now resolved within a single
+  file** — e.g. a `waitForNotificationAndClose()` method calling
+  `this.waitForNotification()`, which itself calls `.waitFor()`, two
+  calls removed from anything expect-expect could previously see. A
+  bounded fixed-point pass: any candidate calling (by name, any receiver —
+  same matching eslint-plugin-playwright's own `assertFunctionNames`
+  option already uses) something already recognized is added too, until
+  no new names are found.
+  Verified against the real suite this was found in (n8n): its
+  `NotificationsPage.waitForNotificationAndClose` is exactly this shape,
+  two calls deep, defined in the same file as `waitForNotification`. Files
+  with an `expect-expect` finding dropped from ~15 to 5 across n8n's 256
+  specs; the remaining ones are a different, disclosed pattern (some tests
+  signal failure by throwing directly rather than asserting a state —
+  still open, not attempted here). Re-verified against the full real-world
+  corpus (Playwright, Supabase, Storybook, freeCodeCamp, OpenMRS,
+  patient-chart, 15 real Guardian specs) with zero regressions.
+
 ## 0.1.11 — 2026-08-17
 
 ### Fixed

@@ -333,6 +333,70 @@ describe('findLocalAssertionHelperNames', () => {
     assert.deepEqual(findLocalAssertionHelperNames(source), []);
   });
 
+  it('finds a class method (Page Object Model) whose body contains expect(...)', () => {
+    const source = `
+      class CanvasPage {
+        async expectNodeVisible(name) {
+          await expect(this.nodeByName(name)).toBeVisible();
+        }
+      }
+    `;
+    assert.deepEqual(findLocalAssertionHelperNames(source), ['expectNodeVisible']);
+  });
+
+  it('recognizes a .waitFor(...) call as an assertion equivalent (regression: real POM used waitFor, not expect, to verify state)', () => {
+    const source = `
+      class NotificationsPage {
+        async waitForNotification(text) {
+          await this.getNotificationByTitle(text).first().waitFor({ state: 'visible' });
+        }
+      }
+    `;
+    assert.deepEqual(findLocalAssertionHelperNames(source), ['waitForNotification']);
+  });
+
+  it('does not confuse Page.waitForEvent/waitForURL/waitForTimeout with Locator.waitFor', () => {
+    const source = `
+      async function setup(page) {
+        await page.waitForEvent('load');
+        await page.waitForURL('/home');
+        await page.waitForTimeout(500);
+      }
+    `;
+    assert.deepEqual(findLocalAssertionHelperNames(source), []);
+  });
+
+  it('resolves a two-level delegation chain within the same file (regression: n8n NotificationsPage — waitForNotificationAndClose calls this.waitForNotification, which calls .waitFor)', () => {
+    const source = `
+      class NotificationsPage {
+        async waitForNotification(text) {
+          await this.getNotificationByTitle(text).first().waitFor({ state: 'visible' });
+        }
+        async waitForNotificationAndClose(text) {
+          await this.waitForNotification(text);
+          await this.closeNotificationByText(text);
+        }
+      }
+    `;
+    const names = findLocalAssertionHelperNames(source);
+    assert.ok(names.includes('waitForNotification'));
+    assert.ok(names.includes('waitForNotificationAndClose'));
+  });
+
+  it('does not recognize a method that only calls unrelated, non-asserting methods', () => {
+    const source = `
+      class Utils {
+        async clickAndWait(page) {
+          await this.click(page);
+          await this.wait(page);
+        }
+        async click(page) { await page.click('#x'); }
+        async wait(page) { await page.waitForTimeout(100); }
+      }
+    `;
+    assert.deepEqual(findLocalAssertionHelperNames(source), []);
+  });
+
   it('returns an empty list (not a throw) for unparseable source', () => {
     assert.deepEqual(findLocalAssertionHelperNames('this is not { valid js (((') , []);
   });
