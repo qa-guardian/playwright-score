@@ -29,25 +29,29 @@ Chosen deliberately to include both well-known, heavily-engineered
 platforms and smaller, less mature projects — this isn't a corpus
 selected to make the tool look good.
 
-| Repo | Score | Grade | Pass | Files | Tests | Findings |
+| Repo (source scanned) | Score | Grade | Pass | Files | Tests | Findings |
 |---|---:|:-:|:-:|---:|---:|---:|
-| Playwright (own TodoMVC example) | 98 | A | ✓ | 24 | 24 | 4 |
-| n8n | 95 | A | ✓ | 256 | 1,047 | 39 |
-| Supabase | 98 | A | ✓ | 31 | 271 | 167 |
-| Storybook | 96 | A | ✓ | 6 | 25 | 12 |
-| freeCodeCamp | 97 | A | ✓ | 89 | 372 | 187 |
-| cal.com | 85 | B | ✓ | 53 | 278 | 1,215 |
-| Grafana | 92 | A | ✓ | 213 | 672 | 744 |
-| Mattermost | 90 | A | ✓ | 284 | 1,157 | 1,476 |
-| dub | 95 | A | ✓ | 15 | 125 | 26 |
-| Documenso | 96 | A | ✓ | 125 | 1,109 | 579 |
-| PostHog | 91 | A | ✓ | 42 | 124 | 261 |
-| novu | 93 | A | ✓ | 2 | 2 | 3 |
-| Immich | 90 | A | ✓ | 13 | 43 | 39 |
-| openplayerjs | 77 | C | ✗ FAIL | 8 | 77 | 36 |
-| livecodes | 78 | C | ✗ FAIL | 14 | 280 | 140 |
-| TheCyberHub | 73 | C | ✗ FAIL | 11 | 138 | 275 |
-| sencho | 90 | A | ✓ | 26 | 177 | 263 |
+| [Playwright (own TodoMVC example)](https://github.com/microsoft/playwright/tree/main/examples/todomvc) | 98 | A | ✓ | 24 | 24 | 4 |
+| [n8n](https://github.com/n8n-io/n8n/tree/master/packages/testing/playwright) | 95 | A | ✓ | 256 | 1,047 | 39 |
+| [Supabase](https://github.com/supabase/supabase/tree/master/e2e) | 98 | A | ✓ | 31 | 271 | 167 |
+| [Storybook](https://github.com/storybookjs/storybook/tree/next/code/e2e-internal) | 96 | A | ✓ | 6 | 25 | 12 |
+| [freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp/tree/main/e2e) | 97 | A | ✓ | 89 | 372 | 187 |
+| [cal.com](https://github.com/calcom/cal.com/tree/main/apps/web/playwright) | 85 | B | ✓ | 53 | 278 | 1,215 |
+| [Grafana](https://github.com/grafana/grafana/tree/main/e2e-playwright) | 92 | A | ✓ | 213 | 672 | 744 |
+| [Mattermost](https://github.com/mattermost/mattermost/tree/master/e2e-tests/playwright) | 90 | A | ✓ | 284 | 1,157 | 1,476 |
+| [dub](https://github.com/dubinc/dub/tree/main/apps/web/playwright) | 95 | A | ✓ | 15 | 125 | 26 |
+| [Documenso](https://github.com/documenso/documenso/tree/main/packages/app-tests) | 96 | A | ✓ | 125 | 1,109 | 579 |
+| [PostHog](https://github.com/PostHog/posthog/tree/master/playwright) | 91 | A | ✓ | 42 | 124 | 261 |
+| [novu](https://github.com/novuhq/novu/tree/next/apps/dashboard/tests) | 93 | A | ✓ | 2 | 2 | 3 |
+| [Immich](https://github.com/immich-app/immich/tree/main/e2e/src/specs) | 90 | A | ✓ | 13 | 43 | 39 |
+| [openplayerjs](https://github.com/openplayerjs/openplayerjs/tree/master/e2e) | 77 | C | ✗ FAIL | 8 | 77 | 36 |
+| [livecodes](https://github.com/live-codes/livecodes/tree/develop/e2e) | 78 | C | ✗ FAIL | 14 | 280 | 140 |
+| [TheCyberHub](https://github.com/th3cyb3rhub/TheCyberHub/tree/dev/e2e) | 73 | C | ✗ FAIL | 11 | 138 | 275 |
+| [sencho](https://github.com/Studio-Saelix/sencho/tree/main/e2e) | 90 | A | ✓ | 26 | 177 | 263 |
+
+Repo names link straight to the exact scanned source on GitHub — re-run
+`scripts/validate-corpus.sh` for the full findings list of any entry, or
+`playwright-score <path> --format markdown` against your own clone.
 
 **14 pass / 3 fail / 17 total.** 1,262 files, 5,701 tests.
 
