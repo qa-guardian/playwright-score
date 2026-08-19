@@ -446,6 +446,31 @@ describe('scorePaths integration', () => {
     }
   });
 
+  it('directory scan discovers *.e2e-spec.ts specs and still excludes a vitest *.e2e-spec.ts using the same suffix (regression: Immich — 13 real Playwright specs named *.e2e-spec.ts alongside 31 vitest/supertest backend specs using the identical suffix)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-e2e-spec-glob-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'web'));
+      fs.mkdirSync(path.join(dir, 'server'));
+      fs.writeFileSync(
+        path.join(dir, 'web', 'album.e2e-spec.ts'),
+        `import { test, expect } from '@playwright/test';\ntest('creates an album', async ({ page }) => {\n  await page.goto('/albums');\n  await expect(page.getByRole('heading')).toBeVisible();\n});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'server', 'download.e2e-spec.ts'),
+        `import { describe, it, expect } from 'vitest';\nimport request from 'supertest';\ndescribe('/download', () => {\n  it('downloads an asset', () => { expect(1).toBe(1); });\n});\n`
+      );
+
+      const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
+      assert.equal(result.summary.files, 1, 'only the real Playwright *.e2e-spec.ts should be scored');
+      assert.ok(
+        result.skippedFiles?.some((f) => f.includes('download.e2e-spec.ts')),
+        `expected the vitest *.e2e-spec.ts to be reported as skipped: ${JSON.stringify(result.skippedFiles)}`
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('finds ESLint issues even when caller cwd is unrelated to the file (regression: basePath bug)', async () => {
     // Real-world shape of the bug this guards: a host process (e.g. the
     // Guardian runner) calls scorePaths with its own install dir as cwd,

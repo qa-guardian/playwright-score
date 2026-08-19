@@ -16,7 +16,7 @@ Lint + score Playwright tests with:
 
 The score never calls an LLM. AI may *generate* or *repair* code using findings; **rules grade code**.
 
-See [METHODOLOGY.md](./METHODOLOGY.md) for the frozen formula, or the full product write-up on the [landing page](https://qaguardian.com/open-source/playwright-score).
+See [METHODOLOGY.md](./METHODOLOGY.md) for the frozen formula, [VALIDATION.md](./VALIDATION.md) for real-world results against public repos (cal.com, Grafana, Mattermost, ...) and a re-runnable script to reproduce them, or the full product write-up on the [landing page](https://qaguardian.com/open-source/playwright-score).
 
 ## Install
 

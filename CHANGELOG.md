@@ -5,6 +5,38 @@ methodology itself (`sqs-v1`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.m
 Any change to formulas, weights, or constants requires a new score version
 (`sqs-v2`), not a patch release.
 
+## 0.1.14 — 2026-08-19
+
+### Fixed
+- **CLI stdout truncation on large output.** `console.log(body)` immediately
+  followed by `process.exit()` raced Node's async pipe write against
+  process termination — for output over ~64KB (a real suite's 1,215-finding
+  JSON report, ~370KB), the write was silently cut at exactly the pipe
+  buffer boundary when stdout wasn't a TTY (piped to `jq`, a CI log
+  processor, anything). No error, just truncated, invalid output. Found
+  while building `scripts/validate-corpus.sh` — reproduced with `--out
+  file.json` (full 376,920 bytes) vs. piped (exactly 65,536 bytes) against
+  the same input. Fixed by using `process.exitCode` instead of
+  `process.exit()` everywhere in the CLI, which lets Node exit naturally
+  once pending I/O actually drains — the standard fix for this class of
+  bug. 3 new tests spawn the real CLI binary as a child process (the only
+  way to reproduce a stdout-pipe bug — the existing suite only ever called
+  `scorePaths()` in-process).
+- **`.e2e-spec.`/`.e2e-test.` naming conventions weren't discovered either**
+  — the same gap as 0.1.13's `.e2e.` fix, one suffix short. Verified
+  against Immich: 13 real Playwright specs named `*.e2e-spec.ts`,
+  previously invisible, sitting alongside 31 *other* files using the
+  identical suffix for `vitest`/`supertest` backend tests — correctly
+  excluded by the existing `looksLikeNonPlaywrightTest` safety net once
+  discovery found them. `SPEC_GLOBS` now also matches
+  `*.e2e-spec.*`/`*.e2e-test.*`.
+
+### Added
+- **`scripts/validate-corpus.sh`** — re-runnable real-world validation:
+  shallow/sparse-clones 17 real public repos fresh and scores each with the
+  local build. See `VALIDATION.md` for the current results and the story
+  behind every fix that came from running it.
+
 ## 0.1.13 — 2026-08-19
 
 ### Fixed

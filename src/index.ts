@@ -23,17 +23,17 @@ export { formatText } from './formatters/text.js';
 export { formatMarkdown } from './formatters/markdown.js';
 export { formatSarif } from './formatters/sarif.js';
 
-// `.e2e.` is a real, common convention for disambiguating end-to-end specs
-// from unit tests living in the same tree — verified against a
-// well-known, large real-world repo (cal.com: 53 real Playwright specs,
-// all named *.e2e.ts, zero *.spec.ts/*.test.ts) where a directory scan
-// previously hard-failed with "no files matched" despite a fully healthy,
-// populated suite. looksLikeNonPlaywrightTest (see metrics.ts) is the
-// safety net for a repo that uses `.e2e.` for a *different* framework —
-// Cypress specifically was common enough here to get its own explicit
-// check alongside the existing Jest/Vitest/RTL ones.
+// `.e2e.`/`.e2e-spec.`/`.e2e-test.` are real, common conventions for
+// disambiguating end-to-end specs from unit tests living in the same tree
+// — verified against two well-known, large real-world repos where a
+// directory scan previously hard-failed with "no files matched" despite a
+// fully healthy, populated suite: cal.com (53 specs, all *.e2e.ts) and
+// Immich (52 specs, all *.e2e-spec.ts). looksLikeNonPlaywrightTest (see
+// metrics.ts) is the safety net for a repo that uses `.e2e.` for a
+// *different* framework — Cypress specifically was common enough here to
+// get its own explicit check alongside the existing Jest/Vitest/RTL ones.
 const SPEC_GLOBS = [
-  '**/*.{spec,test,e2e}.{ts,tsx,js,jsx}',
+  '**/*.{spec,test,e2e,e2e-spec,e2e-test}.{ts,tsx,js,jsx}',
   '**/*.spec.ts',
   '**/*.test.ts',
 ];

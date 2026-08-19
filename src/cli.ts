@@ -37,6 +37,14 @@ Methodology: METHODOLOGY.md (sqs-v1)
 `);
 }
 
+// Deliberately never process.exit() right after a console.log/console.error
+// — for a large enough write (verified against a real suite: a JSON report
+// with 1000+ findings, ~370KB) stdout to a pipe (not a TTY) is asynchronous,
+// and process.exit() can terminate the process before the OS has drained
+// the write, silently truncating the output exactly at the pipe buffer
+// size (64KB on macOS/Linux). Setting process.exitCode and returning lets
+// Node exit naturally once pending I/O actually completes, which is the
+// standard fix for this class of bug.
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.includes('--version') || args.includes('-v')) {
@@ -48,11 +56,13 @@ async function main(): Promise<void> {
     } catch {
       console.log('0.1.8');
     }
-    process.exit(0);
+    process.exitCode = 0;
+    return;
   }
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     printHelp();
-    process.exit(args.length === 0 ? 2 : 0);
+    process.exitCode = args.length === 0 ? 2 : 0;
+    return;
   }
 
   let profile: ProfileName = 'standard';
@@ -68,19 +78,22 @@ async function main(): Promise<void> {
       profile = args[++i] as ProfileName;
       if (profile !== 'standard' && profile !== 'guardian') {
         console.error(`Invalid profile: ${profile}`);
-        process.exit(2);
+        process.exitCode = 2;
+        return;
       }
     } else if (a === '--threshold') {
       threshold = Number(args[++i]);
       if (Number.isNaN(threshold) || threshold < 0 || threshold > 100) {
         console.error('threshold must be 0-100');
-        process.exit(2);
+        process.exitCode = 2;
+        return;
       }
     } else if (a === '--format') {
       const f = args[++i];
       if (f !== 'text' && f !== 'json' && f !== 'markdown' && f !== 'sarif') {
         console.error(`Invalid format: ${f}`);
-        process.exit(2);
+        process.exitCode = 2;
+        return;
       }
       format = f;
     } else if (a === '--out') {
@@ -89,7 +102,8 @@ async function main(): Promise<void> {
       continue;
     } else if (a.startsWith('-')) {
       console.error(`Unknown option: ${a}`);
-      process.exit(2);
+      process.exitCode = 2;
+      return;
     } else {
       paths.push(a);
     }
@@ -97,7 +111,8 @@ async function main(): Promise<void> {
 
   if (paths.length === 0) {
     console.error('At least one path is required');
-    process.exit(2);
+    process.exitCode = 2;
+    return;
   }
 
   try {
@@ -124,10 +139,10 @@ async function main(): Promise<void> {
       console.log(body);
     }
 
-    process.exit(result.pass ? 0 : 1);
+    process.exitCode = result.pass ? 0 : 1;
   } catch (err) {
     console.error(err instanceof Error ? err.message : err);
-    process.exit(2);
+    process.exitCode = 2;
   }
 }
 
