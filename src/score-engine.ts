@@ -21,12 +21,7 @@ export const SQS_V1 = {
   K: 0.4,
 } as const;
 
-const PENALTY_DIMENSIONS: DimensionName[] = [
-  'playwrightHygiene',
-  'assertions',
-  'structure',
-  'guardianConventions',
-];
+const PENALTY_DIMENSIONS: DimensionName[] = ['playwrightHygiene', 'assertions', 'structure'];
 
 export function gradeFromScore(score: number): Grade {
   if (score >= 90) return 'A';
@@ -90,7 +85,12 @@ export function computeScore(input: {
   nativeLocators: number;
   rawLocators: number;
 }): ScoreResult {
-  const weights = PROFILE_WEIGHTS[input.profile];
+  // Falls back to `standard`'s weights for any unrecognized profile string
+  // rather than throwing — a defensive guard against exactly the failure
+  // mode a profile removal creates: a caller pinned to an old contract
+  // (e.g. `profile: 'guardian'`, removed in 0.2.0) degrades to a working
+  // score instead of a hard crash.
+  const weights = PROFILE_WEIGHTS[input.profile] ?? PROFILE_WEIGHTS.standard;
   const dims: ScoreDimensions = {
     playwrightHygiene: penaltyDimensionScore(
       input.findings,
@@ -109,14 +109,6 @@ export function computeScore(input: {
       input.sloc
     ),
   };
-
-  if (input.profile === 'guardian') {
-    dims.guardianConventions = penaltyDimensionScore(
-      input.findings,
-      'guardianConventions',
-      input.sloc
-    );
-  }
 
   let score = 0;
   for (const [dim, weight] of Object.entries(weights)) {

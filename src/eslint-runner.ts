@@ -3,15 +3,11 @@ import { ESLint } from 'eslint';
 import { commonAncestorDir } from './fs-util.js';
 import type { Linter } from 'eslint';
 import playwright from 'eslint-plugin-playwright';
-import {
-  guardianPlugin,
-  guardianRuleConfigs,
-} from './rules/guardian-plugin.js';
 import { basePlugin } from './rules/base-plugin.js';
 import { mapRule } from './profiles.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
-function buildConfig(profile: ProfileName, assertFunctionNames: string[]): Linter.Config[] {
+function buildConfig(assertFunctionNames: string[]): Linter.Config[] {
   const playwrightRecommended =
     playwright.configs?.['flat/recommended'] ??
     playwright.configs?.recommended;
@@ -27,7 +23,6 @@ function buildConfig(profile: ProfileName, assertFunctionNames: string[]): Linte
       plugins: {
         playwright,
         pwscore: basePlugin,
-        ...(profile === 'guardian' ? { guardian: guardianPlugin } : {}),
       },
       rules: {
         // Ensure key hygiene rules even if recommended set differs by
@@ -99,7 +94,6 @@ function buildConfig(profile: ProfileName, assertFunctionNames: string[]): Linte
         'playwright/prefer-native-locators': 'warn',
         // Matches eslint-plugin-playwright's own recommended severity.
         'playwright/prefer-web-first-assertions': 'error',
-        ...(profile === 'guardian' ? { ...guardianRuleConfigs } : {}),
       },
     },
   ];
@@ -107,17 +101,6 @@ function buildConfig(profile: ProfileName, assertFunctionNames: string[]): Linte
   // Prefer spreading official recommended flat config when available
   if (Array.isArray(playwrightRecommended)) {
     const configs = playwrightRecommended as Linter.Config[];
-    if (profile === 'guardian') {
-      return [
-        ...configs,
-        {
-          plugins: { guardian: guardianPlugin },
-          rules: { ...guardianRuleConfigs },
-        },
-        // our severity tweaks
-        base[0],
-      ];
-    }
     return [...configs, base[0]];
   }
 
@@ -157,7 +140,7 @@ export async function runEslint(options: {
     options.files.length > 0
       ? commonAncestorDir(options.files)
       : (options.cwd ?? process.cwd());
-  const overrideConfig = buildConfig(options.profile, options.assertFunctionNames ?? []);
+  const overrideConfig = buildConfig(options.assertFunctionNames ?? []);
 
   // Try to attach typescript-eslint parser for .ts files
   try {

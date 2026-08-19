@@ -11,14 +11,11 @@ Any change to formulas, weights, SLOC definition, caps, or constants requires a 
 
 ---
 
-## Profiles
+## Profile
 
-| Profile | Purpose |
-|---|---|
-| `standard` | Community Playwright best practices (`eslint-plugin-playwright`) + suite metrics |
-| `guardian` | `standard` + QA Guardian house conventions (optional; clearly labeled) |
-
-House rules are **not** claimed to be official Playwright doctrine.
+`standard` (the only profile): community Playwright best practices
+(`eslint-plugin-playwright`) plus suite-level metrics (locator ratio,
+assertion-delegation tracing, Page Object Model import resolution).
 
 ---
 
@@ -34,24 +31,12 @@ House rules are **not** claimed to be official Playwright doctrine.
 
 ## Dimension weights
 
-### `standard`
-
 | Dimension | Weight |
 |---|---|
 | playwrightHygiene | 40 |
 | assertions | 25 |
 | locators | 20 |
 | structure | 15 |
-
-### `guardian`
-
-| Dimension | Weight |
-|---|---|
-| playwrightHygiene | 30 |
-| assertions | 15 |
-| locators | 15 |
-| structure | 15 |
-| guardianConventions | 25 |
 
 ---
 
@@ -88,7 +73,7 @@ Used for penalty density. JSDoc / decorative comments do not inflate slots.
 
 ## Penalty dimensions
 
-Applies to: `playwrightHygiene`, `assertions`, `structure`, `guardianConventions`.
+Applies to: `playwrightHygiene`, `assertions`, `structure`.
 
 ### Constants (frozen sqs-v1)
 
@@ -159,11 +144,13 @@ These examples feel fair: tiny single error stays high; multi-error drops materi
 
 ## Default thresholds
 
-| Context | Profile | Threshold |
-|---|---|---|
-| CLI default | standard | 80 |
-| QAG dogfood (warn) | guardian | 75 → 80 |
-| QAG gate (later) | guardian | 80 |
+| Context | Threshold |
+|---|---|
+| CLI default | 80 |
+
+QA Guardian's own internal codegen pipeline (`playwright_runner`) layers a
+private house-rules gate on top of `standard` — see the README's
+"QA Guardian integration" section. That layer isn't part of this package.
 
 ---
 
@@ -175,4 +162,3 @@ See package rule docs / source `profiles.ts`. High level:
 - **assertions:** expect-expect, empty tests, web-first preference  
 - **locators:** ratio metric only (for score); raw-locator ESLint in findings  
 - **structure:** focused/skipped, oversized file, describe shape  
-- **guardianConventions:** load-state ban, Date.now ban, secrets, test.step, one-describe-one-test, etc.  

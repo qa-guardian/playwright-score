@@ -11,11 +11,11 @@ inputs:
     required: false
     default: 'tests'
   profile:
-    description: 'Scoring profile: standard | guardian'
+    description: 'Scoring profile (standard is the only one)'
     required: false
     default: 'standard'
   threshold:
-    description: 'Pass threshold 0-100. Leave empty to use the profile default (80 standard / 75 guardian).'
+    description: 'Pass threshold 0-100. Leave empty to use the default (80).'
     required: false
     default: ''
   mode:

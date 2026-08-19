@@ -1,14 +1,9 @@
 export type ScoreVersion = 'sqs-v1';
-export type ProfileName = 'standard' | 'guardian';
+export type ProfileName = 'standard';
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
 export type Severity = 'error' | 'warning' | 'info';
 
-export type DimensionName =
-  | 'playwrightHygiene'
-  | 'assertions'
-  | 'locators'
-  | 'structure'
-  | 'guardianConventions';
+export type DimensionName = 'playwrightHygiene' | 'assertions' | 'locators' | 'structure';
 
 export interface Finding {
   rule: string;
@@ -27,7 +22,6 @@ export interface ScoreDimensions {
   assertions: number;
   locators: number;
   structure: number;
-  guardianConventions?: number;
 }
 
 export interface ScoreSummary {

@@ -9,10 +9,10 @@
 **Website:** [qaguardian.com/open-source/playwright-score](https://qaguardian.com/open-source/playwright-score)  
 **Built by:** [QA Guardian](https://qaguardian.com) — managed Playwright E2E (AI drafts, engineers verify, you own the code)
 
-Lint + score Playwright tests with:
-
-- **`standard`** — community best practices via [`eslint-plugin-playwright`](https://github.com/playwright-community/eslint-plugin-playwright) + suite metrics  
-- **`guardian`** — optional house conventions (QA Guardian codegen gate); not official Playwright doctrine  
+Lint + score Playwright tests against community best practices via
+[`eslint-plugin-playwright`](https://github.com/playwright-community/eslint-plugin-playwright)
+plus suite-level metrics (locator ratio, assertion-delegation tracing,
+Page Object Model import resolution, ...).
 
 The score never calls an LLM. AI may *generate* or *repair* code using findings; **rules grade code**.
 
@@ -33,12 +33,12 @@ Package: [@qaguardian/playwright-score](https://www.npmjs.com/package/@qaguardia
 npx -p @qaguardian/playwright-score playwright-score ./tests --profile standard --threshold 80
 
 # After local install
-npx playwright-score ./flow.spec.ts --profile guardian --format json --out report.json
+npx playwright-score ./flow.spec.ts --format json --out report.json
 ```
 
 | Flag | Description |
 |---|---|
-| `--profile standard\|guardian` | Scoring profile (default `standard`) |
+| `--profile standard` | Scoring profile (default, and only, profile) |
 | `--threshold <n>` | Pass bar 0–100 |
 | `--format text\|json\|markdown\|sarif` | Output format |
 | `--out <file>` | Write report to file |
@@ -69,16 +69,15 @@ keep a sticky PR comment with the full findings up to date:
 - uses: qa-guardian/playwright-score@v1
   with:
     paths: tests e2e
-    profile: standard      # or guardian
-    # threshold: 80        # defaults to the profile's default
+    # threshold: 80        # defaults to 80
     mode: gate              # gate: fail CI below threshold · warn: report only
 ```
 
 | Input | Description | Default |
 |---|---|---|
 | `paths` | Space-separated paths/globs to score | `tests` |
-| `profile` | `standard` \| `guardian` | `standard` |
-| `threshold` | Pass bar 0–100 | profile default (80 / 75) |
+| `profile` | `standard` (default, and only, profile) | `standard` |
+| `threshold` | Pass bar 0–100 | `80` |
 | `mode` | `gate` (fail CI below threshold) \| `warn` (report only) | `gate` |
 | `comment` | Post/update a sticky PR comment | `true` |
 | `version` | `@qaguardian/playwright-score` version to run | `latest` |
@@ -97,13 +96,17 @@ section above — same score, same exit codes:
 
 ## QA Guardian integration
 
-When used from `playwright_runner`, set:
+QA Guardian's own codegen pipeline (`playwright_runner`) dogfoods this
+package for the `standard` profile, layering its own private house-rules
+gate on top internally — that layer isn't part of this package (it's
+product-specific, e.g. "timeouts must be exactly 2000 or 20000ms", not
+Playwright best practice) and isn't published here. `playwright_runner`
+sets:
 
 | Env | Values | Default |
 |---|---|---|
 | `SPEC_SCORE_MODE` | `off` \| `warn` \| `gate` | `warn` |
-| `SPEC_SCORE_PROFILE` | `standard` \| `guardian` | `guardian` |
-| `SPEC_SCORE_THRESHOLD` | `0`–`100` | `75` (guardian) / `80` (standard) |
+| `SPEC_SCORE_THRESHOLD` | `0`–`100` | `80` |
 
 - **`warn`**: log score; never fail the run; findings still inject into heal/generate repair prompts  
 - **`gate`**: fail the run when score &lt; threshold  
@@ -114,21 +117,7 @@ When used from `playwright_runner`, set:
 # Local from monorepo
 cd playwright-score && npm run build
 cd ../playwright_runner && npm install
-SPEC_SCORE_MODE=warn SPEC_SCORE_PROFILE=guardian node ...
-```
-
-## Profiles
-
-| Profile | Use when |
-|---|---|
-| `standard` | Any Playwright repo — best practices + locator mix + empty-expect detection |
-| `guardian` | QA Guardian (or similar) codegen quality gate |
-
-Disable a guardian secrets false positive:
-
-```ts
-// spec-score-disable-next-line guardian/no-hardcoded-secrets
-const password = 'intentional-fixture-value-xyz';
+SPEC_SCORE_MODE=warn node ...
 ```
 
 ## Development

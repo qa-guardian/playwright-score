@@ -5,6 +5,37 @@ methodology itself (`sqs-v1`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.m
 Any change to formulas, weights, or constants requires a new score version
 (`sqs-v2`), not a patch release.
 
+## 0.2.0 — 2026-08-19
+
+### Removed
+- **The `guardian` profile.** It was QA Guardian's own internal codegen
+  house-rules layer — arbitrary product-specific conventions (e.g.
+  "timeouts must be exactly 2000 or 20000ms") never claimed as official
+  Playwright doctrine, and not part of this package's actual differentiated
+  value (the aggregate score, locator-ratio tracing, assertion-delegation
+  resolution — all in `standard`). Shipping one company's house rules
+  inside a general-purpose public tool undermined the "this is a neutral
+  community linter" positioning the rest of this project has been built
+  around. `ProfileName` is now `'standard'` only; `--profile guardian` on
+  the CLI now exits 2 with an explicit message pointing here instead of
+  silently doing something unexpected. Passing an unrecognized profile
+  string programmatically (e.g. a caller still pinned to the old contract)
+  falls back to `standard`'s weights rather than throwing — a defensive
+  guard, not an invitation to keep using it.
+  QA Guardian's own `playwright_runner` now runs its private house-rules
+  layer separately, composed with this package's public `standard`
+  profile — verified byte-for-byte identical output to the old built-in
+  `guardian` profile across every fixture and 15 real production specs
+  before cutover. `penaltyDimensionScore`/`applyPerRuleCap` are now
+  exported (they always existed internally) specifically so that
+  composition — or anyone else building a similar house-rules layer on
+  top of `standard` — doesn't have to reimplement the scoring math.
+- `scripts/dogfood.sh` — it reached into `../deployment/Other/playwright`,
+  a path that only exists inside the internal Guardian monorepo, and
+  defaulted to the now-removed `guardian` profile. Internal-only tooling
+  that never belonged in a public repo; `scripts/validate-corpus.sh`
+  (real public repos, no internal paths) is the tool for this now.
+
 ## 0.1.14 — 2026-08-19
 
 ### Fixed

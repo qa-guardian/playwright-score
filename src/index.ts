@@ -15,7 +15,14 @@ import { computeScore } from './score-engine.js';
 import type { Finding, ProfileName, ScoreOptions, ScoreResult } from './types.js';
 
 export type { ScoreResult, ScoreOptions, Finding, ProfileName } from './types.js';
-export { computeScore, SQS_V1, locatorsScore, gradeFromScore } from './score-engine.js';
+export {
+  computeScore,
+  SQS_V1,
+  locatorsScore,
+  gradeFromScore,
+  penaltyDimensionScore,
+  applyPerRuleCap,
+} from './score-engine.js';
 export { countSloc } from './sloc.js';
 export { countLocators, analyzeSource } from './metrics.js';
 export { formatJson } from './formatters/json.js';
@@ -152,7 +159,6 @@ function hardFail(
       assertions: 0,
       locators: 0,
       structure: 0,
-      ...(profile === 'guardian' ? { guardianConventions: 0 } : {}),
     },
     findings,
     ...(skippedFiles && skippedFiles.length > 0 ? { skippedFiles } : {}),
@@ -281,7 +287,6 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
     totalTests += m.tests;
     native += m.locators.native;
     raw += m.locators.raw;
-    // metrics/no-empty-test duplicates guardian/require-expect under guardian — keep both mild
     metricFindings.push(...m.findings);
   }
 
@@ -291,7 +296,6 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
     raw += counts.raw;
   }
 
-  // Dedupe empty-test style: if guardian require-expect already fired, still ok
   const findings = [...eslintFindings, ...metricFindings];
 
   const parseErrors = findings.filter((f) => f.rule === 'playwright-score/parse-error');

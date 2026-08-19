@@ -1,6 +1,6 @@
 /**
- * Rules active for both `standard` and `guardian` profiles — corrections
- * to upstream eslint-plugin-playwright behavior, not house style.
+ * Corrections to upstream eslint-plugin-playwright behavior, not house
+ * style — always active.
  */
 import type { Rule } from 'eslint';
 

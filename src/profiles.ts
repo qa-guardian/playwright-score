@@ -10,18 +10,10 @@ export const PROFILE_WEIGHTS: Record<
     locators: 20,
     structure: 15,
   },
-  guardian: {
-    playwrightHygiene: 30,
-    assertions: 15,
-    locators: 15,
-    structure: 15,
-    guardianConventions: 25,
-  },
 };
 
 export const DEFAULT_THRESHOLDS: Record<ProfileName, number> = {
   standard: 80,
-  guardian: 75,
 };
 
 /** Map eslint ruleId → dimension + whether report-only for scoring */
@@ -99,27 +91,6 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
     severityOverride: 'warning',
   },
 
-  // Guardian custom rules
-  'guardian/no-wait-for-load-state': { dimension: 'guardianConventions' },
-  'guardian/no-date-now-id': { dimension: 'guardianConventions' },
-  'guardian/require-expect': { dimension: 'guardianConventions' },
-  'guardian/no-hardcoded-secrets': {
-    dimension: 'guardianConventions',
-    severityOverride: 'warning',
-  },
-  'guardian/require-test-step': {
-    dimension: 'guardianConventions',
-    severityOverride: 'warning',
-  },
-  'guardian/one-describe-one-test': {
-    dimension: 'guardianConventions',
-    severityOverride: 'warning',
-  },
-  'guardian/no-generic-long-timeout': {
-    dimension: 'guardianConventions',
-    severityOverride: 'warning',
-  },
-
   // Metrics injected as synthetic findings
   'metrics/oversized-file': {
     dimension: 'structure',
@@ -129,9 +100,6 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
 
 export function mapRule(ruleId: string): RuleMapping {
   if (ESLINT_RULE_MAP[ruleId]) return ESLINT_RULE_MAP[ruleId];
-  if (ruleId.startsWith('guardian/')) {
-    return { dimension: 'guardianConventions', severityOverride: 'warning' };
-  }
   if (ruleId.startsWith('playwright/')) {
     return { dimension: 'playwrightHygiene', severityOverride: 'warning' };
   }

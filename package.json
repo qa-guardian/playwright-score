@@ -1,7 +1,7 @@
 {
   "name": "@qaguardian/playwright-score",
-  "version": "0.1.14",
-  "description": "Deterministic, AI-free Playwright spec quality score (sqs-v1). Lint + score with standard and guardian profiles.",
+  "version": "0.2.0",
+  "description": "Deterministic, AI-free Playwright spec quality score (sqs-v1).",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -26,7 +26,6 @@
     "build:tests": "tsc -p tsconfig.tests.json",
     "test": "npm run build && npm run build:tests && node --test dist-tests/tests/*.js",
     "score": "npm run build && node bin/playwright-score.js",
-    "dogfood": "npm run build && bash scripts/dogfood.sh",
     "prepublishOnly": "npm run build"
   },
   "keywords": [

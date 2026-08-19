@@ -20,8 +20,8 @@ Usage:
   npx playwright-score <paths...> [options]
 
 Options:
-  --profile <standard|guardian>   Scoring profile (default: standard)
-  --threshold <n>                 Pass threshold 0-100 (default: 80 standard / 75 guardian)
+  --profile <standard>            Scoring profile (default, and only: standard)
+  --threshold <n>                 Pass threshold 0-100 (default: 80)
   --format <text|json|markdown|sarif>  Output format (default: text)
   --out <file>                    Write report to file
   --version                       Print version
@@ -75,12 +75,20 @@ async function main(): Promise<void> {
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--profile') {
-      profile = args[++i] as ProfileName;
-      if (profile !== 'standard' && profile !== 'guardian') {
-        console.error(`Invalid profile: ${profile}`);
+      const p = args[++i];
+      if (p === 'guardian') {
+        console.error(
+          'Profile "guardian" is no longer public — it was QA Guardian\'s internal house-rules layer, never official Playwright doctrine, and doesn\'t belong in a general-purpose tool. See CHANGELOG.md. Use --profile standard.'
+        );
         process.exitCode = 2;
         return;
       }
+      if (p !== 'standard') {
+        console.error(`Invalid profile: ${p}`);
+        process.exitCode = 2;
+        return;
+      }
+      profile = p as ProfileName;
     } else if (a === '--threshold') {
       threshold = Number(args[++i]);
       if (Number.isNaN(threshold) || threshold < 0 || threshold > 100) {
