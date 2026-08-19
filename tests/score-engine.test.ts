@@ -303,6 +303,30 @@ describe('looksLikeNonPlaywrightTest', () => {
       )
     );
   });
+
+  it('flags a Cypress spec importing from "cypress" (regression: *.e2e.ts is Cypress\'s own scaffolding convention too, once SPEC_GLOBS started matching it)', () => {
+    assert.ok(
+      looksLikeNonPlaywrightTest(
+        `import { defineConfig } from 'cypress';\ndescribe('login', () => { it('logs in', () => { cy.visit('/login'); }); });`
+      )
+    );
+  });
+
+  it('flags a Cypress spec using cy.* commands with no import at all (Cypress globals are injected, same as RTL\'s screen often is)', () => {
+    assert.ok(
+      looksLikeNonPlaywrightTest(
+        `describe('login', () => {\n  it('logs in', () => {\n    cy.visit('/login');\n    cy.get('[data-testid=email]').type('a@b.com');\n  });\n});`
+      )
+    );
+  });
+
+  it('does not flag a real Playwright spec that happens to use a local variable named cy', () => {
+    assert.ok(
+      !looksLikeNonPlaywrightTest(
+        `import { test, expect } from '@playwright/test';\ntest('x', async ({ page }) => {\n  const cy = page.locator('.cycle');\n  await expect(cy).toBeVisible();\n});`
+      )
+    );
+  });
 });
 
 describe('findLocalAssertionHelperNames', () => {

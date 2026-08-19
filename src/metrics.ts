@@ -16,19 +16,29 @@ import { countSloc } from './sloc.js';
 // safer — a missed rare/unusual file just scores harmlessly, where a
 // falsely-skipped real spec silently stops being scored at all.
 const NON_PLAYWRIGHT_IMPORT_RE =
-  /from\s+['"](?:vitest|jest|@jest\/[a-z-]+|mocha|jasmine|chai|@testing-library\/[a-z-]+)['"]/;
+  /from\s+['"](?:vitest|jest|@jest\/[a-z-]+|mocha|jasmine|chai|@testing-library\/[a-z-]+|cypress)['"]/;
 const RTL_API_RE = /\bscreen\.(?:getBy|queryBy|findBy|getAllBy|queryAllBy|findAllBy)\w*\(|\btoBeInTheDocument\(/;
+// Cypress's `cy` command object is globally available without an import in
+// the framework's default setup, the same way RTL's `screen` often is —
+// matched on specific, common Cypress command names (not a bare `cy.`
+// prefix) to avoid colliding with an unrelated local variable named `cy`.
+// Added alongside SPEC_GLOBS picking up `*.e2e.*` by default (see
+// index.ts): `.e2e.` is Cypress's own scaffolding convention too, so
+// broadening spec discovery to that suffix needed this as a companion
+// safety net, not just Playwright's own conventions.
+const CYPRESS_API_RE =
+  /\bcy\.(?:visit|get|contains|click|type|should|intercept|wait|request|fixture)\(/;
 
 /**
  * Heuristic: does this file show positive evidence of being a *non*-
- * Playwright test (Jest/Vitest/Mocha/Jasmine/React Testing Library), as
- * opposed to a Playwright spec that a broad `**\/*.test.ts` glob would
- * otherwise sweep in alongside real e2e specs? Used only to decide whether
- * to auto-exclude a file discovered via directory/glob expansion — never
- * applied to a file path the caller named explicitly.
+ * Playwright test (Jest/Vitest/Mocha/Jasmine/React Testing Library/
+ * Cypress), as opposed to a Playwright spec that a broad `**\/*.test.ts`
+ * glob would otherwise sweep in alongside real e2e specs? Used only to
+ * decide whether to auto-exclude a file discovered via directory/glob
+ * expansion — never applied to a file path the caller named explicitly.
  */
 export function looksLikeNonPlaywrightTest(source: string): boolean {
-  return NON_PLAYWRIGHT_IMPORT_RE.test(source) || RTL_API_RE.test(source);
+  return NON_PLAYWRIGHT_IMPORT_RE.test(source) || RTL_API_RE.test(source) || CYPRESS_API_RE.test(source);
 }
 
 const NATIVE_METHODS = new Set([

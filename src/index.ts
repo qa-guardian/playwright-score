@@ -23,7 +23,20 @@ export { formatText } from './formatters/text.js';
 export { formatMarkdown } from './formatters/markdown.js';
 export { formatSarif } from './formatters/sarif.js';
 
-const SPEC_GLOBS = ['**/*.{spec,test}.{ts,tsx,js,jsx}', '**/*.spec.ts', '**/*.test.ts'];
+// `.e2e.` is a real, common convention for disambiguating end-to-end specs
+// from unit tests living in the same tree — verified against a
+// well-known, large real-world repo (cal.com: 53 real Playwright specs,
+// all named *.e2e.ts, zero *.spec.ts/*.test.ts) where a directory scan
+// previously hard-failed with "no files matched" despite a fully healthy,
+// populated suite. looksLikeNonPlaywrightTest (see metrics.ts) is the
+// safety net for a repo that uses `.e2e.` for a *different* framework —
+// Cypress specifically was common enough here to get its own explicit
+// check alongside the existing Jest/Vitest/RTL ones.
+const SPEC_GLOBS = [
+  '**/*.{spec,test,e2e}.{ts,tsx,js,jsx}',
+  '**/*.spec.ts',
+  '**/*.test.ts',
+];
 
 // Directory/glob expansion must never sweep in vendored or generated code —
 // verified as a real bug: scanning a project root with a plain node_modules
@@ -54,7 +67,7 @@ const DEFAULT_IGNORE_GLOBS = [
  * `expanded`: everything else (matched via a directory scan or a glob
  * pattern) — subject to the looksLikePlaywrightSpec filter in scorePaths,
  * since a broad `**\/*.test.ts`-style match can just as easily sweep in
- * unrelated Jest/Vitest/RTL unit tests sitting in the same repo.
+ * unrelated Jest/Vitest/RTL/Cypress unit tests sitting in the same repo.
  */
 function expandPaths(
   inputs: string[],
@@ -195,7 +208,7 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
         {
           rule: 'playwright-score/no-files',
           severity: 'error',
-          message: `${expanded.length} file(s) matched but all look like non-Playwright tests (Jest/Vitest/RTL) — nothing to score.`,
+          message: `${expanded.length} file(s) matched but all look like non-Playwright tests (Jest/Vitest/RTL/Cypress) — nothing to score.`,
           file: cwd,
           dimension: 'structure',
         },

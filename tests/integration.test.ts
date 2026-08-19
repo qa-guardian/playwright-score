@@ -421,6 +421,31 @@ describe('scorePaths integration', () => {
     }
   });
 
+  it('directory scan discovers *.e2e.ts specs and still excludes a Cypress *.e2e.ts sitting alongside them (regression: cal.com — 53 real Playwright specs named *.e2e.ts, zero *.spec.ts/*.test.ts, previously hard-failed as "no files matched")', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-e2e-glob-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'playwright'));
+      fs.mkdirSync(path.join(dir, 'cypress'));
+      fs.writeFileSync(
+        path.join(dir, 'playwright', 'login.e2e.ts'),
+        `import { test, expect } from '@playwright/test';\ntest('logs in', async ({ page }) => {\n  await page.goto('/login');\n  await expect(page.getByRole('heading')).toBeVisible();\n});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'cypress', 'checkout.e2e.ts'),
+        `describe('checkout', () => {\n  it('completes a purchase', () => {\n    cy.visit('/cart');\n    cy.get('[data-testid=checkout]').click();\n  });\n});\n`
+      );
+
+      const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
+      assert.equal(result.summary.files, 1, 'only the real Playwright *.e2e.ts should be scored');
+      assert.ok(
+        result.skippedFiles?.some((f) => f.includes('checkout.e2e.ts')),
+        `expected the Cypress *.e2e.ts to be reported as skipped: ${JSON.stringify(result.skippedFiles)}`
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('finds ESLint issues even when caller cwd is unrelated to the file (regression: basePath bug)', async () => {
     // Real-world shape of the bug this guards: a host process (e.g. the
     // Guardian runner) calls scorePaths with its own install dir as cwd,

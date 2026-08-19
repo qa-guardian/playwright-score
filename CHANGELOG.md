@@ -5,6 +5,30 @@ methodology itself (`sqs-v1`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.m
 Any change to formulas, weights, or constants requires a new score version
 (`sqs-v2`), not a patch release.
 
+## 0.1.13 — 2026-08-19
+
+### Fixed
+- **Directory/glob discovery only matched `*.spec.*`/`*.test.*` — a repo
+  using `.e2e.` to disambiguate end-to-end specs from unit tests scored a
+  hard 0/F ("no files matched") no matter how healthy its suite actually
+  was.** Verified against a real, large, well-known repo (cal.com:
+  `apps/web/playwright/` — 53 real Playwright specs, all named `*.e2e.ts`,
+  zero `*.spec.ts`/`*.test.ts`). `SPEC_GLOBS` now also matches
+  `*.e2e.{ts,tsx,js,jsx}`. Re-scored: 0/F, no files matched → 85/B, PASS,
+  53 files / 278 tests found — and the findings are real (642
+  `no-raw-locators`, spot-checked against the actual source), not noise
+  introduced by the wider glob.
+  `.e2e.` is also Cypress's own scaffolding convention, so
+  `looksLikeNonPlaywrightTest` (the existing safety net for a broad glob
+  sweeping in a different framework's tests) gained an explicit Cypress
+  check — an import from `'cypress'`, or common `cy.*` command usage
+  (`cy.visit`, `cy.get`, `cy.contains`, ...) with no import at all, since
+  Cypress's globals are injected the same way React Testing Library's
+  `screen` often is. Matched on specific command names, not a bare `cy.`
+  prefix, so a Playwright spec with an unrelated local variable named `cy`
+  is never caught by mistake.
+  9 new tests, full real-world corpus re-verified with zero regressions.
+
 ## 0.1.12 — 2026-08-19
 
 ### Fixed

@@ -31,7 +31,7 @@ export function formatMarkdown(result: ScoreResult): string {
   if (result.skippedFiles?.length) {
     lines.push('');
     lines.push(
-      `<details><summary>Skipped — looks like a non-Playwright test (Jest/Vitest/RTL) (${result.skippedFiles.length})</summary>`
+      `<details><summary>Skipped — looks like a non-Playwright test (Jest/Vitest/RTL/Cypress) (${result.skippedFiles.length})</summary>`
     );
     lines.push('');
     for (const f of result.skippedFiles) {

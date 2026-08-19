@@ -38,7 +38,7 @@ export function formatText(result: ScoreResult): string {
   if (result.skippedFiles?.length) {
     lines.push('');
     lines.push(
-      `Skipped (looks like a non-Playwright test — Jest/Vitest/RTL — ${result.skippedFiles.length}):`
+      `Skipped (looks like a non-Playwright test — Jest/Vitest/RTL/Cypress — ${result.skippedFiles.length}):`
     );
     for (const f of result.skippedFiles.slice(0, 20)) {
       lines.push(`  ${f}`);
