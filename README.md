@@ -16,7 +16,9 @@ Page Object Model import resolution, ...).
 
 The score never calls an LLM. AI may *generate* or *repair* code using findings; **rules grade code**.
 
-See [METHODOLOGY.md](./METHODOLOGY.md) for the frozen formula, [VALIDATION.md](./VALIDATION.md) for real-world results against public repos (cal.com, Grafana, Mattermost, ...) and a re-runnable script to reproduce them, or the full product write-up on the [landing page](https://qaguardian.com/open-source/playwright-score).
+**[See the scorecard →](https://claude.ai/code/artifact/6eea8712-f71a-48e6-becb-1e98dc07a600)** — real scores against cal.com, Grafana, Mattermost, and more.
+
+See [METHODOLOGY.md](./METHODOLOGY.md) for the frozen formula, [VALIDATION.md](./VALIDATION.md) for the full results table and a re-runnable script to reproduce them, or the full product write-up on the [landing page](https://qaguardian.com/open-source/playwright-score).
 
 ## Install
 
