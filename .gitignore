@@ -8,3 +8,4 @@ report.json
 *.tsbuildinfo
 .playwright-mcp/
 *.png
+CLAUDE.md
