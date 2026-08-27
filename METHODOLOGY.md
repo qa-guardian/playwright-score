@@ -1,13 +1,18 @@
 # Playwright Spec Score (SQS) Methodology
 
-**Score version:** `sqs-v1`  
+**Score version:** `sqs-v2`  
 **Package:** `playwright-score`  
 **Landing page:** https://qaguardian.com/open-source/playwright-score  
 **Maintainer:** [QA Guardian](https://qaguardian.com)  
 **Deterministic:** same inputs → same score  
 **AI-free:** no LLM calls in the scoring path
 
-Any change to formulas, weights, SLOC definition, caps, or constants requires a new version (`sqs-v2`, …).
+Any change to formulas, weights, SLOC definition, caps, or constants requires a new version (`sqs-v3`, …).
+
+**sqs-v2 (2026-08-27)** changed exactly one thing versus sqs-v1: the
+assertions dimension is now a per-test coverage ratio instead of a
+finding-density penalty (see the Assertions dimension section). All other
+formulas, weights, and constants are unchanged from sqs-v1.
 
 ---
 
@@ -40,6 +45,43 @@ assertion-delegation tracing, Page Object Model import resolution).
 
 ---
 
+## Assertions dimension (coverage ratio × quality decay)
+
+sqs-v1 fed "test has no assertions" through the same density math as
+hygiene smells. That misread coverage badly on small suites: 2 of 3 tests
+asserting nothing scored 82/100 on this dimension, because two findings in
+a tiny file barely register per-SLOC. Whether a test asserts anything is a
+fraction of tests, not a findings-per-SLOC rate — so, like the locators
+dimension, the primary signal is a ratio:
+
+```
+unassertedTests = count(playwright/expect-expect findings)   // UNCAPPED census
+coverage        = tests === 0 ? 1 : clamp01((tests - unassertedTests) / tests)
+
+auxLoad         = penalty load (same units/caps/slots as below) of the
+                  OTHER assertion rules only: valid-expect,
+                  no-standalone-expect, prefer-web-first-assertions
+
+assertionsScore = clamp(0, 100, round(100 * coverage * e^(-K * auxLoad)))
+```
+
+Notes:
+
+- `expect-expect` findings are excluded from the density term — they ARE
+  the coverage term; counting them twice would double-penalize.
+- The census is deliberately uncapped: the per-(file, rule) cap exists to
+  stop one repeated smell from nuking a density score, but hiding 2 of 5
+  assertion-free tests would misstate coverage.
+- All of expect-expect's delegation machinery (same-file helper discovery,
+  imported-helper tracing, `assertFunctionPatterns`) applies before the
+  census is taken, so delegated assertions do not count as unasserted.
+- `tests === 0` (nothing matched but helpers) keeps coverage neutral at 1.
+
+Worked example (the motivating case): 3 tests, 2 without assertions, no
+aux findings → coverage = 1/3 → **assertions = 33** (sqs-v1 said 82).
+
+---
+
 ## Locators dimension (ratio)
 
 Independent of finding-penalty math:
@@ -54,7 +96,7 @@ locatorsScore = total === 0 ? 100 : round(100 * native / total)
 
 ESLint `no-raw-locators` / `prefer-native-locators` still appear in `findings[]` for repair guidance.  
 They are **not** double-counted into the locators dimension via exponential penalties.  
-For sqs-v1 they map to **report-only** for scoring (severity still shown in findings; units = 0 for penalty dimensions).
+For sqs-v2 (as in sqs-v1) they map to **report-only** for scoring (severity still shown in findings; units = 0 for penalty dimensions).
 
 ---
 
@@ -73,9 +115,10 @@ Used for penalty density. JSDoc / decorative comments do not inflate slots.
 
 ## Penalty dimensions
 
-Applies to: `playwrightHygiene`, `assertions`, `structure`.
+Applies to: `playwrightHygiene`, `structure`, and the *aux* term of
+`assertions` (see above; the assertions primary term is a coverage ratio).
 
-### Constants (frozen sqs-v1)
+### Constants (frozen sqs-v2; identical values to sqs-v1)
 
 | Constant | Value |
 |---|---|
@@ -159,13 +202,13 @@ private house-rules gate on top of `standard` — see the README's
 See package rule docs / source `profiles.ts`. High level:
 
 - **playwrightHygiene:** waits, force, networkidle, missing await, handles, conditionals  
-- **assertions:** expect-expect, empty tests, web-first preference  
+- **assertions:** per-test coverage census (expect-expect) + quality decay (valid-expect, standalone, web-first)  
 - **locators:** ratio metric only (for score); raw-locator ESLint in findings  
 - **structure:** focused/skipped, oversized file, describe shape
 
 ### Active rule set (frozen)
 
-The exact ESLint rules that produce sqs-v1 findings are enabled explicitly
+The exact ESLint rules that produce findings are enabled explicitly
 in `eslint-runner.ts` with fixed severities — the score never inherits
 eslint-plugin-playwright's `recommended` set at install time, so identical
 code scores identically regardless of which plugin version npm resolves.

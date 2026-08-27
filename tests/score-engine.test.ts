@@ -7,6 +7,8 @@ import {
   applyPerRuleCap,
   penaltyDimensionScore,
   SQS_V1,
+  SQS_V2,
+  assertionsScore,
 } from '../src/score-engine.js';
 import type { Finding } from '../src/types.js';
 import { countSloc } from '../src/sloc.js';
@@ -21,13 +23,16 @@ import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
 
-describe('sqs-v1 constants', () => {
+describe('sqs-v2 constants', () => {
   it('exposes frozen version and constants', () => {
-    assert.equal(SQS_V1.scoreVersion, 'sqs-v1');
-    assert.equal(SQS_V1.K, 0.4);
-    assert.equal(SQS_V1.SLOT_DIVISOR, 25);
-    assert.equal(SQS_V1.MIN_SLOTS, 4);
-    assert.equal(SQS_V1.MAX_FINDINGS_PER_RULE_PER_FILE, 3);
+    assert.equal(SQS_V2.scoreVersion, 'sqs-v2');
+    // sqs-v1 alias must keep pointing at the same frozen constants for one
+    // deprecation release.
+    assert.equal(SQS_V1, SQS_V2);
+    assert.equal(SQS_V2.K, 0.4);
+    assert.equal(SQS_V2.SLOT_DIVISOR, 25);
+    assert.equal(SQS_V2.MIN_SLOTS, 4);
+    assert.equal(SQS_V2.MAX_FINDINGS_PER_RULE_PER_FILE, 3);
   });
 });
 
@@ -38,6 +43,60 @@ describe('locatorsScore', () => {
   it('computes native ratio', () => {
     assert.equal(locatorsScore(2, 8), 20);
     assert.equal(locatorsScore(10, 0), 100);
+  });
+});
+
+describe('assertionsScore (sqs-v2 coverage ratio)', () => {
+  const ee = (file: string): Finding => ({
+    rule: 'playwright/expect-expect',
+    severity: 'error',
+    message: 'Test has no assertions',
+    file,
+    dimension: 'assertions',
+  });
+
+  it('scores pure coverage: 2 of 3 tests unasserted = 33', () => {
+    // The motivating sqs-v1 bug: this exact shape scored 82 under density
+    // math because two findings in a tiny file barely register per-SLOC.
+    const score = assertionsScore([ee('a.spec.ts'), ee('a.spec.ts')], 3, 24);
+    assert.equal(score, 33);
+  });
+
+  it('full coverage with no aux findings scores 100', () => {
+    assert.equal(assertionsScore([], 10, 100), 100);
+  });
+
+  it('zero tests keeps coverage neutral instead of dividing by zero', () => {
+    assert.equal(assertionsScore([], 0, 50), 100);
+  });
+
+  it('coverage clamps at 0 when the census exceeds the test count', () => {
+    // countTests is call-site based; if it ever undercounts relative to
+    // expect-expect the ratio must clamp, not go negative.
+    const fs = [ee('a.spec.ts'), ee('a.spec.ts'), ee('b.spec.ts')];
+    assert.equal(assertionsScore(fs, 2, 24), 0);
+  });
+
+  it('census is uncapped: 5 unasserted tests in one file all count', () => {
+    // The per-(file,rule) cap of 3 applies to density penalties only —
+    // coverage is a census, capping it would hide 2 of 5 empty tests.
+    const fs = Array.from({ length: 5 }, () => ee('a.spec.ts'));
+    assert.equal(assertionsScore(fs, 10, 100), 50);
+  });
+
+  it('aux assertion-quality findings decay the coverage multiplicatively', () => {
+    const aux: Finding = {
+      rule: 'playwright/prefer-web-first-assertions',
+      severity: 'error',
+      message: 'x',
+      file: 'a.spec.ts',
+      dimension: 'assertions',
+    };
+    // coverage 1.0, aux load = 1.0/4 = 0.25 -> 100*e^(-0.1) = 90
+    assert.equal(assertionsScore([aux], 4, 24), 90);
+    // half coverage decays the same way: 50*e^(-0.1) = 45
+    const half = [aux, ee('a.spec.ts'), ee('a.spec.ts')];
+    assert.equal(assertionsScore(half, 4, 24), 45);
   });
 });
 
@@ -139,7 +198,7 @@ describe('computeScore clean', () => {
     assert.equal(result.score, 100);
     assert.equal(result.grade, 'A');
     assert.equal(result.pass, true);
-    assert.equal(result.scoreVersion, 'sqs-v1');
+    assert.equal(result.scoreVersion, 'sqs-v2');
   });
 
   it('is deterministic', () => {

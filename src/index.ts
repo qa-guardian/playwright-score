@@ -137,7 +137,7 @@ function hardFail(
   skippedFiles?: string[]
 ): ScoreResult {
   return {
-    scoreVersion: 'sqs-v1',
+    scoreVersion: 'sqs-v2',
     profile,
     score: 0,
     grade: 'F',
@@ -152,6 +152,7 @@ function hardFail(
       warnings: findings.filter((f) => f.severity === 'warning').length,
       nativeLocators: 0,
       rawLocators: 0,
+      unassertedTests: 0,
       ...extra,
     },
     dimensions: {

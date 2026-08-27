@@ -23,7 +23,7 @@ committed to this repository, so there's no third-party source to keep in
 sync or any licensing question to answer. Scores will drift slightly over
 time as these projects' own suites change; that's expected and fine.
 
-## Results (last run: 2026-08-27 with v0.3.0, `sqs-v1`, `standard` profile, threshold 80)
+## Results (last run: 2026-08-27 with v0.4.0, `sqs-v2`, `standard` profile, threshold 80)
 
 Chosen deliberately to include both well-known, heavily-engineered
 platforms and smaller, less mature projects — this isn't a corpus
@@ -38,16 +38,16 @@ selected to make the tool look good.
 | [freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp/tree/main/e2e) | 96 | A | ✓ | 86 | 345 | 207 |
 | [cal.com](https://github.com/calcom/cal.com/tree/main/apps/web/playwright) | 84 | B | ✓ | 53 | 278 | 1,258 |
 | [Grafana](https://github.com/grafana/grafana/tree/main/e2e-playwright) | 91 | A | ✓ | 213 | 676 | 869 |
-| [Mattermost](https://github.com/mattermost/mattermost/tree/master/e2e-tests/playwright) | 89 | B | ✓ | 290 | 1,175 | 1,866 |
+| [Mattermost](https://github.com/mattermost/mattermost/tree/master/e2e-tests/playwright) | 88 | B | ✓ | 290 | 1,175 | 1,866 |
 | [dub](https://github.com/dubinc/dub/tree/main/apps/web/playwright) | 95 | A | ✓ | 21 | 215 | 41 |
 | [Documenso](https://github.com/documenso/documenso/tree/main/packages/app-tests) | 96 | A | ✓ | 126 | 1,120 | 693 |
 | [PostHog](https://github.com/PostHog/posthog/tree/master/playwright) | 90 | A | ✓ | 43 | 125 | 273 |
 | [novu](https://github.com/novuhq/novu/tree/next/apps/dashboard/tests) | 93 | A | ✓ | 2 | 2 | 3 |
-| [Immich](https://github.com/immich-app/immich/tree/main/e2e/src/specs) | 89 | B | ✓ | 13 | 43 | 40 |
+| [Immich](https://github.com/immich-app/immich/tree/main/e2e/src/specs) | 85 | B | ✓ | 13 | 43 | 40 |
 | [openplayerjs](https://github.com/openplayerjs/openplayerjs/tree/master/e2e) | 77 | C | ✗ FAIL | 8 | 77 | 39 |
 | [livecodes](https://github.com/live-codes/livecodes/tree/develop/e2e) | 78 | C | ✗ FAIL | 14 | 280 | 140 |
 | [TheCyberHub](https://github.com/th3cyb3rhub/TheCyberHub/tree/dev/e2e) | 68 | D | ✗ FAIL | 11 | 138 | 429 |
-| [sencho](https://github.com/Studio-Saelix/sencho/tree/main/e2e) | 90 | A | ✓ | 26 | 178 | 278 |
+| [sencho](https://github.com/Studio-Saelix/sencho/tree/main/e2e) | 89 | B | ✓ | 26 | 178 | 278 |
 
 Repo names link straight to the exact scanned source on GitHub — re-run
 `scripts/validate-corpus.sh` for the full findings list of any entry, or

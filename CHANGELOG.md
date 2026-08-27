@@ -1,9 +1,33 @@
 # Changelog
 
 All notable changes to this project are documented here. The scoring
-methodology itself (`sqs-v1`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.md).
+methodology itself (`sqs-v2`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.md).
 Any change to formulas, weights, or constants requires a new score version
-(`sqs-v2`), not a patch release.
+(`sqs-v3`, ...), not a patch release.
+
+## 0.4.0 — 2026-08-27
+
+### Changed — score version `sqs-v2`
+- **Assertions dimension is now a per-test coverage ratio** instead of a
+  finding-density penalty. sqs-v1's density math misread assertion
+  coverage badly on small suites: 2 of 3 tests asserting nothing scored
+  82/100 on the dimension (and the overall example suite 78/C) because two
+  findings in a tiny file barely register per-SLOC. Whether a test asserts
+  anything is a fraction of tests, not a smell rate — so, like the
+  locators dimension, the primary signal is now
+  `coverage = assertedTests / tests` (an **uncapped** census of
+  `playwright/expect-expect` findings, taken after all delegation
+  resolution), decayed multiplicatively by the density load of the
+  remaining assertion-quality rules (`valid-expect`,
+  `no-standalone-expect`, `prefer-web-first-assertions`). The motivating
+  example now scores the dimension 33 and the suite 64/D.
+- Everything else — weights, hygiene/structure density math, locator
+  ratio, constants, grades — is unchanged. Per METHODOLOGY's change
+  policy this is a new score version: results now report `sqs-v2`.
+- `summary.unassertedTests` added to the JSON output; the text formatter
+  prints `tests asserting=N/M`.
+- `SQS_V1` export is deprecated and aliases `SQS_V2` (identical
+  constants); it will be removed in a future release.
 
 ## 0.3.0 — 2026-08-27
 

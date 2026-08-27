@@ -18,7 +18,8 @@ export function formatText(result: ScoreResult): string {
   lines.push(
     `Summary: files=${result.summary.files} tests=${result.summary.tests} sloc=${result.summary.sloc} ` +
       `findings=${result.summary.findings} (errors=${result.summary.errors} warnings=${result.summary.warnings}) ` +
-      `locators native/raw=${result.summary.nativeLocators}/${result.summary.rawLocators}`
+      `locators native/raw=${result.summary.nativeLocators}/${result.summary.rawLocators} ` +
+      `tests asserting=${result.summary.tests - result.summary.unassertedTests}/${result.summary.tests}`
   );
 
   if (result.findings.length) {

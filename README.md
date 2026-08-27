@@ -4,7 +4,7 @@
 [![npm version](https://img.shields.io/npm/v/@qaguardian/playwright-score.svg)](https://www.npmjs.com/package/@qaguardian/playwright-score)
 [![license](https://img.shields.io/npm/l/@qaguardian/playwright-score.svg)](./LICENSE)
 
-**Deterministic, AI-free quality score for Playwright specs** (`sqs-v1`).
+**Deterministic, AI-free quality score for Playwright specs** (`sqs-v2`).
 
 **Website:** [qaguardian.com/open-source/playwright-score](https://qaguardian.com/open-source/playwright-score)  
 **Built by:** [QA Guardian](https://qaguardian.com) — managed Playwright E2E (AI drafts, engineers verify, you own the code)
@@ -38,9 +38,9 @@ reasons (see [VALIDATION.md](./VALIDATION.md)).
 | [novu](https://github.com/novuhq/novu/tree/next/apps/dashboard/tests) | 93/100 | A | PASS |
 | [Grafana](https://github.com/grafana/grafana/tree/main/e2e-playwright) | 91/100 | A | PASS |
 | [PostHog](https://github.com/PostHog/posthog/tree/master/playwright) | 90/100 | A | PASS |
-| [sencho](https://github.com/Studio-Saelix/sencho/tree/main/e2e) | 90/100 | A | PASS |
-| [Mattermost](https://github.com/mattermost/mattermost/tree/master/e2e-tests/playwright) | 89/100 | B | PASS |
-| [Immich](https://github.com/immich-app/immich/tree/main/e2e/src/specs) | 89/100 | B | PASS |
+| [sencho](https://github.com/Studio-Saelix/sencho/tree/main/e2e) | 89/100 | B | PASS |
+| [Mattermost](https://github.com/mattermost/mattermost/tree/master/e2e-tests/playwright) | 88/100 | B | PASS |
+| [Immich](https://github.com/immich-app/immich/tree/main/e2e/src/specs) | 85/100 | B | PASS |
 | [cal.com](https://github.com/calcom/cal.com/tree/main/apps/web/playwright) | 84/100 | B | PASS |
 | [livecodes](https://github.com/live-codes/livecodes/tree/develop/e2e) | 78/100 | C | FAIL |
 | [openplayerjs](https://github.com/openplayerjs/openplayerjs/tree/master/e2e) | 77/100 | C | FAIL |

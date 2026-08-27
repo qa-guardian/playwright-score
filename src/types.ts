@@ -1,4 +1,4 @@
-export type ScoreVersion = 'sqs-v1';
+export type ScoreVersion = 'sqs-v2';
 export type ProfileName = 'standard';
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
 export type Severity = 'error' | 'warning' | 'info';
@@ -33,6 +33,10 @@ export interface ScoreSummary {
   warnings: number;
   nativeLocators: number;
   rawLocators: number;
+  /** Count of test declarations with no recognized assertion (sqs-v2
+   * assertions-coverage numerator input; equals the uncapped
+   * playwright/expect-expect finding count). */
+  unassertedTests: number;
 }
 
 export interface ScoreResult {
