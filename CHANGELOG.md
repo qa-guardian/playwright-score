@@ -1,9 +1,37 @@
 # Changelog
 
-All notable changes to this project are documented here. The scoring
-methodology itself (`sqs-v2`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.md).
-Any change to formulas, weights, or constants requires a new score version
-(`sqs-v3`, ...), not a patch release.
+All notable changes to this project are documented here. Any change that
+alters what a given suite scores is a new scoring-model version (see
+[METHODOLOGY.md](./METHODOLOGY.md)), not a quiet patch.
+
+## 0.5.0 — 2026-08-27
+
+### Changed — scoring model v3: "the weighted share of your tests that are clean"
+- **The density model is gone.** v1/v2 scored findings per 25 lines of
+  code through an exponential decay with a minimum-slots floor. That was
+  unexplainable ("0.5 penalty units per slot"), structurally lenient on
+  small suites, and gameable — padding a suite with clean lines diluted
+  the penalty. All of it (K, slot divisor, minimum slots, per-rule caps,
+  `e^-x`) is removed.
+- **Model v3**: every finding is attributed to the test it sits in via AST
+  test spans. A test accumulates demerits per dimension (error 1.0,
+  warning 0.4, capped at 1 — a test is at worst fully flawed); findings in
+  before/after hooks demerit every test in the file; module-level findings
+  count once per file. Each dimension is
+  `100 × (1 − demerits/tests)`; locators stays the native/raw usage
+  ratio; final score is the weighted sum (40/25/20/15), unchanged grades.
+- The motivating example (3 tests: two hard waits, two assertion-free, one
+  skipped) scores **53/F** — it was 78/C under v1 density math and 64/D
+  under v2.
+- **In-house acronyms removed**: the score version is now plainly `v3`
+  (JSON `scoreVersion: "v3"`); "sqs-*" no longer appears anywhere in
+  output, docs, or code.
+- `summary.cleanTests` added (tests with no demerit in any dimension);
+  text output now prints `clean tests=N/M`.
+- **Removed exports**: `SQS_V1`, `SQS_V2`, `penaltyDimensionScore`,
+  `applyPerRuleCap` (the density machinery). `MODEL` and
+  `ratioDimensionScore` replace them. Callers composing house rules on
+  top (QA Guardian's `playwright_runner`) should migrate when they bump.
 
 ## 0.4.0 — 2026-08-27
 

@@ -303,6 +303,85 @@ export function findLocalAssertionHelperNames(source: string, file?: string): st
   return [...names];
 }
 
+export interface SourceSpan {
+  startLine: number;
+  endLine: number;
+}
+
+export interface TestSpans {
+  /** Outermost test declaration spans (test/test.only/test.skip/test.fixme/
+   * test.slow calls that carry a function body). Order is source order and
+   * is the stable per-file test index used for finding attribution. */
+  tests: SourceSpan[];
+  /** Hook spans (test.beforeEach/afterEach/beforeAll/afterAll and their
+   * bare-identifier forms) — findings inside these affect every test in
+   * the file, not one. */
+  hooks: SourceSpan[];
+}
+
+const TEST_MODIFIERS = new Set(['only', 'skip', 'fixme', 'slow']);
+const HOOK_NAMES = new Set(['beforeEach', 'afterEach', 'beforeAll', 'afterAll']);
+
+function hasFunctionArg(node: Record<string, unknown>): boolean {
+  const args = (node as { arguments?: Array<{ type?: string }> }).arguments;
+  return (args ?? []).some(
+    (a) => a?.type === 'ArrowFunctionExpression' || a?.type === 'FunctionExpression'
+  );
+}
+
+/**
+ * AST spans of test declarations and hooks, for attributing findings to
+ * the test they actually sit in. Only calls carrying a function argument
+ * count — that is what makes `test.skip('t', async () => {...})` (an
+ * always-skipped declaration) a span while the documented runtime form
+ * `test.skip(condition, reason)` inside a test body is not, and likewise
+ * for `test.fixme()` used as a statement. Spans nested inside another test
+ * span (rare, but e.g. a helper declaring a test inside a test would be
+ * malformed anyway) are dropped so each line maps to at most one test.
+ */
+export function getTestSpans(source: string, file?: string): TestSpans {
+  const tests: SourceSpan[] = [];
+  const hooks: SourceSpan[] = [];
+  const ast = parseSource(source, file);
+  if (!ast) return { tests, hooks };
+  walk(ast, (node) => {
+    if (node.type !== 'CallExpression') return;
+    const callee = (node as { callee?: Record<string, unknown> }).callee;
+    const loc = (node as { loc?: { start?: { line?: number }; end?: { line?: number } } }).loc;
+    if (!loc?.start?.line || !loc?.end?.line) return;
+    const span = { startLine: loc.start.line, endLine: loc.end.line };
+
+    let isTest = false;
+    let isHook = false;
+    if (callee?.type === 'Identifier') {
+      const name = (callee as { name?: string }).name;
+      if (name === 'test' || name === 'it') isTest = true;
+      else if (name && HOOK_NAMES.has(name)) isHook = true;
+    } else if (callee?.type === 'MemberExpression' && !callee.computed) {
+      const obj = callee.object as { type?: string; name?: string } | undefined;
+      const prop = callee.property as { type?: string; name?: string } | undefined;
+      if (obj?.type === 'Identifier' && (obj.name === 'test' || obj.name === 'it') && prop?.type === 'Identifier') {
+        if (TEST_MODIFIERS.has(prop.name ?? '')) isTest = true;
+        else if (HOOK_NAMES.has(prop.name ?? '')) isHook = true;
+      }
+    }
+    if (!isTest && !isHook) return;
+    if (!hasFunctionArg(node)) return;
+    if (isTest) tests.push(span);
+    else hooks.push(span);
+  });
+
+  // Keep outermost test spans only, in source order.
+  tests.sort((a, b) => a.startLine - b.startLine || b.endLine - a.endLine);
+  const outer: SourceSpan[] = [];
+  for (const s of tests) {
+    const last = outer[outer.length - 1];
+    if (last && s.startLine >= last.startLine && s.endLine <= last.endLine) continue;
+    outer.push(s);
+  }
+  return { tests: outer, hooks };
+}
+
 const TEST_NON_DECL_RE =
   /\btest\.(describe|step|beforeEach|afterEach|beforeAll|afterAll|use|setTimeout|info|expect)\b/;
 

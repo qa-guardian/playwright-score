@@ -31,7 +31,7 @@ describe('scorePaths integration', () => {
       threshold: 80,
       cwd: root,
     });
-    assert.equal(result.scoreVersion, 'sqs-v2');
+    assert.equal(result.scoreVersion, 'v3');
     assert.ok(result.score >= 80, `expected >=80 got ${result.score}: ${JSON.stringify(result.findings.slice(0, 5))}`);
     assert.equal(result.pass, true);
   });

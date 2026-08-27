@@ -1,4 +1,4 @@
-export type ScoreVersion = 'sqs-v2';
+export type ScoreVersion = 'v3';
 export type ProfileName = 'standard';
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
 export type Severity = 'error' | 'warning' | 'info';
@@ -15,6 +15,13 @@ export interface Finding {
   dimension: DimensionName;
   /** When true, finding is listed but does not contribute penalty units */
   reportOnly?: boolean;
+  /** Where the finding sits: inside a specific test ('test', with testKey),
+   * inside a before/after hook ('hook' — affects every test in the file),
+   * or at module level ('module' — counted once per file). Set during
+   * attribution in index.ts; findings without it are treated as 'module'. */
+  scope?: 'test' | 'hook' | 'module';
+  /** `${file}#${testIndex}` when scope === 'test'. */
+  testKey?: string;
 }
 
 export interface ScoreDimensions {
@@ -33,10 +40,12 @@ export interface ScoreSummary {
   warnings: number;
   nativeLocators: number;
   rawLocators: number;
-  /** Count of test declarations with no recognized assertion (sqs-v2
-   * assertions-coverage numerator input; equals the uncapped
-   * playwright/expect-expect finding count). */
+  /** Tests with no recognized assertion (uncapped playwright/expect-expect
+   * census, after delegation resolution). */
   unassertedTests: number;
+  /** Tests with no demerit in any dimension — the headline the score is
+   * built from: the weighted share of tests that are clean. */
+  cleanTests: number;
 }
 
 export interface ScoreResult {

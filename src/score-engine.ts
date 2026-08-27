@@ -9,31 +9,42 @@ import type {
 } from './types.js';
 import { PROFILE_WEIGHTS } from './profiles.js';
 
-/** sqs-v2 frozen constants — change requires sqs-v3 */
-export const SQS_V2 = {
-  scoreVersion: 'sqs-v2' as const,
-  ERROR_UNIT: 1.0,
-  WARNING_UNIT: 0.4,
-  INFO_UNIT: 0.0,
-  MAX_FINDINGS_PER_RULE_PER_FILE: 3,
-  SLOT_DIVISOR: 25,
-  MIN_SLOTS: 4,
-  K: 0.4,
-} as const;
-
-/** @deprecated sqs-v1 alias kept for one release so pinned callers get a
- * type-level nudge instead of a hard break; constants are identical. */
-export const SQS_V1 = SQS_V2;
-
 /**
- * The rule whose findings are, by construction, a census of "this test
- * declaration contains no recognized assertion" — one finding per test,
- * with delegation to same-file/imported helpers already resolved upstream
- * (see eslint-runner.ts's assertFunctionNames plumbing). sqs-v2 counts
- * these uncapped as the assertions-coverage numerator instead of feeding
- * them through density math.
+ * Scoring model v3 — "the weighted share of your tests that are clean."
+ *
+ * Every finding is attributed to the test it actually sits in (AST test
+ * spans, resolved in index.ts). Each test accumulates demerit units for a
+ * dimension — an error is a full demerit (1.0), a warning 0.4 — capped at
+ * 1 per test: a test is at worst fully flawed, never more. Findings in a
+ * before/after hook demerit every test in that file (setup problems affect
+ * every test that runs through them); module-level findings count once per
+ * file. A dimension's score is simply:
+ *
+ *   score = 100 × (1 − totalDemerit / tests)
+ *
+ * The locators dimension stays the native/(native+raw) usage ratio.
+ * The final score is the weighted sum of dimensions.
+ *
+ * There is deliberately no per-SLOC density, no slot divisor, no minimum
+ * slots, no exponential decay, and no per-rule finding caps (the per-test
+ * cap of 1 is the anti-nuke mechanism, and it is also the anti-gaming
+ * mechanism: padding a suite with clean lines no longer dilutes anything,
+ * and padding it with fake clean tests costs assertions coverage). Earlier
+ * models (≤0.4.0, published as "sqs-v1"/"sqs-v2") used density math and
+ * scored e.g. a 3-test suite with two hard-wait errors, two assertion-free
+ * tests, and a skipped test at 78/C; model v3 scores it 53/F, which is
+ * what it is.
  */
-const UNASSERTED_TEST_RULE = 'playwright/expect-expect';
+export const MODEL = {
+  scoreVersion: 'v3' as const,
+  ERROR_DEMERIT: 1.0,
+  WARNING_DEMERIT: 0.4,
+  INFO_DEMERIT: 0.0,
+  /** A single test's demerit ceiling per dimension. */
+  MAX_DEMERIT_PER_TEST: 1.0,
+  /** Module-level findings' demerit ceiling per (file, dimension). */
+  MAX_DEMERIT_PER_FILE_MODULE: 1.0,
+} as const;
 
 const PENALTY_DIMENSIONS: DimensionName[] = ['playwrightHygiene', 'assertions', 'structure'];
 
@@ -51,86 +62,96 @@ export function locatorsScore(native: number, raw: number): number {
   return Math.round((100 * native) / total);
 }
 
-/**
- * sqs-v2 assertions dimension: a per-test coverage ratio, decayed by the
- * density of the remaining assertion-quality findings.
- *
- * sqs-v1 fed "test has no assertions" through the same density math as
- * hygiene smells, which misread coverage badly on small suites: 2 of 3
- * tests asserting nothing scored 82/100 on this dimension. Whether a test
- * asserts anything is a fraction of tests, not a findings-per-SLOC rate —
- * so, like the locators dimension, the primary signal is now a ratio:
- *
- *   coverage = (tests - unassertedTests) / tests      // uncapped census
- *   aux      = density load of the OTHER assertion rules
- *              (valid-expect, no-standalone-expect,
- *               prefer-web-first-assertions), capped as usual
- *   score    = round(100 * coverage * e^(-K * aux))
- *
- * expect-expect findings are excluded from the density term — they ARE the
- * coverage term, and counting them twice would double-penalize.
- * tests === 0 (nothing but helpers matched) keeps coverage at 1 and lets
- * the aux findings, if any, carry the dimension.
- */
-export function assertionsScore(
-  findings: Finding[],
-  tests: number,
-  sloc: number
-): number {
-  const unasserted = findings.filter(
-    (f) => f.rule === UNASSERTED_TEST_RULE && !f.reportOnly
-  ).length;
-  const coverage =
-    tests <= 0 ? 1 : Math.min(1, Math.max(0, (tests - unasserted) / tests));
-
-  const aux = findings.filter(
-    (f) => f.dimension === 'assertions' && f.rule !== UNASSERTED_TEST_RULE
-  );
-  const capped = applyPerRuleCap(aux);
-  let rawUnits = 0;
-  for (const f of capped) rawUnits += severityUnit(f.severity);
-  const slots = Math.max(sloc / SQS_V2.SLOT_DIVISOR, SQS_V2.MIN_SLOTS);
-  const load = rawUnits / slots;
-
-  const score = Math.round(100 * coverage * Math.exp(-SQS_V2.K * load));
-  return Math.min(100, Math.max(0, score));
+function severityDemerit(severity: Severity): number {
+  if (severity === 'error') return MODEL.ERROR_DEMERIT;
+  if (severity === 'warning') return MODEL.WARNING_DEMERIT;
+  return MODEL.INFO_DEMERIT;
 }
 
-function severityUnit(severity: Severity): number {
-  if (severity === 'error') return SQS_V2.ERROR_UNIT;
-  if (severity === 'warning') return SQS_V2.WARNING_UNIT;
-  return SQS_V2.INFO_UNIT;
+/** Tests per file, keyed by the same relative file path findings carry. */
+export type FileTestCounts = Record<string, number>;
+
+interface DimensionDemerits {
+  /** Σ per-test demerits (each capped at 1) + Σ per-file module demerits. */
+  total: number;
+  /** testKeys with any demerit > 0 in this dimension. */
+  flawedTestKeys: Set<string>;
 }
 
-/** Cap findings per (file, rule) for penalty math only */
-export function applyPerRuleCap(findings: Finding[]): Finding[] {
-  const counts = new Map<string, number>();
-  const out: Finding[] = [];
-  for (const f of findings) {
-    if (f.reportOnly) continue;
-    const key = `${f.file}::${f.rule}`;
-    const n = counts.get(key) ?? 0;
-    if (n >= SQS_V2.MAX_FINDINGS_PER_RULE_PER_FILE) continue;
-    counts.set(key, n + 1);
-    out.push(f);
-  }
-  return out;
-}
-
-export function penaltyDimensionScore(
+function demeritsForDimension(
   findings: Finding[],
   dimension: DimensionName,
-  sloc: number
-): number {
-  const dimFindings = findings.filter((f) => f.dimension === dimension);
-  const capped = applyPerRuleCap(dimFindings);
-  let rawUnits = 0;
-  for (const f of capped) {
-    rawUnits += severityUnit(f.severity);
+  fileTests: FileTestCounts
+): DimensionDemerits {
+  const perTest = new Map<string, number>();
+  const perFileHook = new Map<string, number>();
+  const perFileModule = new Map<string, number>();
+
+  for (const f of findings) {
+    if (f.dimension !== dimension || f.reportOnly) continue;
+    const d = severityDemerit(f.severity);
+    if (d === 0) continue;
+    if (f.scope === 'test' && f.testKey) {
+      perTest.set(f.testKey, (perTest.get(f.testKey) ?? 0) + d);
+    } else if (f.scope === 'hook') {
+      perFileHook.set(f.file, (perFileHook.get(f.file) ?? 0) + d);
+    } else {
+      perFileModule.set(f.file, (perFileModule.get(f.file) ?? 0) + d);
+    }
   }
-  const slots = Math.max(sloc / SQS_V2.SLOT_DIVISOR, SQS_V2.MIN_SLOTS);
-  const load = rawUnits / slots;
-  const score = Math.round(100 * Math.exp(-SQS_V2.K * load));
+
+  let total = 0;
+  const flawedTestKeys = new Set<string>();
+
+  // Per-test demerits: each test's own findings plus its file's hook
+  // findings, capped at 1 — a test is at worst fully flawed.
+  for (const [file, count] of Object.entries(fileTests)) {
+    const hookUnits = perFileHook.get(file) ?? 0;
+    for (let i = 0; i < count; i++) {
+      const key = `${file}#${i}`;
+      const units = (perTest.get(key) ?? 0) + hookUnits;
+      if (units <= 0) continue;
+      total += Math.min(MODEL.MAX_DEMERIT_PER_TEST, units);
+      flawedTestKeys.add(key);
+    }
+  }
+  // A test-scoped finding whose file has no counted tests (should not
+  // happen, but attribution and counting are separate passes) still
+  // counts, capped the same way.
+  for (const [key, units] of perTest) {
+    const file = key.slice(0, key.lastIndexOf('#'));
+    if (fileTests[file] !== undefined) continue;
+    total += Math.min(MODEL.MAX_DEMERIT_PER_TEST, units);
+    flawedTestKeys.add(key);
+  }
+  // Hook findings in a file with zero tests (setup-only file swept in):
+  // count once per file, like module scope.
+  for (const [file, units] of perFileHook) {
+    if ((fileTests[file] ?? 0) > 0) continue;
+    total += Math.min(MODEL.MAX_DEMERIT_PER_FILE_MODULE, units);
+  }
+  // Module-level findings count once per file.
+  for (const units of perFileModule.values()) {
+    total += Math.min(MODEL.MAX_DEMERIT_PER_FILE_MODULE, units);
+  }
+
+  return { total, flawedTestKeys };
+}
+
+/**
+ * 100 × (1 − demerit share). With zero tests there is nothing to take a
+ * share of — module/hook demerits then act on a denominator of 1 so a
+ * findings-bearing zero-test input still can't score clean.
+ */
+export function ratioDimensionScore(
+  findings: Finding[],
+  dimension: DimensionName,
+  fileTests: FileTestCounts,
+  tests: number
+): number {
+  const { total } = demeritsForDimension(findings, dimension, fileTests);
+  const denominator = Math.max(tests, 1);
+  const score = Math.round(100 * (1 - total / denominator));
   return Math.min(100, Math.max(0, score));
 }
 
@@ -141,6 +162,7 @@ export function computeScore(input: {
   sloc: number;
   files: number;
   tests: number;
+  fileTests: FileTestCounts;
   nativeLocators: number;
   rawLocators: number;
 }): ScoreResult {
@@ -150,18 +172,26 @@ export function computeScore(input: {
   // (e.g. `profile: 'guardian'`, removed in 0.2.0) degrades to a working
   // score instead of a hard crash.
   const weights = PROFILE_WEIGHTS[input.profile] ?? PROFILE_WEIGHTS.standard;
+
   const dims: ScoreDimensions = {
-    playwrightHygiene: penaltyDimensionScore(
+    playwrightHygiene: ratioDimensionScore(
       input.findings,
       'playwrightHygiene',
-      input.sloc
+      input.fileTests,
+      input.tests
     ),
-    assertions: assertionsScore(input.findings, input.tests, input.sloc),
+    assertions: ratioDimensionScore(
+      input.findings,
+      'assertions',
+      input.fileTests,
+      input.tests
+    ),
     locators: locatorsScore(input.nativeLocators, input.rawLocators),
-    structure: penaltyDimensionScore(
+    structure: ratioDimensionScore(
       input.findings,
       'structure',
-      input.sloc
+      input.fileTests,
+      input.tests
     ),
   };
 
@@ -177,8 +207,19 @@ export function computeScore(input: {
   const errors = input.findings.filter((f) => f.severity === 'error').length;
   const warnings = input.findings.filter((f) => f.severity === 'warning').length;
 
+  // Clean tests: no demerit in any penalty dimension. (Locator usage is a
+  // suite-level ratio, not a per-test property.)
+  const flawed = new Set<string>();
+  for (const dim of PENALTY_DIMENSIONS) {
+    for (const key of demeritsForDimension(input.findings, dim, input.fileTests)
+      .flawedTestKeys) {
+      flawed.add(key);
+    }
+  }
+  const cleanTests = Math.max(0, input.tests - flawed.size);
+
   return {
-    scoreVersion: SQS_V2.scoreVersion,
+    scoreVersion: MODEL.scoreVersion,
     profile: input.profile,
     score,
     grade: gradeFromScore(score),
@@ -194,8 +235,9 @@ export function computeScore(input: {
       nativeLocators: input.nativeLocators,
       rawLocators: input.rawLocators,
       unassertedTests: input.findings.filter(
-        (f) => f.rule === UNASSERTED_TEST_RULE && !f.reportOnly
+        (f) => f.rule === 'playwright/expect-expect' && !f.reportOnly
       ).length,
+      cleanTests,
     },
     dimensions: dims,
     findings: input.findings,

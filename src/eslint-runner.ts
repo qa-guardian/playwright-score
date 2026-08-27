@@ -26,7 +26,7 @@ function buildConfig(assertFunctionNames: string[]): Linter.Config[] {
         // no-wait-for-selector, expect-expect) are intentionally stricter
         // than eslint-plugin-playwright's own "recommended" severity —
         // these are patterns Playwright's own docs call out as anti-
-        // patterns (see playwright.dev/docs/best-practices), so sqs-v1
+        // patterns (see playwright.dev/docs/best-practices), so this scorer
         // treats them as errors rather than warnings. no-networkidle and
         // no-raw-locators aren't part of upstream "recommended" at all but
         // are enabled here for the same reason.
@@ -90,7 +90,7 @@ function buildConfig(assertFunctionNames: string[]): Linter.Config[] {
         'playwright/prefer-native-locators': 'warn',
         // Matches eslint-plugin-playwright's own recommended severity.
         'playwright/prefer-web-first-assertions': 'error',
-        // The rules below complete the sqs-v1 rule set from
+        // The rules below complete the intended rule set from
         // profiles.ts's ESLINT_RULE_MAP. Earlier versions (<=0.2.0)
         // expected them to arrive via eslint-plugin-playwright's
         // flat/recommended config, but the spread only handled an array

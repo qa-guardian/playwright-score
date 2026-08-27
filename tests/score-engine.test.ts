@@ -4,11 +4,8 @@ import {
   computeScore,
   locatorsScore,
   gradeFromScore,
-  applyPerRuleCap,
-  penaltyDimensionScore,
-  SQS_V1,
-  SQS_V2,
-  assertionsScore,
+  ratioDimensionScore,
+  MODEL,
 } from '../src/score-engine.js';
 import type { Finding } from '../src/types.js';
 import { countSloc } from '../src/sloc.js';
@@ -23,16 +20,12 @@ import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
 
-describe('sqs-v2 constants', () => {
-  it('exposes frozen version and constants', () => {
-    assert.equal(SQS_V2.scoreVersion, 'sqs-v2');
-    // sqs-v1 alias must keep pointing at the same frozen constants for one
-    // deprecation release.
-    assert.equal(SQS_V1, SQS_V2);
-    assert.equal(SQS_V2.K, 0.4);
-    assert.equal(SQS_V2.SLOT_DIVISOR, 25);
-    assert.equal(SQS_V2.MIN_SLOTS, 4);
-    assert.equal(SQS_V2.MAX_FINDINGS_PER_RULE_PER_FILE, 3);
+describe('scoring model constants', () => {
+  it('exposes the model version and demerit units', () => {
+    assert.equal(MODEL.scoreVersion, 'v3');
+    assert.equal(MODEL.ERROR_DEMERIT, 1.0);
+    assert.equal(MODEL.WARNING_DEMERIT, 0.4);
+    assert.equal(MODEL.MAX_DEMERIT_PER_TEST, 1.0);
   });
 });
 
@@ -46,57 +39,84 @@ describe('locatorsScore', () => {
   });
 });
 
-describe('assertionsScore (sqs-v2 coverage ratio)', () => {
-  const ee = (file: string): Finding => ({
-    rule: 'playwright/expect-expect',
+describe('ratioDimensionScore (model v3: share of tests that are clean)', () => {
+  const find = (over: Partial<Finding>): Finding => ({
+    rule: 'playwright/no-wait-for-timeout',
     severity: 'error',
-    message: 'Test has no assertions',
-    file,
-    dimension: 'assertions',
+    message: 'x',
+    file: 'a.spec.ts',
+    dimension: 'playwrightHygiene',
+    scope: 'test',
+    testKey: 'a.spec.ts#0',
+    ...over,
   });
 
-  it('scores pure coverage: 2 of 3 tests unasserted = 33', () => {
-    // The motivating sqs-v1 bug: this exact shape scored 82 under density
-    // math because two findings in a tiny file barely register per-SLOC.
-    const score = assertionsScore([ee('a.spec.ts'), ee('a.spec.ts')], 3, 24);
-    assert.equal(score, 33);
+  it('one fully flawed test of four scores 75', () => {
+    const fs = [find({})];
+    assert.equal(ratioDimensionScore(fs, 'playwrightHygiene', { 'a.spec.ts': 4 }, 4), 75);
   });
 
-  it('full coverage with no aux findings scores 100', () => {
-    assert.equal(assertionsScore([], 10, 100), 100);
+  it('a test is at worst fully flawed: five errors in one test still cost one test', () => {
+    const fs = Array.from({ length: 5 }, (_, i) => find({ line: i + 1 }));
+    assert.equal(ratioDimensionScore(fs, 'playwrightHygiene', { 'a.spec.ts': 4 }, 4), 75);
   });
 
-  it('zero tests keeps coverage neutral instead of dividing by zero', () => {
-    assert.equal(assertionsScore([], 0, 50), 100);
+  it('warnings are partial demerits (0.4), additive within a test up to the cap', () => {
+    const w = (line: number) => find({ severity: 'warning', line });
+    // one warning: 0.4/2 -> 80
+    assert.equal(ratioDimensionScore([w(1)], 'playwrightHygiene', { 'a.spec.ts': 2 }, 2), 80);
+    // three warnings in the same test: min(1, 1.2)/2 -> 50
+    assert.equal(
+      ratioDimensionScore([w(1), w(2), w(3)], 'playwrightHygiene', { 'a.spec.ts': 2 }, 2),
+      50
+    );
   });
 
-  it('coverage clamps at 0 when the census exceeds the test count', () => {
-    // countTests is call-site based; if it ever undercounts relative to
-    // expect-expect the ratio must clamp, not go negative.
-    const fs = [ee('a.spec.ts'), ee('a.spec.ts'), ee('b.spec.ts')];
-    assert.equal(assertionsScore(fs, 2, 24), 0);
+  it('hook findings demerit every test in that file', () => {
+    const hook = find({ scope: 'hook', testKey: undefined });
+    // hard wait in beforeEach, 3 tests in file + 2 clean tests elsewhere
+    const score = ratioDimensionScore(
+      [hook],
+      'playwrightHygiene',
+      { 'a.spec.ts': 3, 'b.spec.ts': 2 },
+      5
+    );
+    assert.equal(score, 40); // 3 of 5 tests inherit the flawed setup
   });
 
-  it('census is uncapped: 5 unasserted tests in one file all count', () => {
-    // The per-(file,rule) cap of 3 applies to density penalties only —
-    // coverage is a census, capping it would hide 2 of 5 empty tests.
-    const fs = Array.from({ length: 5 }, () => ee('a.spec.ts'));
-    assert.equal(assertionsScore(fs, 10, 100), 50);
+  it('module-level findings count once per file, not per test', () => {
+    const mod = find({ scope: 'module', testKey: undefined, severity: 'warning', dimension: 'structure' });
+    const score = ratioDimensionScore([mod], 'structure', { 'a.spec.ts': 10 }, 10);
+    assert.equal(score, 96); // 0.4/10
   });
 
-  it('aux assertion-quality findings decay the coverage multiplicatively', () => {
-    const aux: Finding = {
-      rule: 'playwright/prefer-web-first-assertions',
+  it('an unasserted test is a fully flawed test in the assertions dimension', () => {
+    const ee = (i: number): Finding => ({
+      rule: 'playwright/expect-expect',
       severity: 'error',
-      message: 'x',
+      message: 'Test has no assertions',
       file: 'a.spec.ts',
       dimension: 'assertions',
-    };
-    // coverage 1.0, aux load = 1.0/4 = 0.25 -> 100*e^(-0.1) = 90
-    assert.equal(assertionsScore([aux], 4, 24), 90);
-    // half coverage decays the same way: 50*e^(-0.1) = 45
-    const half = [aux, ee('a.spec.ts'), ee('a.spec.ts')];
-    assert.equal(assertionsScore(half, 4, 24), 45);
+      scope: 'test',
+      testKey: `a.spec.ts#${i}`,
+    });
+    // The motivating case: 2 of 3 tests assert nothing -> 33 (density
+    // models said 82).
+    assert.equal(
+      ratioDimensionScore([ee(0), ee(1)], 'assertions', { 'a.spec.ts': 3 }, 3),
+      33
+    );
+  });
+
+  it('reportOnly findings never contribute demerits', () => {
+    const ro = find({ reportOnly: true });
+    assert.equal(ratioDimensionScore([ro], 'playwrightHygiene', { 'a.spec.ts': 1 }, 1), 100);
+  });
+
+  it('clamps at 0 and treats zero tests as a denominator of 1', () => {
+    const mod = find({ scope: 'module', testKey: undefined });
+    assert.equal(ratioDimensionScore([mod], 'playwrightHygiene', {}, 0), 0);
+    assert.equal(ratioDimensionScore([], 'playwrightHygiene', {}, 0), 100);
   });
 });
 
@@ -107,64 +127,6 @@ describe('gradeFromScore', () => {
     assert.equal(gradeFromScore(70), 'C');
     assert.equal(gradeFromScore(60), 'D');
     assert.equal(gradeFromScore(10), 'F');
-  });
-});
-
-describe('applyPerRuleCap', () => {
-  it('caps to 3 per file+rule for penalties', () => {
-    const findings: Finding[] = Array.from({ length: 10 }, (_, i) => ({
-      rule: 'playwright/no-wait-for-timeout',
-      severity: 'error' as const,
-      message: 'x',
-      file: '/a.spec.ts',
-      line: i + 1,
-      dimension: 'playwrightHygiene' as const,
-    }));
-    assert.equal(applyPerRuleCap(findings).length, 3);
-  });
-
-  it('skips reportOnly findings', () => {
-    const findings: Finding[] = [
-      {
-        rule: 'playwright/no-raw-locators',
-        severity: 'warning',
-        message: 'x',
-        file: '/a.spec.ts',
-        dimension: 'locators',
-        reportOnly: true,
-      },
-    ];
-    assert.equal(applyPerRuleCap(findings).length, 0);
-  });
-});
-
-describe('penaltyDimensionScore worked examples', () => {
-  it('tiny file 1 error → ~90 hygiene', () => {
-    const findings: Finding[] = [
-      {
-        rule: 'playwright/no-wait-for-timeout',
-        severity: 'error',
-        message: 'wait',
-        file: '/t.spec.ts',
-        dimension: 'playwrightHygiene',
-      },
-    ];
-    // slots = max(20/25, 4) = 4; load = 1/4 = 0.25; 100*e^(-0.1) ≈ 90.5
-    const score = penaltyDimensionScore(findings, 'playwrightHygiene', 20);
-    assert.ok(score >= 88 && score <= 92, `expected ~90 got ${score}`);
-  });
-
-  it('20 same warnings cap → high score on large file', () => {
-    const findings: Finding[] = Array.from({ length: 20 }, (_, i) => ({
-      rule: 'playwright/no-skipped-test',
-      severity: 'warning' as const,
-      message: 'skip',
-      file: '/big.spec.ts',
-      line: i + 1,
-      dimension: 'structure' as const,
-    }));
-    const score = penaltyDimensionScore(findings, 'structure', 500);
-    assert.ok(score >= 95, `expected high score with cap, got ${score}`);
   });
 });
 
@@ -192,13 +154,14 @@ describe('computeScore clean', () => {
       sloc: 15,
       files: 1,
       tests: 1,
+      fileTests: { 'a.spec.ts': 1 },
       nativeLocators: 5,
       rawLocators: 0,
     });
     assert.equal(result.score, 100);
     assert.equal(result.grade, 'A');
     assert.equal(result.pass, true);
-    assert.equal(result.scoreVersion, 'sqs-v2');
+    assert.equal(result.scoreVersion, 'v3');
   });
 
   it('is deterministic', () => {
@@ -212,11 +175,14 @@ describe('computeScore clean', () => {
           message: 'x',
           file: '/a.ts',
           dimension: 'playwrightHygiene' as const,
+          scope: 'test' as const,
+          testKey: '/a.ts#0',
         },
       ],
       sloc: 40,
       files: 1,
       tests: 1,
+      fileTests: { '/a.ts': 1 },
       nativeLocators: 3,
       rawLocators: 1,
     };

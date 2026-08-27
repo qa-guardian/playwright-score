@@ -12,7 +12,7 @@ import { formatSarif } from './formatters/sarif.js';
 import type { ProfileName } from './types.js';
 
 function printHelp(): void {
-  console.log(`@qaguardian/playwright-score — deterministic Playwright spec quality score (sqs-v1)
+  console.log(`@qaguardian/playwright-score — deterministic Playwright spec quality score
 
 Usage:
   npx -p @qaguardian/playwright-score playwright-score <paths...> [options]
@@ -33,7 +33,7 @@ Exit codes:
   2  tool error
 
 Website: https://qaguardian.com/open-source/playwright-score
-Methodology: METHODOLOGY.md (sqs-v1)
+Methodology: METHODOLOGY.md (scoring model v3)
 `);
 }
 

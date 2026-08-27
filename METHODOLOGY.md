@@ -1,217 +1,145 @@
-# Playwright Spec Score (SQS) Methodology
+# Playwright Spec Score Methodology
 
-**Score version:** `sqs-v2`  
+**Scoring model:** v3 (2026-08-27)  
 **Package:** `playwright-score`  
 **Landing page:** https://qaguardian.com/open-source/playwright-score  
 **Maintainer:** [QA Guardian](https://qaguardian.com)  
 **Deterministic:** same inputs → same score  
 **AI-free:** no LLM calls in the scoring path
 
-Any change to formulas, weights, SLOC definition, caps, or constants requires a new version (`sqs-v3`, …).
-
-**sqs-v2 (2026-08-27)** changed exactly one thing versus sqs-v1: the
-assertions dimension is now a per-test coverage ratio instead of a
-finding-density penalty (see the Assertions dimension section). All other
-formulas, weights, and constants are unchanged from sqs-v1.
+Any change that alters what a given suite scores is a new model version
+(v4, …), documented in the CHANGELOG. Model history: v1/v2 (published as
+"sqs-v1"/"sqs-v2" through package 0.4.0) scored finding *density per line
+of code*; v3 replaced that entirely — see "Why v3" at the bottom.
 
 ---
 
-## Profile
+## The model in one sentence
 
-`standard` (the only profile): community Playwright best practices
-(`eslint-plugin-playwright`) plus suite-level metrics (locator ratio,
-assertion-delegation tracing, Page Object Model import resolution).
+**Your score is the weighted share of your tests that are clean.**
 
 ---
 
-## Output
+## How it works
 
-- **score:** integer 0–100  
-- **grade:** A (90–100), B (80–89), C (70–79), D (60–69), F (0–59)  
-- **pass:** `score >= threshold`  
-- **dimensions:** per-dimension 0–100  
-- **findings:** full list (uncapped) for humans/agents  
+### 1. Findings are attributed to tests
 
----
+Every file is parsed and each test declaration's source span is recorded
+(`test(...)`, `test.only/skip/fixme/slow(...)` — any form carrying a
+function body). Each lint/metric finding is then attributed to:
 
-## Dimension weights
+- **the test it sits in**, when its line falls inside a test span;
+- **every test in the file**, when it sits in a `beforeEach`/`afterEach`/
+  `beforeAll`/`afterAll` hook — setup problems affect every test that runs
+  through them;
+- **the file, once** (module scope), for anything else — imports,
+  `describe` bodies, file-level metrics like oversized-file.
 
-| Dimension | Weight |
+### 2. Tests accumulate demerits
+
+Within each scored dimension, a test's demerit is the sum of its findings'
+units, capped at 1:
+
+| Severity | Demerit |
 |---|---|
-| playwrightHygiene | 40 |
-| assertions | 25 |
-| locators | 20 |
-| structure | 15 |
+| error | 1.0 |
+| warning | 0.4 |
+| info / report-only | 0 |
 
----
+A test is at worst *fully flawed* (demerit 1) — never more. That cap is
+both the anti-nuke mechanism (one loop-generated repeated finding cannot
+zero a suite) and the anti-gaming mechanism (there is no per-line density
+left to dilute by padding files with clean code). Module-scope findings
+are capped at 1 demerit per file per dimension.
 
-## Assertions dimension (coverage ratio × quality decay)
-
-sqs-v1 fed "test has no assertions" through the same density math as
-hygiene smells. That misread coverage badly on small suites: 2 of 3 tests
-asserting nothing scored 82/100 on this dimension, because two findings in
-a tiny file barely register per-SLOC. Whether a test asserts anything is a
-fraction of tests, not a findings-per-SLOC rate — so, like the locators
-dimension, the primary signal is a ratio:
+### 3. Dimensions are ratios
 
 ```
-unassertedTests = count(playwright/expect-expect findings)   // UNCAPPED census
-coverage        = tests === 0 ? 1 : clamp01((tests - unassertedTests) / tests)
-
-auxLoad         = penalty load (same units/caps/slots as below) of the
-                  OTHER assertion rules only: valid-expect,
-                  no-standalone-expect, prefer-web-first-assertions
-
-assertionsScore = clamp(0, 100, round(100 * coverage * e^(-K * auxLoad)))
+dimensionScore = round(100 × (1 − totalDemerit / tests))     // clamped 0–100
 ```
 
-Notes:
+With zero tests the denominator is 1, so a findings-bearing zero-test
+input still cannot score clean.
 
-- `expect-expect` findings are excluded from the density term — they ARE
-  the coverage term; counting them twice would double-penalize.
-- The census is deliberately uncapped: the per-(file, rule) cap exists to
-  stop one repeated smell from nuking a density score, but hiding 2 of 5
-  assertion-free tests would misstate coverage.
-- All of expect-expect's delegation machinery (same-file helper discovery,
-  imported-helper tracing, `assertFunctionPatterns`) applies before the
-  census is taken, so delegated assertions do not count as unasserted.
-- `tests === 0` (nothing matched but helpers) keeps coverage neutral at 1.
-
-Worked example (the motivating case): 3 tests, 2 without assertions, no
-aux findings → coverage = 1/3 → **assertions = 33** (sqs-v1 said 82).
-
----
-
-## Locators dimension (ratio)
-
-Independent of finding-penalty math:
+The **locators** dimension is independent of demerits — it is the usage
+ratio it always was:
 
 ```
-native = count(getByRole|getByLabel|getByTestId|getByText|getByPlaceholder)
-raw    = count(page.locator(|frame.locator()
-total  = native + raw
+native = getByRole|getByLabel|getByTestId|getByText|getByPlaceholder calls
+raw    = .locator(...) calls + legacy string-selector actions (page.click('#x'), …)
 
-locatorsScore = total === 0 ? 100 : round(100 * native / total)
+locatorsScore = total === 0 ? 100 : round(100 × native / total)
 ```
 
-ESLint `no-raw-locators` / `prefer-native-locators` still appear in `findings[]` for repair guidance.  
-They are **not** double-counted into the locators dimension via exponential penalties.  
-For sqs-v2 (as in sqs-v1) they map to **report-only** for scoring (severity still shown in findings; units = 0 for penalty dimensions).
+(`no-raw-locators` / `prefer-native-locators` / `prefer-locator` findings
+appear in `findings[]` for repair guidance but are report-only — the ratio
+owns this dimension; counting them as demerits too would double-penalize.)
 
----
+### 4. Weighted sum
 
-## SLOC (source lines of code)
-
-```
-sloc = lines that are NOT:
-  - blank / whitespace-only
-  - pure comment lines (// or block-comment-only lines)
-sloc = max(sloc, 1)
-```
-
-Used for penalty density. JSDoc / decorative comments do not inflate slots.
-
----
-
-## Penalty dimensions
-
-Applies to: `playwrightHygiene`, `structure`, and the *aux* term of
-`assertions` (see above; the assertions primary term is a coverage ratio).
-
-### Constants (frozen sqs-v2; identical values to sqs-v1)
-
-| Constant | Value |
-|---|---|
-| `ERROR_UNIT` | 1.0 |
-| `WARNING_UNIT` | 0.4 |
-| `INFO_UNIT` | 0.0 |
-| `MAX_FINDINGS_PER_RULE_PER_FILE` | 3 (for penalty math only) |
-| `SLOT_DIVISOR` | 25 |
-| `MIN_SLOTS` | 4 |
-| `K` | 0.4 |
-
-### Steps
-
-1. **Cap** findings per `(file, ruleId)` to 3 for penalty math (report all in `findings[]`).
-2. **Units:** `rawUnits = E * 1.0 + W * 0.4`
-3. **Slots:** `slots = max(sloc / 25, 4)`
-4. **Load:** `load = rawUnits / slots`
-5. **Score:** `dimensionScore = clamp(0, 100, round(100 * exp(-0.4 * load)))`
-
-### Final score
+| Dimension | Weight | Demerit sources |
+|---|---:|---|
+| playwrightHygiene | 40 | hard waits, networkidle, force, missing await, element handles, eval, conditionals, page.pause, useless await |
+| assertions | 25 | a test with no recognized assertion is fully flawed (`expect-expect`, after all delegation resolution); `valid-expect`, `no-standalone-expect`, `prefer-web-first-assertions` add partial demerits |
+| locators | 20 | usage ratio (above) |
+| structure | 15 | focused tests, always-skipped declarations, nested-describe depth, oversized files (module scope) |
 
 ```
-score = round(Σ (weight_d / 100) * dimensionScore_d)
-pass  = score >= threshold
+score = round(Σ (weight_d / 100) × dimensionScore_d)
+pass  = score >= threshold        // CLI default 80
+grade = A ≥90 · B ≥80 · C ≥70 · D ≥60 · F <60
 ```
 
 ---
 
-## Worked examples (Phase 0 validation)
+## Worked example
 
-Assumptions: single-file runs; weights as above.
+3 tests. Test 1 has two hard-wait errors and no assertion. Test 2 is an
+always-skipped declaration with a conditional and no assertion. Test 3 is
+clean. Locators: 4 native, 4 raw.
 
-### 1. Tiny clean (~15 SLOC, 0 findings, all native locators)
+- **hygiene**: test 1 → min(1, 2×1.0) = 1; test 2 → 0.4 → total 1.4/3 → **53**
+- **assertions**: tests 1, 2 unasserted → 2/3 → **33**
+- **locators**: 4/8 → **50**
+- **structure**: skip warning 0.4/3 → **87**
+- **score** = 0.40·53 + 0.25·33 + 0.20·50 + 0.15·87 = **53 → F**
 
-- All penalty dims = 100  
-- Locators = 100  
-- **standard score ≈ 100**
-
-### 2. Tiny file, 1 hygiene error (~20 SLOC)
-
-- slots = max(20/25, 4) = 4  
-- rawUnits = 1.0 → load = 0.25 → hygiene = round(100 * e^(-0.1)) ≈ **90**  
-- Other dims 100  
-- standard ≈ 0.4*90 + 0.25*100 + 0.2*100 + 0.15*100 = **96**
-
-### 3. Medium file, 5 distinct hygiene errors (~100 SLOC)
-
-- slots = max(100/25, 4) = 4  
-- rawUnits = 5 → load = 1.25 → hygiene = round(100 * e^(-0.5)) ≈ **61**  
-- standard ≈ 0.4*61 + 60 = **84** if other dims perfect  
-
-### 4. Large file, 20× same warning (capped to 3)
-
-- 20 warnings same rule → cap 3 → rawUnits = 3 * 0.4 = 1.2  
-- sloc = 500 → slots = 20 → load = 0.06 → score ≈ **98** on that dim  
-- Cap prevents auto-zero  
-
-### 5. Locator ratio 2 native / 10 total
-
-- locatorsScore = round(100 * 2/10) = **20**  
-- Independent of caps  
-
-These examples feel fair: tiny single error stays high; multi-error drops materialy; repeated same-rule does not nuke large files; locator mix is a pure ratio.
+The same suite scored 78/C under the v1 density model. "Two of your three
+tests are broken" should not read as a near-B.
 
 ---
 
-## Default thresholds
+## SLOC
 
-| Context | Threshold |
-|---|---|
-| CLI default | 80 |
-
-QA Guardian's own internal codegen pipeline (`playwright_runner`) layers a
-private house-rules gate on top of `standard` — see the README's
-"QA Guardian integration" section. That layer isn't part of this package.
+`summary.sloc` (non-blank, non-comment lines) is reported for context and
+feeds the oversized-file check (>400 SLOC per file → structure warning,
+module scope). It plays no other role in scoring.
 
 ---
 
-## Rule → dimension map (summary)
+## Active rule set (frozen)
 
-See package rule docs / source `profiles.ts`. High level:
-
-- **playwrightHygiene:** waits, force, networkidle, missing await, handles, conditionals  
-- **assertions:** per-test coverage census (expect-expect) + quality decay (valid-expect, standalone, web-first)  
-- **locators:** ratio metric only (for score); raw-locator ESLint in findings  
-- **structure:** focused/skipped, oversized file, describe shape
-
-### Active rule set (frozen)
-
-The exact ESLint rules that produce findings are enabled explicitly
-in `eslint-runner.ts` with fixed severities — the score never inherits
+The exact ESLint rules that produce findings are enabled explicitly in
+`eslint-runner.ts` with fixed severities — the score never inherits
 eslint-plugin-playwright's `recommended` set at install time, so identical
 code scores identically regardless of which plugin version npm resolves.
-(Versions ≤0.2.0 intended to inherit `recommended` but a config-shape bug
-dropped it entirely; 0.3.0 froze the intended set explicitly. See
-CHANGELOG.)  
+
+---
+
+## Why v3
+
+v1/v2 scored findings per 25 lines of code through an exponential decay
+with a minimum-slots floor. Three structural problems, each verified with
+real inputs:
+
+1. **Density is not how anyone judges a test suite.** "2 of 3 tests have
+   hard waits" is what a reviewer says; "0.5 penalty units per slot" is
+   not. v2 already fixed this for assertions (coverage ratio); v3 applies
+   the same per-test framing everywhere.
+2. **Small suites were structurally under-penalized** — the minimum-slots
+   floor meant a 3-test suite with 2 errors, 2 assertion-free tests, and a
+   skipped test scored 78/C.
+3. **Density is gameable**: adding clean lines of code (or clean files)
+   diluted `findings/SLOC` and raised the score without fixing anything.
+   A per-test ratio has no such lever — padding with fake tests costs
+   assertions coverage instead.

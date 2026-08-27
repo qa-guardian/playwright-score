@@ -4,7 +4,8 @@
 [![npm version](https://img.shields.io/npm/v/@qaguardian/playwright-score.svg)](https://www.npmjs.com/package/@qaguardian/playwright-score)
 [![license](https://img.shields.io/npm/l/@qaguardian/playwright-score.svg)](./LICENSE)
 
-**Deterministic, AI-free quality score for Playwright specs** (`sqs-v2`).
+**Deterministic, AI-free quality score for Playwright specs** — the
+weighted share of your tests that are clean.
 
 **Website:** [qaguardian.com/open-source/playwright-score](https://qaguardian.com/open-source/playwright-score)  
 **Built by:** [QA Guardian](https://qaguardian.com) — managed Playwright E2E (AI drafts, engineers verify, you own the code)
@@ -21,30 +22,30 @@ The score never calls an LLM. AI may *generate* or *repair* code using findings;
 17 public Playwright suites, scored with the published package against each
 project's actual source — chosen to include both well-known,
 heavily-engineered platforms and smaller, less mature projects. Not curated
-to look good: 3 of 17 fail the default threshold, for real, verifiable
+to look good: 5 of 17 fail the default threshold, for real, verifiable
 reasons (see [VALIDATION.md](./VALIDATION.md)).
 
-**17 suites · 1,228 files · 6,037 tests · 14/17 passed (80% threshold)**
+**17 suites · 1,228 files · 5,664 tests · 12/17 passed (80% threshold)**
 
 | Repo (source scanned) | Score | Grade | Result |
 |---|---:|:-:|:-:|
 | [Playwright (own TodoMVC example)](https://github.com/microsoft/playwright/tree/main/examples/todomvc) | 98/100 | A | PASS |
-| [Supabase](https://github.com/supabase/supabase/tree/master/e2e) | 97/100 | A | PASS |
-| [Documenso](https://github.com/documenso/documenso/tree/main/packages/app-tests) | 96/100 | A | PASS |
-| [Storybook](https://github.com/storybookjs/storybook/tree/next/code/e2e-internal) | 96/100 | A | PASS |
-| [freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp/tree/main/e2e) | 96/100 | A | PASS |
+| [Storybook](https://github.com/storybookjs/storybook/tree/next/code/e2e-internal) | 95/100 | A | PASS |
 | [n8n](https://github.com/n8n-io/n8n/tree/master/packages/testing/playwright) | 95/100 | A | PASS |
-| [dub](https://github.com/dubinc/dub/tree/main/apps/web/playwright) | 95/100 | A | PASS |
-| [novu](https://github.com/novuhq/novu/tree/next/apps/dashboard/tests) | 93/100 | A | PASS |
-| [Grafana](https://github.com/grafana/grafana/tree/main/e2e-playwright) | 91/100 | A | PASS |
-| [PostHog](https://github.com/PostHog/posthog/tree/master/playwright) | 90/100 | A | PASS |
-| [sencho](https://github.com/Studio-Saelix/sencho/tree/main/e2e) | 89/100 | B | PASS |
-| [Mattermost](https://github.com/mattermost/mattermost/tree/master/e2e-tests/playwright) | 88/100 | B | PASS |
-| [Immich](https://github.com/immich-app/immich/tree/main/e2e/src/specs) | 85/100 | B | PASS |
-| [cal.com](https://github.com/calcom/cal.com/tree/main/apps/web/playwright) | 84/100 | B | PASS |
-| [livecodes](https://github.com/live-codes/livecodes/tree/develop/e2e) | 78/100 | C | FAIL |
-| [openplayerjs](https://github.com/openplayerjs/openplayerjs/tree/master/e2e) | 77/100 | C | FAIL |
-| [TheCyberHub](https://github.com/th3cyb3rhub/TheCyberHub/tree/dev/e2e) | 68/100 | D | FAIL |
+| [freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp/tree/main/e2e) | 94/100 | A | PASS |
+| [dub](https://github.com/dubinc/dub/tree/main/apps/web/playwright) | 94/100 | A | PASS |
+| [Documenso](https://github.com/documenso/documenso/tree/main/packages/app-tests) | 93/100 | A | PASS |
+| [Supabase](https://github.com/supabase/supabase/tree/master/e2e) | 91/100 | A | PASS |
+| [PostHog](https://github.com/PostHog/posthog/tree/master/playwright) | 88/100 | B | PASS |
+| [Grafana](https://github.com/grafana/grafana/tree/main/e2e-playwright) | 87/100 | B | PASS |
+| [sencho](https://github.com/Studio-Saelix/sencho/tree/main/e2e) | 85/100 | B | PASS |
+| [Mattermost](https://github.com/mattermost/mattermost/tree/master/e2e-tests/playwright) | 83/100 | B | PASS |
+| [novu](https://github.com/novuhq/novu/tree/next/apps/dashboard/tests) | 82/100 | B | PASS |
+| [Immich](https://github.com/immich-app/immich/tree/main/e2e/src/specs) | 78/100 | C | FAIL |
+| [cal.com](https://github.com/calcom/cal.com/tree/main/apps/web/playwright) | 73/100 | C | FAIL |
+| [openplayerjs](https://github.com/openplayerjs/openplayerjs/tree/master/e2e) | 73/100 | C | FAIL |
+| [livecodes](https://github.com/live-codes/livecodes/tree/develop/e2e) | 70/100 | C | FAIL |
+| [TheCyberHub](https://github.com/th3cyb3rhub/TheCyberHub/tree/dev/e2e) | 56/100 | F | FAIL |
 
 Repo names link to the exact source scanned. Full methodology, findings
 breakdown, and `scripts/validate-corpus.sh` to reproduce every number here
@@ -53,7 +54,7 @@ report of an earlier five-suite audit lives at
 [`docs/scorecard.html`](./docs/scorecard.html) — host it wherever
 (GitHub Pages, qaguardian.com, ...).
 
-See [METHODOLOGY.md](./METHODOLOGY.md) for the frozen formula, or the full product write-up on the [landing page](https://qaguardian.com/open-source/playwright-score).
+See [METHODOLOGY.md](./METHODOLOGY.md) for the full scoring model, or the product write-up on the [landing page](https://qaguardian.com/open-source/playwright-score).
 
 ## Install
 

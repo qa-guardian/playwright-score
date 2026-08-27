@@ -1,5 +1,5 @@
 name: 'Playwright Spec Score'
-description: 'Lint and score Playwright test specs against best-practice rules (sqs-v2, deterministic, AI-free). Posts a job summary and optional PR comment; gates CI on a threshold.'
+description: 'Lint and score Playwright test specs against best-practice rules (deterministic, AI-free). Posts a job summary and optional PR comment; gates CI on a threshold.'
 author: 'QA Guardian'
 branding:
   icon: 'check-circle'

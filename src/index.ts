@@ -8,6 +8,7 @@ import {
   analyzeSource,
   countLocators,
   findLocalAssertionHelperNames,
+  getTestSpans,
   looksLikeNonPlaywrightTest,
 } from './metrics.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
@@ -17,11 +18,10 @@ import type { Finding, ProfileName, ScoreOptions, ScoreResult } from './types.js
 export type { ScoreResult, ScoreOptions, Finding, ProfileName } from './types.js';
 export {
   computeScore,
-  SQS_V1,
+  MODEL,
   locatorsScore,
   gradeFromScore,
-  penaltyDimensionScore,
-  applyPerRuleCap,
+  ratioDimensionScore,
 } from './score-engine.js';
 export { countSloc } from './sloc.js';
 export { countLocators, analyzeSource } from './metrics.js';
@@ -137,7 +137,7 @@ function hardFail(
   skippedFiles?: string[]
 ): ScoreResult {
   return {
-    scoreVersion: 'sqs-v2',
+    scoreVersion: 'v3',
     profile,
     score: 0,
     grade: 'F',
@@ -153,6 +153,7 @@ function hardFail(
       nativeLocators: 0,
       rawLocators: 0,
       unassertedTests: 0,
+      cleanTests: 0,
       ...extra,
     },
     dimensions: {
@@ -167,7 +168,7 @@ function hardFail(
 }
 
 /**
- * Score Playwright spec files. Deterministic and AI-free (sqs-v1).
+ * Score Playwright spec files. Deterministic and AI-free.
  */
 export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   const cwd = options.cwd ?? process.cwd();
@@ -280,15 +281,24 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   let raw = 0;
   const metricFindings: Finding[] = [];
 
+  const fileTests: Record<string, number> = {};
+  const fileSpans = new Map<string, ReturnType<typeof getTestSpans>>();
   for (const file of files) {
     const source = sources.get(file) ?? '';
     const relFile = path.relative(filesBase, file) || path.basename(file);
     const m = analyzeSource(source, relFile);
     totalSloc += m.sloc;
-    totalTests += m.tests;
     native += m.locators.native;
     raw += m.locators.raw;
     metricFindings.push(...m.findings);
+    const spans = getTestSpans(source, relFile);
+    fileSpans.set(relFile, spans);
+    // AST spans are the authoritative test count (they are also the
+    // attribution targets); the regex count is the fallback for a file
+    // the parser can't read — which hard-fails below anyway.
+    const testCount = spans.tests.length > 0 ? spans.tests.length : m.tests;
+    fileTests[relFile] = testCount;
+    totalTests += testCount;
   }
 
   for (const [file, source] of importedFiles) {
@@ -298,6 +308,36 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   }
 
   const findings = [...eslintFindings, ...metricFindings];
+
+  // Attribute each finding to the test it sits in (model v3): a finding
+  // inside a test span belongs to that test; inside a hook span it affects
+  // every test in the file; anything else — imports, describe bodies,
+  // file-level metrics like oversized-file — is module scope, counted once
+  // per file.
+  for (const f of findings) {
+    const spans = fileSpans.get(f.file);
+    if (!spans || f.line === undefined) {
+      f.scope = 'module';
+      continue;
+    }
+    const idx = spans.tests.findIndex(
+      (t: { startLine: number; endLine: number }) =>
+        f.line !== undefined && f.line >= t.startLine && f.line <= t.endLine
+    );
+    if (idx >= 0) {
+      f.scope = 'test';
+      f.testKey = `${f.file}#${idx}`;
+    } else if (
+      spans.hooks.some(
+        (h: { startLine: number; endLine: number }) =>
+          f.line !== undefined && f.line >= h.startLine && f.line <= h.endLine
+      )
+    ) {
+      f.scope = 'hook';
+    } else {
+      f.scope = 'module';
+    }
+  }
 
   const parseErrors = findings.filter((f) => f.rule === 'playwright-score/parse-error');
   if (parseErrors.length > 0) {
@@ -327,6 +367,7 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
     sloc: Math.max(totalSloc, 1),
     files: files.length,
     tests: totalTests,
+    fileTests,
     nativeLocators: native,
     rawLocators: raw,
   });
