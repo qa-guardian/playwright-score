@@ -5,6 +5,37 @@ methodology itself (`sqs-v1`) is frozen — see [METHODOLOGY.md](./METHODOLOGY.m
 Any change to formulas, weights, or constants requires a new score version
 (`sqs-v2`), not a patch release.
 
+## 0.3.0 — 2026-08-27
+
+### Fixed
+- **Nine documented sqs-v1 rules never ran.** `buildConfig` spread
+  eslint-plugin-playwright's `flat/recommended` config only when it was an
+  array, but the plugin exports a single config object — so the whole
+  recommended set was silently dropped, and every rule that relied on it
+  was inert. Concretely: `no-conditional-in-test`, `no-conditional-expect`,
+  `no-element-handle`, `no-eval`, `no-page-pause`, `no-useless-await`,
+  `valid-expect`, `no-standalone-expect`, and `max-nested-describe` were
+  all mapped to dimensions in `profiles.ts` (and METHODOLOGY.md's hygiene
+  dimension explicitly lists "handles, conditionals") yet could never
+  produce a finding. A spec whose tests were built entirely out of
+  `if (await locator.isVisible())` branches scored a clean 100.
+- The fix enables the intended rule set **explicitly and frozen** in
+  `eslint-runner.ts` rather than re-spreading upstream `recommended`:
+  eslint-plugin-playwright is a `^` range dependency, and inheriting its
+  recommended set at install time would let identical code score
+  differently across installs. Severities mirror upstream flat/recommended
+  (2.x). `require-top-level-describe` remains deliberately disabled
+  (stylistic; not in upstream recommended; would penalize idiomatic
+  describe-less suites).
+
+### Scoring impact
+- The formula, weights, and constants are unchanged — this restores the
+  *documented* sqs-v1 rule inputs, so the score version stays `sqs-v1`.
+  Suites that use conditional test logic, element handles, `page.pause()`,
+  or malformed/standalone `expect` calls will score **lower** than under
+  0.2.0 (which could not see those findings at all). Clean suites are
+  unaffected — all `good-*` fixtures score identically.
+
 ## 0.2.0 — 2026-08-19
 
 ### Removed

@@ -594,4 +594,38 @@ describe('scorePaths integration', () => {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('flags conditional logic, element handles, and page.pause in tests (regression: <=0.2.0 dropped the whole rule group)', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'bad-conditional-logic.spec.ts')],
+      profile: 'standard',
+      threshold: 80,
+      cwd: root,
+    });
+    const rules = result.findings.map((f) => f.rule);
+    // <=0.2.0 spread eslint-plugin-playwright's flat/recommended only when
+    // it was an array; the plugin exports a single config object, so none
+    // of these ever fired and this fixture scored a clean 100.
+    assert.ok(rules.includes('playwright/no-conditional-in-test'), `expected no-conditional-in-test, got: ${rules.join(', ')}`);
+    assert.ok(rules.includes('playwright/no-conditional-expect'), `expected no-conditional-expect, got: ${rules.join(', ')}`);
+    assert.ok(rules.includes('playwright/no-element-handle'), `expected no-element-handle, got: ${rules.join(', ')}`);
+    assert.ok(rules.includes('playwright/no-page-pause'), `expected no-page-pause, got: ${rules.join(', ')}`);
+    // All of these are hygiene findings and must actually move the score.
+    assert.ok(result.dimensions.playwrightHygiene < 100, `hygiene should drop below 100, got ${result.dimensions.playwrightHygiene}`);
+    assert.ok(result.score < 100, `score should drop below 100, got ${result.score}`);
+  });
+
+  it('conditional runtime skip stays clean (test.skip(condition, reason) is idiomatic, not conditional logic)', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'good-standard-conditional-skip.spec.ts')],
+      profile: 'standard',
+      threshold: 80,
+      cwd: root,
+    });
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'playwright/no-conditional-in-test'),
+      `conditional skip must not be flagged as conditional-in-test: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+    assert.equal(result.pass, true);
+  });
 });

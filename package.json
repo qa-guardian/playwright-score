@@ -1,6 +1,6 @@
 {
   "name": "@qaguardian/playwright-score",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Deterministic, AI-free Playwright spec quality score (sqs-v1).",
   "type": "module",
   "main": "./dist/index.js",

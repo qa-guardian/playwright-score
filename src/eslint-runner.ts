@@ -8,10 +8,6 @@ import { mapRule } from './profiles.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
 function buildConfig(assertFunctionNames: string[]): Linter.Config[] {
-  const playwrightRecommended =
-    playwright.configs?.['flat/recommended'] ??
-    playwright.configs?.recommended;
-
   const base: Linter.Config[] = [
     {
       files: ['**/*.{ts,tsx,js,jsx,mjs,cjs}'],
@@ -94,15 +90,34 @@ function buildConfig(assertFunctionNames: string[]): Linter.Config[] {
         'playwright/prefer-native-locators': 'warn',
         // Matches eslint-plugin-playwright's own recommended severity.
         'playwright/prefer-web-first-assertions': 'error',
+        // The rules below complete the sqs-v1 rule set from
+        // profiles.ts's ESLINT_RULE_MAP. Earlier versions (<=0.2.0)
+        // expected them to arrive via eslint-plugin-playwright's
+        // flat/recommended config, but the spread only handled an array
+        // shape while the plugin exports a single config object — so the
+        // entire recommended set was silently dropped and these rules
+        // never ran (METHODOLOGY.md's hygiene dimension lists
+        // "conditionals" and "handles", yet neither could ever fire).
+        // They are enabled explicitly and frozen here on purpose:
+        // eslint-plugin-playwright is a ^range dependency, and inheriting
+        // whatever its recommended set says at install time would make
+        // identical code score differently across installs. Severities
+        // mirror upstream flat/recommended as of eslint-plugin-playwright
+        // 2.x. require-top-level-describe stays disabled deliberately —
+        // it is stylistic, not in upstream recommended, and would
+        // penalize idiomatic describe-less suites.
+        'playwright/no-conditional-in-test': 'warn',
+        'playwright/no-conditional-expect': 'warn',
+        'playwright/no-element-handle': 'warn',
+        'playwright/no-eval': 'warn',
+        'playwright/no-page-pause': 'warn',
+        'playwright/no-useless-await': 'warn',
+        'playwright/valid-expect': 'error',
+        'playwright/no-standalone-expect': 'error',
+        'playwright/max-nested-describe': 'warn',
       },
     },
   ];
-
-  // Prefer spreading official recommended flat config when available
-  if (Array.isArray(playwrightRecommended)) {
-    const configs = playwrightRecommended as Linter.Config[];
-    return [...configs, base[0]];
-  }
 
   return base;
 }

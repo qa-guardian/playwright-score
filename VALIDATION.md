@@ -23,7 +23,7 @@ committed to this repository, so there's no third-party source to keep in
 sync or any licensing question to answer. Scores will drift slightly over
 time as these projects' own suites change; that's expected and fine.
 
-## Results (last run: 2026-08-19, `sqs-v1`, `standard` profile, threshold 80)
+## Results (last run: 2026-08-27 with v0.3.0, `sqs-v1`, `standard` profile, threshold 80)
 
 Chosen deliberately to include both well-known, heavily-engineered
 platforms and smaller, less mature projects — this isn't a corpus
@@ -32,28 +32,28 @@ selected to make the tool look good.
 | Repo (source scanned) | Score | Grade | Pass | Files | Tests | Findings |
 |---|---:|:-:|:-:|---:|---:|---:|
 | [Playwright (own TodoMVC example)](https://github.com/microsoft/playwright/tree/main/examples/todomvc) | 98 | A | ✓ | 24 | 24 | 4 |
-| [n8n](https://github.com/n8n-io/n8n/tree/master/packages/testing/playwright) | 95 | A | ✓ | 256 | 1,047 | 39 |
-| [Supabase](https://github.com/supabase/supabase/tree/master/e2e) | 98 | A | ✓ | 31 | 271 | 167 |
-| [Storybook](https://github.com/storybookjs/storybook/tree/next/code/e2e-internal) | 96 | A | ✓ | 6 | 25 | 12 |
-| [freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp/tree/main/e2e) | 97 | A | ✓ | 89 | 372 | 187 |
-| [cal.com](https://github.com/calcom/cal.com/tree/main/apps/web/playwright) | 85 | B | ✓ | 53 | 278 | 1,215 |
-| [Grafana](https://github.com/grafana/grafana/tree/main/e2e-playwright) | 92 | A | ✓ | 213 | 672 | 744 |
-| [Mattermost](https://github.com/mattermost/mattermost/tree/master/e2e-tests/playwright) | 90 | A | ✓ | 284 | 1,157 | 1,476 |
-| [dub](https://github.com/dubinc/dub/tree/main/apps/web/playwright) | 95 | A | ✓ | 15 | 125 | 26 |
-| [Documenso](https://github.com/documenso/documenso/tree/main/packages/app-tests) | 96 | A | ✓ | 125 | 1,109 | 579 |
-| [PostHog](https://github.com/PostHog/posthog/tree/master/playwright) | 91 | A | ✓ | 42 | 124 | 261 |
+| [n8n](https://github.com/n8n-io/n8n/tree/master/packages/testing/playwright) | 95 | A | ✓ | 260 | 1,053 | 42 |
+| [Supabase](https://github.com/supabase/supabase/tree/master/e2e) | 97 | A | ✓ | 31 | 271 | 220 |
+| [Storybook](https://github.com/storybookjs/storybook/tree/next/code/e2e-internal) | 96 | A | ✓ | 7 | 37 | 13 |
+| [freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp/tree/main/e2e) | 96 | A | ✓ | 86 | 345 | 207 |
+| [cal.com](https://github.com/calcom/cal.com/tree/main/apps/web/playwright) | 84 | B | ✓ | 53 | 278 | 1,258 |
+| [Grafana](https://github.com/grafana/grafana/tree/main/e2e-playwright) | 91 | A | ✓ | 213 | 676 | 869 |
+| [Mattermost](https://github.com/mattermost/mattermost/tree/master/e2e-tests/playwright) | 89 | B | ✓ | 290 | 1,175 | 1,866 |
+| [dub](https://github.com/dubinc/dub/tree/main/apps/web/playwright) | 95 | A | ✓ | 21 | 215 | 41 |
+| [Documenso](https://github.com/documenso/documenso/tree/main/packages/app-tests) | 96 | A | ✓ | 126 | 1,120 | 693 |
+| [PostHog](https://github.com/PostHog/posthog/tree/master/playwright) | 90 | A | ✓ | 43 | 125 | 273 |
 | [novu](https://github.com/novuhq/novu/tree/next/apps/dashboard/tests) | 93 | A | ✓ | 2 | 2 | 3 |
-| [Immich](https://github.com/immich-app/immich/tree/main/e2e/src/specs) | 90 | A | ✓ | 13 | 43 | 39 |
-| [openplayerjs](https://github.com/openplayerjs/openplayerjs/tree/master/e2e) | 77 | C | ✗ FAIL | 8 | 77 | 36 |
+| [Immich](https://github.com/immich-app/immich/tree/main/e2e/src/specs) | 89 | B | ✓ | 13 | 43 | 40 |
+| [openplayerjs](https://github.com/openplayerjs/openplayerjs/tree/master/e2e) | 77 | C | ✗ FAIL | 8 | 77 | 39 |
 | [livecodes](https://github.com/live-codes/livecodes/tree/develop/e2e) | 78 | C | ✗ FAIL | 14 | 280 | 140 |
-| [TheCyberHub](https://github.com/th3cyb3rhub/TheCyberHub/tree/dev/e2e) | 73 | C | ✗ FAIL | 11 | 138 | 275 |
-| [sencho](https://github.com/Studio-Saelix/sencho/tree/main/e2e) | 90 | A | ✓ | 26 | 177 | 263 |
+| [TheCyberHub](https://github.com/th3cyb3rhub/TheCyberHub/tree/dev/e2e) | 68 | D | ✗ FAIL | 11 | 138 | 429 |
+| [sencho](https://github.com/Studio-Saelix/sencho/tree/main/e2e) | 90 | A | ✓ | 26 | 178 | 278 |
 
 Repo names link straight to the exact scanned source on GitHub — re-run
 `scripts/validate-corpus.sh` for the full findings list of any entry, or
 `playwright-score <path> --format markdown` against your own clone.
 
-**14 pass / 3 fail / 17 total.** 1,262 files, 5,701 tests.
+**14 pass / 3 fail / 17 total.** 1,228 files, 6,037 tests.
 
 ## Bugs found this way, and fixed
 
@@ -69,6 +69,16 @@ a hypothetical:
 - **`playwright/prefer-locator`/`prefer-native-locators` configured but
   never enabled** — Playwright's classic `page.click(selector)` anti-pattern
   was completely invisible to the score.
+- **The entire upstream `recommended` rule group silently dropped**
+  (≤0.2.0) — `buildConfig` spread eslint-plugin-playwright's
+  `flat/recommended` only when it was an array, but the plugin exports a
+  single config object, so nine mapped rules (`no-conditional-in-test`,
+  `no-conditional-expect`, `no-element-handle`, `no-eval`,
+  `no-page-pause`, `no-useless-await`, `valid-expect`,
+  `no-standalone-expect`, `max-nested-describe`) never fired. A suite
+  built entirely out of `if (await locator.isVisible())` branches scored
+  a clean 100. Fixed in 0.3.0 by enabling the sqs-v1 rule set explicitly
+  (frozen severities, no install-time inheritance).
 - **Page Object Model suites scored 0/100 on locators** (n8n: 256 spec
   files, 0 direct locator calls, real locators living in a separate
   page-object layer) — fixed by tracing relative imports into local

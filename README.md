@@ -24,33 +24,34 @@ heavily-engineered platforms and smaller, less mature projects. Not curated
 to look good: 3 of 17 fail the default threshold, for real, verifiable
 reasons (see [VALIDATION.md](./VALIDATION.md)).
 
-**17 suites · 1,212 files · 5,921 tests · 14/17 passed (80% threshold)**
+**17 suites · 1,228 files · 6,037 tests · 14/17 passed (80% threshold)**
 
 | Repo (source scanned) | Score | Grade | Result |
 |---|---:|:-:|:-:|
 | [Playwright (own TodoMVC example)](https://github.com/microsoft/playwright/tree/main/examples/todomvc) | 98/100 | A | PASS |
-| [Supabase](https://github.com/supabase/supabase/tree/master/e2e) | 98/100 | A | PASS |
+| [Supabase](https://github.com/supabase/supabase/tree/master/e2e) | 97/100 | A | PASS |
 | [Documenso](https://github.com/documenso/documenso/tree/main/packages/app-tests) | 96/100 | A | PASS |
 | [Storybook](https://github.com/storybookjs/storybook/tree/next/code/e2e-internal) | 96/100 | A | PASS |
-| [freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp/tree/main/e2e) | 97/100 | A | PASS |
+| [freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp/tree/main/e2e) | 96/100 | A | PASS |
 | [n8n](https://github.com/n8n-io/n8n/tree/master/packages/testing/playwright) | 95/100 | A | PASS |
 | [dub](https://github.com/dubinc/dub/tree/main/apps/web/playwright) | 95/100 | A | PASS |
 | [novu](https://github.com/novuhq/novu/tree/next/apps/dashboard/tests) | 93/100 | A | PASS |
-| [Grafana](https://github.com/grafana/grafana/tree/main/e2e-playwright) | 92/100 | A | PASS |
-| [PostHog](https://github.com/PostHog/posthog/tree/master/playwright) | 91/100 | A | PASS |
-| [Mattermost](https://github.com/mattermost/mattermost/tree/master/e2e-tests/playwright) | 90/100 | A | PASS |
-| [Immich](https://github.com/immich-app/immich/tree/main/e2e/src/specs) | 90/100 | A | PASS |
+| [Grafana](https://github.com/grafana/grafana/tree/main/e2e-playwright) | 91/100 | A | PASS |
+| [PostHog](https://github.com/PostHog/posthog/tree/master/playwright) | 90/100 | A | PASS |
 | [sencho](https://github.com/Studio-Saelix/sencho/tree/main/e2e) | 90/100 | A | PASS |
-| [cal.com](https://github.com/calcom/cal.com/tree/main/apps/web/playwright) | 85/100 | B | PASS |
+| [Mattermost](https://github.com/mattermost/mattermost/tree/master/e2e-tests/playwright) | 89/100 | B | PASS |
+| [Immich](https://github.com/immich-app/immich/tree/main/e2e/src/specs) | 89/100 | B | PASS |
+| [cal.com](https://github.com/calcom/cal.com/tree/main/apps/web/playwright) | 84/100 | B | PASS |
 | [livecodes](https://github.com/live-codes/livecodes/tree/develop/e2e) | 78/100 | C | FAIL |
 | [openplayerjs](https://github.com/openplayerjs/openplayerjs/tree/master/e2e) | 77/100 | C | FAIL |
-| [TheCyberHub](https://github.com/th3cyb3rhub/TheCyberHub/tree/dev/e2e) | 73/100 | C | FAIL |
+| [TheCyberHub](https://github.com/th3cyb3rhub/TheCyberHub/tree/dev/e2e) | 68/100 | D | FAIL |
 
 Repo names link to the exact source scanned. Full methodology, findings
 breakdown, and `scripts/validate-corpus.sh` to reproduce every number here
-yourself live in [VALIDATION.md](./VALIDATION.md). A visual version of this
-table is at [`docs/scorecard.html`](./docs/scorecard.html) — self-contained,
-host it wherever (GitHub Pages, qaguardian.com, ...).
+yourself live in [VALIDATION.md](./VALIDATION.md). A self-contained visual
+report of an earlier five-suite audit lives at
+[`docs/scorecard.html`](./docs/scorecard.html) — host it wherever
+(GitHub Pages, qaguardian.com, ...).
 
 See [METHODOLOGY.md](./METHODOLOGY.md) for the frozen formula, or the full product write-up on the [landing page](https://qaguardian.com/open-source/playwright-score).
 

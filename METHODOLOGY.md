@@ -161,4 +161,14 @@ See package rule docs / source `profiles.ts`. High level:
 - **playwrightHygiene:** waits, force, networkidle, missing await, handles, conditionals  
 - **assertions:** expect-expect, empty tests, web-first preference  
 - **locators:** ratio metric only (for score); raw-locator ESLint in findings  
-- **structure:** focused/skipped, oversized file, describe shape  
+- **structure:** focused/skipped, oversized file, describe shape
+
+### Active rule set (frozen)
+
+The exact ESLint rules that produce sqs-v1 findings are enabled explicitly
+in `eslint-runner.ts` with fixed severities — the score never inherits
+eslint-plugin-playwright's `recommended` set at install time, so identical
+code scores identically regardless of which plugin version npm resolves.
+(Versions ≤0.2.0 intended to inherit `recommended` but a config-shape bug
+dropped it entirely; 0.3.0 froze the intended set explicitly. See
+CHANGELOG.)  
