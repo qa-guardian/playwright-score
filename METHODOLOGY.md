@@ -65,7 +65,7 @@ The **locators** dimension is independent of demerits — it is the usage
 ratio it always was:
 
 ```
-native = getByRole|getByLabel|getByTestId|getByText|getByPlaceholder calls
+native = getByRole|getByLabel|getByTestId|getByText|getByPlaceholder|getByAltText|getByTitle calls
 raw    = .locator(...) calls + legacy string-selector actions (page.click('#x'), …)
 
 locatorsScore = total === 0 ? 100 : round(100 × native / total)

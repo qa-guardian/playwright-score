@@ -6,6 +6,7 @@ import { commonAncestorDir } from './fs-util.js';
 import { collectLocallyImportedFiles } from './import-graph.js';
 import {
   analyzeSource,
+  attributeFindingScopes,
   countLocators,
   findLocalAssertionHelperNames,
   getTestSpans,
@@ -24,7 +25,12 @@ export {
   ratioDimensionScore,
 } from './score-engine.js';
 export { countSloc } from './sloc.js';
-export { countLocators, analyzeSource } from './metrics.js';
+export {
+  countLocators,
+  analyzeSource,
+  attributeFindingScopes,
+  getTestSpans,
+} from './metrics.js';
 export { formatJson } from './formatters/json.js';
 export { formatText } from './formatters/text.js';
 export { formatMarkdown } from './formatters/markdown.js';
@@ -309,35 +315,9 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
 
   const findings = [...eslintFindings, ...metricFindings];
 
-  // Attribute each finding to the test it sits in (model v3): a finding
-  // inside a test span belongs to that test; inside a hook span it affects
-  // every test in the file; anything else — imports, describe bodies,
-  // file-level metrics like oversized-file — is module scope, counted once
-  // per file.
-  for (const f of findings) {
-    const spans = fileSpans.get(f.file);
-    if (!spans || f.line === undefined) {
-      f.scope = 'module';
-      continue;
-    }
-    const idx = spans.tests.findIndex(
-      (t: { startLine: number; endLine: number }) =>
-        f.line !== undefined && f.line >= t.startLine && f.line <= t.endLine
-    );
-    if (idx >= 0) {
-      f.scope = 'test';
-      f.testKey = `${f.file}#${idx}`;
-    } else if (
-      spans.hooks.some(
-        (h: { startLine: number; endLine: number }) =>
-          f.line !== undefined && f.line >= h.startLine && f.line <= h.endLine
-      )
-    ) {
-      f.scope = 'hook';
-    } else {
-      f.scope = 'module';
-    }
-  }
+  // Attribute each finding to the test it sits in (model v3) — see
+  // attributeFindingScopes in metrics.ts.
+  attributeFindingScopes(findings, fileSpans);
 
   const parseErrors = findings.filter((f) => f.rule === 'playwright-score/parse-error');
   if (parseErrors.length > 0) {

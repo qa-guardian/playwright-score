@@ -245,6 +245,20 @@ describe('countLocators (AST-based)', () => {
     assert.equal(result.raw, 0);
   });
 
+  it('counts the full getBy* family as native, including getByAltText/getByTitle', () => {
+    const source = `
+      test('gallery', async ({ page }) => {
+        await page.getByAltText('sunset').click();
+        await page.getByTitle('zoom in').click();
+        await page.getByPlaceholder('Search').fill('x');
+        await page.locator('.thumbnail-strip').hover();
+      });
+    `;
+    const result = countLocators(source);
+    assert.equal(result.native, 3);
+    assert.equal(result.raw, 1);
+  });
+
   it('returns zero counts (not a throw) for unparseable source', () => {
     const result = countLocators('this is not { valid js (((');
     assert.deepEqual(result, { native: 0, raw: 0 });

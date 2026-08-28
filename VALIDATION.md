@@ -23,7 +23,7 @@ committed to this repository, so there's no third-party source to keep in
 sync or any licensing question to answer. Scores will drift slightly over
 time as these projects' own suites change; that's expected and fine.
 
-## Results (last run: 2026-08-27 with v0.5.0, scoring model v3, `standard` profile, threshold 80)
+## Results (last run: 2026-08-28 with v1.0.0, scoring model v3, `standard` profile, threshold 80)
 
 Chosen deliberately to include both well-known, heavily-engineered
 platforms and smaller, less mature projects — this isn't a corpus
@@ -32,14 +32,14 @@ selected to make the tool look good.
 | Repo (source scanned) | Score | Grade | Pass | Files | Tests | Findings |
 |---|---:|:-:|:-:|---:|---:|---:|
 | [Playwright (own TodoMVC example)](https://github.com/microsoft/playwright/tree/main/examples/todomvc) | 98 | A | ✓ | 24 | 24 | 4 |
-| [n8n](https://github.com/n8n-io/n8n/tree/master/packages/testing/playwright) | 95 | A | ✓ | 260 | 1,002 | 42 |
+| [n8n](https://github.com/n8n-io/n8n/tree/master/packages/testing/playwright) | 95 | A | ✓ | 262 | 1,004 | 42 |
 | [Supabase](https://github.com/supabase/supabase/tree/master/e2e) | 91 | A | ✓ | 31 | 254 | 220 |
-| [Storybook](https://github.com/storybookjs/storybook/tree/next/code/e2e-internal) | 95 | A | ✓ | 7 | 24 | 13 |
-| [freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp/tree/main/e2e) | 94 | A | ✓ | 86 | 326 | 207 |
+| [Storybook](https://github.com/storybookjs/storybook/tree/next/code/e2e-internal) | 95 | A | ✓ | 7 | 25 | 13 |
+| [freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp/tree/main/e2e) | 94 | A | ✓ | 85 | 299 | 187 |
 | [cal.com](https://github.com/calcom/cal.com/tree/main/apps/web/playwright) | 73 | C | ✗ FAIL | 53 | 253 | 1,258 |
-| [Grafana](https://github.com/grafana/grafana/tree/main/e2e-playwright) | 87 | B | ✓ | 213 | 668 | 869 |
-| [Mattermost](https://github.com/mattermost/mattermost/tree/master/e2e-tests/playwright) | 83 | B | ✓ | 290 | 1,030 | 1,866 |
-| [dub](https://github.com/dubinc/dub/tree/main/apps/web/playwright) | 94 | A | ✓ | 21 | 213 | 41 |
+| [Grafana](https://github.com/grafana/grafana/tree/main/e2e-playwright) | 87 | B | ✓ | 212 | 667 | 863 |
+| [Mattermost](https://github.com/mattermost/mattermost/tree/master/e2e-tests/playwright) | 83 | B | ✓ | 291 | 1,034 | 1,866 |
+| [dub](https://github.com/dubinc/dub/tree/main/apps/web/playwright) | 94 | A | ✓ | 22 | 224 | 40 |
 | [Documenso](https://github.com/documenso/documenso/tree/main/packages/app-tests) | 93 | A | ✓ | 126 | 1,109 | 693 |
 | [PostHog](https://github.com/PostHog/posthog/tree/master/playwright) | 88 | B | ✓ | 43 | 119 | 273 |
 | [novu](https://github.com/novuhq/novu/tree/next/apps/dashboard/tests) | 82 | B | ✓ | 2 | 2 | 3 |
@@ -53,7 +53,7 @@ Repo names link straight to the exact scanned source on GitHub — re-run
 `scripts/validate-corpus.sh` for the full findings list of any entry, or
 `playwright-score <path> --format markdown` against your own clone.
 
-**12 pass / 5 fail / 17 total.** 1,228 files, 5,664 tests. Model v3 is deliberately stricter than the density models it replaced — see METHODOLOGY.md.
+**12 pass / 5 fail / 17 total.** 1,230 files, 5,654 tests. Model v3 is deliberately stricter than the density models it replaced — see METHODOLOGY.md.
 
 ## Bugs found this way, and fixed
 

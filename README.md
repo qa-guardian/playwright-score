@@ -25,7 +25,7 @@ heavily-engineered platforms and smaller, less mature projects. Not curated
 to look good: 5 of 17 fail the default threshold, for real, verifiable
 reasons (see [VALIDATION.md](./VALIDATION.md)).
 
-**17 suites · 1,228 files · 5,664 tests · 12/17 passed (80% threshold)**
+**17 suites · 1,230 files · 5,654 tests · 12/17 passed (80% threshold)**
 
 | Repo (source scanned) | Score | Grade | Result |
 |---|---:|:-:|:-:|

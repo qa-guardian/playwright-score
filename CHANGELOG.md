@@ -4,6 +4,29 @@ All notable changes to this project are documented here. Any change that
 alters what a given suite scores is a new scoring-model version (see
 [METHODOLOGY.md](./METHODOLOGY.md)), not a quiet patch.
 
+## 1.0.0 — 2026-08-28
+
+First stable release. The scoring model (v3), CLI contract, library API,
+and GitHub Action inputs/outputs are now considered stable — breaking
+changes to any of them mean a major version bump from here on.
+
+### Fixed — locator ratio
+- **`getByAltText` and `getByTitle` now count as native locators.** They
+  are part of Playwright's own `getBy*` family but were missing from the
+  native set, so an image-heavy suite using alt/title locators plus a
+  single `.locator()` fallback scored 0/100 on the locators dimension for
+  perfectly idiomatic code. Scores can only improve or stay the same under
+  this fix (the native count grows; raw counting is unchanged). The
+  17-suite validation corpus was re-run — see VALIDATION.md.
+
+### Added — public API for composing layers
+- `getTestSpans` and `attributeFindingScopes` are now exported. A caller
+  layering its own rules on top of `standard` (an extra private dimension,
+  say) can attribute its findings to test/hook/module scope with the exact
+  logic the package uses internally, then score the dimension with the
+  already-exported `ratioDimensionScore` — reused, not reimplemented, so
+  the math can't drift.
+
 ## 0.5.0 — 2026-08-27
 
 ### Changed — scoring model v3: "the weighted share of your tests that are clean"

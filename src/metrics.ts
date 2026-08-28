@@ -41,12 +41,18 @@ export function looksLikeNonPlaywrightTest(source: string): boolean {
   return NON_PLAYWRIGHT_IMPORT_RE.test(source) || RTL_API_RE.test(source) || CYPRESS_API_RE.test(source);
 }
 
+// The full getBy* family Playwright ships. getByAltText/getByTitle are
+// just as native as the rest — leaving them out meant an image-heavy suite
+// (alt/title locators plus one .locator() fallback) scored 0 on the
+// locators dimension for perfectly idiomatic code.
 const NATIVE_METHODS = new Set([
   'getByRole',
   'getByLabel',
   'getByTestId',
   'getByText',
   'getByPlaceholder',
+  'getByAltText',
+  'getByTitle',
 ]);
 
 /**
@@ -380,6 +386,43 @@ export function getTestSpans(source: string, file?: string): TestSpans {
     outer.push(s);
   }
   return { tests: outer, hooks };
+}
+
+/**
+ * Model-v3 finding attribution (see score-engine.ts): a finding inside a
+ * test span belongs to that test (`scope: 'test'` + a stable
+ * `file#index` testKey); inside a hook span it affects every test in the
+ * file (`scope: 'hook'`); anything else — imports, describe bodies,
+ * file-level metrics — is `scope: 'module'`, counted once per file.
+ * Exported so layers composing extra rules on top (e.g. a private
+ * house-rules dimension) attribute their own findings with the same
+ * logic the package itself uses, rather than reimplementing it.
+ * Mutates the findings in place and returns them.
+ */
+export function attributeFindingScopes(
+  findings: Finding[],
+  spansByFile: Map<string, TestSpans>
+): Finding[] {
+  for (const f of findings) {
+    const spans = spansByFile.get(f.file);
+    if (!spans || f.line === undefined) {
+      f.scope = 'module';
+      continue;
+    }
+    const line = f.line;
+    const idx = spans.tests.findIndex(
+      (t) => line >= t.startLine && line <= t.endLine
+    );
+    if (idx >= 0) {
+      f.scope = 'test';
+      f.testKey = `${f.file}#${idx}`;
+    } else if (spans.hooks.some((h) => line >= h.startLine && line <= h.endLine)) {
+      f.scope = 'hook';
+    } else {
+      f.scope = 'module';
+    }
+  }
+  return findings;
 }
 
 const TEST_NON_DECL_RE =
