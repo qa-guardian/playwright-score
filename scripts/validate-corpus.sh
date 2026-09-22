@@ -44,6 +44,46 @@ CORPUS=(
   "livecodes|live-codes/livecodes|e2e"
   "TheCyberHub|th3cyb3rhub/TheCyberHub|e2e"
   "sencho|Studio-Saelix/sencho|e2e"
+  # QAG-196 corpus expansion (2026-09-21): 17 -> 50. Same selection rule
+  # as above — real @playwright/test usage, >=5 specs, licence recorded
+  # per repo in VALIDATION.md (read-only scoring, nothing here is
+  # redistributed). Found via GitHub tree/code search for
+  # playwright.config.* and hand-verified (not every "e2e" directory
+  # found this way turned out to be Playwright — see VALIDATION.md's
+  # "excluded on inspection" list for the ones that weren't).
+  "Formbricks|formbricks/formbricks|apps/web/playwright"
+  "Element (Matrix client)|element-hq/element-web|apps/web/playwright"
+  "AFFiNE|toeverything/AFFiNE|tests/blocksuite/e2e"
+  "tldraw|tldraw/tldraw|apps/examples/e2e"
+  "WordPress Gutenberg|WordPress/gutenberg|test/e2e"
+  "WooCommerce|woocommerce/woocommerce|plugins/woocommerce/tests/e2e"
+  "Twenty CRM|twentyhq/twenty|packages/twenty-e2e-testing/tests"
+  "Penpot|penpot/penpot|frontend/playwright"
+  "Strapi|strapi/strapi|tests/e2e"
+  "Appsmith|appsmithorg/appsmith|app/client/playwright/tests"
+  "Qwik|QwikDev/qwik|e2e"
+  "Payload CMS|payloadcms/payload|test/admin/e2e"
+  "Rocket.Chat|RocketChat/Rocket.Chat|apps/meteor/tests/e2e"
+  "Coder|coder/coder|site/e2e"
+  "Umami|umami-software/umami|tests/e2e"
+  "Plausible Analytics|plausible/analytics|e2e"
+  "WordPress.com Calypso|Automattic/wp-calypso|test/e2e"
+  "SigNoz|SigNoz/signoz|tests/e2e"
+  "Saleor Dashboard|saleor/saleor-dashboard|playwright"
+  "Vendure|vendure-ecommerce/vendure|packages/dashboard/e2e"
+  "OpenReplay|openreplay/openreplay|frontend/tests/playwright"
+  "Handsontable|handsontable/handsontable|tests/e2e"
+  "Activepieces|activepieces/activepieces|packages/tests-e2e"
+  "Clerk|clerk/javascript|integration/tests"
+  "Astro|withastro/astro|packages/astro/e2e"
+  "Wire (wire-webapp)|wireapp/wire-webapp|apps/webapp/test/e2e_tests"
+  "Keycloak admin-ui|keycloak/keycloak|js/apps/admin-ui/test"
+  "Bruno|usebruno/bruno|tests"
+  "Flagsmith|Flagsmith/flagsmith|frontend/e2e/tests"
+  "Temporal UI|temporalio/ui|tests"
+  "Builder.io SDKs|BuilderIO/builder|packages/sdks-tests/src/e2e-tests"
+  "Wekan|wekan/wekan|tests/playwright/specs"
+  "VS Code (component fixtures)|microsoft/vscode|test/componentFixtures/playwright"
 )
 
 echo "=== playwright-score real-world validation corpus · profile=$PROFILE threshold=$THRESHOLD ==="
