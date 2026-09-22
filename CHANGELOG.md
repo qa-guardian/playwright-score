@@ -4,6 +4,62 @@ All notable changes to this project are documented here. Any change that
 alters what a given suite scores is a new scoring-model version (see
 [METHODOLOGY.md](./METHODOLOGY.md)), not a quiet patch.
 
+## Unreleased
+
+Corpus expanded from 17 to 50 real public repos (see
+`scripts/validate-corpus.sh`) — every rule below was checked against real
+findings across all 50 before landing, not just the fixtures. Full
+before/after numbers and the calibration writeup live in
+`.claude/team/reports/2026-09-21-scorer-program.md` (internal).
+
+### Added — four rules closing the QAG-196 gameability gap
+A spec built entirely from these four tricks scored 93/A under model v3
+before this release; none of them cost anything.
+- **`pwscore/no-timer-sleep`** (error, `playwrightHygiene`) — flags
+  `await new Promise((resolve) => setTimeout(resolve, ms))`. The same
+  hard-coded sleep `playwright/no-wait-for-timeout` already catches for
+  `page.waitForTimeout(ms)`, just spelled a way that rule can't see.
+- **`pwscore/no-coordinate-click`** (error, `playwrightHygiene`) — flags
+  `page.mouse.click(x, y)` (or `this.page.mouse.click(...)`, any object
+  ending in `.mouse.click`). Clicks a viewport coordinate instead of an
+  element; brittle by construction and previously had no rule at all.
+- **`pwscore/no-trivial-assertion`** (error, `assertions`) — flags
+  `expect(<literal>)`/`expect.soft(<literal>)`/`expect.poll(<literal>)`,
+  e.g. `expect(true).toBe(true)`, `expect(1).toBe(1)`,
+  `expect(5).toBeDefined()`. Always passes, satisfies
+  `playwright/expect-expect`, verifies nothing about the app.
+- **`pwscore/no-soft-assertion-only-test`** (warning, `assertions`,
+  **report-only under `standard`**) — flags a test whose every assertion
+  is `expect.soft(...)`, so a failed check never fails the run. Soft
+  assertions are a legitimate, deliberate choice (gather every problem in
+  one pass), not a defect — this is visible in every profile's findings
+  but only counts toward the score under the new `strict` profile.
+
+### Added — `strict` profile
+A second public profile, same four dimensions and weights as `standard`.
+The only difference: `pwscore/no-soft-assertion-only-test` counts as a
+real demerit instead of report-only. Everywhere else in the codebase
+(dimension weights, thresholds, rule set) `strict` is identical to
+`standard` — it exists so a contentious, opinionated check has a home
+without moving the public default. `--profile strict` on the CLI;
+`profile: 'strict'` via the library API.
+
+### Fixed — `.pw.ts` spec discovery
+Directory/glob discovery now recognizes `*.pw.ts` (joining `.spec.`,
+`.test.`, `.e2e.`, `.e2e-spec.`, `.e2e-test.`) — Flagsmith's entire
+20-spec `frontend/e2e` suite (`billing-test.pw.ts`, `flag-tests.pw.ts`,
+...) previously hard-failed as "no files matched" despite being a fully
+healthy, populated suite, the same failure mode `.e2e.ts`/`.e2e-spec.ts`
+were fixed for in 1.0.0 and its predecessors.
+
+### Investigated, not changed — `guardian/no-generic-long-timeout`
+Not a public-package change (the `guardian` profile is QA Guardian's own
+private layer, see `playwright_runner/app/core/guardian-score.ts`), noted
+here because it was found in the same pass: model v3's per-test demerit
+cap means 3 warning-level occurrences of this rule alone zero an entire
+25-point dimension, regardless of how many more pile up. Demoted to
+report-only privately; see the linked report for the before/after.
+
 ## 1.0.0 — 2026-08-28
 
 First stable release. The scoring model (v3), CLI contract, library API,

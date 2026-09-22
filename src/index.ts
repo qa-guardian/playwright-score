@@ -45,8 +45,13 @@ export { formatSarif } from './formatters/sarif.js';
 // metrics.ts) is the safety net for a repo that uses `.e2e.` for a
 // *different* framework — Cypress specifically was common enough here to
 // get its own explicit check alongside the existing Jest/Vitest/RTL ones.
+// `.pw.` joined the list from the 50-repo corpus expansion (QAG-196,
+// 2026-09-21) — Flagsmith's entire 20-spec frontend/e2e suite
+// (billing-test.pw.ts, flag-tests.pw.ts, ...) hard-failed with "no files
+// matched" without it, the same failure mode cal.com/Immich already fixed
+// for their own suffixes.
 const SPEC_GLOBS = [
-  '**/*.{spec,test,e2e,e2e-spec,e2e-test}.{ts,tsx,js,jsx}',
+  '**/*.{spec,test,e2e,e2e-spec,e2e-test,pw}.{ts,tsx,js,jsx}',
   '**/*.spec.ts',
   '**/*.test.ts',
 ];

@@ -20,7 +20,10 @@ Usage:
   npx playwright-score <paths...> [options]
 
 Options:
-  --profile <standard>            Scoring profile (default, and only: standard)
+  --profile <standard|strict>     Scoring profile (default: standard). strict
+                                   counts one extra, contentious check
+                                   (soft-assertion-only tests) toward the
+                                   score; standard only reports it.
   --threshold <n>                 Pass threshold 0-100 (default: 80)
   --format <text|json|markdown|sarif>  Output format (default: text)
   --out <file>                    Write report to file
@@ -83,7 +86,7 @@ async function main(): Promise<void> {
         process.exitCode = 2;
         return;
       }
-      if (p !== 'standard') {
+      if (p !== 'standard' && p !== 'strict') {
         console.error(`Invalid profile: ${p}`);
         process.exitCode = 2;
         return;

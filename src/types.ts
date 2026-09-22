@@ -1,5 +1,12 @@
 export type ScoreVersion = 'v3';
-export type ProfileName = 'standard';
+/**
+ * `standard` is the stable public default. `strict` is the same rule set
+ * and dimension weights, with one difference: contentious, opinionated
+ * checks that `standard` only reports (no score impact) count as real
+ * demerits — currently just `pwscore/no-soft-assertion-only-test`. See
+ * profiles.ts/mapRule and CHANGELOG.md.
+ */
+export type ProfileName = 'standard' | 'strict';
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
 export type Severity = 'error' | 'warning' | 'info';
 

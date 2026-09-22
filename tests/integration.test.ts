@@ -50,6 +50,77 @@ describe('scorePaths integration', () => {
     assert.ok(result.score < 100);
   });
 
+  it('catches all four QAG-196 gameability tricks (timer sleep, coordinate click, trivial assertion, soft-only test)', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'bad-gameable.spec.ts')],
+      profile: 'standard',
+      threshold: 80,
+      cwd: root,
+    });
+    const rules = result.findings.map((f) => f.rule);
+    for (const expected of [
+      'pwscore/no-timer-sleep',
+      'pwscore/no-coordinate-click',
+      'pwscore/no-trivial-assertion',
+      'pwscore/no-soft-assertion-only-test',
+    ]) {
+      assert.ok(rules.includes(expected), `expected ${expected}, got: ${rules.join(', ')}`);
+    }
+    // The soft-assertion-only finding is visible but doesn't cost points
+    // under standard.
+    const softFinding = result.findings.find((f) => f.rule === 'pwscore/no-soft-assertion-only-test');
+    assert.equal(softFinding?.reportOnly, true);
+    assert.ok(result.score < 80, `expected a real score hit from the other three, got ${result.score}`);
+  });
+
+  it('the fixed equivalents (real waits, locator clicks, real assertions, mixed hard+soft) score clean', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'good-standard-no-gameable.spec.ts')],
+      profile: 'standard',
+      threshold: 80,
+      cwd: root,
+    });
+    assert.ok(
+      !result.findings.some((f) =>
+        [
+          'pwscore/no-timer-sleep',
+          'pwscore/no-coordinate-click',
+          'pwscore/no-trivial-assertion',
+          'pwscore/no-soft-assertion-only-test',
+        ].includes(f.rule)
+      ),
+      `expected none of the gameability rules to fire, got: ${result.findings.map((f) => f.rule).join(', ')}`
+    );
+    assert.equal(result.score, 100);
+  });
+
+  it('strict profile counts soft-assertion-only as a real demerit; standard does not', async () => {
+    const std = await scorePaths({
+      paths: [path.join(fixtures, 'bad-gameable.spec.ts')],
+      profile: 'standard',
+      threshold: 0,
+      cwd: root,
+    });
+    const strict = await scorePaths({
+      paths: [path.join(fixtures, 'bad-gameable.spec.ts')],
+      profile: 'strict',
+      threshold: 0,
+      cwd: root,
+    });
+    assert.equal(
+      std.findings.find((f) => f.rule === 'pwscore/no-soft-assertion-only-test')?.reportOnly,
+      true
+    );
+    assert.equal(
+      strict.findings.find((f) => f.rule === 'pwscore/no-soft-assertion-only-test')?.reportOnly,
+      false
+    );
+    assert.ok(
+      strict.dimensions.assertions <= std.dimensions.assertions,
+      `expected strict's assertions dimension (${strict.dimensions.assertions}) <= standard's (${std.dimensions.assertions})`
+    );
+  });
+
   it('flags no expects', async () => {
     const result = await scorePaths({
       paths: [path.join(fixtures, 'bad-no-expects.spec.ts')],
@@ -172,7 +243,7 @@ describe('scorePaths integration', () => {
     // @typescript-eslint parser, not its rules, so ESLint reports
     // "Definition for rule ... was not found" — a diagnostic about our own
     // rule coverage, not the spec's quality. Verified against a real file.
-    const source = `import { test, expect } from '@playwright/test';\n\ntest('x', async ({\n  // eslint-disable-next-line @typescript-eslint/no-unused-vars\n  page,\n}) => {\n  expect(1).toBe(1);\n});\n`;
+    const source = `import { test, expect } from '@playwright/test';\n\ntest('x', async ({\n  // eslint-disable-next-line @typescript-eslint/no-unused-vars\n  page,\n}) => {\n  expect(page).toBeDefined();\n});\n`;
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-disable-noise-'));
     try {
       const file = path.join(dir, 'noise.spec.ts');
@@ -358,6 +429,21 @@ describe('scorePaths integration', () => {
         result.skippedFiles?.some((f) => f.includes('download.e2e-spec.ts')),
         `expected the vitest *.e2e-spec.ts to be reported as skipped: ${JSON.stringify(result.skippedFiles)}`
       );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('directory scan discovers *.pw.ts specs (regression: Flagsmith — 20 real Playwright specs named *.pw.ts, zero *.spec.ts/*.test.ts, previously hard-failed as "no files matched")', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-pw-glob-'));
+    try {
+      fs.writeFileSync(
+        path.join(dir, 'flag-tests.pw.ts'),
+        `import { test, expect } from '@playwright/test';\ntest('creates a flag', async ({ page }) => {\n  await page.goto('/flags');\n  await expect(page.getByRole('heading')).toBeVisible();\n});\n`
+      );
+
+      const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
+      assert.equal(result.summary.files, 1, 'the *.pw.ts spec should be scored');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

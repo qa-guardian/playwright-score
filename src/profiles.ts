@@ -10,10 +10,20 @@ export const PROFILE_WEIGHTS: Record<
     locators: 20,
     structure: 15,
   },
+  // Same dimensions and weights as standard — strict changes which
+  // findings count toward the score, not how the score is built. See
+  // mapRule's profile-specific override below.
+  strict: {
+    playwrightHygiene: 40,
+    assertions: 25,
+    locators: 20,
+    structure: 15,
+  },
 };
 
 export const DEFAULT_THRESHOLDS: Record<ProfileName, number> = {
   standard: 80,
+  strict: 80,
 };
 
 /** Map eslint ruleId → dimension + whether report-only for scoring */
@@ -96,9 +106,33 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
     dimension: 'structure',
     severityOverride: 'warning',
   },
+
+  // QAG-196 gameability fixes (2026-09-21) — see base-plugin.ts. Timer
+  // sleeps and coordinate clicks are the same class of anti-pattern as
+  // already-penalized upstream rules (no-wait-for-timeout, no-force-option)
+  // and get the same full-demerit treatment. Trivial/tautological
+  // assertions defeat expect-expect entirely, so they're full-demerit too.
+  'pwscore/no-timer-sleep': { dimension: 'playwrightHygiene' },
+  'pwscore/no-coordinate-click': { dimension: 'playwrightHygiene' },
+  'pwscore/no-trivial-assertion': { dimension: 'assertions' },
+  // pwscore/no-soft-assertion-only-test is intentionally NOT listed here —
+  // it's contentious (soft assertions are a legitimate choice, not a
+  // defect) and its reportOnly-ness depends on the active profile, which
+  // a static map entry can't express. See mapRule below.
 };
 
-export function mapRule(ruleId: string): RuleMapping {
+/**
+ * `pwscore/no-soft-assertion-only-test` is the one profile-gated,
+ * contentious rule (QAG-196 §8's "worth a report-only signal"): it always
+ * fires so the finding is visible, but only counts toward the score under
+ * `strict` — `standard` carries it as reportOnly so a deliberate,
+ * legitimate use of expect.soft() throughout an audit-style test doesn't
+ * cost points in the public default profile.
+ */
+export function mapRule(ruleId: string, profile: ProfileName = 'standard'): RuleMapping {
+  if (ruleId === 'pwscore/no-soft-assertion-only-test') {
+    return { dimension: 'assertions', severityOverride: 'warning', reportOnly: profile !== 'strict' };
+  }
   if (ESLINT_RULE_MAP[ruleId]) return ESLINT_RULE_MAP[ruleId];
   if (ruleId.startsWith('playwright/')) {
     return { dimension: 'playwrightHygiene', severityOverride: 'warning' };

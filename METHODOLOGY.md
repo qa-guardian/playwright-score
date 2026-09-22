@@ -79,8 +79,8 @@ owns this dimension; counting them as demerits too would double-penalize.)
 
 | Dimension | Weight | Demerit sources |
 |---|---:|---|
-| playwrightHygiene | 40 | hard waits, networkidle, force, missing await, element handles, eval, conditionals, page.pause, useless await |
-| assertions | 25 | a test with no recognized assertion is fully flawed (`expect-expect`, after all delegation resolution); `valid-expect`, `no-standalone-expect`, `prefer-web-first-assertions` add partial demerits |
+| playwrightHygiene | 40 | hard waits (`page.waitForTimeout` and `new Promise` + `setTimeout`), networkidle, force, coordinate clicks (`*.mouse.click(x, y)`), missing await, element handles, eval, conditionals, page.pause, useless await |
+| assertions | 25 | a test with no recognized assertion is fully flawed (`expect-expect`, after all delegation resolution); trivial/tautological assertions on a literal (`expect(true).toBe(true)`); `valid-expect`, `no-standalone-expect`, `prefer-web-first-assertions` add partial demerits; a soft-assertion-only test is report-only under `standard`, a partial demerit under `strict` |
 | locators | 20 | usage ratio (above) |
 | structure | 15 | focused tests, always-skipped declarations, nested-describe depth, oversized files (module scope) |
 

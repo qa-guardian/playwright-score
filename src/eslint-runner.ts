@@ -115,6 +115,15 @@ function buildConfig(assertFunctionNames: string[]): Linter.Config[] {
         'playwright/valid-expect': 'error',
         'playwright/no-standalone-expect': 'error',
         'playwright/max-nested-describe': 'warn',
+
+        // QAG-196 gameability fixes (2026-09-21) — see base-plugin.ts for
+        // what each one catches. Always enabled in both profiles; only
+        // no-soft-assertion-only-test's scoring impact (reportOnly) varies
+        // by profile, via mapRule in profiles.ts.
+        'pwscore/no-timer-sleep': 'error',
+        'pwscore/no-coordinate-click': 'error',
+        'pwscore/no-trivial-assertion': 'error',
+        'pwscore/no-soft-assertion-only-test': 'warn',
       },
     },
   ];
@@ -223,7 +232,7 @@ export async function runEslint(options: {
         continue;
       }
       if (!msg.ruleId) continue;
-      const mapping = mapRule(msg.ruleId);
+      const mapping = mapRule(msg.ruleId, options.profile);
       findings.push({
         rule: msg.ruleId,
         severity: toSeverity(msg.severity, mapping.severityOverride),
