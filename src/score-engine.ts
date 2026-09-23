@@ -34,9 +34,17 @@ import { PROFILE_WEIGHTS } from './profiles.js';
  * scored e.g. a 3-test suite with two hard-wait errors, two assertion-free
  * tests, and a skipped test at 78/C; model v3 scores it 53/F, which is
  * what it is.
+ *
+ * v4 (2.0.0) keeps this exact formula unchanged — the version bump is
+ * about which findings feed it, not how they're aggregated: the four
+ * QAG-196 gameability rules and the eslint-disable-comment finding are
+ * now unconditional demerits (previously report-only under `standard`,
+ * scored only under the now-removed `strict` profile), and
+ * no-coordinate-click is a warning (0.4), not an error (1.0). See
+ * METHODOLOGY.md's "Why v4" and CHANGELOG.md.
  */
 export const MODEL = {
-  scoreVersion: 'v3' as const,
+  scoreVersion: 'v4' as const,
   ERROR_DEMERIT: 1.0,
   WARNING_DEMERIT: 0.4,
   INFO_DEMERIT: 0.0,

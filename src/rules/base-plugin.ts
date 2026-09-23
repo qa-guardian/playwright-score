@@ -17,6 +17,13 @@ type Node = {
   operator?: string;
   argument?: Node | null;
   value?: unknown;
+  elements?: Array<Node | null>;
+  expressions?: Node[];
+  quasis?: Array<{ value: { cooked?: string | null; raw: string } }>;
+  left?: Node;
+  right?: Node;
+  specifiers?: Array<{ type: string; imported?: { name?: string }; local?: { name?: string } }>;
+  source?: { value?: unknown };
 };
 
 function isSkipCallee(callee: Node | undefined): boolean {
@@ -124,30 +131,116 @@ function walkNode(node: unknown, visit: (n: Node) => void): void {
  */
 
 /**
+ * True when `callee` is `setTimeout` itself or `globalThis.setTimeout` —
+ * both resolve to the exact same ambient function; the `globalThis.`
+ * spelling is just as easy to reach for (and just as invisible to a
+ * rule that only matches a bare `Identifier`) as the plain name.
+ */
+function isSetTimeoutCallee(callee: Node | undefined): boolean {
+  if (!callee) return false;
+  if (callee.type === 'Identifier' && callee.name === 'setTimeout') return true;
+  return (
+    callee.type === 'MemberExpression' &&
+    !callee.computed &&
+    callee.object?.type === 'Identifier' &&
+    callee.object.name === 'globalThis' &&
+    callee.property?.type === 'Identifier' &&
+    callee.property.name === 'setTimeout'
+  );
+}
+
+/**
+ * True when `fn` is a zero-argument wrapper whose entire body is a call
+ * to `resolveName` — `() => r()` or `() => { r(); }`. `setTimeout(resolve,
+ * ms)` and `setTimeout(() => resolve(), ms)` do the exact same thing; the
+ * wrapper adds nothing except making the resolve-callback shape invisible
+ * to a check that only matched a bare identifier argument.
+ */
+function callsResolve(fn: Node | undefined, resolveName: string): boolean {
+  if (!fn || !FUNCTION_TYPES.has(fn.type)) return false;
+  if ((fn.params ?? []).length > 0) return false;
+  const body = fn.body;
+  let call: Node | undefined;
+  if (body && !Array.isArray(body) && body.type === 'BlockStatement') {
+    const stmts = (body.body ?? []) as unknown as Node[];
+    const only = Array.isArray(stmts) && stmts.length === 1 ? stmts[0] : undefined;
+    if (only?.type === 'ExpressionStatement') {
+      call = (only as unknown as { expression: Node }).expression;
+    }
+  } else if (body && !Array.isArray(body)) {
+    call = body; // arrow expression body
+  }
+  return (
+    !!call &&
+    call.type === 'CallExpression' &&
+    call.callee?.type === 'Identifier' &&
+    call.callee.name === resolveName
+  );
+}
+
+/**
  * `await new Promise((resolve) => setTimeout(resolve, ms))` is the same
  * hard-coded sleep as `page.waitForTimeout(ms)` (already flagged, as an
  * error, by upstream `playwright/no-wait-for-timeout`) wearing a disguise
  * that rule cannot see through — it has nothing to do with `page` at all.
  * Verified against the QAG-196 gameability sample: this exact pattern
- * scored zero findings before this rule existed.
+ * scored zero findings before this rule existed. Also catches two easy
+ * respellings found in a pre-1.1.0 review: `globalThis.setTimeout(...)`
+ * (same function, different spelling) and wrapping the resolve callback
+ * in a no-op arrow (`setTimeout(() => r(), ms)`) instead of passing it
+ * directly — plus the unrelated but equally disguised `node:timers/
+ * promises` sleep (`await setTimeout(ms)` from that module is an async
+ * sleep on its own, no `new Promise` wrapper needed).
  */
 const noTimerSleep: Rule.RuleModule = {
   meta: {
     type: 'suggestion',
     docs: {
       description:
-        'Disallow sleeping via new Promise((resolve) => setTimeout(resolve, ms)) — the same anti-pattern as page.waitForTimeout, just undetectable by name',
+        'Disallow sleeping via new Promise((resolve) => setTimeout(resolve, ms)), its globalThis/wrapped-callback respellings, or node:timers/promises setTimeout',
     },
     messages: {
       sleep:
         'Unexpected hard-coded sleep via new Promise + setTimeout. Wait for a specific condition (a locator, a response, an event) instead.',
+      timersPromisesSleep:
+        "Unexpected hard-coded sleep via node:timers/promises' setTimeout(ms). Wait for a specific condition (a locator, a response, an event) instead.",
     },
     schema: [],
   },
   create(context) {
+    const timersPromisesLocalNames = new Set<string>();
     return {
+      // Typed loosely (not our shared `Node`) — the real ESTree
+      // ImportDeclaration shape (e.g. `imported` can be a string Literal
+      // for `import { "setTimeout" as x }`) doesn't structurally match
+      // our simplified CallExpression-oriented Node type.
+      ImportDeclaration(raw: unknown) {
+        const node = raw as {
+          source?: { value?: unknown };
+          specifiers?: Array<{
+            type: string;
+            imported?: { name?: string };
+            local?: { name?: string };
+          }>;
+        };
+        const source = node.source?.value;
+        if (source !== 'node:timers/promises' && source !== 'timers/promises') return;
+        for (const spec of node.specifiers ?? []) {
+          if (spec.type === 'ImportSpecifier' && spec.imported?.name === 'setTimeout' && spec.local?.name) {
+            timersPromisesLocalNames.add(spec.local.name);
+          }
+        }
+      },
       CallExpression(node: Node) {
-        if (node.callee?.type !== 'Identifier' || node.callee.name !== 'setTimeout') return;
+        if (
+          node.callee?.type === 'Identifier' &&
+          typeof node.callee.name === 'string' &&
+          timersPromisesLocalNames.has(node.callee.name)
+        ) {
+          context.report({ node: node as never, messageId: 'timersPromisesSleep' });
+          return;
+        }
+        if (!isSetTimeoutCallee(node.callee)) return;
         const ancestors = (
           context.sourceCode?.getAncestors
             ? context.sourceCode.getAncestors(node as never)
@@ -166,11 +259,14 @@ const noTimerSleep: Rule.RuleModule = {
           ) {
             const resolveParam = (anc.params ?? [])[0];
             const firstArg = (node.arguments ?? [])[0];
-            if (
+            const isDirectResolve =
               resolveParam?.type === 'Identifier' &&
               firstArg?.type === 'Identifier' &&
-              firstArg.name === resolveParam.name
-            ) {
+              firstArg.name === resolveParam.name;
+            const resolveName = resolveParam?.type === 'Identifier' ? resolveParam.name : undefined;
+            const isWrappedResolve =
+              typeof resolveName === 'string' && callsResolve(firstArg, resolveName);
+            if (isDirectResolve || isWrappedResolve) {
               context.report({ node: node as never, messageId: 'sleep' });
             }
           }
@@ -186,17 +282,27 @@ const noTimerSleep: Rule.RuleModule = {
  * expression ending in `.mouse.click`) clicks a fixed viewport coordinate
  * instead of an element — brittle by construction (breaks on any layout,
  * zoom, or viewport-size change) and, unlike `locator.click({ force:
- * true })`, has no upstream rule at all.
+ * true })`, has no upstream rule at all. Also catches three respellings
+ * found in a pre-1.1.0 review, all still coordinate-based interaction
+ * through the same `Mouse` API: `const { mouse } = page; mouse.click(...)`
+ * (destructuring hides the `.mouse.` member access this rule originally
+ * looked for), `mouse.dblclick(x, y)` (same brittleness, different
+ * method), and the manual `move(x, y)` + `down()` + `up()` sequence that
+ * reimplements a click one step at a time — still landing at a fixed
+ * pixel position, just spread across three calls instead of one.
  */
+const MOUSE_COORDINATE_METHODS = new Set(['click', 'dblclick', 'move', 'down', 'up']);
+
 const noCoordinateClick: Rule.RuleModule = {
   meta: {
     type: 'suggestion',
     docs: {
-      description: 'Disallow page.mouse.click(x, y) coordinate clicks — click a locator instead',
+      description:
+        'Disallow page.mouse.click/dblclick/move/down/up(...) coordinate-based interaction — click a locator instead',
     },
     messages: {
       coordinateClick:
-        'Unexpected coordinate click via *.mouse.click(x, y). Click a locator (locator.click()) so the action targets an element, not a fixed pixel position.',
+        'Unexpected coordinate-based interaction via *.mouse.{{method}}(...). Interact through a locator (locator.click()/locator.hover()) so the action targets an element, not a fixed pixel position.',
     },
     schema: [],
   },
@@ -205,45 +311,192 @@ const noCoordinateClick: Rule.RuleModule = {
       CallExpression(node: Node) {
         const callee = node.callee;
         if (!callee || callee.type !== 'MemberExpression' || callee.computed) return;
-        if (callee.property?.type !== 'Identifier' || callee.property.name !== 'click') return;
+        const methodName = callee.property?.type === 'Identifier' ? callee.property.name : undefined;
+        if (!methodName || !MOUSE_COORDINATE_METHODS.has(methodName)) return;
         const obj = callee.object;
-        if (!obj || obj.type !== 'MemberExpression' || obj.computed) return;
-        if (obj.property?.type !== 'Identifier' || obj.property.name !== 'mouse') return;
-        context.report({ node: node as never, messageId: 'coordinateClick' });
+        if (!obj) return;
+        // `page.mouse.click(...)` / `this.page.mouse.click(...)` — any
+        // expression ending in `.mouse`.
+        const isDotMouse =
+          obj.type === 'MemberExpression' &&
+          !obj.computed &&
+          obj.property?.type === 'Identifier' &&
+          obj.property.name === 'mouse';
+        // `const { mouse } = page; mouse.click(...)` — the destructured
+        // binding is a bare identifier, not a `.mouse` member access, but
+        // it is the exact same Mouse API. Name-based, same convention as
+        // this file's other rules (e.g. isSkipCallee's `test` heuristic).
+        const isBareMouseIdentifier = obj.type === 'Identifier' && obj.name === 'mouse';
+        if (!isDotMouse && !isBareMouseIdentifier) return;
+        context.report({
+          node: node as never,
+          messageId: 'coordinateClick',
+          data: { method: methodName },
+        });
       },
     };
   },
 };
 
-function isTrivialLiteral(node: Node | undefined): boolean {
-  if (!node) return false;
-  if (node.type === 'Literal') return true; // true/false/number/string/null
-  if (node.type === 'UnaryExpression' && node.operator === '!') {
-    return isTrivialLiteral(node.argument as Node | undefined);
+type ConstResult = { ok: true; value: unknown } | { ok: false };
+const NOT_CONST: ConstResult = { ok: false };
+
+/**
+ * Statically evaluates the small subset of constant-expression shapes a
+ * literal-assertion idiom actually uses: literals, `!`/`-`/`+`/`~` on a
+ * constant, simple arithmetic (`1 + 1`), a no-expression template literal
+ * (`` `hello` ``, indistinguishable in intent from `'hello'`), and an
+ * array of constants (for `toEqual`/`toStrictEqual`, e.g. `[]`). Anything
+ * else (a variable, a function call, an array containing a non-constant)
+ * is deliberately NOT evaluated — a false negative here is safe (we just
+ * don't flag it); a false positive would mean claiming real app state
+ * "always passes", which would be wrong.
+ */
+function evalConst(node: Node | undefined | null): ConstResult {
+  if (!node) return NOT_CONST;
+  if (node.type === 'Literal') return { ok: true, value: node.value };
+  if (node.type === 'TemplateLiteral') {
+    if ((node.expressions ?? []).length > 0) return NOT_CONST;
+    const quasi = (node.quasis ?? [])[0];
+    if (!quasi) return NOT_CONST;
+    return { ok: true, value: quasi.value.cooked ?? quasi.value.raw };
+  }
+  if (node.type === 'UnaryExpression' && node.operator) {
+    const arg = evalConst(node.argument);
+    if (!arg.ok) return NOT_CONST;
+    switch (node.operator) {
+      case '!':
+        return { ok: true, value: !arg.value };
+      case '-':
+        return { ok: true, value: -(arg.value as number) };
+      case '+':
+        return { ok: true, value: +(arg.value as number) };
+      case '~':
+        return { ok: true, value: ~(arg.value as number) };
+      default:
+        return NOT_CONST;
+    }
+  }
+  if (node.type === 'BinaryExpression' && node.left && node.right) {
+    const left = evalConst(node.left);
+    const right = evalConst(node.right);
+    if (!left.ok || !right.ok) return NOT_CONST;
+    const l = left.value as never;
+    const r = right.value as never;
+    switch (node.operator) {
+      case '+':
+        return { ok: true, value: (l as unknown as number) + (r as unknown as number) };
+      case '-':
+        return { ok: true, value: (l as unknown as number) - (r as unknown as number) };
+      case '*':
+        return { ok: true, value: (l as unknown as number) * (r as unknown as number) };
+      case '/':
+        return { ok: true, value: (l as unknown as number) / (r as unknown as number) };
+      case '%':
+        return { ok: true, value: (l as unknown as number) % (r as unknown as number) };
+      case '**':
+        return { ok: true, value: (l as unknown as number) ** (r as unknown as number) };
+      default:
+        return NOT_CONST;
+    }
+  }
+  if (node.type === 'ArrayExpression') {
+    const values: unknown[] = [];
+    for (const el of node.elements ?? []) {
+      const r = evalConst(el);
+      if (!r.ok) return NOT_CONST; // includes sparse-array holes (el === null)
+      values.push(r.value);
+    }
+    return { ok: true, value: values };
+  }
+  return NOT_CONST;
+}
+
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((v, i) => deepEqual(v, b[i]));
   }
   return false;
 }
 
 /**
- * `expect(true).toBe(true)`, `expect(1).toBe(1)`, `expect(5).toBeDefined()`
- * — any assertion whose subject is a literal constant rather than
- * something the app under test produced. It always passes, so it
- * satisfies `playwright/expect-expect` (a test "has an assertion") while
- * asserting nothing about the application. Deliberately conservative:
- * only flags a literal directly inside `expect(...)`/`expect.soft(...)`/
- * `expect.poll(...)` — a variable that happens to hold a constant is a
- * false negative we accept rather than risk flagging real app state.
+ * Given a matcher name and its (already-evaluated) subject, returns
+ * whether `expect(subject).<matcher>(...expectedNode)` always evaluates
+ * true — or `undefined` when the matcher isn't one we understand well
+ * enough to say either way (e.g. its expected argument isn't a constant
+ * we can evaluate). Only a small, common subset of matchers is covered;
+ * an unrecognized matcher is a false negative, never a false positive.
+ */
+function matcherAlwaysPasses(
+  matcherName: string,
+  subject: unknown,
+  expectedNode: Node | undefined
+): boolean | undefined {
+  switch (matcherName) {
+    case 'toBe': {
+      const expected = evalConst(expectedNode);
+      return expected.ok ? Object.is(subject, expected.value) : undefined;
+    }
+    case 'toEqual':
+    case 'toStrictEqual': {
+      const expected = evalConst(expectedNode);
+      return expected.ok ? deepEqual(subject, expected.value) : undefined;
+    }
+    case 'toBeTruthy':
+      return Boolean(subject);
+    case 'toBeFalsy':
+      return !subject;
+    case 'toBeNull':
+      return subject === null;
+    case 'toBeNaN':
+      return typeof subject === 'number' && Number.isNaN(subject);
+    default:
+      return undefined;
+  }
+}
+
+/** `expect(...)` / `expect.soft(...)` / `expect.poll(...)`. */
+function isExpectCallNode(node: Node | undefined): boolean {
+  if (!node || node.type !== 'CallExpression') return false;
+  const callee = node.callee;
+  if (callee?.type === 'Identifier' && callee.name === 'expect') return true;
+  return (
+    callee?.type === 'MemberExpression' &&
+    !callee.computed &&
+    callee.object?.type === 'Identifier' &&
+    callee.object.name === 'expect' &&
+    callee.property?.type === 'Identifier' &&
+    (callee.property.name === 'soft' || callee.property.name === 'poll')
+  );
+}
+
+/**
+ * `expect(true).toBe(true)`, `` expect(`x`).toBe(`x`) ``, `expect(1 +
+ * 1).toBe(2)`, `expect([]).toEqual([])` — any assertion whose subject and
+ * matcher combination can only ever pass, regardless of anything the app
+ * under test does. It satisfies `playwright/expect-expect` (a test "has
+ * an assertion") while asserting nothing real. Deliberately conservative
+ * in two directions: only a subject that's a statically-evaluable
+ * constant is considered (a variable holding a constant is a false
+ * negative we accept rather than risk flagging real app state), and the
+ * matcher + `.not` combination is actually evaluated rather than assumed
+ * — `expect(true).toBe(false)` and `expect(true, msg).toBeFalsy()` are
+ * the deliberate force-fail idiom (asserting something that can only
+ * ever be false, to fail a test unconditionally), the opposite of this
+ * rule's target, and are never flagged: the message says "always passes"
+ * and must stay true every time it fires.
  */
 const noTrivialAssertion: Rule.RuleModule = {
   meta: {
     type: 'suggestion',
     docs: {
       description:
-        'Disallow asserting on a literal constant (expect(true).toBe(true), expect(1).toBe(1)) — always passes, proves nothing',
+        'Disallow an assertion whose subject and matcher can only ever pass (expect(true).toBe(true), expect([]).toEqual([]), expect(1 + 1).toBe(2)) — proves nothing about the application under test. Does not flag a deliberate force-fail assertion (e.g. expect(true).toBe(false)), which always fails, not passes.',
     },
     messages: {
       trivial:
-        'Unexpected assertion on a literal constant — this can never fail and verifies nothing about the application under test.',
+        'Unexpected assertion that always passes on a constant — it can never fail and verifies nothing about the application under test.',
     },
     schema: [],
   },
@@ -251,21 +504,34 @@ const noTrivialAssertion: Rule.RuleModule = {
     return {
       CallExpression(node: Node) {
         const callee = node.callee;
-        let isExpectCall = false;
-        if (callee?.type === 'Identifier' && callee.name === 'expect') isExpectCall = true;
-        else if (
-          callee?.type === 'MemberExpression' &&
-          !callee.computed &&
-          callee.object?.type === 'Identifier' &&
-          callee.object.name === 'expect' &&
-          callee.property?.type === 'Identifier' &&
-          (callee.property.name === 'soft' || callee.property.name === 'poll')
+        if (!callee || callee.type !== 'MemberExpression' || callee.computed) return;
+        const matcherName = callee.property?.type === 'Identifier' ? callee.property.name : undefined;
+        if (!matcherName) return;
+
+        let expectCall: Node | undefined;
+        let hasNot = false;
+        if (isExpectCallNode(callee.object)) {
+          expectCall = callee.object;
+        } else if (
+          callee.object?.type === 'MemberExpression' &&
+          !callee.object.computed &&
+          callee.object.property?.type === 'Identifier' &&
+          callee.object.property.name === 'not' &&
+          isExpectCallNode(callee.object.object)
         ) {
-          isExpectCall = true;
+          expectCall = callee.object.object;
+          hasNot = true;
         }
-        if (!isExpectCall) return;
-        const subject = (node.arguments ?? [])[0];
-        if (isTrivialLiteral(subject)) {
+        if (!expectCall) return;
+
+        const subject = evalConst((expectCall.arguments ?? [])[0]);
+        if (!subject.ok) return;
+
+        const expectedArg = (node.arguments ?? [])[0];
+        const alwaysPasses = matcherAlwaysPasses(matcherName, subject.value, expectedArg);
+        if (alwaysPasses === undefined) return;
+
+        if (hasNot ? !alwaysPasses : alwaysPasses) {
           context.report({ node: node as never, messageId: 'trivial' });
         }
       },
@@ -296,10 +562,12 @@ function isTestDeclarationCallee(callee: Node | undefined): boolean {
  * fine for "gather every problem in one run" audit steps, poor default
  * for ordinary flow verification, where a failed precondition should
  * stop the test rather than cascade into confusing downstream failures.
- * Report-only under `standard` (soft assertions are a legitimate,
- * deliberate choice, not a defect) — a contentious, opinionated check
- * counted for real only under the `strict` profile. See
- * profiles.ts/mapRule and CHANGELOG.md.
+ * A contentious, opinionated check (soft assertions are a legitimate,
+ * deliberate choice, not always a defect) — scored as a warning-level
+ * demerit as of 2.0.0/model v4, same as the rest of the QAG-196 rules
+ * (see profiles.ts and CHANGELOG.md). `expect.poll(...)` counts as a hard
+ * assertion, not soft: unlike `expect.soft`, a failed poll still throws
+ * and fails the test — it just retries first.
  */
 const noSoftAssertionOnlyTest: Rule.RuleModule = {
   meta: {
@@ -333,10 +601,10 @@ const noSoftAssertionOnlyTest: Rule.RuleModule = {
             !c.computed &&
             c.object?.type === 'Identifier' &&
             c.object.name === 'expect' &&
-            c.property?.type === 'Identifier' &&
-            c.property.name === 'soft'
+            c.property?.type === 'Identifier'
           ) {
-            soft += 1;
+            if (c.property.name === 'soft') soft += 1;
+            else if (c.property.name === 'poll') hard += 1;
           }
         });
         if (soft > 0 && hard === 0) {

@@ -20,10 +20,8 @@ Usage:
   npx playwright-score <paths...> [options]
 
 Options:
-  --profile <standard|strict>     Scoring profile (default: standard). strict
-                                   counts one extra, contentious check
-                                   (soft-assertion-only tests) toward the
-                                   score; standard only reports it.
+  --profile <standard>             Scoring profile (default, and only
+                                   supported value, as of 2.0.0: standard).
   --threshold <n>                 Pass threshold 0-100 (default: 80)
   --format <text|json|markdown|sarif>  Output format (default: text)
   --out <file>                    Write report to file
@@ -36,7 +34,7 @@ Exit codes:
   2  tool error
 
 Website: https://qaguardian.com/open-source/playwright-score
-Methodology: METHODOLOGY.md (scoring model v3)
+Methodology: METHODOLOGY.md (scoring model v4)
 `);
 }
 
@@ -86,7 +84,14 @@ async function main(): Promise<void> {
         process.exitCode = 2;
         return;
       }
-      if (p !== 'standard' && p !== 'strict') {
+      if (p === 'strict') {
+        console.error(
+          'Profile "strict" was removed in 2.0.0 — the four gameability checks it used to count on top of "standard" (timer-sleep sleeps, coordinate clicks, trivial assertions, soft-assertion-only tests) are now scored under "standard" directly, so a separate stricter profile has nothing left to gate. See CHANGELOG.md. Use --profile standard.'
+        );
+        process.exitCode = 2;
+        return;
+      }
+      if (p !== 'standard') {
         console.error(`Invalid profile: ${p}`);
         process.exitCode = 2;
         return;

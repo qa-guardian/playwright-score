@@ -462,6 +462,40 @@ export function findOversizedFile(
   return [];
 }
 
+/**
+ * Matches every ESLint suppression-directive comment: `// eslint-disable`,
+ * `// eslint-disable-line`, `// eslint-disable-next-line`, and their
+ * `/* ... *\/` block-comment equivalents. Deliberately does NOT parse which
+ * rule(s) it names or narrow to only our own rule ids — a pre-2.0.0 review
+ * found this project's own docs (VALIDATION.md) recommending
+ * `eslint-disable-next-line pwscore/no-coordinate-click` as "the correct
+ * escape hatch", while every one of this project's rules can in fact be
+ * silenced this way, defeating the score entirely for whatever it hides.
+ * Reporting the comment itself, without attempting to resolve exactly what
+ * it suppresses, is a known-coarse but honest signal — see VALIDATION.md's
+ * "Known limitations" for the plan to make it precise. Scored (a real
+ * demerit, not report-only) as of 2.0.0/model v4 — see CHANGELOG.md.
+ */
+const ESLINT_DISABLE_COMMENT_RE = /\/[/*]\s*eslint-disable(?:-next-line|-line)?\b/g;
+
+export function findEslintDisableComments(source: string, file: string): Finding[] {
+  const findings: Finding[] = [];
+  ESLINT_DISABLE_COMMENT_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = ESLINT_DISABLE_COMMENT_RE.exec(source)) !== null) {
+    findings.push({
+      rule: 'pwscore/eslint-disable-comment',
+      severity: 'warning',
+      message:
+        'Inline ESLint suppression comment. Disabling a rule hides whatever finding it silences from every tool that runs it, including this scorer — fix the underlying issue, or if the finding is a genuine false positive, report it as a bug in this project rather than relying on a permanent local workaround.',
+      file,
+      line: source.slice(0, m.index).split('\n').length,
+      dimension: 'structure',
+    });
+  }
+  return findings;
+}
+
 export function analyzeSource(source: string, file: string) {
   return {
     sloc: countSloc(source),
@@ -476,6 +510,6 @@ export function analyzeSource(source: string, file: string) {
     // call and so false-positived at error severity on any file whose only
     // assertions were expect.poll()/expect.soft() — verified against real
     // production code.
-    findings: [...findOversizedFile(source, file)],
+    findings: [...findOversizedFile(source, file), ...findEslintDisableComments(source, file)],
   };
 }

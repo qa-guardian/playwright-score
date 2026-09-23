@@ -116,12 +116,16 @@ function buildConfig(assertFunctionNames: string[]): Linter.Config[] {
         'playwright/no-standalone-expect': 'error',
         'playwright/max-nested-describe': 'warn',
 
-        // QAG-196 gameability fixes (2026-09-21) — see base-plugin.ts for
-        // what each one catches. Always enabled in both profiles; only
-        // no-soft-assertion-only-test's scoring impact (reportOnly) varies
-        // by profile, via mapRule in profiles.ts.
+        // QAG-196 gameability fixes (2026-09-21), scored unconditionally
+        // as of 2.0.0/model v4 — see base-plugin.ts for what each one
+        // catches and profiles.ts for the severity → demerit mapping.
+        // no-coordinate-click is 'warn' here too (not 'error'): profiles.ts
+        // overrides its scoring severity to 'warning' regardless (the
+        // canvas-app false-positive mitigation), so setting 'error' here
+        // would only mislead the raw ESLint severity shown in some
+        // formatters without changing what it actually costs.
         'pwscore/no-timer-sleep': 'error',
-        'pwscore/no-coordinate-click': 'error',
+        'pwscore/no-coordinate-click': 'warn',
         'pwscore/no-trivial-assertion': 'error',
         'pwscore/no-soft-assertion-only-test': 'warn',
       },
@@ -147,6 +151,9 @@ function toSeverity(
  */
 export async function runEslint(options: {
   files: string[];
+  // Kept on the options shape for call-site/API stability even though
+  // mapRule no longer branches on it (there's only one profile as of
+  // 2.0.0 — see profiles.ts and types.ts's ProfileName).
   profile: ProfileName;
   cwd?: string;
   /** See findLocalAssertionHelperNames in metrics.ts. */
@@ -232,7 +239,7 @@ export async function runEslint(options: {
         continue;
       }
       if (!msg.ruleId) continue;
-      const mapping = mapRule(msg.ruleId, options.profile);
+      const mapping = mapRule(msg.ruleId);
       findings.push({
         rule: msg.ruleId,
         severity: toSeverity(msg.severity, mapping.severityOverride),

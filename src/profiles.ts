@@ -1,5 +1,20 @@
 import type { DimensionName, ProfileName } from './types.js';
 
+/**
+ * `strict` was planned for 1.1.0 (never published) to gate four
+ * contentious rules behind an opt-in profile, report-only under
+ * `standard`. 2.0.0 (model v4, see
+ * CHANGELOG.md) scores all of them under `standard` directly — owner
+ * direction: public scores should reflect quality, full stop, not be
+ * softened to avoid moving anyone's number. With nothing left for a
+ * second profile to gate (every rule now counts the same way regardless
+ * of which profile runs), `strict` would be byte-for-byte identical to
+ * `standard` — dead weight, not a real choice — so it's removed rather
+ * than kept as a confusing no-op alias. `--profile strict` errors with a
+ * migration message (see cli.ts); the library API falls back to
+ * `standard` weights for any unrecognized profile string, same as the
+ * `guardian` profile's removal in 1.0.0.
+ */
 export const PROFILE_WEIGHTS: Record<
   ProfileName,
   Partial<Record<DimensionName, number>>
@@ -10,20 +25,10 @@ export const PROFILE_WEIGHTS: Record<
     locators: 20,
     structure: 15,
   },
-  // Same dimensions and weights as standard — strict changes which
-  // findings count toward the score, not how the score is built. See
-  // mapRule's profile-specific override below.
-  strict: {
-    playwrightHygiene: 40,
-    assertions: 25,
-    locators: 20,
-    structure: 15,
-  },
 };
 
 export const DEFAULT_THRESHOLDS: Record<ProfileName, number> = {
   standard: 80,
-  strict: 80,
 };
 
 /** Map eslint ruleId → dimension + whether report-only for scoring */
@@ -107,32 +112,28 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
     severityOverride: 'warning',
   },
 
-  // QAG-196 gameability fixes (2026-09-21) — see base-plugin.ts. Timer
-  // sleeps and coordinate clicks are the same class of anti-pattern as
-  // already-penalized upstream rules (no-wait-for-timeout, no-force-option)
-  // and get the same full-demerit treatment. Trivial/tautological
-  // assertions defeat expect-expect entirely, so they're full-demerit too.
+  // v4 (2.0.0): the four QAG-196 gameability rules and the
+  // eslint-disable-comment finding are scored the same as everything
+  // else above — no more report-only/profile split. See CHANGELOG.md's
+  // 2.0.0 entry and METHODOLOGY.md's "Why v4".
   'pwscore/no-timer-sleep': { dimension: 'playwrightHygiene' },
-  'pwscore/no-coordinate-click': { dimension: 'playwrightHygiene' },
+  // Demoted to warning (0.4 demerit, not 1.0): page.mouse.click/move/down/
+  // up(x, y) is also the *correct* way to interact with a canvas/drawing
+  // surface (no addressable DOM element to target with a locator), not
+  // just a brittle-DOM-app anti-pattern. Verified against the 50-repo
+  // corpus: two infinite-canvas editors (tldraw, AFFiNE) accounted for
+  // 428/459 of this rule's hits pre-v4. A full per-test demerit would
+  // treat every legitimate canvas interaction as a full flaw; a partial
+  // one still costs real points (a canvas-heavy test loses up to 0.4 per
+  // dimension-capped test) without a brittle "is this a canvas app?"
+  // filename/import heuristic that would itself become a new gameability
+  // surface (name your test file "canvas-*" to suppress the rule).
+  'pwscore/no-coordinate-click': { dimension: 'playwrightHygiene', severityOverride: 'warning' },
   'pwscore/no-trivial-assertion': { dimension: 'assertions' },
-  // pwscore/no-soft-assertion-only-test is intentionally NOT listed here —
-  // it's contentious (soft assertions are a legitimate choice, not a
-  // defect) and its reportOnly-ness depends on the active profile, which
-  // a static map entry can't express. See mapRule below.
+  'pwscore/no-soft-assertion-only-test': { dimension: 'assertions', severityOverride: 'warning' },
 };
 
-/**
- * `pwscore/no-soft-assertion-only-test` is the one profile-gated,
- * contentious rule (QAG-196 §8's "worth a report-only signal"): it always
- * fires so the finding is visible, but only counts toward the score under
- * `strict` — `standard` carries it as reportOnly so a deliberate,
- * legitimate use of expect.soft() throughout an audit-style test doesn't
- * cost points in the public default profile.
- */
-export function mapRule(ruleId: string, profile: ProfileName = 'standard'): RuleMapping {
-  if (ruleId === 'pwscore/no-soft-assertion-only-test') {
-    return { dimension: 'assertions', severityOverride: 'warning', reportOnly: profile !== 'strict' };
-  }
+export function mapRule(ruleId: string): RuleMapping {
   if (ESLINT_RULE_MAP[ruleId]) return ESLINT_RULE_MAP[ruleId];
   if (ruleId.startsWith('playwright/')) {
     return { dimension: 'playwrightHygiene', severityOverride: 'warning' };

@@ -1,12 +1,17 @@
-export type ScoreVersion = 'v3';
+export type ScoreVersion = 'v3' | 'v4';
 /**
- * `standard` is the stable public default. `strict` is the same rule set
- * and dimension weights, with one difference: contentious, opinionated
- * checks that `standard` only reports (no score impact) count as real
- * demerits — currently just `pwscore/no-soft-assertion-only-test`. See
- * profiles.ts/mapRule and CHANGELOG.md.
+ * `standard` is the only public profile, first published as of 2.0.0
+ * (model v4). A separate `strict` profile was planned for 1.1.0 (never
+ * published) to count the QAG-196 gameability rules toward the score
+ * while `standard` only reported them; dropped before publishing once
+ * `standard` started scoring them directly instead — with nothing left
+ * to gate, `strict` would have been identical to `standard`. See
+ * profiles.ts and CHANGELOG.md's 2.0.0 entry. `ProfileName` keeps room
+ * for a future profile; a legacy `'strict'` string degrades gracefully to
+ * `standard` weights via scorePaths (same fallback as the removed
+ * `guardian` profile), and the CLI gives an explicit migration error.
  */
-export type ProfileName = 'standard' | 'strict';
+export type ProfileName = 'standard';
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
 export type Severity = 'error' | 'warning' | 'info';
 

@@ -148,7 +148,7 @@ function hardFail(
   skippedFiles?: string[]
 ): ScoreResult {
   return {
-    scoreVersion: 'v3',
+    scoreVersion: 'v4',
     profile,
     score: 0,
     grade: 'F',
