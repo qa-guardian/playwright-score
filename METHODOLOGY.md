@@ -1,6 +1,6 @@
 # Playwright Spec Score Methodology
 
-**Scoring model:** v3 (2026-08-27)  
+**Scoring model:** v4 (2026-09-23)  
 **Package:** `playwright-score`  
 **Landing page:** https://qaguardian.com/open-source/playwright-score  
 **Maintainer:** [QA Guardian](https://qaguardian.com)  
@@ -8,9 +8,11 @@
 **AI-free:** no LLM calls in the scoring path
 
 Any change that alters what a given suite scores is a new model version
-(v4, …), documented in the CHANGELOG. Model history: v1/v2 (published as
+(v5, …), documented in the CHANGELOG. Model history: v1/v2 (published as
 "sqs-v1"/"sqs-v2" through package 0.4.0) scored finding *density per line
-of code*; v3 replaced that entirely — see "Why v3" at the bottom.
+of code*; v3 replaced that entirely — see "Why v3" below. v4 keeps v3's
+exact per-test ratio formula and changes only which findings feed it —
+see "Why v4" below.
 
 ---
 
@@ -79,10 +81,10 @@ owns this dimension; counting them as demerits too would double-penalize.)
 
 | Dimension | Weight | Demerit sources |
 |---|---:|---|
-| playwrightHygiene | 40 | hard waits (`page.waitForTimeout` and `new Promise` + `setTimeout`), networkidle, force, coordinate clicks (`*.mouse.click(x, y)`), missing await, element handles, eval, conditionals, page.pause, useless await |
-| assertions | 25 | a test with no recognized assertion is fully flawed (`expect-expect`, after all delegation resolution); trivial/tautological assertions on a literal (`expect(true).toBe(true)`); `valid-expect`, `no-standalone-expect`, `prefer-web-first-assertions` add partial demerits; a soft-assertion-only test is report-only under `standard`, a partial demerit under `strict` |
+| playwrightHygiene | 40 | hard waits (`page.waitForTimeout`, `new Promise`+`setTimeout` and its respellings, `node:timers/promises` setTimeout), networkidle, force, coordinate-based mouse interaction (`*.mouse.click/dblclick/move/down/up(x, y)`, partial demerit — see below), missing await, element handles, eval, conditionals, page.pause, useless await |
+| assertions | 25 | a test with no recognized assertion is fully flawed (`expect-expect`, after all delegation resolution); an assertion whose subject/matcher combination can only ever pass (`expect(true).toBe(true)`, `expect([]).toEqual([])`, never a deliberate force-fail like `expect(true).toBe(false)`); `valid-expect`, `no-standalone-expect`, `prefer-web-first-assertions`, a soft-assertion-only test (`expect.poll` counts as hard, not soft) all add partial demerits |
 | locators | 20 | usage ratio (above) |
-| structure | 15 | focused tests, always-skipped declarations, nested-describe depth, oversized files (module scope) |
+| structure | 15 | focused tests, always-skipped declarations, nested-describe depth, oversized files (module scope), an inline `eslint-disable` suppression comment (partial demerit — see "Known limitations" in VALIDATION.md) |
 
 ```
 score = round(Σ (weight_d / 100) × dimensionScore_d)
@@ -125,6 +127,51 @@ eslint-plugin-playwright's `recommended` set at install time, so identical
 code scores identically regardless of which plugin version npm resolves.
 
 ---
+
+## Why v4
+
+v4 keeps v3's per-test ratio formula unchanged. What changed is which
+findings feed it:
+
+1. **Four gameability rules, planned as report-only under `standard`,
+   are real demerits there instead.** 1.1.0 (never published) planned
+   `pwscore/no-timer-sleep`,
+   `pwscore/no-coordinate-click`, `pwscore/no-trivial-assertion` and
+   `pwscore/no-soft-assertion-only-test` behind a separate opt-in `strict`
+   profile, so the public default (`standard`) wouldn't move anyone's
+   score. Owner direction, 2026-09-23: public scores should reflect
+   quality, full stop — a spec that sleeps on a timer, clicks a fixed
+   pixel coordinate, or asserts on a literal constant should score worse
+   under the default profile, not only under an opt-in one nobody has to
+   run. `strict` is removed as a result: with nothing left for it to gate
+   (every rule now scores the same way in the only remaining profile), a
+   second profile identical to the first was dead weight, not a real
+   choice. See CHANGELOG.md's 2.0.0 entry for the exact corpus repos this
+   moved, including pass→fail flips.
+2. **`pwscore/no-coordinate-click` is a warning (0.4 demerit), not an
+   error (1.0).** The 50-repo corpus surfaced a real false-positive
+   class: two infinite-canvas editors (tldraw, AFFiNE) accounted for
+   428/459 of this rule's hits, and a fixed-pixel `page.mouse.click(x,
+   y)` is the *correct*, only way to interact with canvas content that
+   has no addressable DOM element — not a brittleness anti-pattern there.
+   A full error-level demerit would treat every legitimate canvas
+   interaction as a fully-flawed test; a partial one keeps it a real cost
+   (still visible, still moves the score) without a brittle "is this a
+   canvas app?" heuristic (filename/import sniffing) that would itself
+   become a new gameability surface — name your spec file to dodge it.
+3. **Inline `eslint-disable` suppression comments are now a demerit,
+   not invisible.** A pre-2.0.0 review found this project's own docs
+   recommending `// eslint-disable-next-line pwscore/no-coordinate-click`
+   as an escape hatch, while every rule this package ships can in fact be
+   silenced the same way — defeating the score for whatever it hides.
+   `pwscore/eslint-disable-comment` reports the presence of any
+   suppression directive (not, yet, which specific rule it targets — a
+   documented known limitation, see VALIDATION.md).
+
+Together these move `standard` scores — see CHANGELOG.md's 2.0.0 entry
+for the "scores changed" breakdown, and VALIDATION.md for the full
+before/after table across all 50 corpus repos, including which ones flip
+from pass to fail at the default threshold.
 
 ## Why v3
 

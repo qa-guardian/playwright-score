@@ -14,7 +14,7 @@ suspicious as a bug in the scorer until proven otherwise.
 ```bash
 npm run build
 bash scripts/validate-corpus.sh            # profile=standard threshold=80
-bash scripts/validate-corpus.sh guardian 75
+bash scripts/validate-corpus.sh standard 75
 ```
 
 Each entry is a fresh, shallow, sparse clone of the real repo (only the
@@ -23,7 +23,7 @@ committed to this repository, so there's no third-party source to keep in
 sync or any licensing question to answer. Scores will drift slightly over
 time as these projects' own suites change; that's expected and fine.
 
-## Results (last run: 2026-09-21, Unreleased corpus-50 rules on top of v1.0.0, scoring model v3, `standard` profile, threshold 80)
+## Results (last run: 2026-09-23, 2.0.0, scoring model v4, `standard` profile, threshold 80)
 
 Grown from 17 to 50 repos (QAG-196). Chosen deliberately to include
 well-known heavily-engineered platforms, mid-size company products,
@@ -35,54 +35,54 @@ machine-readable licence file, not that one doesn't exist).
 
 | Repo (source scanned) | Licence | Score | Grade | Pass | Files | Tests | Findings |
 |---|---|---:|:-:|:-:|---:|---:|---:|
-| [plausible/analytics](https://github.com/plausible/analytics/tree/0f362bd84eaa/e2e) | AGPL-3.0 | 98 | A | ✓ | 12 | 71 | 64 |
 | [microsoft/playwright](https://github.com/microsoft/playwright/tree/0facd9234452/examples/todomvc) | Apache-2.0 | 98 | A | ✓ | 24 | 24 | 4 |
-| [penpot/penpot](https://github.com/penpot/penpot/tree/433f8774497a/frontend/playwright) | MPL-2.0 | 96 | A | ✓ | 63 | 504 | 208 |
-| [SigNoz/signoz](https://github.com/SigNoz/signoz/tree/64fff60d7e8c/tests/e2e) | NOASSERTION | 96 | A | ✓ | 51 | 312 | 118 |
+| [plausible/analytics](https://github.com/plausible/analytics/tree/0f362bd84eaa/e2e) | AGPL-3.0 | 98 | A | ✓ | 12 | 71 | 64 |
+| [SigNoz/signoz](https://github.com/SigNoz/signoz/tree/64fff60d7e8c/tests/e2e) | NOASSERTION | 96 | A | ✓ | 51 | 312 | 148 |
 | [dubinc/dub](https://github.com/dubinc/dub/tree/bd69439da068/apps/web/playwright) | NOASSERTION | 96 | A | ✓ | 34 | 365 | 46 |
-| [temporalio/ui](https://github.com/temporalio/ui/tree/ffee0375c167/tests) | MIT | 96 | A | ✓ | 52 | 236 | 189 |
-| [strapi/strapi](https://github.com/strapi/strapi/tree/142d9c6b31f3/tests/e2e) | NOASSERTION | 95 | A | ✓ | 98 | 278 | 187 |
-| [keycloak/keycloak](https://github.com/keycloak/keycloak/tree/525b92e82211/js/apps/admin-ui/test) | Apache-2.0 | 95 | A | ✓ | 72 | 451 | 100 |
+| [penpot/penpot](https://github.com/penpot/penpot/tree/433f8774497a/frontend/playwright) | MPL-2.0 | 96 | A | ✓ | 63 | 504 | 232 |
+| [temporalio/ui](https://github.com/temporalio/ui/tree/ffee0375c167/tests) | MIT | 96 | A | ✓ | 52 | 236 | 199 |
+| [keycloak/keycloak](https://github.com/keycloak/keycloak/tree/525b92e82211/js/apps/admin-ui/test) | Apache-2.0 | 95 | A | ✓ | 72 | 451 | 102 |
 | [storybookjs/storybook](https://github.com/storybookjs/storybook/tree/0365105152a6/code/e2e-internal) | MIT | 95 | A | ✓ | 7 | 26 | 13 |
-| [WordPress/gutenberg](https://github.com/WordPress/gutenberg/tree/736cfd3daf75/test/e2e) | NOASSERTION | 94 | A | ✓ | 338 | 1,902 | 1,611 |
-| [n8n-io/n8n](https://github.com/n8n-io/n8n/tree/4e3a7720cf85/packages/testing/playwright) | NOASSERTION | 94 | A | ✓ | 276 | 1,023 | 65 |
-| [freeCodeCamp/freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp/tree/42e6beeed4e9/e2e) | BSD-3-Clause | 94 | A | ✓ | 85 | 286 | 179 |
-| [documenso/documenso](https://github.com/documenso/documenso/tree/c81bc72c4c27/packages/app-tests) | AGPL-3.0 | 93 | A | ✓ | 132 | 1,156 | 713 |
+| [strapi/strapi](https://github.com/strapi/strapi/tree/142d9c6b31f3/tests/e2e) | NOASSERTION | 95 | A | ✓ | 98 | 278 | 190 |
+| [freeCodeCamp/freeCodeCamp](https://github.com/freeCodeCamp/freeCodeCamp/tree/42e6beeed4e9/e2e) | BSD-3-Clause | 94 | A | ✓ | 85 | 286 | 187 |
+| [n8n-io/n8n](https://github.com/n8n-io/n8n/tree/4e3a7720cf85/packages/testing/playwright) | NOASSERTION | 94 | A | ✓ | 276 | 1,023 | 96 |
+| [WordPress/gutenberg](https://github.com/WordPress/gutenberg/tree/736cfd3daf75/test/e2e) | NOASSERTION | 93 | A | ✓ | 338 | 1,902 | 1,729 |
+| [documenso/documenso](https://github.com/documenso/documenso/tree/c81bc72c4c27/packages/app-tests) | AGPL-3.0 | 93 | A | ✓ | 132 | 1,156 | 739 |
 | [supabase/supabase](https://github.com/supabase/supabase/tree/e1bdcc99dbf8/e2e) | Apache-2.0 | 92 | A | ✓ | 33 | 264 | 222 |
-| [vendure-ecommerce/vendure](https://github.com/vendure-ecommerce/vendure/tree/07d595e1b844/packages/dashboard/e2e) | NOASSERTION | 91 | A | ✓ | 44 | 212 | 364 |
+| [umami-software/umami](https://github.com/umami-software/umami/tree/ec0ff50388c2/tests/e2e) | MIT | 92 | A | ✓ | 8 | 38 | 33 |
 | [coder/coder](https://github.com/coder/coder/tree/47d3e1c52b14/site/e2e) | AGPL-3.0 | 91 | A | ✓ | 41 | 96 | 59 |
 | [twentyhq/twenty](https://github.com/twentyhq/twenty/tree/710f1632ae96/packages/twenty-e2e-testing/tests) | NOASSERTION | 91 | A | ✓ | 9 | 17 | 24 |
+| [vendure-ecommerce/vendure](https://github.com/vendure-ecommerce/vendure/tree/07d595e1b844/packages/dashboard/e2e) | NOASSERTION | 91 | A | ✓ | 44 | 212 | 364 |
 | [wireapp/wire-webapp](https://github.com/wireapp/wire-webapp/tree/9b0f1ea71e1d/apps/webapp/test/e2e_tests) | GPL-3.0 | 91 | A | ✓ | 79 | 378 | 156 |
-| [woocommerce/woocommerce](https://github.com/woocommerce/woocommerce/tree/aa5308378124/plugins/woocommerce/tests/e2e) | NOASSERTION | 90 | A | ✓ | 213 | 785 | 1,200 |
-| [umami-software/umami](https://github.com/umami-software/umami/tree/ec0ff50388c2/tests/e2e) | MIT | 90 | A | ✓ | 8 | 38 | 33 |
-| [element-hq/element-web](https://github.com/element-hq/element-web/tree/3153cc6ae123/apps/web/playwright) | AGPL-3.0 | 89 | B | ✓ | 154 | 753 | 1,084 |
-| [PostHog/posthog](https://github.com/PostHog/posthog/tree/854a4262ec8b/playwright) | NOASSERTION | 88 | B | ✓ | 43 | 120 | 274 |
-| [grafana/grafana](https://github.com/grafana/grafana/tree/1fd1d6398053/e2e-playwright) | AGPL-3.0 | 87 | B | ✓ | 213 | 680 | 872 |
-| [clerk/javascript](https://github.com/clerk/javascript/tree/81a641348101/integration/tests) | MIT | 87 | B | ✓ | 130 | 579 | 452 |
-| [Studio-Saelix/sencho](https://github.com/Studio-Saelix/sencho/tree/489e1a9a9a90/e2e) | AGPL-3.0 | 86 | B | ✓ | 32 | 191 | 336 |
-| [Automattic/wp-calypso](https://github.com/Automattic/wp-calypso/tree/af6245bcd266/test/e2e) | GPL-2.0 | 85 | B | ✓ | 122 | 187 | 194 |
-| [formbricks/formbricks](https://github.com/formbricks/formbricks/tree/55ade3bc2a5a/apps/web/playwright) | NOASSERTION | 85 | B | ✓ | 48 | 131 | 428 |
-| [usebruno/bruno](https://github.com/usebruno/bruno/tree/f1b433f7b06f/tests) | MIT | 84 | B | ✓ | 479 | 1,564 | 3,339 |
-| [mattermost/mattermost](https://github.com/mattermost/mattermost/tree/f0b63f8ed11e/e2e-tests/playwright) | NOASSERTION | 84 | B | ✓ | 354 | 1,215 | 1,925 |
-| [saleor/saleor-dashboard](https://github.com/saleor/saleor-dashboard/tree/3508127f50dc/playwright) | BSD-3-Clause | 84 | B | ✓ | 39 | 158 | 66 |
-| [handsontable/handsontable](https://github.com/handsontable/handsontable/tree/40c2738b2e87/tests/e2e) | NOASSERTION | 83 | B | ✓ | 152 | 1,469 | 169 |
-| [RocketChat/Rocket.Chat](https://github.com/RocketChat/Rocket.Chat/tree/828fa06f72d5/apps/meteor/tests/e2e) | NOASSERTION | 83 | B | ✓ | 175 | 1,030 | 792 |
+| [woocommerce/woocommerce](https://github.com/woocommerce/woocommerce/tree/aa5308378124/plugins/woocommerce/tests/e2e) | NOASSERTION | 90 | A | ✓ | 213 | 785 | 1,245 |
+| [element-hq/element-web](https://github.com/element-hq/element-web/tree/3153cc6ae123/apps/web/playwright) | AGPL-3.0 | 89 | B | ✓ | 154 | 753 | 1,100 |
+| [PostHog/posthog](https://github.com/PostHog/posthog/tree/854a4262ec8b/playwright) | NOASSERTION | 87 | B | ✓ | 43 | 120 | 278 |
+| [clerk/javascript](https://github.com/clerk/javascript/tree/81a641348101/integration/tests) | MIT | 87 | B | ✓ | 130 | 579 | 472 |
+| [grafana/grafana](https://github.com/grafana/grafana/tree/1fd1d6398053/e2e-playwright) | AGPL-3.0 | 87 | B | ✓ | 213 | 680 | 954 |
+| [formbricks/formbricks](https://github.com/formbricks/formbricks/tree/55ade3bc2a5a/apps/web/playwright) | NOASSERTION | 85 | B | ✓ | 48 | 131 | 433 |
+| [Automattic/wp-calypso](https://github.com/Automattic/wp-calypso/tree/af6245bcd266/test/e2e) | GPL-2.0 | 84 | B | ✓ | 122 | 187 | 198 |
+| [Studio-Saelix/sencho](https://github.com/Studio-Saelix/sencho/tree/489e1a9a9a90/e2e) | AGPL-3.0 | 84 | B | ✓ | 32 | 191 | 355 |
+| [mattermost/mattermost](https://github.com/mattermost/mattermost/tree/f0b63f8ed11e/e2e-tests/playwright) | NOASSERTION | 84 | B | ✓ | 354 | 1,215 | 2,003 |
+| [saleor/saleor-dashboard](https://github.com/saleor/saleor-dashboard/tree/3508127f50dc/playwright) | BSD-3-Clause | 84 | B | ✓ | 39 | 158 | 67 |
+| [usebruno/bruno](https://github.com/usebruno/bruno/tree/f1b433f7b06f/tests) | MIT | 84 | B | ✓ | 479 | 1,564 | 3,373 |
+| [RocketChat/Rocket.Chat](https://github.com/RocketChat/Rocket.Chat/tree/828fa06f72d5/apps/meteor/tests/e2e) | NOASSERTION | 83 | B | ✓ | 175 | 1,030 | 795 |
+| [handsontable/handsontable](https://github.com/handsontable/handsontable/tree/40c2738b2e87/tests/e2e) | NOASSERTION | 83 | B | ✓ | 152 | 1,469 | 245 |
 | [novuhq/novu](https://github.com/novuhq/novu/tree/6fc9d02ea001/apps/dashboard/tests) | NOASSERTION | 82 | B | ✓ | 2 | 2 | 3 |
-| [microsoft/vscode](https://github.com/microsoft/vscode/tree/7b24b6303075/test/componentFixtures/playwright) | MIT | 81 | B | ✓ | 6 | 16 | 42 |
 | [appsmithorg/appsmith](https://github.com/appsmithorg/appsmith/tree/a72a95b73a99/app/client/playwright/tests) | Apache-2.0 | 80 | B | ✓ | 6 | 15 | 9 |
-| [payloadcms/payload](https://github.com/payloadcms/payload/tree/5f9bcac2f07b/test/admin/e2e) | MIT | 79 | C | ✗ FAIL | 8 | 271 | 652 |
-| [immich-app/immich](https://github.com/immich-app/immich/tree/f48d4b332127/e2e/src/specs) | AGPL-3.0 | 78 | C | ✗ FAIL | 13 | 43 | 40 |
-| [withastro/astro](https://github.com/withastro/astro/tree/40896acb7449/packages/astro/e2e) | NOASSERTION | 75 | C | ✗ FAIL | 50 | 311 | 994 |
-| [openplayerjs/openplayerjs](https://github.com/openplayerjs/openplayerjs/tree/ee1673106237/e2e) | MIT | 73 | C | ✗ FAIL | 8 | 77 | 39 |
-| [tldraw/tldraw](https://github.com/tldraw/tldraw/tree/a6cfe996e1df/apps/examples/e2e) | NOASSERTION | 73 | C | ✗ FAIL | 35 | 213 | 359 |
-| [calcom/cal.com](https://github.com/calcom/cal.com/tree/54343aa685ae/apps/web/playwright) | MIT | 72 | C | ✗ FAIL | 53 | 253 | 1,259 |
-| [BuilderIO/builder](https://github.com/BuilderIO/builder/tree/51cd0521bbf1/packages/sdks-tests/src/e2e-tests) | MIT | 72 | C | ✗ FAIL | 52 | 198 | 438 |
-| [toeverything/AFFiNE](https://github.com/toeverything/AFFiNE/tree/d897bb3d8409/tests/blocksuite/e2e) | NOASSERTION | 71 | C | ✗ FAIL | 99 | 1,013 | 1,644 |
-| [wekan/wekan](https://github.com/wekan/wekan/tree/84414711b7ae/tests/playwright/specs) | MIT | 71 | C | ✗ FAIL | 91 | 400 | 1,423 |
-| [QwikDev/qwik](https://github.com/QwikDev/qwik/tree/02b5c6b18fe7/e2e) | MIT | 70 | C | ✗ FAIL | 69 | 449 | 1,646 |
+| [payloadcms/payload](https://github.com/payloadcms/payload/tree/5f9bcac2f07b/test/admin/e2e) | MIT | 79 | C | ✗ FAIL | 8 | 271 | 654 |
+| [immich-app/immich](https://github.com/immich-app/immich/tree/f48d4b332127/e2e/src/specs) | AGPL-3.0 | 78 | C | ✗ FAIL | 13 | 43 | 42 |
+| [microsoft/vscode](https://github.com/microsoft/vscode/tree/7b24b6303075/test/componentFixtures/playwright) | MIT | 77 | C | ✗ FAIL | 6 | 16 | 46 |
+| [withastro/astro](https://github.com/withastro/astro/tree/40896acb7449/packages/astro/e2e) | NOASSERTION | 75 | C | ✗ FAIL | 50 | 311 | 997 |
+| [BuilderIO/builder](https://github.com/BuilderIO/builder/tree/51cd0521bbf1/packages/sdks-tests/src/e2e-tests) | MIT | 72 | C | ✗ FAIL | 52 | 198 | 440 |
+| [openplayerjs/openplayerjs](https://github.com/openplayerjs/openplayerjs/tree/ee1673106237/e2e) | MIT | 72 | C | ✗ FAIL | 8 | 77 | 47 |
+| [tldraw/tldraw](https://github.com/tldraw/tldraw/tree/a6cfe996e1df/apps/examples/e2e) | NOASSERTION | 72 | C | ✗ FAIL | 35 | 213 | 518 |
+| [toeverything/AFFiNE](https://github.com/toeverything/AFFiNE/tree/d897bb3d8409/tests/blocksuite/e2e) | NOASSERTION | 72 | C | ✗ FAIL | 99 | 1,013 | 2,024 |
+| [calcom/cal.com](https://github.com/calcom/cal.com/tree/54343aa685ae/apps/web/playwright) | MIT | 71 | C | ✗ FAIL | 53 | 253 | 1,303 |
+| [QwikDev/qwik](https://github.com/QwikDev/qwik/tree/02b5c6b18fe7/e2e) | MIT | 70 | C | ✗ FAIL | 69 | 449 | 1,648 |
 | [live-codes/livecodes](https://github.com/live-codes/livecodes/tree/747054828256/e2e) | MIT | 70 | C | ✗ FAIL | 14 | 246 | 180 |
+| [wekan/wekan](https://github.com/wekan/wekan/tree/84414711b7ae/tests/playwright/specs) | MIT | 70 | C | ✗ FAIL | 91 | 400 | 1,475 |
 | [openreplay/openreplay](https://github.com/openreplay/openreplay/tree/3fce37d89113/frontend/tests/playwright) | NOASSERTION | 66 | D | ✗ FAIL | 5 | 5 | 31 |
-| [Flagsmith/flagsmith](https://github.com/Flagsmith/flagsmith/tree/66dc2e9ed00b/frontend/e2e/tests) | BSD-3-Clause | 63 | D | ✗ FAIL | 20 | 27 | 77 |
+| [Flagsmith/flagsmith](https://github.com/Flagsmith/flagsmith/tree/66dc2e9ed00b/frontend/e2e/tests) | BSD-3-Clause | 62 | D | ✗ FAIL | 20 | 27 | 80 |
 | [activepieces/activepieces](https://github.com/activepieces/activepieces/tree/ab8cd5c9069e/packages/tests-e2e) | NOASSERTION | 58 | F | ✗ FAIL | 5 | 5 | 30 |
 | [th3cyb3rhub/TheCyberHub](https://github.com/th3cyb3rhub/TheCyberHub/tree/1cf418654f16/e2e) | NOASSERTION | 56 | F | ✗ FAIL | 11 | 138 | 431 |
 
@@ -92,26 +92,65 @@ entry (it always scores the live default branch, so numbers drift
 slightly over time; that's expected), or
 `playwright-score <path> --format markdown` against your own clone.
 
-**35 pass / 15 fail / 50 total.** 4,159 files, 20,183 tests. Model v3 is
-deliberately stricter than the density models it replaced — see
-METHODOLOGY.md. Adding the four Unreleased rules (`no-timer-sleep`,
-`no-coordinate-click`, `no-trivial-assertion`,
-`no-soft-assertion-only-test`) moved 13/50 repos' scores, net −33 points
-across the corpus (mean −0.66/repo) — real findings on real code, not
-noise: biggest movers were tldraw (−8) and AFFiNE (−6), both from
-`no-coordinate-click`, and activepieces (−5) from one `no-trivial-
-assertion` hit (`expect(true).toBe(true)` in a literal placeholder test).
+**34 pass / 16 fail / 50 total.** 4,159 files, 20,183 tests. Model v3 was
+already deliberately stricter than the density models it replaced (see
+METHODOLOGY.md); v4 tightens it further by scoring the four QAG-196
+gameability rules and the `eslint-disable-comment` finding directly under
+`standard` (owner direction — see CHANGELOG.md's 2.0.0 entry), instead of
+report-only under `standard` as a never-published 1.1.0 had planned.
 
-**Known false-positive class, not fixed**: `no-coordinate-click` flags
-`page.mouse.click(x, y)` unconditionally. That's the right call for a
-typical DOM app (a fixed-pixel click is always brittle there) but it is
-the *correct and only* way to interact with canvas-based apps — tldraw
-and AFFiNE (both infinite-canvas editors) account for 428 of the rule's
-459 hits across this corpus, and in both cases the coordinate click is
+**Against the last actually-published version (1.0.0, model v3, no QAG-196
+rules at all)**: 20/50 repos move. Net **+22** across the corpus, but
+that's almost entirely one repo — Flagsmith moves from a hard-failed 0
+(its 20-spec suite wasn't discovered at all before the `.pw.ts` fix) to a
+real 62/D, +62 on its own. Excluding Flagsmith, the other 19 movers are
+**net −40** (mean −2.1/repo) — real, quality-driven drops, not noise.
+Biggest: tldraw −9, AFFiNE −5, activepieces −5, microsoft/vscode −4,
+Studio-Saelix/sencho −2, cal.com −2, then a tail of thirteen −1s. **Three
+pass→fail flips at the default threshold (80)**: `payloadcms/payload`
+(80→79), `microsoft/vscode` (81→77), and `tldraw/tldraw` (81→72, also the
+corpus's biggest single mover — see the canvas-app note below). Pass rate
+moves from 37/50 (74%) to 34/50 (68%).
+
+**Known false-positive class, mitigated but not eliminated**:
+`no-coordinate-click` flags `page.mouse.click/dblclick/move/down/up(x, y)`
+unconditionally. That's the right call for a typical DOM app (a
+fixed-pixel interaction is always brittle there) but it is the *correct
+and only* way to interact with canvas-based apps — tldraw and AFFiNE
+(both infinite-canvas editors) account for 428 of the rule's 459 hits
+across this corpus, and in both cases the coordinate interaction is
 testing real canvas content with no addressable DOM element, not gaming
-the score. If you maintain a canvas/whiteboard/drawing-tool suite,
-`// eslint-disable-next-line pwscore/no-coordinate-click` with a reason is
-the correct escape hatch — this is a known, accepted trade-off, not a bug.
+the score. As of 2.0.0 this rule is a **warning** (0.4 demerit), not an
+error (1.0), specifically to soften this case — see METHODOLOGY.md's "Why
+v4" for why a severity change was chosen over a canvas-detection
+heuristic. It still costs real points for a canvas-heavy suite (this is
+exactly what flips tldraw from pass to fail above), and there's no
+per-repo override: **this project no longer recommends `// eslint-disable-
+next-line pwscore/no-coordinate-click` as a workaround** — see "Known
+limitations" below for why, and use a per-test-file exemption in your own
+CI config if you maintain a canvas/whiteboard/drawing-tool suite and need
+one.
+
+## Known limitations
+
+- **`pwscore/eslint-disable-comment` reports the presence of a suppression
+  comment, not which specific rule or finding it silences.** It flags
+  every `eslint-disable`/`eslint-disable-line`/`eslint-disable-next-line`
+  (block or line form) in a scored file, unconditionally — including one
+  that legitimately silences a rule this package doesn't even bundle
+  (e.g. `@typescript-eslint/no-unused-vars`). This project's own earlier
+  docs recommended `// eslint-disable-next-line
+  pwscore/no-coordinate-click` as an escape hatch for canvas apps (see
+  above); that recommendation is withdrawn as of 2.0.0, precisely because
+  every rule this package ships can be silenced the same way, defeating
+  the score for whatever it hides. Resolving exactly which rule a given
+  comment targets (and whether that rule is even one this scorer emits)
+  would make the finding precise instead of coarse; that's a known,
+  intentional gap for now, not an oversight.
+- **The four QAG-196 rules match specific known patterns, not the general
+  class they're each named for.** See CHANGELOG.md's 2.0.0 entry for
+  exactly which respellings each one catches — any pattern not listed is
+  a false negative this scorer will not see.
 
 ## Bugs found this way, and fixed
 
@@ -168,8 +207,8 @@ a hypothetical:
   `page.waitForTimeout` (same anti-pattern, undetectable by name),
   `page.mouse.click(x, y)` coordinate clicks, asserting on a literal
   constant (`expect(true).toBe(true)`), and a test whose only assertions
-  are `expect.soft(...)`. Fixed by four new rules — see CHANGELOG.md
-  "Unreleased" for exactly what each one catches and the corpus
+  are `expect.soft(...)`. Fixed by four new rules — see CHANGELOG.md's
+  2.0.0 entry for exactly what each one catches and the corpus
   before/after.
 
 See `CHANGELOG.md` for the full, dated history.

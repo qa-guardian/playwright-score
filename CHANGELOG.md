@@ -4,45 +4,97 @@ All notable changes to this project are documented here. Any change that
 alters what a given suite scores is a new scoring-model version (see
 [METHODOLOGY.md](./METHODOLOGY.md)), not a quiet patch.
 
-## Unreleased
+## 2.0.0 — 2026-09-23
+
+**Scoring model v4 — `standard` scores change.** Owner direction: public
+scores should reflect quality, full stop, not be softened to avoid moving
+anyone's number ("I don't care who fails"). This supersedes the 1.1.0
+plan of shipping these same rules as report-only under `standard`; 1.1.0
+was never published. See METHODOLOGY.md's "Why v4" for the full
+reasoning and VALIDATION.md for the complete before/after table across
+all 50 corpus repos, including every pass→fail flip.
 
 Corpus expanded from 17 to 50 real public repos (see
 `scripts/validate-corpus.sh`) — every rule below was checked against real
-findings across all 50 before landing, not just the fixtures. Full
-before/after numbers and the calibration writeup live in
-`.claude/team/reports/2026-09-21-scorer-program.md` (internal).
+findings across all 50 before landing, not just the fixtures.
 
-### Added — four rules closing the QAG-196 gameability gap
-A spec built entirely from these four tricks scored 93/A under model v3
-before this release; none of them cost anything.
-- **`pwscore/no-timer-sleep`** (error, `playwrightHygiene`) — flags
-  `await new Promise((resolve) => setTimeout(resolve, ms))`. The same
-  hard-coded sleep `playwright/no-wait-for-timeout` already catches for
-  `page.waitForTimeout(ms)`, just spelled a way that rule can't see.
-- **`pwscore/no-coordinate-click`** (error, `playwrightHygiene`) — flags
-  `page.mouse.click(x, y)` (or `this.page.mouse.click(...)`, any object
-  ending in `.mouse.click`). Clicks a viewport coordinate instead of an
-  element; brittle by construction and previously had no rule at all.
-- **`pwscore/no-trivial-assertion`** (error, `assertions`) — flags
-  `expect(<literal>)`/`expect.soft(<literal>)`/`expect.poll(<literal>)`,
-  e.g. `expect(true).toBe(true)`, `expect(1).toBe(1)`,
-  `expect(5).toBeDefined()`. Always passes, satisfies
-  `playwright/expect-expect`, verifies nothing about the app.
-- **`pwscore/no-soft-assertion-only-test`** (warning, `assertions`,
-  **report-only under `standard`**) — flags a test whose every assertion
-  is `expect.soft(...)`, so a failed check never fails the run. Soft
-  assertions are a legitimate, deliberate choice (gather every problem in
-  one pass), not a defect — this is visible in every profile's findings
-  but only counts toward the score under the new `strict` profile.
+### Scores changed
+`standard` scores are **not** unchanged in this release (that was 1.1.0's
+promise; it's void under v4). Against the last actually-published version
+(1.0.0, model v3, none of these rules): 20/50 corpus repos move. Net
+**+22** across the corpus, but that's almost entirely Flagsmith's `.pw.ts`
+discovery fix alone (+62, previously hard-failed at 0 — its 20-spec suite
+wasn't found at all). Excluding Flagsmith, the other 19 movers are **net
+−40** (mean −2.1/repo) — real, quality-driven drops. Biggest: tldraw −9,
+AFFiNE −5, activepieces −5, microsoft/vscode −4, sencho −2, cal.com −2,
+then thirteen repos at −1. **Three pass→fail flips** at the default
+threshold (80): `payloadcms/payload` (80→79), `microsoft/vscode`
+(81→77), `tldraw/tldraw` (81→72). Pass rate: 37/50 (74%) → 34/50 (68%).
+See VALIDATION.md for the full per-repo table and the "Known
+limitations" this release documents rather than papers over. Two
+acceptance bars now guard against these rules over-correcting: Playwright's
+own official examples must still score >= 90/A (see
+`tests/official-examples.test.ts`, vendored from microsoft/playwright),
+and a hand-written "gold" fixture must still reach exactly 100.
 
-### Added — `strict` profile
-A second public profile, same four dimensions and weights as `standard`.
-The only difference: `pwscore/no-soft-assertion-only-test` counts as a
-real demerit instead of report-only. Everywhere else in the codebase
-(dimension weights, thresholds, rule set) `strict` is identical to
-`standard` — it exists so a contentious, opinionated check has a home
-without moving the public default. `--profile strict` on the CLI;
-`profile: 'strict'` via the library API.
+### Added — four rules narrowing the QAG-196 gameability gap (scored under `standard`)
+Narrowing, not closing: each rule matches specific known patterns (see the
+respellings each one closed in this same release), not the general class
+of "code that fakes stability or coverage" — a determined author can
+likely still find an unmatched spelling. Real signal on real code, not a
+guarantee nothing slips through.
+- **`pwscore/no-timer-sleep`** (error) — flags a hard-coded sleep
+  disguised past `playwright/no-wait-for-timeout`: `await new
+  Promise((resolve) => setTimeout(resolve, ms))`, its `globalThis.
+  setTimeout` and wrapped-callback (`setTimeout(() => resolve(), ms)`)
+  respellings, and the unrelated but equally invisible `node:timers/
+  promises` sleep (`await setTimeout(ms)`).
+- **`pwscore/no-coordinate-click`** (**warning**, not error — see below)
+  — flags coordinate-based mouse interaction (`page.mouse.click/dblclick/
+  move/down/up(x, y)`, including a destructured `const { mouse } = page`
+  binding) in place of a locator. **Known false positive, mitigated, not
+  eliminated**: this is also the *correct* way to interact with
+  canvas-based apps (whiteboard/drawing-tool suites with no addressable
+  DOM element) — two infinite-canvas editors in the corpus (tldraw,
+  AFFiNE) account for 428/459 of this rule's hits. Demoted to a
+  warning-level (0.4, not 1.0) demerit rather than skipped for canvas
+  apps by heuristic, which would itself become a new gameability surface
+  — see METHODOLOGY.md's "Why v4" and VALIDATION.md's "Known
+  limitations".
+- **`pwscore/no-trivial-assertion`** (error) — flags an assertion whose
+  subject and matcher combination can only ever pass regardless of
+  anything the app under test does (`expect(true).toBe(true)`,
+  `expect([]).toEqual([])`, `` expect(`x`).toBe(`x`) ``, `expect(1 +
+  1).toBe(2)`). Always passes, satisfies `playwright/expect-expect`,
+  verifies nothing about the app. Never flags a deliberate force-fail
+  assertion that always *fails* (`expect(true).toBe(false)`,
+  `expect(true, msg).toBeFalsy()`).
+- **`pwscore/no-soft-assertion-only-test`** (warning) — flags a test
+  whose every assertion is `expect.soft(...)`, so a failed check never
+  fails the run. `expect.poll(...)` counts as a hard assertion (a failed
+  poll still throws). Soft assertions are a legitimate, deliberate choice
+  (gather every problem in one pass) in many suites, but a warning-level
+  (not error) demerit as the default now that it's scored, not report-
+  only.
+
+### Added — inline `eslint-disable` comments are now a finding, not invisible
+`pwscore/eslint-disable-comment` (warning) flags every ESLint suppression-
+directive comment (`eslint-disable`, `eslint-disable-line`,
+`eslint-disable-next-line`, block or line form) in a scored file — a real
+demerit, same as everything else in this release. **Known limitation**:
+it reports the presence of the comment, not which specific rule or
+finding it silences, and does not itself prevent ESLint from actually
+suppressing the underlying finding for that run — see VALIDATION.md.
+
+### Removed — `strict` profile
+1.1.0 (never published) planned a `strict` profile to gate the four rules
+above and the `eslint-disable-comment` finding behind an opt-in, leaving
+`standard` unchanged. With all of them scored under `standard` directly
+as of v4, `strict` would be byte-for-byte identical to `standard` —
+nothing left to gate. `--profile strict` on the CLI now errors with a
+migration message; the library API degrades a legacy `'strict'` string
+to `standard` weights, same fallback as the `guardian` profile's removal
+in 1.0.0.
 
 ### Fixed — `.pw.ts` spec discovery
 Directory/glob discovery now recognizes `*.pw.ts` (joining `.spec.`,
@@ -52,13 +104,17 @@ Directory/glob discovery now recognizes `*.pw.ts` (joining `.spec.`,
 healthy, populated suite, the same failure mode `.e2e.ts`/`.e2e-spec.ts`
 were fixed for in 1.0.0 and its predecessors.
 
-### Investigated, not changed — `guardian/no-generic-long-timeout`
-Not a public-package change (the `guardian` profile is QA Guardian's own
-private layer, see `playwright_runner/app/core/guardian-score.ts`), noted
-here because it was found in the same pass: model v3's per-test demerit
-cap means 3 warning-level occurrences of this rule alone zero an entire
-25-point dimension, regardless of how many more pile up. Demoted to
-report-only privately; see the linked report for the before/after.
+### Added — acceptance bars: official examples score high, 100 is reachable
+`tests/official-examples.test.ts` vendors unmodified (attribution header
+only) specs from microsoft/playwright (Apache-2.0; see
+`fixtures/playwright-official/NOTICE.md`) and asserts each scores >= 90
+and grades A under `standard` — three `examples/todomvc` specs (100/A
+each) and `examples/github-api/tests/test-api.spec.ts` (97/A).
+`examples/svgomg/tests/example.spec.ts` was investigated and excluded
+(79/C, genuine non-idiomatic CSS/text-selector usage predating current
+Playwright locator guidance, not a scorer bug — documented in NOTICE.md).
+A new hand-written `fixtures/gold.spec.ts` scores exactly 100 with zero
+findings, proving 100 is reachable, not just a theoretical ceiling.
 
 ## 1.0.0 — 2026-08-28
 

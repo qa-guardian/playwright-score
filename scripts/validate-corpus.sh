@@ -48,9 +48,12 @@ CORPUS=(
   # as above — real @playwright/test usage, >=5 specs, licence recorded
   # per repo in VALIDATION.md (read-only scoring, nothing here is
   # redistributed). Found via GitHub tree/code search for
-  # playwright.config.* and hand-verified (not every "e2e" directory
-  # found this way turned out to be Playwright — see VALIDATION.md's
-  # "excluded on inspection" list for the ones that weren't).
+  # playwright.config.* and hand-verified: not every "e2e"-named
+  # directory found this way turned out to actually be a Playwright
+  # suite (some were Cypress, some vitest/jest with a coincidentally
+  # similar layout) — those were simply left out of the list below
+  # rather than tracked separately, since the corpus is defined by what
+  # it includes.
   "Formbricks|formbricks/formbricks|apps/web/playwright"
   "Element (Matrix client)|element-hq/element-web|apps/web/playwright"
   "AFFiNE|toeverything/AFFiNE|tests/blocksuite/e2e"
