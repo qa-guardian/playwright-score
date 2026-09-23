@@ -1,6 +1,6 @@
 {
   "name": "@qaguardian/playwright-score",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Deterministic, AI-free Playwright spec quality score — the weighted share of your tests that are clean.",
   "type": "module",
   "main": "./dist/index.js",
@@ -19,10 +19,11 @@
     "dist",
     "METHODOLOGY.md",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc && node -e \"require('fs').chmodSync('dist/cli.js',0o755); require('fs').chmodSync('bin/playwright-score.js',0o755)\"",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc && node -e \"require('fs').chmodSync('dist/cli.js',0o755); require('fs').chmodSync('bin/playwright-score.js',0o755)\"",
     "build:tests": "tsc -p tsconfig.tests.json",
     "test": "npm run build && npm run build:tests && node --test dist-tests/tests/*.js",
     "score": "npm run build && node bin/playwright-score.js",
