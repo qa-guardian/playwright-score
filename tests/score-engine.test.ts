@@ -22,7 +22,7 @@ import os from 'node:os';
 
 describe('scoring model constants', () => {
   it('exposes the model version and demerit units', () => {
-    assert.equal(MODEL.scoreVersion, 'v3');
+    assert.equal(MODEL.scoreVersion, 'v4');
     assert.equal(MODEL.ERROR_DEMERIT, 1.0);
     assert.equal(MODEL.WARNING_DEMERIT, 0.4);
     assert.equal(MODEL.MAX_DEMERIT_PER_TEST, 1.0);
@@ -161,7 +161,7 @@ describe('computeScore clean', () => {
     assert.equal(result.score, 100);
     assert.equal(result.grade, 'A');
     assert.equal(result.pass, true);
-    assert.equal(result.scoreVersion, 'v3');
+    assert.equal(result.scoreVersion, 'v4');
   });
 
   it('is deterministic', () => {

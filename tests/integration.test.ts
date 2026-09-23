@@ -23,6 +23,18 @@ function packageRoot(): string {
 const root = packageRoot();
 const fixtures = path.join(root, 'fixtures');
 
+/** Writes `source` to a throwaway temp spec and scores just that file. */
+async function scoreSource(source: string) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-src-'));
+  try {
+    const file = path.join(dir, 'temp.spec.ts');
+    fs.writeFileSync(file, source);
+    return await scorePaths({ paths: [file], profile: 'standard', threshold: 0, cwd: dir });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 describe('scorePaths integration', () => {
   it('scores good-standard highly', async () => {
     const result = await scorePaths({
@@ -31,7 +43,7 @@ describe('scorePaths integration', () => {
       threshold: 80,
       cwd: root,
     });
-    assert.equal(result.scoreVersion, 'v3');
+    assert.equal(result.scoreVersion, 'v4');
     assert.ok(result.score >= 80, `expected >=80 got ${result.score}: ${JSON.stringify(result.findings.slice(0, 5))}`);
     assert.equal(result.pass, true);
   });
@@ -50,27 +62,34 @@ describe('scorePaths integration', () => {
     assert.ok(result.score < 100);
   });
 
-  it('catches all four QAG-196 gameability tricks (timer sleep, coordinate click, trivial assertion, soft-only test)', async () => {
+  it('catches all four QAG-196 gameability tricks as real, scored findings under standard (model v4 — owner direction: public scores reflect quality, not a report-only compromise)', async () => {
     const result = await scorePaths({
       paths: [path.join(fixtures, 'bad-gameable.spec.ts')],
       profile: 'standard',
       threshold: 80,
       cwd: root,
     });
-    const rules = result.findings.map((f) => f.rule);
-    for (const expected of [
+    const GAMEABILITY_RULES = [
       'pwscore/no-timer-sleep',
       'pwscore/no-coordinate-click',
       'pwscore/no-trivial-assertion',
       'pwscore/no-soft-assertion-only-test',
-    ]) {
+    ];
+    const rules = result.findings.map((f) => f.rule);
+    for (const expected of GAMEABILITY_RULES) {
       assert.ok(rules.includes(expected), `expected ${expected}, got: ${rules.join(', ')}`);
     }
-    // The soft-assertion-only finding is visible but doesn't cost points
-    // under standard.
-    const softFinding = result.findings.find((f) => f.rule === 'pwscore/no-soft-assertion-only-test');
-    assert.equal(softFinding?.reportOnly, true);
-    assert.ok(result.score < 80, `expected a real score hit from the other three, got ${result.score}`);
+    // v4: none of the four is report-only any more — every one is a real
+    // demerit under the one remaining public profile (`standard`). See
+    // profiles.ts and CHANGELOG.md's 2.0.0 entry.
+    for (const rule of GAMEABILITY_RULES) {
+      const finding = result.findings.find((f) => f.rule === rule);
+      assert.ok(!finding?.reportOnly, `expected ${rule} to be a scored (non-reportOnly) finding`);
+    }
+    assert.ok(
+      result.score < 100,
+      `expected a real score hit from all four gameability tricks, got ${result.score}`
+    );
   });
 
   it('the fixed equivalents (real waits, locator clicks, real assertions, mixed hard+soft) score clean', async () => {
@@ -94,31 +113,70 @@ describe('scorePaths integration', () => {
     assert.equal(result.score, 100);
   });
 
-  it('strict profile counts soft-assertion-only as a real demerit; standard does not', async () => {
-    const std = await scorePaths({
-      paths: [path.join(fixtures, 'bad-gameable.spec.ts')],
-      profile: 'standard',
-      threshold: 0,
+  it('no-coordinate-click is a warning-level (partial) demerit, not error-level, to soften the canvas-app false positive', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('coordinate click', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await page.mouse.click(120, 240);\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    const finding = result.findings.find((f) => f.rule === 'pwscore/no-coordinate-click');
+    assert.equal(finding?.severity, 'warning', `expected a warning, not an error: ${JSON.stringify(finding)}`);
+    // A single warning-level finding costs 0.4 of one test's demerit
+    // budget in one dimension: 1 test, 0.4/1 -> 60. A full error-level
+    // demerit would have zeroed the dimension instead (0/1 -> 0).
+    assert.equal(result.dimensions.playwrightHygiene, 60, JSON.stringify(result.dimensions));
+  });
+
+  it("standard-profile scores of the local fixture corpus reflect v4's scored gameability rules (regression guard — locks in the exact numbers so an accidental rule/severity change is caught)", async () => {
+    const EXPECTED_STANDARD_SCORES: Record<string, number> = {
+      'bad-conditional-logic.spec.ts': 73,
+      'bad-gameable.spec.ts': 77,
+      'bad-legacy-selector-actions.spec.ts': 87,
+      'bad-no-expects.spec.ts': 75,
+      'bad-raw-locators.spec.ts': 67,
+      'bad-standard-blanket-skip.spec.ts': 94,
+      'bad-syntax-error.spec.ts': 0, // hard-fail (parse error), not a real score
+      'bad-waits.spec.ts': 40,
+      'good-standard-assertion-helper.spec.ts': 100,
+      'good-standard-conditional-skip.spec.ts': 100,
+      'good-standard-local-assertion-helper.spec.ts': 100,
+      'good-standard-no-gameable.spec.ts': 100,
+      'good-standard-poll-assertion.spec.ts': 100,
+      'good-standard.spec.ts': 100,
+    };
+
+    for (const [name, expectedScore] of Object.entries(EXPECTED_STANDARD_SCORES)) {
+      const result = await scorePaths({
+        paths: [path.join(fixtures, name)],
+        profile: 'standard',
+        threshold: 0,
+        cwd: root,
+      });
+      assert.equal(
+        result.score,
+        expectedScore,
+        `${name}: expected standard score ${expectedScore}, got ${result.score}: ${JSON.stringify(result.findings)}`
+      );
+    }
+  });
+
+  it('a legacy "strict" profile string degrades gracefully to standard weights via the library API (same fallback as the removed "guardian" profile)', async () => {
+    const result = await scorePaths({
+      paths: [path.join(fixtures, 'good-standard.spec.ts')],
+      profile: 'strict' as never,
+      threshold: 80,
       cwd: root,
     });
-    const strict = await scorePaths({
-      paths: [path.join(fixtures, 'bad-gameable.spec.ts')],
-      profile: 'strict',
-      threshold: 0,
-      cwd: root,
-    });
-    assert.equal(
-      std.findings.find((f) => f.rule === 'pwscore/no-soft-assertion-only-test')?.reportOnly,
-      true
-    );
-    assert.equal(
-      strict.findings.find((f) => f.rule === 'pwscore/no-soft-assertion-only-test')?.reportOnly,
-      false
-    );
-    assert.ok(
-      strict.dimensions.assertions <= std.dimensions.assertions,
-      `expected strict's assertions dimension (${strict.dimensions.assertions}) <= standard's (${std.dimensions.assertions})`
-    );
+    assert.ok(result.score >= 0 && result.score <= 100);
+    assert.deepEqual(Object.keys(result.dimensions).sort(), [
+      'assertions',
+      'locators',
+      'playwrightHygiene',
+      'structure',
+    ]);
   });
 
   it('flags no expects', async () => {
@@ -237,23 +295,28 @@ describe('scorePaths integration', () => {
     );
   });
 
-  it('drops noise from eslint-disable comments referencing rules we do not bundle (regression: real-world confusing non-finding)', async () => {
+  it('drops the "Definition for rule ... was not found" ESLint noise for a rule we do not bundle, but still reports the suppression comment itself (regression: real-world confusing non-finding; behavior change: pre-2.0.0 review — suppression comments are no longer invisible)', async () => {
     // // eslint-disable-next-line @typescript-eslint/no-unused-vars is
     // extremely common in real TypeScript code; we only bundle the
     // @typescript-eslint parser, not its rules, so ESLint reports
     // "Definition for rule ... was not found" — a diagnostic about our own
-    // rule coverage, not the spec's quality. Verified against a real file.
+    // rule coverage, not the spec's quality, and still dropped. What's new
+    // as of 2.0.0: the suppression comment itself is now a real, scored
+    // pwscore/eslint-disable-comment finding under standard — see
+    // metrics.ts's findEslintDisableComments and VALIDATION.md.
     const source = `import { test, expect } from '@playwright/test';\n\ntest('x', async ({\n  // eslint-disable-next-line @typescript-eslint/no-unused-vars\n  page,\n}) => {\n  expect(page).toBeDefined();\n});\n`;
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-disable-noise-'));
     try {
       const file = path.join(dir, 'noise.spec.ts');
       fs.writeFileSync(file, source);
       const result = await scorePaths({ paths: [file], profile: 'standard', cwd: dir });
-      assert.equal(
-        result.findings.length,
-        0,
-        `expected no findings: ${JSON.stringify(result.findings)}`
+      assert.deepEqual(
+        result.findings.map((f) => f.rule),
+        ['pwscore/eslint-disable-comment'],
+        `expected only the suppression-comment finding, no rule-coverage noise: ${JSON.stringify(result.findings)}`
       );
+      assert.ok(!result.findings[0].reportOnly);
+      assert.ok(result.score < 100, 'a scored (non-reportOnly) finding must cost points under standard');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -713,5 +776,288 @@ describe('scorePaths integration', () => {
       `conditional skip must not be flagged as conditional-in-test: ${result.findings.map((f) => f.rule).join(', ')}`
     );
     assert.equal(result.pass, true);
+  });
+});
+
+describe('pre-1.1.0 review fixes: no-trivial-assertion is matcher-aware, not just literal-subject-aware', () => {
+  it('does not flag the deliberate force-fail idiom expect(true).toBe(false) (always fails, not always passes)', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('force fails', async () => {\n` +
+        `  expect(true).toBe(false);\n` +
+        `});\n`
+    );
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'pwscore/no-trivial-assertion'),
+      `expected no-trivial-assertion not to fire on a force-fail assertion: ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('does not flag expect(true, msg).toBeFalsy() (a message argument does not change the subject; toBeFalsy on true always fails)', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('force fails with a message', async () => {\n` +
+        `  expect(true, 'unreachable').toBeFalsy();\n` +
+        `});\n`
+    );
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'pwscore/no-trivial-assertion'),
+      `expected no-trivial-assertion not to fire on expect(true, msg).toBeFalsy(): ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('does not flag expect(x).not.toBe(true) style negation when the negated assertion always fails', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('negated force-fail', async () => {\n` +
+        `  expect(true).not.toBe(true);\n` +
+        `});\n`
+    );
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'pwscore/no-trivial-assertion'),
+      `expected no-trivial-assertion not to fire when .not flips an always-true match to always-false: ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('the finding message is accurate: only ever claims "always passes", never fires on an assertion that always fails', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('trivially true', async () => {\n` +
+        `  expect(true).toBe(true);\n` +
+        `});\n`
+    );
+    const finding = result.findings.find((f) => f.rule === 'pwscore/no-trivial-assertion');
+    assert.ok(finding, `expected no-trivial-assertion to fire on expect(true).toBe(true): ${JSON.stringify(result.findings)}`);
+    assert.match(finding!.message, /always passes/i);
+  });
+
+  it('flags expect([]).toEqual([]) (empty-array respelling of a trivial assertion)', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('trivial array equality', async () => {\n` +
+        `  expect([]).toEqual([]);\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-trivial-assertion'),
+      `expected no-trivial-assertion to fire on expect([]).toEqual([]): ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('flags a template-literal respelling of a trivial assertion', async () => {
+    const result = await scoreSource(
+      'import { test, expect } from \'@playwright/test\';\n' +
+        'test(\'trivial template literal\', async () => {\n' +
+        '  expect(`hello`).toBe(`hello`);\n' +
+        '});\n'
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-trivial-assertion'),
+      `expected no-trivial-assertion to fire on a template-literal subject: ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('flags a constant-expression respelling of a trivial assertion (1 + 1)', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('trivial arithmetic', async () => {\n` +
+        `  expect(1 + 1).toBe(2);\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-trivial-assertion'),
+      `expected no-trivial-assertion to fire on expect(1 + 1).toBe(2): ${JSON.stringify(result.findings)}`
+    );
+  });
+});
+
+describe('pre-1.1.0 review fixes: no-timer-sleep respellings', () => {
+  it('flags setTimeout(() => r(), ms) — a no-op wrapper around the resolve callback', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('wrapped resolve sleep', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await new Promise((r) => setTimeout(() => r(), 500));\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-timer-sleep'),
+      `expected no-timer-sleep to fire on setTimeout(() => r(), ms): ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('flags globalThis.setTimeout(resolve, ms)', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('globalThis sleep', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await new Promise((resolve) => globalThis.setTimeout(resolve, 500));\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-timer-sleep'),
+      `expected no-timer-sleep to fire on globalThis.setTimeout(resolve, ms): ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('flags a bare, imported node:timers/promises setTimeout(ms) sleep', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `import { setTimeout as sleep } from 'node:timers/promises';\n` +
+        `test('timers/promises sleep', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await sleep(500);\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-timer-sleep'),
+      `expected no-timer-sleep to fire on an imported node:timers/promises setTimeout(ms): ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('does not flag an unrelated setTimeout import from another module', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `import { setTimeout as sleep } from 'some-other-timers-lib';\n` +
+        `test('unrelated import', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await sleep(500);\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'pwscore/no-timer-sleep'),
+      `expected no-timer-sleep not to fire on a same-named import from an unrelated module: ${JSON.stringify(result.findings)}`
+    );
+  });
+});
+
+describe('pre-1.1.0 review fixes: no-coordinate-click respellings', () => {
+  it('flags a destructured mouse binding (const { mouse } = page; mouse.click(...))', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('destructured mouse click', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  const { mouse } = page;\n` +
+        `  await mouse.click(120, 240);\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-coordinate-click'),
+      `expected no-coordinate-click to fire on a destructured mouse.click: ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('flags page.mouse.dblclick(x, y)', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('coordinate double click', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await page.mouse.dblclick(120, 240);\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-coordinate-click'),
+      `expected no-coordinate-click to fire on page.mouse.dblclick: ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('flags a manual move+down+up sequence at fixed coordinates', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('manual click via move/down/up', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await page.mouse.move(120, 240);\n` +
+        `  await page.mouse.down();\n` +
+        `  await page.mouse.up();\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    const hits = result.findings.filter((f) => f.rule === 'pwscore/no-coordinate-click');
+    assert.equal(
+      hits.length,
+      3,
+      `expected move+down+up to each trip no-coordinate-click, got: ${JSON.stringify(result.findings)}`
+    );
+  });
+});
+
+describe('pre-1.1.0 review fixes: no-soft-assertion-only-test counts expect.poll as a hard assertion', () => {
+  it('does not flag a test whose only assertion is expect.poll(...) (a failed poll still throws)', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('polls for a condition', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await expect.poll(async () => page.title()).toBe('Ready');\n` +
+        `});\n`
+    );
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'pwscore/no-soft-assertion-only-test'),
+      `expected expect.poll to count as a hard assertion: ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('still flags a test mixing expect.soft(...) with expect.poll(...) as nothing (poll is hard) but flags soft-with-no-hard-and-no-poll', async () => {
+    const mixed = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('soft plus poll', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await expect.soft(page.getByRole('heading')).toBeVisible();\n` +
+        `  await expect.poll(async () => page.title()).toBe('Ready');\n` +
+        `});\n`
+    );
+    assert.ok(
+      !mixed.findings.some((f) => f.rule === 'pwscore/no-soft-assertion-only-test'),
+      `expected soft+poll not to be flagged as soft-only: ${JSON.stringify(mixed.findings)}`
+    );
+
+    const softOnly = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('soft only, no poll', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await expect.soft(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      softOnly.findings.some((f) => f.rule === 'pwscore/no-soft-assertion-only-test'),
+      `expected soft-only (no poll) to still be flagged: ${JSON.stringify(softOnly.findings)}`
+    );
+  });
+});
+
+describe('pre-2.0.0 review fixes: inline eslint-disable comments are reported, not invisible', () => {
+  const SOURCE =
+    `import { test, expect } from '@playwright/test';\n` +
+    `test('suppresses a real finding', async ({ page }) => {\n` +
+    `  await page.goto('/app');\n` +
+    `  // eslint-disable-next-line pwscore/no-coordinate-click\n` +
+    `  await page.mouse.click(120, 240);\n` +
+    `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+    `});\n`;
+
+  it('is a real, scored demerit under standard (model v4 — not report-only)', async () => {
+    const result = await scoreSource(SOURCE);
+    const finding = result.findings.find((f) => f.rule === 'pwscore/eslint-disable-comment');
+    assert.ok(finding, `expected pwscore/eslint-disable-comment: ${JSON.stringify(result.findings)}`);
+    assert.ok(!finding!.reportOnly);
+  });
+
+  it('fires once per suppression comment, counting block and line-disable forms alike', async () => {
+    const source =
+      `import { test, expect } from '@playwright/test';\n` +
+      `/* eslint-disable playwright/no-wait-for-timeout */\n` +
+      `test('two suppressions', async ({ page }) => {\n` +
+      `  await page.goto('/app');\n` +
+      `  await page.waitForTimeout(1000); // eslint-disable-line playwright/no-wait-for-timeout\n` +
+      `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+      `});\n`;
+    const result = await scoreSource(source);
+    const hits = result.findings.filter((f) => f.rule === 'pwscore/eslint-disable-comment');
+    assert.equal(hits.length, 2, `expected two suppression-comment findings: ${JSON.stringify(result.findings)}`);
   });
 });
