@@ -182,8 +182,8 @@ sets:
 
 - **`warn`**: log score; never fail the run; findings still inject into heal/generate repair prompts  
 - **`gate`**: fail the run when score &lt; threshold  
-- After AI **generate**, specs below threshold get one automatic **heal** pass with score findings  
-- **Heal** prompts always include score findings when the scorer reports issues  
+- After AI **generate**, every spec is scored; a spec below threshold is repaired with its score findings and re-scored, up to 3 scored attempts (the initial generation plus up to two repairs). A spec still below threshold, or one that could not be scored, is flagged for Guardian review and never silently accepted.
+- **Heal** and repair prompts always include score findings when the scorer reports issues.
 
 ```bash
 # Local from monorepo
