@@ -25,12 +25,42 @@ const CONFIG_FILENAMES = [
 const MAX_ANCESTOR_LOOKUP = 20;
 
 /**
+ * Walks upward from `startDir` to find this scan's repo boundary — the
+ * first ancestor directory that contains a `.git` entry (a directory for a
+ * normal clone, a file for a worktree/submodule — either counts as "this is
+ * a repo root"), or, if none turns up within MAX_ANCESTOR_LOOKUP hops or
+ * before reaching the filesystem root, whichever directory the walk
+ * actually stopped at. A public scorer must never treat an untrusted
+ * scanned repo as a reason to read or glob anything outside that repo —
+ * this is the shared boundary both `findPlaywrightConfig` (never search for
+ * a config above it) and `resolveConfigScopedRoot` (never resolve a
+ * `testDir` above it — see its `repoRoot` parameter) are clamped to.
+ */
+export function findRepoBoundary(startDir: string): string {
+  let dir = startDir;
+  let last = startDir;
+  for (let i = 0; i < MAX_ANCESTOR_LOOKUP; i++) {
+    last = dir;
+    if (fs.existsSync(path.join(dir, '.git'))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) return dir; // reached the filesystem root
+    dir = parent;
+  }
+  return last;
+}
+
+/**
  * Walks upward from `scanRootAbs` (the directory the caller pointed at, or
  * its own directory tree) looking for a playwright.config.* file "at or
  * above" it — the common real-world shape is a monorepo root config one or
- * more levels above the actual spec directory being scanned.
+ * more levels above the actual spec directory being scanned. Never searches
+ * above the repo boundary (see findRepoBoundary): a config living outside
+ * the scanned repo (e.g. a coincidental playwright.config.* sitting in some
+ * unrelated ancestor directory on a shared CI runner) must never be picked
+ * up and applied to this scan.
  */
 export function findPlaywrightConfig(scanRootAbs: string): string | undefined {
+  const boundary = findRepoBoundary(scanRootAbs);
   let dir = scanRootAbs;
   for (let i = 0; i < MAX_ANCESTOR_LOOKUP; i++) {
     for (const name of CONFIG_FILENAMES) {
@@ -41,6 +71,7 @@ export function findPlaywrightConfig(scanRootAbs: string): string | undefined {
         // doesn't exist — try the next filename/directory
       }
     }
+    if (dir === boundary) break; // never search above the repo root
     const parent = path.dirname(dir);
     if (parent === dir) break;
     dir = parent;
@@ -258,13 +289,30 @@ function isAncestorOrSame(ancestor: string, descendant: string): boolean {
  * overlap the requested scan root at all in either direction — the
  * config doesn't describe this scan, so the caller should ignore it
  * entirely rather than force a mismatch.
+ *
+ * `repoRoot` (see findRepoBoundary) clamps `testDirAbs` before any of the
+ * above: a scored repo's own config is untrusted input, and a `testDir`
+ * that resolves outside the repo (an absolute `'/'`, a relative `'../../
+ * ..'` that climbs past the repo root, ...) must never turn into a glob
+ * root — that would let a crafted config make this public tool read or
+ * scan arbitrary parts of the filesystem it's running on. When testDirAbs
+ * falls outside repoRoot, repoRoot itself is used as the effective testDir
+ * instead of rejecting the config outright, so a merely-overshooting
+ * `testDir` still gets *some* config-scoped result (bounded to the repo)
+ * rather than silently falling all the way back to unscoped filename
+ * discovery.
  */
-export function resolveConfigScopedRoot(scanRootAbs: string, testDirAbs: string): string | undefined {
-  if (!isAncestorOrSame(testDirAbs, scanRootAbs) && !isAncestorOrSame(scanRootAbs, testDirAbs)) {
+export function resolveConfigScopedRoot(
+  scanRootAbs: string,
+  testDirAbs: string,
+  repoRoot: string
+): string | undefined {
+  const clampedTestDirAbs = isAncestorOrSame(repoRoot, testDirAbs) ? testDirAbs : repoRoot;
+  if (!isAncestorOrSame(clampedTestDirAbs, scanRootAbs) && !isAncestorOrSame(scanRootAbs, clampedTestDirAbs)) {
     return undefined;
   }
   try {
-    if (fs.statSync(testDirAbs).isDirectory()) return testDirAbs;
+    if (fs.statSync(clampedTestDirAbs).isDirectory()) return clampedTestDirAbs;
   } catch {
     // testDir doesn't exist on disk — nothing to scope to.
   }

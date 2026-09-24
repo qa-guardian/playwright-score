@@ -15,6 +15,7 @@ import {
 import { detectExtendedTestAliases } from './test-aliases.js';
 import {
   findPlaywrightConfig,
+  findRepoBoundary,
   importsPlaywrightTestTransitively,
   parsePlaywrightConfig,
   resolveConfigScopedRoot,
@@ -149,7 +150,8 @@ function expandPaths(
             `Found ${path.relative(cwd, configFile) || configFile} but could not statically parse testDir/testMatch/testIgnore (a dynamic value or unsupported shape) — falling back to filename-based spec discovery for ${path.relative(cwd, abs) || abs}.`
           );
         } else {
-          const scopedRoot = resolveConfigScopedRoot(abs, parsedConfig.testDirAbs);
+          const repoRoot = findRepoBoundary(abs);
+          const scopedRoot = resolveConfigScopedRoot(abs, parsedConfig.testDirAbs, repoRoot);
           if (scopedRoot) {
             globCwd = scopedRoot;
             if (parsedConfig.testMatch) specGlobs = parsedConfig.testMatch;
