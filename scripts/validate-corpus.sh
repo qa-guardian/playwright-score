@@ -7,6 +7,10 @@
 # for the frozen results and the story behind each entry.
 #
 # Usage: bash scripts/validate-corpus.sh [profile] [threshold]
+# Env:   MAX_PARALLEL=4   bounded clone/score concurrency (default 4 — kind
+#                          to both this machine and github.com; each entry
+#                          is an independent fresh clone, scored, then
+#                          deleted, so parallelizing is safe)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CLI="$ROOT/bin/playwright-score.js"
@@ -17,10 +21,16 @@ fi
 
 PROFILE="${1:-standard}"
 THRESHOLD="${2:-80}"
+MAX_PARALLEL="${MAX_PARALLEL:-4}"
 
-# label|repo|sparse-checkout path (also the path scored). Chosen to be
-# well-known, respected projects with a real, populated Playwright suite —
-# not cherry-picked for a good score. See VALIDATION.md.
+# label|repo|sparse-checkout path scored|optional wider sparse-checkout path.
+# The 4th field only exists for the rare entry where the directory actually
+# scored needs a sibling/ancestor file present on disk too (e.g. its own
+# playwright.config.* one level up, for this package's config-scoped
+# discovery to find and apply testMatch) but that wider directory shouldn't
+# itself be the scored root. When omitted, the 3rd field is used for both.
+# Chosen to be well-known, respected projects with a real, populated
+# Playwright suite — not cherry-picked for a good score. See VALIDATION.md.
 CORPUS=(
   "Playwright (own TodoMVC example)|microsoft/playwright|examples/todomvc"
   "n8n|n8n-io/n8n|packages/testing/playwright"
@@ -139,26 +149,69 @@ CORPUS=(
   "Zotero Web Library|zotero/web-library|test/playwright"
   "PRADO PHP Framework|pradosoft/prado|tests/playwright"
   "What Got Done|mtlynch/whatgotdone|e2e"
+  # QAG-196 corpus expansion (2026-09-24): 84 -> 100. Brand-recognition and
+  # competitor pass — see .claude/team/reports/2026-09-24-scorer-corpus-
+  # brand-candidates.md for the full discovery method (gh api tree search
+  # per candidate, spot-read 1-2 spec files to confirm a genuine
+  # @playwright/test import, direct or via a local fixture wrapper) and the
+  # rejected-candidate list. Two entries share a repo with a much larger
+  # *non*-Playwright test population and need the narrower, hand-verified
+  # subpath below, not the parent directory:
+  #   - Adobe: gen2/packages/swc/components also holds Storybook
+  #     interaction tests (*.test.ts, @storybook/test); only *.a11y.spec.ts
+  #     (real @playwright/test) should score. Its own
+  #     gen2/packages/swc/playwright.config.js already restricts
+  #     testMatch to those — sparse-checked-out one level wider than the
+  #     scored path so this package's config-scoped discovery (2.1.0) can
+  #     find and apply it, rather than hand-filtering here.
+  #   - BBC: ws-nextjs-app/ also holds ws-nextjs-app/integration (123 Jest
+  #     *.test.ts unit tests) alongside the real suite; the scored subpath
+  #     already excludes it by directory, no config-scoping needed.
+  # Last four entries are competitors (Playwright orchestration/reporting/
+  # cross-browser vendors) — flagged as such in VALIDATION.md, scored the
+  # same as everyone else.
+  "Nextcloud|nextcloud/server|tests/playwright/e2e"
+  "Ghost|TryGhost/Ghost|e2e/tests"
+  "Pinterest Gestalt|pinterest/gestalt|playwright/accessibility"
+  "Microsoft Fluent UI (web components)|microsoft/fluentui|packages/web-components/src"
+  "The Guardian (dotcom-rendering)|guardian/dotcom-rendering|dotcom-rendering/playwright/tests"
+  "Shopify Hydrogen|shopify/hydrogen|e2e/specs"
+  "Shopify CLI|shopify/cli|packages/e2e/tests"
+  "Adobe Spectrum Web Components|adobe/spectrum-web-components|gen2/packages/swc/components|gen2/packages/swc"
+  "Automattic Jetpack|Automattic/jetpack|projects/plugins/jetpack/tests/e2e/specs"
+  "BBC Simorgh|bbc/simorgh|ws-nextjs-app/playwright"
+  "Google Site Kit WP|google/site-kit-wp|tests/playwright/specs"
+  "Datadog Documentation|DataDog/documentation|hugo/e2e"
+  "Twilio Segment (analytics-next)|segmentio/analytics-next|packages/browser-integration-tests/src"
+  "Checkly (checkly-cli examples) [competitor]|checkly/checkly-cli|examples/advanced-project/src"
+  "Currents (examples) [competitor]|currents-dev/currents-examples|playwright/pnpm/tests"
+  "LambdaTest (playwright-sample) [competitor]|LambdaTest/playwright-sample|playwright-test-ts/tests"
 )
 
-echo "=== playwright-score real-world validation corpus · profile=$PROFILE threshold=$THRESHOLD ==="
+echo "=== playwright-score real-world validation corpus · profile=$PROFILE threshold=$THRESHOLD · parallel=$MAX_PARALLEL ==="
 echo ""
 
-PASS=0
-FAIL=0
-TOTAL=0
-declare -a ROWS
+# One independent clone-score-cleanup per entry, run with bounded
+# concurrency via xargs -P. Each invocation writes its single result line
+# to its own file (never a shared, append-mode file — concurrent short
+# writes are usually safe via O_APPEND but "usually" isn't a validation
+# script's standard) so results can't interleave/corrupt, then those files
+# are concatenated once every entry has finished.
+RESULTS_DIR=$(mktemp -d)
+export CLI PROFILE THRESHOLD RESULTS_DIR
 
-for entry in "${CORPUS[@]}"; do
-  IFS='|' read -r LABEL REPO SUBPATH <<<"$entry"
-  TOTAL=$((TOTAL + 1))
-  WORKDIR=$(mktemp -d)
+score_entry() {
+  local entry="$1"
+  IFS='|' read -r LABEL REPO SUBPATH SPARSE_SUBPATH <<<"$entry"
+  local CLONE_PATH="${SPARSE_SUBPATH:-$SUBPATH}"
+  local OUT_FILE; OUT_FILE=$(mktemp "$RESULTS_DIR/result.XXXXXX")
+  local WORKDIR; WORKDIR=$(mktemp -d)
 
   # Anonymous git clones against a public host are occasionally flaky
   # (transient network/DNS hiccups, brief rate-limiting) independent of
   # anything this tool does — retry a couple of times before giving up,
   # and show the real error on final failure instead of swallowing it.
-  CLONE_OK=0
+  local CLONE_OK=0
   for attempt in 1 2 3; do
     if git clone --filter=blob:none --sparse --depth 1 -q "https://github.com/$REPO.git" "$WORKDIR/repo" 2>"$WORKDIR/clone-err.log"; then
       CLONE_OK=1
@@ -168,24 +221,47 @@ for entry in "${CORPUS[@]}"; do
     sleep 2
   done
   if [[ "$CLONE_OK" -ne 1 ]]; then
-    echo "  SKIP  clone failed after 3 attempts  $LABEL ($REPO)"
-    sed 's/^/         /' "$WORKDIR/clone-err.log"
+    echo "  SKIP  clone failed after 3 attempts  $LABEL ($REPO)" >&2
+    sed 's/^/         /' "$WORKDIR/clone-err.log" >&2
+    echo "SKIP||||||||$(date +%Y-%m-%d)|$LABEL|$REPO|$SUBPATH" >"$OUT_FILE"
     rm -rf "$WORKDIR"
-    continue
+    return
   fi
-  (cd "$WORKDIR/repo" && git sparse-checkout set "$SUBPATH" >/dev/null 2>&1)
+  (cd "$WORKDIR/repo" && git sparse-checkout set "$CLONE_PATH" >/dev/null 2>&1)
+  local SHA; SHA=$(git -C "$WORKDIR/repo" rev-parse HEAD)
 
-  OUT=$(node "$CLI" "$WORKDIR/repo/$SUBPATH" --profile "$PROFILE" --threshold "$THRESHOLD" --format json 2>/dev/null || true)
-  SCORE=$(echo "$OUT" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{try{const j=JSON.parse(s);console.log(j.score+'|'+j.grade+'|'+(j.pass?'PASS':'FAIL')+'|'+j.summary.files+'|'+j.summary.tests+'|'+j.summary.findings)}catch{console.log('?|?|ERR|0|0|0')}})")
+  local OUT; OUT=$(node "$CLI" "$WORKDIR/repo/$SUBPATH" --profile "$PROFILE" --threshold "$THRESHOLD" --format json 2>/dev/null || true)
+  local SCORE; SCORE=$(echo "$OUT" | node -e "let s='';process.stdin.on('data',d=>s+=d);process.stdin.on('end',()=>{try{const j=JSON.parse(s);console.log(j.score+'|'+j.grade+'|'+(j.pass?'PASS':'FAIL')+'|'+j.summary.files+'|'+j.summary.tests+'|'+j.summary.findings)}catch{console.log('?|?|ERR|0|0|0')}})")
   IFS='|' read -r SC GR PS FILES TESTS FC <<<"$SCORE"
-  ROWS+=("$SC|$GR|$PS|$FILES|$TESTS|$FC|$LABEL")
-  if [[ "$PS" == "PASS" ]]; then PASS=$((PASS+1)); else FAIL=$((FAIL+1)); fi
-  echo "  $PS  score=$SC ($GR) files=$FILES tests=$TESTS findings=$FC  $LABEL"
+  echo "RESULT|$SC|$GR|$PS|$FILES|$TESTS|$FC|$SHA|$(date +%Y-%m-%d)|$LABEL|$REPO|$SUBPATH" >"$OUT_FILE"
+  echo "  $PS  score=$SC ($GR) files=$FILES tests=$TESTS findings=$FC sha=${SHA:0:12}  $LABEL" >&2
 
   rm -rf "$WORKDIR"
+}
+export -f score_entry
+
+printf '%s\n' "${CORPUS[@]}" | xargs -P "$MAX_PARALLEL" -I{} bash -c 'score_entry "$@"' _ {}
+
+PASS=0
+FAIL=0
+TOTAL=0
+SKIP=0
+declare -a ROWS
+for f in "$RESULTS_DIR"/result.*; do
+  [[ -e "$f" ]] || continue
+  line=$(cat "$f")
+  TOTAL=$((TOTAL + 1))
+  if [[ "$line" == SKIP* ]]; then
+    SKIP=$((SKIP + 1))
+    continue
+  fi
+  IFS='|' read -r _tag SC GR PS FILES TESTS FC SHA DATE LABEL REPO SUBPATH <<<"$line"
+  ROWS+=("$SC|$GR|$PS|$FILES|$TESTS|$FC|$SHA|$DATE|$LABEL|$REPO|$SUBPATH")
+  if [[ "$PS" == "PASS" ]]; then PASS=$((PASS+1)); else FAIL=$((FAIL+1)); fi
 done
+rm -rf "$RESULTS_DIR"
 
 echo ""
-echo "=== Summary: $PASS pass / $FAIL fail / $TOTAL total (threshold $THRESHOLD) ==="
-echo "score,grade,result,files,tests,findings,repo"
+echo "=== Summary: $PASS pass / $FAIL fail / $SKIP skip / $TOTAL total (threshold $THRESHOLD) ==="
+echo "score,grade,result,files,tests,findings,sha,date,repo,gh_repo,subpath"
 for r in "${ROWS[@]}"; do echo "$r"; done
