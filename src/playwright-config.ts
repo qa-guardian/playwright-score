@@ -300,6 +300,55 @@ const RESOLVE_FILE_CAP = 100;
  * unresolvable import as "not a test" turned a correctly-configured real
  * suite into a hard 0-files fail.
  */
+/**
+ * Pulls the string-literal specifier out of a CommonJS `require('x')` call
+ * expression (any position — a bare `require(...)`, not just a call whose
+ * result is assigned to something).
+ */
+function requireCallSpecifier(node: Record<string, unknown> | undefined | null): string | undefined {
+  if (!node || node.type !== 'CallExpression') return undefined;
+  const callee = (node as { callee?: Record<string, unknown> }).callee;
+  if (callee?.type !== 'Identifier' || (callee as { name?: string }).name !== 'require') return undefined;
+  const args = (node as { arguments?: Array<Record<string, unknown>> }).arguments ?? [];
+  const arg = args[0];
+  if (arg?.type === 'Literal' && typeof (arg as { value?: unknown }).value === 'string') {
+    return (arg as { value: string }).value;
+  }
+  return undefined;
+}
+
+/**
+ * Top-level-only `require(...)` specifiers in a CommonJS file — mirrors the
+ * ES `import`/`export ... from` sources this function already walks at the
+ * same (non-nested) depth. Covers the two shapes real fixtures/spec files
+ * actually use: `const { test } = require('./x')` and a bare
+ * `require('./x')` statement. Verified against a real repo
+ * (wekan/wekan's `tests/playwright/`, plain CommonJS `.js` specs/fixtures,
+ * no `import` anywhere) that this function silently zeroed to "not a
+ * Playwright spec" for every file before this fix — `hasAnyRelativeImport`
+ * never became true (no ES import syntax present at all), so the "no
+ * @playwright/test found + nothing to resolve" fallback read as definitive
+ * negative evidence instead of the true reason: this loop just wasn't
+ * looking at CommonJS's own import syntax.
+ */
+function requireSpecifiersInBody(body: Array<Record<string, unknown>>): string[] {
+  const specifiers: string[] = [];
+  for (const node of body) {
+    if (node.type === 'ExpressionStatement') {
+      const spec = requireCallSpecifier((node as { expression?: Record<string, unknown> }).expression);
+      if (spec) specifiers.push(spec);
+      continue;
+    }
+    if (node.type === 'VariableDeclaration') {
+      for (const decl of (node as { declarations?: Array<{ init?: Record<string, unknown> | null }> }).declarations ?? []) {
+        const spec = requireCallSpecifier(decl.init);
+        if (spec) specifiers.push(spec);
+      }
+    }
+  }
+  return specifiers;
+}
+
 export function importsPlaywrightTestTransitively(
   file: string,
   source: string,
@@ -326,12 +375,17 @@ export function importsPlaywrightTestTransitively(
       everyRelativeImportResolved = false;
       continue;
     }
-    for (const node of ast.body ?? []) {
+    const body = ast.body ?? [];
+    const requireSrcs = requireSpecifiersInBody(body);
+    for (const node of body) {
       if (node.type !== 'ImportDeclaration' && node.type !== 'ExportNamedDeclaration' && node.type !== 'ExportAllDeclaration') {
         continue;
       }
       const src = (node as { source?: { value?: unknown } }).source?.value;
       if (typeof src !== 'string') continue;
+      requireSrcs.push(src);
+    }
+    for (const src of requireSrcs) {
       if (src === '@playwright/test') return true;
       if (!src.startsWith('.')) continue;
       hasAnyRelativeImport = true;

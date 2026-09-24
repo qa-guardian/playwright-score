@@ -1656,6 +1656,45 @@ describe('2.1.0: spec discovery honors the target\'s own playwright.config testD
     }
   });
 
+  it('a plain CommonJS suite (require(), not import) is recognized by the transitive-@playwright/test-import safety net, same as an ES-module one (regression: wekan/wekan — every spec.js does const { test, expect } = require(\'../fixtures\'), fixtures.js does const { test: base } = require(\'@playwright/test\'); the safety net only walked ImportDeclaration/ExportNamedDeclaration nodes, so a 100%-CommonJS suite found zero ES imports anywhere, read that as definitive negative evidence, and hard-failed the entire real suite to 0 files)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-config-commonjs-require-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'specs'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'playwright.config.js'),
+        `const { defineConfig } = require('@playwright/test');\n` +
+          `module.exports = defineConfig({\n` +
+          `  testDir: './specs',\n` +
+          `  testMatch: '**/*.e2e.js',\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'fixtures.js'),
+        `'use strict';\n` +
+          `const { test: base } = require('@playwright/test');\n` +
+          `module.exports = { test: base, expect: base.expect };\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'specs', 'login.e2e.js'),
+        `'use strict';\n` +
+          `const { test, expect } = require('../fixtures');\n` +
+          `test('logs in', async ({ page }) => {\n` +
+          `  await expect(page).toHaveTitle('x');\n` +
+          `});\n`
+      );
+
+      const result = await scorePaths({ paths: [path.join(dir, 'specs')], profile: 'standard', cwd: dir });
+      assert.equal(
+        result.summary.files,
+        1,
+        `expected login.e2e.js to be kept (real @playwright/test suite reached only via require(), not import), got ${result.summary.files}`
+      );
+      assert.equal(result.summary.tests, 1);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('testDir above the scanned directory with a testMatch pattern anchored to real path segments (not a bare basename) still resolves correctly, and results stay scoped to the caller\'s own narrower directory (regression: PostHog/posthog — testDir: "..", testMatch: ["playwright/e2e/**/*.spec.ts", "products/*/frontend/e2e/**/*.spec.ts"]; globbing from the caller\'s narrower directory instead of testDir made the path-anchored pattern never match anything)', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-config-testdir-above-'));
     try {
