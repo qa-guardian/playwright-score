@@ -116,7 +116,17 @@ CORPUS=(
   # literal testDir in the handful of cases where they differ (compiled
   # output dirs, dynamic testDir expressions, BDD configs excluded).
   "Apache APISIX Dashboard|apache/apisix-dashboard|e2e/tests"
-  "Apache Superset|apache/superset|superset-frontend/playwright/tests"
+  # Sparse-checked-out one level wider than scored (4th field): its
+  # test.extend() fixture (superset-frontend/playwright/helpers/fixtures/
+  # testAssets.ts, testWithAssets(...)) is a *sibling* of tests/, not
+  # inside it — 2.1.0's cross-file alias detection (test-aliases.ts) needs
+  # that file present on disk to follow the import, same reasoning as
+  # Adobe's entry above. Found 2026-09-24 re-scoring the 84->100 pass: this
+  # repo's score didn't move at all under 2.1.0 with just tests/ sparse-
+  # checked-out (the fixtures file, and the argos-ci/argos-style false
+  # positive it causes, simply wasn't fetched) — re-confirmed as fixed once
+  # this wider path was added.
+  "Apache Superset|apache/superset|superset-frontend/playwright/tests|superset-frontend/playwright"
   "Eclipse Theia|eclipse-theia/theia|examples/playwright/src/tests"
   "GLPI|glpi-project/glpi|tests/e2e/specs"
   "HashiCorp Vault UI|hashicorp/vault|ui/e2e"
