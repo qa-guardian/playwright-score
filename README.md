@@ -32,7 +32,8 @@ and every one of the 100 entries, not just the 15 shown below).
 **100 suites · 7,281 files · 39,059 tests · 65/100 pass (80% threshold) ·
 tested on 2026-09-24**
 
-Top 10 scorers:
+Top scorers (everyone at 97+; the next tier down is a 6-way tie at 96 — see
+VALIDATION.md for the full 100):
 
 | Repo (source scanned) | Score | Grade | Result |
 |---|---:|:-:|:-:|
@@ -45,7 +46,6 @@ Top 10 scorers:
 | [cloudflare/templates](https://github.com/cloudflare/templates/tree/a0bb6ef9a990/playwright-tests) | 97/100 | A | PASS |
 | [glpi-project/glpi](https://github.com/glpi-project/glpi/tree/9e8a9570a90b/tests/e2e/specs) | 97/100 | A | PASS |
 | [shopify/hydrogen](https://github.com/shopify/hydrogen/tree/3ef7ec23096a/e2e/specs) | 97/100 | A | PASS |
-| [dubinc/dub](https://github.com/dubinc/dub/tree/feab62272a63/apps/web/playwright) | 96/100 | A | PASS |
 
 Bottom 5 scorers:
 

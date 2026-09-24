@@ -28,25 +28,41 @@ const MAX_ANCESTOR_LOOKUP = 20;
  * Walks upward from `startDir` to find this scan's repo boundary — the
  * first ancestor directory that contains a `.git` entry (a directory for a
  * normal clone, a file for a worktree/submodule — either counts as "this is
- * a repo root"), or, if none turns up within MAX_ANCESTOR_LOOKUP hops or
- * before reaching the filesystem root, whichever directory the walk
- * actually stopped at. A public scorer must never treat an untrusted
- * scanned repo as a reason to read or glob anything outside that repo —
- * this is the shared boundary both `findPlaywrightConfig` (never search for
- * a config above it) and `resolveConfigScopedRoot` (never resolve a
- * `testDir` above it — see its `repoRoot` parameter) are clamped to.
+ * a repo root").
+ *
+ * When no `.git` turns up within MAX_ANCESTOR_LOOKUP hops or before
+ * reaching the filesystem root, the *caller* decides what's safe to fall
+ * back to via `fallbackBoundary`:
+ *
+ * - `findPlaywrightConfig`'s own internal use (below) omits it, keeping
+ *   this function's legacy behavior of returning whatever directory the
+ *   climb stopped at. That's fine there — it only ever bounds a loop of
+ *   cheap `fs.statSync` existence checks for a handful of fixed filenames,
+ *   never a glob or a file read, so a wide bound doesn't let an untrusted
+ *   repo make this tool touch anything outside itself.
+ * - Every caller that uses the return value as an actual security
+ *   boundary — most importantly `resolveConfigScopedRoot`'s `repoRoot`,
+ *   which clamps a config's `testDir` before it becomes a glob root (see
+ *   its own doc comment) — MUST pass an explicit `fallbackBoundary`, and
+ *   it must never be the filesystem root or some arbitrary ancestor 20
+ *   levels up (that would make the "repo boundary" nearly unbounded and
+ *   defeat the escape checks it exists to support). index.ts passes the
+ *   scanned directory, or, when a config file was found above it, that
+ *   config file's own directory — whichever of the two is the ancestor
+ *   (the config file is always found by walking up from the scan root, so
+ *   its directory is always at-or-above it).
  */
-export function findRepoBoundary(startDir: string): string {
+export function findRepoBoundary(startDir: string, fallbackBoundary?: string): string {
   let dir = startDir;
   let last = startDir;
   for (let i = 0; i < MAX_ANCESTOR_LOOKUP; i++) {
     last = dir;
     if (fs.existsSync(path.join(dir, '.git'))) return dir;
     const parent = path.dirname(dir);
-    if (parent === dir) return dir; // reached the filesystem root
+    if (parent === dir) break; // reached the filesystem root — no .git found
     dir = parent;
   }
-  return last;
+  return fallbackBoundary ?? last;
 }
 
 /**
@@ -267,6 +283,34 @@ function isAncestorOrSame(ancestor: string, descendant: string): boolean {
   return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
 }
 
+/** Resolves symlinks; falls back to the input path unchanged when it
+ * doesn't exist on disk (matches the existing "testDir doesn't exist"
+ * behavior elsewhere in this file rather than throwing). */
+function safeRealpath(p: string): string {
+  try {
+    return fs.realpathSync(p);
+  } catch {
+    return p;
+  }
+}
+
+/**
+ * True when `testDirAbs`, resolved through any symlinks, is NOT inside
+ * (or equal to) `repoRoot`, also resolved through symlinks. A scored
+ * repo's config is untrusted input, and a lexical ancestor check alone
+ * isn't enough — a `testDir` that lexically sits inside the repo can still
+ * be a symlink whose real target is elsewhere on disk (e.g. `tests/` ->
+ * `/tmp/somewhere-else`), which would otherwise let a crafted repo make
+ * this public tool glob outside its own boundary. Both sides are
+ * realpath'd (never just testDirAbs) because `repoRoot` itself could in
+ * principle be reached through a symlinked path.
+ */
+export function testDirEscapesRepo(testDirAbs: string, repoRoot: string): boolean {
+  const realRepoRoot = safeRealpath(repoRoot);
+  const realTestDirAbs = safeRealpath(testDirAbs);
+  return !isAncestorOrSame(realRepoRoot, realTestDirAbs);
+}
+
 /**
  * Chooses which directory to actually glob from, given the directory the
  * caller pointed `scorePaths` at (`scanRootAbs`) and the config's resolved
@@ -291,23 +335,29 @@ function isAncestorOrSame(ancestor: string, descendant: string): boolean {
  * entirely rather than force a mismatch.
  *
  * `repoRoot` (see findRepoBoundary) clamps `testDirAbs` before any of the
- * above: a scored repo's own config is untrusted input, and a `testDir`
- * that resolves outside the repo (an absolute `'/'`, a relative `'../../
- * ..'` that climbs past the repo root, ...) must never turn into a glob
- * root — that would let a crafted config make this public tool read or
- * scan arbitrary parts of the filesystem it's running on. When testDirAbs
- * falls outside repoRoot, repoRoot itself is used as the effective testDir
- * instead of rejecting the config outright, so a merely-overshooting
- * `testDir` still gets *some* config-scoped result (bounded to the repo)
- * rather than silently falling all the way back to unscoped filename
- * discovery.
+ * above, via `testDirEscapesRepo` (realpath'd on both sides, so a
+ * symlinked `testDir` can't launder an escape either): a scored repo's own
+ * config is untrusted input, and a `testDir` that resolves outside the
+ * repo (an absolute `'/'`, a relative `'../../..'` that climbs past the
+ * repo root, a symlink pointing elsewhere, ...) must never turn into a
+ * glob root — that would let a crafted config make this public tool read
+ * or scan arbitrary parts of the filesystem it's running on. When
+ * testDirAbs falls outside repoRoot, repoRoot itself is used as the
+ * effective testDir instead of rejecting the config outright, so a
+ * merely-overshooting `testDir` still gets *some* config-scoped result
+ * (bounded to the repo) rather than silently falling all the way back to
+ * unscoped filename discovery. index.ts additionally treats this
+ * escaped-and-clamped case as "the config doesn't cleanly describe this
+ * scan" and falls back to filename-based discovery with a configWarning,
+ * rather than applying the config's testMatch/testIgnore (written for the
+ * escaped testDir) to the clamped repoRoot instead.
  */
 export function resolveConfigScopedRoot(
   scanRootAbs: string,
   testDirAbs: string,
   repoRoot: string
 ): string | undefined {
-  const clampedTestDirAbs = isAncestorOrSame(repoRoot, testDirAbs) ? testDirAbs : repoRoot;
+  const clampedTestDirAbs = testDirEscapesRepo(testDirAbs, repoRoot) ? repoRoot : testDirAbs;
   if (!isAncestorOrSame(clampedTestDirAbs, scanRootAbs) && !isAncestorOrSame(scanRootAbs, clampedTestDirAbs)) {
     return undefined;
   }

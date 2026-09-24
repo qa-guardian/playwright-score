@@ -19,6 +19,7 @@ import {
   importsPlaywrightTestTransitively,
   parsePlaywrightConfig,
   resolveConfigScopedRoot,
+  testDirEscapesRepo,
 } from './playwright-config.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
 import { computeScore } from './score-engine.js';
@@ -150,16 +151,32 @@ function expandPaths(
             `Found ${path.relative(cwd, configFile) || configFile} but could not statically parse testDir/testMatch/testIgnore (a dynamic value or unsupported shape) — falling back to filename-based spec discovery for ${path.relative(cwd, abs) || abs}.`
           );
         } else {
-          const repoRoot = findRepoBoundary(abs);
-          const scopedRoot = resolveConfigScopedRoot(abs, parsedConfig.testDirAbs, repoRoot);
-          if (scopedRoot) {
-            globCwd = scopedRoot;
-            if (parsedConfig.testMatch) specGlobs = parsedConfig.testMatch;
-            if (parsedConfig.testIgnore) {
-              ignoreGlobs = [...DEFAULT_IGNORE_GLOBS, ...parsedConfig.testIgnore];
+          // Fallback boundary for findRepoBoundary when no .git turns up:
+          // the config file's own directory when it sits above `abs`
+          // (found by walking up from abs, so it's always an ancestor-or-
+          // same of it), else `abs` itself. Never the filesystem root or
+          // 20 levels up — see findRepoBoundary's doc comment.
+          const repoRoot = findRepoBoundary(abs, path.dirname(configFile));
+          if (testDirEscapesRepo(parsedConfig.testDirAbs, repoRoot)) {
+            // The config's testDir resolves outside the repo boundary
+            // (directly, or via a symlink — see testDirEscapesRepo). Its
+            // testMatch/testIgnore were written for that escaped testDir,
+            // so applying them to the clamped repoRoot instead would be a
+            // silent mismatch; fall back to filename-based discovery.
+            configWarnings.push(
+              `Found ${path.relative(cwd, configFile) || configFile} but its testDir (${parsedConfig.testDirAbs}) resolves outside the repository (${repoRoot}) — falling back to filename-based spec discovery for ${path.relative(cwd, abs) || abs}.`
+            );
+          } else {
+            const scopedRoot = resolveConfigScopedRoot(abs, parsedConfig.testDirAbs, repoRoot);
+            if (scopedRoot) {
+              globCwd = scopedRoot;
+              if (parsedConfig.testMatch) specGlobs = parsedConfig.testMatch;
+              if (parsedConfig.testIgnore) {
+                ignoreGlobs = [...DEFAULT_IGNORE_GLOBS, ...parsedConfig.testIgnore];
+              }
+              configApplied = true;
+              importSafetyNetBoundary = path.dirname(configFile);
             }
-            configApplied = true;
-            importSafetyNetBoundary = path.dirname(configFile);
           }
         }
       }
@@ -170,6 +187,12 @@ function expandPaths(
           absolute: true,
           nodir: true,
           ignore: ignoreGlobs,
+          // glob's own default for `follow` is already false (don't
+          // descend into a symlinked directory while expanding `**`), but
+          // this is untrusted-repo territory (see testDirEscapesRepo
+          // above), so pin it explicitly rather than relying on a default
+          // that could change upstream.
+          follow: false,
         })) {
           const resolved = path.resolve(f);
           // resolveConfigScopedRoot always globs from testDir (Playwright's

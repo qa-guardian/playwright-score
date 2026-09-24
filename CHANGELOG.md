@@ -71,21 +71,39 @@ story (corpus repo, exact before/after) behind each one.
   config-scoped discovery activated for it. Fixed by also recognizing a
   top-level `require('x')` call the same way as an ES import.
 - **Config discovery and a config's `testDir` can no longer escape the
-  scanned repo.** Two cheap hardening fixes for a public tool that reads
-  an untrusted repo's own config: `findPlaywrightConfig` now stops
-  walking upward at the first ancestor directory containing `.git` (or
-  the filesystem root), so a coincidental `playwright.config.*` sitting
-  above the actual repo root — a shared CI runner, a monorepo checkout
-  nested inside another one — is never picked up. Separately, a
-  `testDir` that a config resolves *above* that same boundary (an
-  absolute `'/'`, a relative `'../../..'` that climbs out of the repo) is
-  now clamped to the repo root rather than handed to the glob as-is —
-  previously this would have handed the glob `/` (or another directory
-  well outside the repo) as its scan root, matching every `*.spec.ts`-
-  suffixed file readable on the machine, not just the target's own.
-  Neither case is exercised by any corpus repo (a legitimate config never
-  does this); found and fixed during this release's own review, not from
-  a corpus regression.
+  scanned repo.** Hardening fixes for a public tool that reads an
+  untrusted repo's own config. `findPlaywrightConfig` stops walking
+  upward at the first ancestor directory containing `.git` (a directory
+  for a normal clone, a file for a worktree/submodule), so a coincidental
+  `playwright.config.*` sitting above the actual repo root — a shared CI
+  runner, a monorepo checkout nested inside another one — is never picked
+  up. The bug this closes: when no `.git` existed anywhere in the
+  ancestor chain, the walk fell back to whatever directory it happened to
+  stop at — the filesystem root, or 20 levels up — instead of a bounded
+  repo boundary; used as the clamp for a config's `testDir`, that's
+  effectively no clamp at all, and as the search bound for the config
+  walk itself it made a filesystem-wide walk (in the worst case, a hang
+  on a slow or deep filesystem) possible. It now falls back to the
+  directory actually passed to the scorer, or the config file's own
+  directory when that's the wider of the two — never the filesystem root.
+  Symlinks got the same treatment: a `testDir` is now checked *after
+  resolving symlinks* on both sides of the ancestor check, not just
+  lexically, so a `testDir` that's a symlink to somewhere outside the
+  repo can't launder an escape the plain path comparison would have
+  missed (the glob's own `follow` option, already `false` by default for
+  `**` patterns, is also now pinned explicitly). An escaping `testDir` —
+  absolute (`'/'`), climbing out (`'../../..'`), or via a symlink — gets a
+  `configWarnings` entry and falls back to filename-based discovery
+  rather than globbing the clamped repo root with testMatch/testIgnore
+  patterns written for a different directory. To be clear about the
+  actual exposure this closes: a scored *result* was never able to
+  include a file outside the scan root either way — index.ts always
+  filters expanded matches back down to the caller's own requested
+  directory — the risk was the walk/glob itself reading (or hanging on)
+  parts of the filesystem well outside the repo, not a leaked finding in
+  the output. Neither case is exercised by any corpus repo (a legitimate
+  config never does this); found and fixed during this release's own
+  review, not from a corpus regression.
 
 ### Behaviour change
 - **Config-scoped discovery can lower a suite's score, not just raise

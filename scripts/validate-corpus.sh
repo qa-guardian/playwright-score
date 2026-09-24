@@ -102,7 +102,7 @@ CORPUS=(
   "Builder.io SDKs|BuilderIO/builder|packages/sdks-tests/src/e2e-tests"
   "Wekan|wekan/wekan|tests/playwright/specs"
   "VS Code (component fixtures)|microsoft/vscode|test/componentFixtures/playwright"
-  # QAG-196 corpus expansion (2026-09-23): 50 -> ~100. Same selection rule
+  # Corpus expansion (2026-09-23): 50 -> ~100. Same selection rule
   # as above (real @playwright/test usage, >=10 specs, active in the last
   # 12 months, not a fork/tutorial) plus a deliberate mix: major OSS
   # platforms (Gitea, Nuxt, Superset, Vault/Consul, Sentry), framework/
@@ -159,14 +159,12 @@ CORPUS=(
   "Zotero Web Library|zotero/web-library|test/playwright"
   "PRADO PHP Framework|pradosoft/prado|tests/playwright"
   "What Got Done|mtlynch/whatgotdone|e2e"
-  # QAG-196 corpus expansion (2026-09-24): 84 -> 100. Brand-recognition and
-  # competitor pass — see .claude/team/reports/2026-09-24-scorer-corpus-
-  # brand-candidates.md for the full discovery method (gh api tree search
-  # per candidate, spot-read 1-2 spec files to confirm a genuine
-  # @playwright/test import, direct or via a local fixture wrapper) and the
-  # rejected-candidate list. Two entries share a repo with a much larger
-  # *non*-Playwright test population and need the narrower, hand-verified
-  # subpath below, not the parent directory:
+  # Corpus expansion (2026-09-24): 84 -> 100. Brand-recognition and
+  # competitor pass, found via a repo tree search per candidate, spot-
+  # reading 1-2 spec files to confirm a genuine @playwright/test import
+  # (direct or via a local fixture wrapper). Two entries share a repo with
+  # a much larger *non*-Playwright test population and need the narrower,
+  # hand-verified subpath below, not the parent directory:
   #   - Adobe: gen2/packages/swc/components also holds Storybook
   #     interaction tests (*.test.ts, @storybook/test); only *.a11y.spec.ts
   #     (real @playwright/test) should score. Its own

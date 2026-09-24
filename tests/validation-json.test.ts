@@ -26,6 +26,7 @@ function packageRoot(): string {
 
 const root = packageRoot();
 const md = fs.readFileSync(path.join(root, 'VALIDATION.md'), 'utf8');
+const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
 
 describe('validation.json stays in sync with VALIDATION.md', () => {
   it('validation.json exists and is not hand-edited stale JSON', () => {
@@ -104,10 +105,22 @@ describe('validation.json stays in sync with VALIDATION.md', () => {
     );
   });
 
-  it('version/model/threshold match this package\'s own package.json and VALIDATION.md heading', () => {
-    const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')) as { version: string };
-    assert.equal(data.version, pkg.version);
+  it('model/threshold match VALIDATION.md heading (version is not checked against package.json here — the corpus is re-run less often than patch releases, so validation.json\'s version can legitimately lag package.json\'s by a patch or two; see scripts/generate-validation-json.mjs)', () => {
     assert.equal(data.model, 'v4');
     assert.equal(data.threshold, 80);
+  });
+
+  it('README.md\'s headline numbers (suites, files, tests, pass count, tested-on date) match validation.json', () => {
+    const headline = readme.match(
+      /\*\*(\d+) suites · ([\d,]+) files · ([\d,]+) tests · (\d+)\/(\d+) pass \(\d+% threshold\) ·\s*\n?tested on (\d{4}-\d{2}-\d{2})\*\*/
+    );
+    assert.ok(headline, "expected README.md's bold headline-numbers line to still be parseable");
+    const [, repos, files, tests, passing, total, testedOn] = headline!;
+    assert.equal(Number(repos), data.totals.repos, 'README suite count vs validation.json totals.repos');
+    assert.equal(Number(total), data.totals.repos, 'README pass-count denominator vs validation.json totals.repos');
+    assert.equal(Number(files.replace(/,/g, '')), data.totals.files, 'README files vs validation.json totals.files');
+    assert.equal(Number(tests.replace(/,/g, '')), data.totals.tests, 'README tests vs validation.json totals.tests');
+    assert.equal(Number(passing), data.totals.passing, 'README pass count vs validation.json totals.passing');
+    assert.equal(testedOn, data.testedOn, 'README tested-on date vs validation.json testedOn');
   });
 });

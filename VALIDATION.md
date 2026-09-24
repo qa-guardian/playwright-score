@@ -204,8 +204,10 @@ old 1,219, 1,423 findings vs. 2,003) — an accuracy improvement that
 happens to cost points, the same category as the `ionic-team/
 ionic-framework` contamination noted below, not a regression.
 
-**Against the last actually-published version (1.0.0, model v3, none of
-these rules at all), original 50 only**: 20/50 repos move. Net **+22** across
+**Against 1.0.0 (model v3, none of these rules at all — this was the last
+published version at the time of the 17→50 corpus expansion; 2.0.0 has
+since published, see "Against 2.0.0 (last published)" above for the
+current comparison), original 50 only**: 20/50 repos move. Net **+22** across
 the corpus, but that's almost entirely one repo — Flagsmith moves from a
 hard-failed 0 (its 20-spec suite wasn't discovered at all before the
 `.pw.ts` fix) to a real 62/D, +62 on its own. Excluding Flagsmith, the
