@@ -77,15 +77,17 @@ story (corpus repo, exact before/after) behind each one.
   for a normal clone, a file for a worktree/submodule), so a coincidental
   `playwright.config.*` sitting above the actual repo root — a shared CI
   runner, a monorepo checkout nested inside another one — is never picked
-  up. The bug this closes: when no `.git` existed anywhere in the
-  ancestor chain, the walk fell back to whatever directory it happened to
-  stop at — the filesystem root, or 20 levels up — instead of a bounded
-  repo boundary; used as the clamp for a config's `testDir`, that's
-  effectively no clamp at all, and as the search bound for the config
-  walk itself it made a filesystem-wide walk (in the worst case, a hang
-  on a slow or deep filesystem) possible. It now falls back to the
-  directory actually passed to the scorer, or the config file's own
-  directory when that's the wider of the two — never the filesystem root.
+  up (this guarantee needs a `.git` somewhere in the ancestor chain).
+  The bug this closes: when no `.git` existed anywhere in the ancestor
+  chain, the boundary used to clamp a config's `testDir` fell back to the
+  filesystem root (or 20 levels up), which is effectively no clamp at
+  all, so a `testDir: '/'` could make the glob walk the whole filesystem
+  (in the worst case, a hang). For the `testDir` clamp the fallback is
+  now the directory actually passed to the scorer, or the config file's
+  own directory when that's the wider of the two, never the filesystem
+  root. The config search itself (a bounded series of existence checks)
+  keeps its wider fallback so monorepo configs above the scanned
+  directory are still found.
   Symlinks got the same treatment: a `testDir` is now checked *after
   resolving symlinks* on both sides of the ancestor check, not just
   lexically, so a `testDir` that's a symlink to somewhere outside the
@@ -97,7 +99,8 @@ story (corpus repo, exact before/after) behind each one.
   rather than globbing the clamped repo root with testMatch/testIgnore
   patterns written for a different directory. To be clear about the
   actual exposure this closes: a scored *result* was never able to
-  include a file outside the scan root either way — index.ts always
+  include a file whose path lies outside the scan root either way (a
+  symlinked file inside the repo is a separate, tracked follow-up) — index.ts always
   filters expanded matches back down to the caller's own requested
   directory — the risk was the walk/glob itself reading (or hanging on)
   parts of the filesystem well outside the repo, not a leaked finding in
