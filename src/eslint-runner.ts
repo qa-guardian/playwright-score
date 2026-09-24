@@ -11,6 +11,18 @@ function buildConfig(assertFunctionNames: string[]): Linter.Config[] {
   const base: Linter.Config[] = [
     {
       files: ['**/*.{ts,tsx,js,jsx,mjs,cjs}'],
+      // A pre-2.0.0 review found `/* eslint-disable */` on line 1 of a
+      // 10-test file (waitForTimeout + expect(true).toBe(true) in every
+      // test) took it from 35/F to 99/A — every rule this package enables
+      // is an ordinary ESLint rule, so an ordinary inline disable comment
+      // silences it exactly like it would in any host project, defeating
+      // every one of these rules at will. noInlineConfig makes every
+      // eslint-disable/-line/-next-line comment (and enable/env/global)
+      // inert for this run's rule set; pwscore/eslint-disable-comment
+      // (metrics.ts) still reports the comment itself as a demerit — see
+      // eslint-disable-comment's docs — but it can no longer also silence
+      // whatever it's aimed at.
+      linterOptions: { noInlineConfig: true },
       languageOptions: {
         ecmaVersion: 2022,
         sourceType: 'module',
@@ -219,6 +231,18 @@ export async function runEslint(options: {
       // surfacing it as a finding (even report-only) is pure confusion,
       // not signal.
       if (/^Definition for rule '.*' was not found\.$/.test(msg.message)) {
+        continue;
+      }
+      // noInlineConfig (above) reports every inline directive comment
+      // itself as a `ruleId: null` message ("'...' has no effect because
+      // you have 'noInlineConfig' setting in your config.") — already
+      // caught by the generic `!msg.ruleId` skip below, but matched
+      // explicitly here too (same treatment as "Definition for rule",
+      // above) so this stays true even if that generic skip is ever
+      // narrowed: it's a diagnostic about our own noInlineConfig setting,
+      // not the spec's quality, and pwscore/eslint-disable-comment already
+      // reports the comment itself as a real finding.
+      if (/has no effect because you have 'noInlineConfig' setting in your config\.$/.test(msg.message)) {
         continue;
       }
       if (msg.fatal) {
