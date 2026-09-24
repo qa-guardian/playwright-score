@@ -869,6 +869,55 @@ describe('pre-1.1.0 review fixes: no-trivial-assertion is matcher-aware, not jus
       `expected no-trivial-assertion to fire on expect(1 + 1).toBe(2): ${JSON.stringify(result.findings)}`
     );
   });
+
+  it('2.0.0: flags const t = true; expect(t).toBe(true) — const-literal propagation within the test', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('trivial via a const alias', async () => {\n` +
+        `  const t = true;\n` +
+        `  expect(t).toBe(true);\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-trivial-assertion'),
+      `expected no-trivial-assertion to fire on a const-bound literal subject: ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('2.0.0: does not flag a let-bound alias (a let can be reassigned before the assertion runs)', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('reassignable alias', async () => {\n` +
+        `  let t = true;\n` +
+        `  t = Boolean(await Promise.resolve(false));\n` +
+        `  expect(t).toBe(true);\n` +
+        `});\n`
+    );
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'pwscore/no-trivial-assertion'),
+      `expected no-trivial-assertion not to fire on a let-bound (reassignable) subject: ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('2.0.0: does not resolve a const of the same name from a different test (scoped to the nearest enclosing function)', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('other test declares a literal t', async () => {\n` +
+        `  const t = true;\n` +
+        `  expect(t).toBe(true);\n` +
+        `});\n` +
+        `test('this test asserts on real app state under the same name', async ({ page }) => {\n` +
+        `  const t = await page.getByRole('heading').isVisible();\n` +
+        `  expect(t).toBe(true);\n` +
+        `});\n`
+    );
+    const trivialHits = result.findings.filter((f) => f.rule === 'pwscore/no-trivial-assertion');
+    assert.equal(
+      trivialHits.length,
+      1,
+      `expected only the literal-const test to be flagged, not the real-app-state test with the same variable name: ${JSON.stringify(result.findings)}`
+    );
+  });
 });
 
 describe('pre-1.1.0 review fixes: no-timer-sleep respellings', () => {
@@ -933,6 +982,69 @@ describe('pre-1.1.0 review fixes: no-timer-sleep respellings', () => {
       `expected no-timer-sleep not to fire on a same-named import from an unrelated module: ${JSON.stringify(result.findings)}`
     );
   });
+
+  it('2.0.0: flags window.setTimeout(resolve, ms) (same function as globalThis.setTimeout, browser-flavored spelling)', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('window sleep', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await new Promise((resolve) => window.setTimeout(resolve, 500));\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-timer-sleep'),
+      `expected no-timer-sleep to fire on window.setTimeout(resolve, ms): ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('2.0.0: flags a namespace-import node:timers/promises sleep (import * as timers; timers.setTimeout(ms))', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `import * as timers from 'node:timers/promises';\n` +
+        `test('timers namespace sleep', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await timers.setTimeout(500);\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-timer-sleep'),
+      `expected no-timer-sleep to fire on a namespace-import timers.setTimeout(ms): ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('2.0.0: flags a require()-based namespace node:timers/promises sleep (const timers = require(...); timers.setTimeout(ms))', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `const timers = require('node:timers/promises');\n` +
+        `test('require timers sleep', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await timers.setTimeout(500);\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-timer-sleep'),
+      `expected no-timer-sleep to fire on a require()-based timers.setTimeout(ms): ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('2.0.0: does not flag an unrelated namespace import member also called setTimeout', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `import * as timers from 'some-other-timers-lib';\n` +
+        `test('unrelated namespace import', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await timers.setTimeout(500);\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'pwscore/no-timer-sleep'),
+      `expected no-timer-sleep not to fire on a namespace import from an unrelated module: ${JSON.stringify(result.findings)}`
+    );
+  });
 });
 
 describe('pre-1.1.0 review fixes: no-coordinate-click respellings', () => {
@@ -983,6 +1095,38 @@ describe('pre-1.1.0 review fixes: no-coordinate-click respellings', () => {
       hits.length,
       3,
       `expected move+down+up to each trip no-coordinate-click, got: ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('2.0.0: flags an arbitrarily-named alias of page.mouse (const m = page.mouse; m.click(x, y))', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('aliased mouse click', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  const m = page.mouse;\n` +
+        `  await m.click(120, 240);\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-coordinate-click'),
+      `expected no-coordinate-click to fire on an arbitrarily-named page.mouse alias: ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('2.0.0: does not flag an unrelated variable named m that never aliases page.mouse', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('unrelated m', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  const m = { click: async (_x: number, _y: number) => {} };\n` +
+        `  await m.click(120, 240);\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'pwscore/no-coordinate-click'),
+      `expected no-coordinate-click not to fire on an unrelated variable that happens to be named m: ${JSON.stringify(result.findings)}`
     );
   });
 });
@@ -1059,5 +1203,60 @@ describe('pre-2.0.0 review fixes: inline eslint-disable comments are reported, n
     const result = await scoreSource(source);
     const hits = result.findings.filter((f) => f.rule === 'pwscore/eslint-disable-comment');
     assert.equal(hits.length, 2, `expected two suppression-comment findings: ${JSON.stringify(result.findings)}`);
+  });
+});
+
+describe('2.0.0 MUST FIX: noInlineConfig — an inline eslint-disable can no longer silence what it names', () => {
+  // A pre-2.0.0 review found `/* eslint-disable */` on line 1 of exactly
+  // this shape of file (every test: a hard wait + a tautological
+  // assertion) took the score from 35/F to 99/A — every rule this package
+  // enables is an ordinary ESLint rule, and ESLint honors an inline
+  // disable comment by default, silencing every one of them at once.
+  function badTestsSource(count: number): string {
+    let src = `import { test, expect } from '@playwright/test';\n`;
+    for (let i = 0; i < count; i++) {
+      src +=
+        `test('t${i}', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await page.waitForTimeout(1000);\n` +
+        `  expect(true).toBe(true);\n` +
+        `});\n`;
+    }
+    return src;
+  }
+
+  it('no longer silences the underlying findings — playwright/no-wait-for-timeout and pwscore/no-trivial-assertion still fire with the comment present', async () => {
+    const source = `/* eslint-disable */\n${badTestsSource(1)}`;
+    const result = await scoreSource(source);
+    assert.ok(
+      result.findings.some((f) => f.rule === 'playwright/no-wait-for-timeout'),
+      `expected no-wait-for-timeout to still fire despite the disable comment: ${JSON.stringify(result.findings)}`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-trivial-assertion'),
+      `expected no-trivial-assertion to still fire despite the disable comment: ${JSON.stringify(result.findings)}`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/eslint-disable-comment'),
+      `expected the disable comment itself to still be reported as a demerit: ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('a silenced finding still counts: the same 100-test file scores the same (35/F) with and without a blanket disable comment on line 1 — not the pre-fix 99/A', async () => {
+    const without = badTestsSource(100);
+    const withDisable = `/* eslint-disable */\n${without}`;
+
+    const resultWithout = await scoreSource(without);
+    const resultWith = await scoreSource(withDisable);
+
+    assert.equal(resultWithout.score, 35, `expected the undisabled baseline to stay 35/F: got ${resultWithout.score}`);
+    assert.equal(resultWithout.grade, 'F');
+    assert.equal(
+      resultWith.score,
+      resultWithout.score,
+      `expected the disable comment not to change the score (it adds one capped module-level demerit that a 100-test file absorbs): without=${resultWithout.score} with=${resultWith.score}`
+    );
+    assert.equal(resultWith.grade, 'F');
+    assert.notEqual(resultWith.score, 99, 'pre-fix regression: the blanket disable comment silenced every finding and scored 99/A');
   });
 });
