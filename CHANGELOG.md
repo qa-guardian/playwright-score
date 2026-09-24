@@ -4,6 +4,68 @@ All notable changes to this project are documented here. Any change that
 alters what a given suite scores is a new scoring-model version (see
 [METHODOLOGY.md](./METHODOLOGY.md)), not a quiet patch.
 
+## 2.1.0 — 2026-09-24
+
+Scoring model stays v4 — nothing here changes a rule's weight or
+severity, only whether a suite is *recognized* correctly in the first
+place. Every fix below made at least one real corpus repo's score more
+accurate, not less strict or more lenient by policy; see VALIDATION.md's
+"Bugs found this way, and fixed" for the full story (corpus repo, exact
+before/after) behind each one.
+
+### Fixed
+- **Custom `test.extend()` fixture names.** A suite that always declares
+  its tests via a custom-named fixture (`const loggedTest =
+  test.extend(...)`, imported into every spec file — sometimes through a
+  re-export barrel) had every `expect()` inside a completely normal test
+  flagged by upstream `eslint-plugin-playwright`'s `no-standalone-expect`
+  and sibling rules (which key off the literal identifier `test`, and
+  can only dereference a same-file extend chain), and undercounted by
+  this package's own test-span/`countTests` logic too.
+  `src/test-aliases.ts` resolves these aliases — same-file and
+  cross-file, through imports and re-export barrels — and feeds both
+  `eslint-plugin-playwright`'s `globalAliases.test` setting and this
+  package's own AST rules. Scores rise for affected suites:
+  `argos-ci/argos` 57/F → 95/A, `apache/superset` 70/C → 77/C.
+- **Discovery now honours the target's own `playwright.config.*`
+  `testDir`/`testMatch`/`testIgnore`.** Spec discovery previously matched
+  by filename suffix only, so a directory holding a different test
+  runner's files under a similar naming convention got swept in
+  alongside the real suite. `src/playwright-config.ts` statically parses
+  (never executes — a scored repo's config is untrusted input) the
+  nearest `playwright.config.{ts,js,mjs,cjs}` at or above the scanned
+  directory and scopes discovery to what the target itself declares,
+  falling back to the previous filename-based behavior (with a
+  `configWarnings` note in the result) when no config is found or it
+  can't be read statically. Includes three fixes found making this work
+  against real configs: matching Playwright's own `createFileMatcher`
+  auto-`**/`-prefix behavior for a `testMatch`/`testIgnore` pattern with
+  no leading `**/`; globbing from the config's `testDir` rather than the
+  caller's own (possibly narrower or differently-rooted) scanned
+  directory; and failing *open* (keeping a file) rather than treating an
+  unresolvable relative import as proof a file isn't a real spec, since
+  a sparse/partial checkout can legitimately be missing a fixtures
+  module the real project has. Scores rise for affected suites where the
+  old filename-only discovery had been over- or under-matching.
+- **Discovery no longer misses a plain CommonJS suite.** A follow-on to
+  the config-scoped discovery fix above: the safety net that confirms a
+  config-matched file transitively imports `@playwright/test` only
+  walked ES `import`/`export ... from` syntax, so a suite written
+  entirely in CommonJS (`require()`, no `import` anywhere) read as
+  *definitive negative evidence* of not being a Playwright spec — the
+  opposite of the truth — and hard-failed to 0 files the moment
+  config-scoped discovery activated for it. Fixed by also recognizing a
+  top-level `require('x')` call the same way as an ES import.
+
+### Corpus
+Grown from 84 to 100 public suites — 16 new entries for brand
+recognition (Nextcloud, Ghost, Pinterest, Microsoft, The Guardian,
+Shopify ×2, Adobe, Automattic, BBC, Google, Datadog, Twilio) plus three
+named competitors (Checkly, Currents, LambdaTest), scored under the
+exact same rules as everyone else. Every one of the 100 entries in
+VALIDATION.md now carries the exact commit SHA scored and the date it
+was tested, not just an aggregate "last run" date.
+
 ## 2.0.0 — 2026-09-23
 
 **Scoring model v4 — `standard` scores change.** Owner direction: public
