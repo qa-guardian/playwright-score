@@ -130,11 +130,15 @@ function walkNode(node: unknown, visit: (n: Node) => void): void {
  * rules close that gap; see CHANGELOG.md for the corpus before/after.
  */
 
+/** Any object whose `.setTimeout` member resolves to the same ambient function as a bare `setTimeout` call. */
+const SET_TIMEOUT_HOST_OBJECTS = new Set(['globalThis', 'window']);
+
 /**
- * True when `callee` is `setTimeout` itself or `globalThis.setTimeout` —
- * both resolve to the exact same ambient function; the `globalThis.`
- * spelling is just as easy to reach for (and just as invisible to a
- * rule that only matches a bare `Identifier`) as the plain name.
+ * True when `callee` is `setTimeout` itself, `globalThis.setTimeout`, or
+ * `window.setTimeout` — all three resolve to the exact same ambient
+ * function; `window.` is just as easy to reach for in a browser-flavored
+ * test file (and just as invisible to a rule that only matches a bare
+ * `Identifier` or the `globalThis.` spelling) as either of the others.
  */
 function isSetTimeoutCallee(callee: Node | undefined): boolean {
   if (!callee) return false;
@@ -143,7 +147,8 @@ function isSetTimeoutCallee(callee: Node | undefined): boolean {
     callee.type === 'MemberExpression' &&
     !callee.computed &&
     callee.object?.type === 'Identifier' &&
-    callee.object.name === 'globalThis' &&
+    typeof callee.object.name === 'string' &&
+    SET_TIMEOUT_HOST_OBJECTS.has(callee.object.name) &&
     callee.property?.type === 'Identifier' &&
     callee.property.name === 'setTimeout'
   );
@@ -184,13 +189,17 @@ function callsResolve(fn: Node | undefined, resolveName: string): boolean {
  * error, by upstream `playwright/no-wait-for-timeout`) wearing a disguise
  * that rule cannot see through — it has nothing to do with `page` at all.
  * Verified against the QAG-196 gameability sample: this exact pattern
- * scored zero findings before this rule existed. Also catches two easy
- * respellings found in a pre-1.1.0 review: `globalThis.setTimeout(...)`
- * (same function, different spelling) and wrapping the resolve callback
- * in a no-op arrow (`setTimeout(() => r(), ms)`) instead of passing it
- * directly — plus the unrelated but equally disguised `node:timers/
- * promises` sleep (`await setTimeout(ms)` from that module is an async
- * sleep on its own, no `new Promise` wrapper needed).
+ * scored zero findings before this rule existed. Also catches respellings
+ * found in review: `globalThis.setTimeout(...)`/`window.setTimeout(...)`
+ * (same function, different spelling — see isSetTimeoutCallee) and
+ * wrapping the resolve callback in a no-op arrow (`setTimeout(() => r(),
+ * ms)`) instead of passing it directly — plus the unrelated but equally
+ * disguised `node:timers/promises` sleep (`await setTimeout(ms)` from
+ * that module is an async sleep on its own, no `new Promise` wrapper
+ * needed), including a namespace-import/`require()` spelling of the same
+ * module (`import * as timers from 'node:timers/promises'` or `const
+ * timers = require('node:timers/promises')`, then `await
+ * timers.setTimeout(ms)`) — not just the named-import form.
  */
 const noTimerSleep: Rule.RuleModule = {
   meta: {
@@ -209,6 +218,15 @@ const noTimerSleep: Rule.RuleModule = {
   },
   create(context) {
     const timersPromisesLocalNames = new Set<string>();
+    // Local names bound to the *module namespace* (not the bare
+    // `setTimeout` function itself): `import * as timers from
+    // 'node:timers/promises'` or `const timers =
+    // require('node:timers/promises')`. `timers.setTimeout(ms)` is the
+    // same sleep as the named-import form, just reached through a member
+    // access instead of a bare identifier call.
+    const timersPromisesNamespaceLocalNames = new Set<string>();
+    const isTimersPromisesSource = (value: unknown): boolean =>
+      value === 'node:timers/promises' || value === 'timers/promises';
     return {
       // Typed loosely (not our shared `Node`) — the real ESTree
       // ImportDeclaration shape (e.g. `imported` can be a string Literal
@@ -223,12 +241,30 @@ const noTimerSleep: Rule.RuleModule = {
             local?: { name?: string };
           }>;
         };
-        const source = node.source?.value;
-        if (source !== 'node:timers/promises' && source !== 'timers/promises') return;
+        if (!isTimersPromisesSource(node.source?.value)) return;
         for (const spec of node.specifiers ?? []) {
           if (spec.type === 'ImportSpecifier' && spec.imported?.name === 'setTimeout' && spec.local?.name) {
             timersPromisesLocalNames.add(spec.local.name);
+          } else if (spec.type === 'ImportNamespaceSpecifier' && spec.local?.name) {
+            timersPromisesNamespaceLocalNames.add(spec.local.name);
           }
+        }
+      },
+      // `const timers = require('node:timers/promises')` — CommonJS
+      // equivalent of the namespace import above. Typed loosely for the
+      // same reason as ImportDeclaration; `id`/`init` aren't on our
+      // shared Node type.
+      VariableDeclarator(raw: unknown) {
+        const node = raw as { id?: Node; init?: Node | null };
+        if (node.id?.type !== 'Identifier' || !node.id.name || !node.init) return;
+        const init = node.init;
+        const isRequireTimersPromises =
+          init.type === 'CallExpression' &&
+          init.callee?.type === 'Identifier' &&
+          init.callee.name === 'require' &&
+          isTimersPromisesSource((init.arguments ?? [])[0]?.value);
+        if (isRequireTimersPromises) {
+          timersPromisesNamespaceLocalNames.add(node.id.name);
         }
       },
       CallExpression(node: Node) {
@@ -236,6 +272,18 @@ const noTimerSleep: Rule.RuleModule = {
           node.callee?.type === 'Identifier' &&
           typeof node.callee.name === 'string' &&
           timersPromisesLocalNames.has(node.callee.name)
+        ) {
+          context.report({ node: node as never, messageId: 'timersPromisesSleep' });
+          return;
+        }
+        if (
+          node.callee?.type === 'MemberExpression' &&
+          !node.callee.computed &&
+          node.callee.object?.type === 'Identifier' &&
+          typeof node.callee.object.name === 'string' &&
+          timersPromisesNamespaceLocalNames.has(node.callee.object.name) &&
+          node.callee.property?.type === 'Identifier' &&
+          node.callee.property.name === 'setTimeout'
         ) {
           context.report({ node: node as never, messageId: 'timersPromisesSleep' });
           return;
@@ -308,30 +356,76 @@ const noCoordinateClick: Rule.RuleModule = {
   },
   create(context) {
     return {
-      CallExpression(node: Node) {
-        const callee = node.callee;
-        if (!callee || callee.type !== 'MemberExpression' || callee.computed) return;
-        const methodName = callee.property?.type === 'Identifier' ? callee.property.name : undefined;
-        if (!methodName || !MOUSE_COORDINATE_METHODS.has(methodName)) return;
-        const obj = callee.object;
-        if (!obj) return;
-        // `page.mouse.click(...)` / `this.page.mouse.click(...)` — any
-        // expression ending in `.mouse`.
-        const isDotMouse =
-          obj.type === 'MemberExpression' &&
-          !obj.computed &&
-          obj.property?.type === 'Identifier' &&
-          obj.property.name === 'mouse';
-        // `const { mouse } = page; mouse.click(...)` — the destructured
-        // binding is a bare identifier, not a `.mouse` member access, but
-        // it is the exact same Mouse API. Name-based, same convention as
-        // this file's other rules (e.g. isSkipCallee's `test` heuristic).
-        const isBareMouseIdentifier = obj.type === 'Identifier' && obj.name === 'mouse';
-        if (!isDotMouse && !isBareMouseIdentifier) return;
-        context.report({
-          node: node as never,
-          messageId: 'coordinateClick',
-          data: { method: methodName },
+      // Single full-tree pass at the end of the file rather than the
+      // usual incremental per-node visitor: alias detection (`const m =
+      // page.mouse`) needs every declaration collected before any
+      // CallExpression can be checked against it, and declarations don't
+      // reliably precede their uses in a single top-down traversal
+      // ordering guarantee otherwise. Typed loosely (not our shared
+      // `Node`, nor the real ESTree `Program`) for the same reason as
+      // ImportDeclaration/VariableDeclarator above — walkNode only needs
+      // a `type` string and recurses over own enumerable properties, so
+      // an `unknown` in is enough.
+      'Program:exit'(raw: unknown) {
+        const program = raw as Node;
+        // Any variable initialized directly from `.mouse` (`page.mouse`,
+        // `this.page.mouse`, ...) is the same Mouse API under an
+        // arbitrary local name — `const m = page.mouse; m.click(x, y)` is
+        // exactly as brittle as `page.mouse.click(x, y)`, just harder to
+        // grep for. Seeded with the bare name `mouse` so `const { mouse }
+        // = page; mouse.click(...)` (destructuring, not an assignment
+        // this pass's MemberExpression check would match) is still
+        // caught, same as before this alias tracking existed. A simple
+        // identifier-to-identifier chain (`const m2 = m1`) is also
+        // followed, since the walk below visits declarations in source
+        // order for the common sequential-declaration case.
+        const mouseAliasNames = new Set<string>(['mouse']);
+        walkNode(program, (n) => {
+          if (n.type !== 'VariableDeclarator') return;
+          const decl = n as unknown as { id?: Node; init?: Node | null };
+          if (decl.id?.type !== 'Identifier' || !decl.id.name || !decl.init) return;
+          const init = decl.init;
+          const isDotMouseInit =
+            init.type === 'MemberExpression' &&
+            !init.computed &&
+            init.property?.type === 'Identifier' &&
+            init.property.name === 'mouse';
+          const isChainedAlias =
+            init.type === 'Identifier' &&
+            typeof init.name === 'string' &&
+            mouseAliasNames.has(init.name);
+          if (isDotMouseInit || isChainedAlias) {
+            mouseAliasNames.add(decl.id.name);
+          }
+        });
+
+        walkNode(program, (n) => {
+          if (n.type !== 'CallExpression') return;
+          const callee = n.callee;
+          if (!callee || callee.type !== 'MemberExpression' || callee.computed) return;
+          const methodName = callee.property?.type === 'Identifier' ? callee.property.name : undefined;
+          if (!methodName || !MOUSE_COORDINATE_METHODS.has(methodName)) return;
+          const obj = callee.object;
+          if (!obj) return;
+          // `page.mouse.click(...)` / `this.page.mouse.click(...)` — any
+          // expression ending in `.mouse`.
+          const isDotMouse =
+            obj.type === 'MemberExpression' &&
+            !obj.computed &&
+            obj.property?.type === 'Identifier' &&
+            obj.property.name === 'mouse';
+          // `const { mouse } = page; mouse.click(...)` (bare `mouse`,
+          // always in the set) or `const m = page.mouse; m.click(...)`
+          // (any other name aliased above) — either way, the exact same
+          // Mouse API under a name that isn't a `.mouse` member access.
+          const isAliasedMouseIdentifier =
+            obj.type === 'Identifier' && typeof obj.name === 'string' && mouseAliasNames.has(obj.name);
+          if (!isDotMouse && !isAliasedMouseIdentifier) return;
+          context.report({
+            node: n as never,
+            messageId: 'coordinateClick',
+            data: { method: methodName },
+          });
         });
       },
     };
@@ -342,19 +436,34 @@ type ConstResult = { ok: true; value: unknown } | { ok: false };
 const NOT_CONST: ConstResult = { ok: false };
 
 /**
+ * Resolves a bare `Identifier` to an already-evaluated constant, e.g. a
+ * `const t = true` binding collected by `collectConstBindings` — see
+ * `evalConst`'s `resolve` parameter.
+ */
+type ConstResolver = (name: string) => ConstResult | undefined;
+
+/**
  * Statically evaluates the small subset of constant-expression shapes a
  * literal-assertion idiom actually uses: literals, `!`/`-`/`+`/`~` on a
  * constant, simple arithmetic (`1 + 1`), a no-expression template literal
- * (`` `hello` ``, indistinguishable in intent from `'hello'`), and an
- * array of constants (for `toEqual`/`toStrictEqual`, e.g. `[]`). Anything
- * else (a variable, a function call, an array containing a non-constant)
- * is deliberately NOT evaluated — a false negative here is safe (we just
- * don't flag it); a false positive would mean claiming real app state
- * "always passes", which would be wrong.
+ * (`` `hello` ``, indistinguishable in intent from `'hello'`), an array
+ * of constants (for `toEqual`/`toStrictEqual`, e.g. `[]`), and — given a
+ * `resolve` callback — a bare `Identifier` bound to one of these shapes
+ * by a `const` declaration (`const t = true; expect(t).toBe(true)` is
+ * the exact same always-passing assertion as `expect(true).toBe(true)`,
+ * one local rename away from this rule's original identifier-only
+ * check). Anything else (a `let`/`var` binding, a function call, an
+ * array containing a non-constant) is deliberately NOT evaluated — a
+ * false negative here is safe (we just don't flag it); a false positive
+ * would mean claiming real app state "always passes", which would be
+ * wrong.
  */
-function evalConst(node: Node | undefined | null): ConstResult {
+function evalConst(node: Node | undefined | null, resolve?: ConstResolver): ConstResult {
   if (!node) return NOT_CONST;
   if (node.type === 'Literal') return { ok: true, value: node.value };
+  if (node.type === 'Identifier' && typeof node.name === 'string') {
+    return resolve?.(node.name) ?? NOT_CONST;
+  }
   if (node.type === 'TemplateLiteral') {
     if ((node.expressions ?? []).length > 0) return NOT_CONST;
     const quasi = (node.quasis ?? [])[0];
@@ -362,7 +471,7 @@ function evalConst(node: Node | undefined | null): ConstResult {
     return { ok: true, value: quasi.value.cooked ?? quasi.value.raw };
   }
   if (node.type === 'UnaryExpression' && node.operator) {
-    const arg = evalConst(node.argument);
+    const arg = evalConst(node.argument, resolve);
     if (!arg.ok) return NOT_CONST;
     switch (node.operator) {
       case '!':
@@ -378,8 +487,8 @@ function evalConst(node: Node | undefined | null): ConstResult {
     }
   }
   if (node.type === 'BinaryExpression' && node.left && node.right) {
-    const left = evalConst(node.left);
-    const right = evalConst(node.right);
+    const left = evalConst(node.left, resolve);
+    const right = evalConst(node.right, resolve);
     if (!left.ok || !right.ok) return NOT_CONST;
     const l = left.value as never;
     const r = right.value as never;
@@ -403,13 +512,63 @@ function evalConst(node: Node | undefined | null): ConstResult {
   if (node.type === 'ArrayExpression') {
     const values: unknown[] = [];
     for (const el of node.elements ?? []) {
-      const r = evalConst(el);
+      const r = evalConst(el, resolve);
       if (!r.ok) return NOT_CONST; // includes sparse-array holes (el === null)
       values.push(r.value);
     }
     return { ok: true, value: values };
   }
   return NOT_CONST;
+}
+
+/**
+ * Collects every `const <Identifier> = <constant>` binding in `root`
+ * (typically a single test's function body — see `noTrivialAssertion`)
+ * into a name → value map, chasing `const a = <constant>; const b = a;`
+ * chains via `evalConst`'s own `resolve` callback closing over the map
+ * being built. `let`/`var` are deliberately excluded: they can be
+ * reassigned after declaration, so a value captured at declaration time
+ * could be stale by the time the assertion actually runs — a false
+ * positive risk this rule does not take.
+ */
+function collectConstBindings(root: Node | Node[] | null | undefined): Map<string, ConstResult> {
+  const bindings = new Map<string, ConstResult>();
+  const resolve: ConstResolver = (name) => bindings.get(name);
+  walkNode(root, (n) => {
+    if (n.type !== 'VariableDeclaration') return;
+    const decl = n as unknown as {
+      kind?: string;
+      declarations?: Array<{ id?: Node; init?: Node | null }>;
+    };
+    if (decl.kind !== 'const') return;
+    for (const d of decl.declarations ?? []) {
+      if (d.id?.type !== 'Identifier' || !d.id.name || !d.init) continue;
+      const value = evalConst(d.init, resolve);
+      if (value.ok) bindings.set(d.id.name, value);
+    }
+  });
+  return bindings;
+}
+
+/**
+ * Climbs from `node` to the body of the nearest enclosing function (the
+ * test/hook callback in the common case) — the scope `noTrivialAssertion`
+ * resolves local `const` bindings within, so a `const` of the same name
+ * in a different test can't be mistaken for this one's.
+ */
+function nearestEnclosingFunctionBody(
+  context: Rule.RuleContext,
+  node: Node
+): Node | Node[] | null | undefined {
+  const ancestors = (
+    context.sourceCode?.getAncestors
+      ? context.sourceCode.getAncestors(node as never)
+      : (context as unknown as { getAncestors(): unknown[] }).getAncestors()
+  ) as Node[];
+  for (let i = ancestors.length - 1; i >= 0; i--) {
+    if (FUNCTION_TYPES.has(ancestors[i].type)) return ancestors[i].body;
+  }
+  return undefined;
 }
 
 function deepEqual(a: unknown, b: unknown): boolean {
@@ -431,16 +590,17 @@ function deepEqual(a: unknown, b: unknown): boolean {
 function matcherAlwaysPasses(
   matcherName: string,
   subject: unknown,
-  expectedNode: Node | undefined
+  expectedNode: Node | undefined,
+  resolve?: ConstResolver
 ): boolean | undefined {
   switch (matcherName) {
     case 'toBe': {
-      const expected = evalConst(expectedNode);
+      const expected = evalConst(expectedNode, resolve);
       return expected.ok ? Object.is(subject, expected.value) : undefined;
     }
     case 'toEqual':
     case 'toStrictEqual': {
-      const expected = evalConst(expectedNode);
+      const expected = evalConst(expectedNode, resolve);
       return expected.ok ? deepEqual(subject, expected.value) : undefined;
     }
     case 'toBeTruthy':
@@ -476,16 +636,22 @@ function isExpectCallNode(node: Node | undefined): boolean {
  * 1).toBe(2)`, `expect([]).toEqual([])` — any assertion whose subject and
  * matcher combination can only ever pass, regardless of anything the app
  * under test does. It satisfies `playwright/expect-expect` (a test "has
- * an assertion") while asserting nothing real. Deliberately conservative
- * in two directions: only a subject that's a statically-evaluable
- * constant is considered (a variable holding a constant is a false
- * negative we accept rather than risk flagging real app state), and the
- * matcher + `.not` combination is actually evaluated rather than assumed
- * — `expect(true).toBe(false)` and `expect(true, msg).toBeFalsy()` are
- * the deliberate force-fail idiom (asserting something that can only
- * ever be false, to fail a test unconditionally), the opposite of this
- * rule's target, and are never flagged: the message says "always passes"
- * and must stay true every time it fires.
+ * an assertion") while asserting nothing real. Also catches the same
+ * idiom one local rename away: `const t = true; expect(t).toBe(true)` —
+ * a `const` bound directly to a statically-evaluable constant within the
+ * same test is resolved via `evalConst`'s `resolve` callback (see
+ * `collectConstBindings`/`nearestEnclosingFunctionBody`), including a
+ * short `const a = ...; const b = a;` chain. Deliberately conservative in
+ * two directions beyond that: a `let`/`var` binding is never resolved
+ * (it can be reassigned before the assertion runs, so a value captured
+ * at declaration time could be stale — a false negative we accept rather
+ * than risk flagging real app state), and the matcher + `.not`
+ * combination is actually evaluated rather than assumed — `expect(true).
+ * toBe(false)` and `expect(true, msg).toBeFalsy()` are the deliberate
+ * force-fail idiom (asserting something that can only ever be false, to
+ * fail a test unconditionally), the opposite of this rule's target, and
+ * are never flagged: the message says "always passes" and must stay true
+ * every time it fires.
  */
 const noTrivialAssertion: Rule.RuleModule = {
   meta: {
@@ -524,11 +690,19 @@ const noTrivialAssertion: Rule.RuleModule = {
         }
         if (!expectCall) return;
 
-        const subject = evalConst((expectCall.arguments ?? [])[0]);
+        // Resolve a bare-identifier subject/expected-arg against any
+        // `const` bound to a constant within the nearest enclosing
+        // function (typically the test/hook callback) — see
+        // collectConstBindings's docs for why only `const` qualifies.
+        // Computed once per assertion call, not per identifier resolved.
+        const scopeBindings = collectConstBindings(nearestEnclosingFunctionBody(context, node));
+        const resolve: ConstResolver = (name) => scopeBindings.get(name);
+
+        const subject = evalConst((expectCall.arguments ?? [])[0], resolve);
         if (!subject.ok) return;
 
         const expectedArg = (node.arguments ?? [])[0];
-        const alwaysPasses = matcherAlwaysPasses(matcherName, subject.value, expectedArg);
+        const alwaysPasses = matcherAlwaysPasses(matcherName, subject.value, expectedArg, resolve);
         if (alwaysPasses === undefined) return;
 
         if (hasNot ? !alwaysPasses : alwaysPasses) {
