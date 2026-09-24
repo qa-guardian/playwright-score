@@ -83,8 +83,25 @@ directive comment (`eslint-disable`, `eslint-disable-line`,
 `eslint-disable-next-line`, block or line form) in a scored file — a real
 demerit, same as everything else in this release. **Known limitation**:
 it reports the presence of the comment, not which specific rule or
-finding it silences, and does not itself prevent ESLint from actually
-suppressing the underlying finding for that run — see VALIDATION.md.
+finding it silences — see VALIDATION.md.
+
+### Fixed — an inline `eslint-disable` comment could still silence every finding it named
+Found in review, before this ever shipped: adding the finding above was
+not enough on its own — every rule this package enables is an ordinary
+ESLint rule, and ESLint honors an inline disable comment by default, so
+`/* eslint-disable */` on line 1 still silenced everything it named for
+scoring purposes, same as it always had. A 10-test file (a hard wait plus
+a tautological assertion in every test) scored 35/F; the same file with
+that one comment on line 1 scored **99/A** — the new
+`pwscore/eslint-disable-comment` finding was reported, but the four real
+findings it was covering for were simply gone. ESLint 9's flat-config
+`linterOptions.noInlineConfig` (see `eslint-runner.ts`) now makes every
+inline directive comment inert for this package's rule set: the comment
+itself is still scored via `pwscore/eslint-disable-comment`, but it can
+no longer also make the finding it targets disappear. The "Known
+limitation" above is narrower as a result — a disable comment can no
+longer silence anything this package's own rules find, it just isn't
+attributed to which specific rule it named.
 
 ### Removed — `strict` profile
 1.1.0 (never published) planned a `strict` profile to gate the four rules
@@ -109,7 +126,18 @@ were fixed for in 1.0.0 and its predecessors.
 only) specs from microsoft/playwright (Apache-2.0; see
 `fixtures/playwright-official/NOTICE.md`) and asserts each scores >= 90
 and grades A under `standard` — three `examples/todomvc` specs (100/A
-each) and `examples/github-api/tests/test-api.spec.ts` (97/A).
+each) and `examples/github-api/tests/test-api.spec.ts` (97/A). Checked
+that the 97, not 100, isn't an unfair penalty: the file's only finding is
+`pwscore/eslint-disable-comment` on its own `/* eslint-disable
+notice/notice */` licence-header lint escape (Playwright's monorepo
+convention, unrelated to Playwright/test quality — see NOTICE.md), −3
+points (structure dimension 100→80, weighted). That's correct, not a
+bug: this project scores every suppression-directive comment as a real,
+unconditional demerit regardless of what it's aimed at (see the "Added —
+inline eslint-disable comments" entry above and VALIDATION.md's Known
+limitations) — a licence-header opt-out is still, mechanically, an
+`eslint-disable` comment. 97/A comfortably clears the >= 90 bar either
+way.
 `examples/svgomg/tests/example.spec.ts` was investigated and excluded
 (79/C, genuine non-idiomatic CSS/text-selector usage predating current
 Playwright locator guidance, not a scorer bug — documented in NOTICE.md).
@@ -248,8 +276,8 @@ changes to any of them mean a major version bump from here on.
   exported (they always existed internally) specifically so that
   composition — or anyone else building a similar house-rules layer on
   top of `standard` — doesn't have to reimplement the scoring math.
-- `scripts/dogfood.sh` — it reached into `../deployment/Other/playwright`,
-  a path that only exists inside the internal Guardian monorepo, and
+- `scripts/dogfood.sh` — it reached into a relative sibling-repo path that
+  only exists inside this project's private internal monorepo, and
   defaulted to the now-removed `guardian` profile. Internal-only tooling
   that never belonged in a public repo; `scripts/validate-corpus.sh`
   (real public repos, no internal paths) is the tool for this now.
@@ -382,7 +410,7 @@ changes to any of them mean a major version bump from here on.
   with no directory to widen to — see the new regression test documenting
   that limitation.
 
-## Unreleased
+## 0.1.10 — 2026-08-15
 
 ### Added
 - **Reusable GitHub Action** (`action.yml` at repo root, usable as
@@ -407,12 +435,10 @@ changes to any of them mean a major version bump from here on.
   workflow `publish.yml`) and npm CLI ≥11.5.1 / Node ≥22.14.0 in the runner
   (both satisfied by `actions/setup-node@v4` with `node-version: '22'`).
 
-## 0.1.10 — 2026-08-15
-
 ### Chore
-- No functional change. Version bump to verify the new CI auto-publish
-  pipeline (`.github/workflows/publish.yml`, Trusted Publisher/OIDC) works
-  end-to-end against the real npm registry.
+- No functional change beyond the above. Version bump to verify the new
+  CI auto-publish pipeline (`.github/workflows/publish.yml`,
+  Trusted Publisher/OIDC) works end-to-end against the real npm registry.
 
 ## 0.1.9 — 2026-08-15
 
