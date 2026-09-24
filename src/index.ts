@@ -12,6 +12,13 @@ import {
   getTestSpans,
   looksLikeNonPlaywrightTest,
 } from './metrics.js';
+import { detectExtendedTestAliases } from './test-aliases.js';
+import {
+  findPlaywrightConfig,
+  importsPlaywrightTestTransitively,
+  parsePlaywrightConfig,
+  resolveConfigScopedRoot,
+} from './playwright-config.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
 import { computeScore } from './score-engine.js';
 import type { Finding, ProfileName, ScoreOptions, ScoreResult } from './types.js';
@@ -90,10 +97,11 @@ const DEFAULT_IGNORE_GLOBS = [
 function expandPaths(
   inputs: string[],
   cwd: string
-): { explicit: string[]; expanded: string[]; scanRootDirs: string[] } {
+): { explicit: string[]; expanded: string[]; scanRootDirs: string[]; configWarnings: string[] } {
   const explicit = new Set<string>();
   const expanded = new Set<string>();
   const scanRootDirs = new Set<string>();
+  const configWarnings: string[] = [];
   for (const input of inputs) {
     const abs = path.isAbsolute(input) ? input : path.resolve(cwd, input);
     if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
@@ -108,14 +116,87 @@ function expandPaths(
       // needs this wider boundary, not the narrower common ancestor of
       // only the matched spec files.
       scanRootDirs.add(abs);
-      for (const g of SPEC_GLOBS) {
+
+      // A playwright.config.* at or above this directory, when it can be
+      // read statically, is authoritative about what this target itself
+      // considers a spec — see playwright-config.ts. Falls back to the
+      // filename-suffix SPEC_GLOBS (today's behavior) whenever a config
+      // isn't found, doesn't overlap this scan, or can't be parsed
+      // statically (a dynamic/unsupported shape) — the last case surfaces
+      // a warning rather than silently guessing.
+      let globCwd = abs;
+      let specGlobs: string[] = SPEC_GLOBS;
+      let ignoreGlobs: string[] = DEFAULT_IGNORE_GLOBS;
+      let configApplied = false;
+      // Boundary for the transitive-import safety net below — widened to
+      // the config's own directory (not `abs`), for the same reason
+      // import-graph.ts already widens its own POM boundary past the
+      // matched spec files' common ancestor: a fixtures module a spec
+      // imports test/expect from commonly lives in a directory *sibling*
+      // to testDir (`playwright/fixtures` next to `playwright/tests`), not
+      // inside it. Verified against a real config (appsmithorg/appsmith)
+      // where every real spec imports `test`/`expect` from `../../fixtures`
+      // — bounding resolution to `abs` (testDir itself) made every file
+      // fail the check and silently zeroed the whole suite, the same
+      // false-negative failure mode this safety net exists to prevent.
+      let importSafetyNetBoundary = abs;
+
+      const configFile = findPlaywrightConfig(abs);
+      if (configFile) {
+        const parsedConfig = parsePlaywrightConfig(configFile);
+        if (!parsedConfig) {
+          configWarnings.push(
+            `Found ${path.relative(cwd, configFile) || configFile} but could not statically parse testDir/testMatch/testIgnore (a dynamic value or unsupported shape) — falling back to filename-based spec discovery for ${path.relative(cwd, abs) || abs}.`
+          );
+        } else {
+          const scopedRoot = resolveConfigScopedRoot(abs, parsedConfig.testDirAbs);
+          if (scopedRoot) {
+            globCwd = scopedRoot;
+            if (parsedConfig.testMatch) specGlobs = parsedConfig.testMatch;
+            if (parsedConfig.testIgnore) {
+              ignoreGlobs = [...DEFAULT_IGNORE_GLOBS, ...parsedConfig.testIgnore];
+            }
+            configApplied = true;
+            importSafetyNetBoundary = path.dirname(configFile);
+          }
+        }
+      }
+
+      for (const g of specGlobs) {
         for (const f of globSync(g, {
-          cwd: abs,
+          cwd: globCwd,
           absolute: true,
           nodir: true,
-          ignore: DEFAULT_IGNORE_GLOBS,
+          ignore: ignoreGlobs,
         })) {
-          expanded.add(path.resolve(f));
+          const resolved = path.resolve(f);
+          // resolveConfigScopedRoot always globs from testDir (Playwright's
+          // own testMatch/testIgnore semantics — see its doc comment), which
+          // can be wider than the directory the caller actually pointed
+          // `scorePaths` at (a narrower `abs`, e.g. one subproject's specs
+          // inside a monorepo testDir that also covers others). Filter back
+          // down to what the caller asked for so scoping to testDir for
+          // correct path matching never silently widens the scored set.
+          if (configApplied && globCwd !== abs) {
+            const rel = path.relative(abs, resolved);
+            if (rel.startsWith('..') || path.isAbsolute(rel)) continue;
+          }
+          // Extra safety net, only once config-based discovery is actually
+          // driving this scan: testMatch can still be broader than intended
+          // (e.g. a generic '**/*.ts'); a file that imports neither
+          // '@playwright/test' directly nor (transitively, through a local
+          // module) re-exports it isn't a Playwright spec regardless of
+          // what the config's glob matched.
+          if (configApplied) {
+            let source: string;
+            try {
+              source = fs.readFileSync(resolved, 'utf8');
+            } catch {
+              continue;
+            }
+            if (!importsPlaywrightTestTransitively(resolved, source, importSafetyNetBoundary)) continue;
+          }
+          expanded.add(resolved);
         }
       }
       continue;
@@ -137,6 +218,7 @@ function expandPaths(
     explicit: [...explicit].sort(),
     expanded: [...expanded].sort(),
     scanRootDirs: [...scanRootDirs].sort(),
+    configWarnings,
   };
 }
 
@@ -145,7 +227,8 @@ function hardFail(
   threshold: number,
   findings: Finding[],
   extra: Partial<ScoreResult['summary']> = {},
-  skippedFiles?: string[]
+  skippedFiles?: string[],
+  configWarnings?: string[]
 ): ScoreResult {
   return {
     scoreVersion: 'v4',
@@ -175,6 +258,7 @@ function hardFail(
     },
     findings,
     ...(skippedFiles && skippedFiles.length > 0 ? { skippedFiles } : {}),
+    ...(configWarnings && configWarnings.length > 0 ? { configWarnings } : {}),
   };
 }
 
@@ -187,19 +271,26 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   const threshold =
     options.threshold ?? DEFAULT_THRESHOLDS[profile] ?? 80;
 
-  const { explicit, expanded, scanRootDirs } = expandPaths(options.paths, cwd);
+  const { explicit, expanded, scanRootDirs, configWarnings } = expandPaths(options.paths, cwd);
 
   if (explicit.length === 0 && expanded.length === 0) {
     // Hard-fail: empty match must never look like a healthy suite (was ~99 PASS).
-    return hardFail(profile, threshold, [
-      {
-        rule: 'playwright-score/no-files',
-        severity: 'error',
-        message: `No Playwright spec files matched: ${options.paths.join(', ') || '(no paths)'}`,
-        file: cwd,
-        dimension: 'structure',
-      },
-    ]);
+    return hardFail(
+      profile,
+      threshold,
+      [
+        {
+          rule: 'playwright-score/no-files',
+          severity: 'error',
+          message: `No Playwright spec files matched: ${options.paths.join(', ') || '(no paths)'}`,
+          file: cwd,
+          dimension: 'structure',
+        },
+      ],
+      {},
+      undefined,
+      configWarnings
+    );
   }
 
   // Directory/glob matches are excluded only on positive evidence of a
@@ -279,11 +370,21 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
     }
   }
 
+  // Identifiers bound to a `test.extend(...)`-derived fixture under a
+  // custom name (same-file, or imported from a local fixtures module —
+  // see test-aliases.ts), so a suite that always declares its tests via
+  // `loggedTest(...)` instead of `test(...)` is recognized correctly by
+  // both eslint-plugin-playwright's rules (fed via runEslint's settings
+  // below) and this package's own AST checks (getTestSpans/countTests,
+  // base-plugin.ts).
+  const testAliasNames = detectExtendedTestAliases(sources, importedFiles, importBoundary);
+
   const eslintFindings = await runEslint({
     files,
     profile,
     cwd,
     assertFunctionNames: [...assertFunctionNames],
+    testAliasNames,
   });
 
   let totalSloc = 0;
@@ -297,12 +398,12 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   for (const file of files) {
     const source = sources.get(file) ?? '';
     const relFile = path.relative(filesBase, file) || path.basename(file);
-    const m = analyzeSource(source, relFile);
+    const m = analyzeSource(source, relFile, testAliasNames);
     totalSloc += m.sloc;
     native += m.locators.native;
     raw += m.locators.raw;
     metricFindings.push(...m.findings);
-    const spans = getTestSpans(source, relFile);
+    const spans = getTestSpans(source, relFile, testAliasNames);
     fileSpans.set(relFile, spans);
     // AST spans are the authoritative test count (they are also the
     // attribution targets); the regex count is the fallback for a file
@@ -357,5 +458,9 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
     rawLocators: raw,
   });
 
-  return skippedFiles.length > 0 ? { ...result, skippedFiles } : result;
+  return {
+    ...result,
+    ...(skippedFiles.length > 0 ? { skippedFiles } : {}),
+    ...(configWarnings.length > 0 ? { configWarnings } : {}),
+  };
 }

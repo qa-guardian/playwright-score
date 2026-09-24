@@ -344,12 +344,24 @@ function hasFunctionArg(node: Record<string, unknown>): boolean {
  * for `test.fixme()` used as a statement. Spans nested inside another test
  * span (rare, but e.g. a helper declaring a test inside a test would be
  * malformed anyway) are dropped so each line maps to at most one test.
+ *
+ * `testAliasNames` (see test-aliases.ts) are identifiers bound to a
+ * `test.extend(...)`-derived fixture (`const loggedTest = test.extend(...)`,
+ * possibly imported from another file) — treated exactly like the literal
+ * `test` identifier here, same as `it`. Without this, a suite that always
+ * calls its extended fixture under a custom name would count zero tests.
  */
-export function getTestSpans(source: string, file?: string): TestSpans {
+export function getTestSpans(
+  source: string,
+  file?: string,
+  testAliasNames: readonly string[] = []
+): TestSpans {
   const tests: SourceSpan[] = [];
   const hooks: SourceSpan[] = [];
   const ast = parseSource(source, file);
   if (!ast) return { tests, hooks };
+  const aliasSet = new Set(testAliasNames);
+  const isTestName = (name: string) => name === 'test' || name === 'it' || aliasSet.has(name);
   walk(ast, (node) => {
     if (node.type !== 'CallExpression') return;
     const callee = (node as { callee?: Record<string, unknown> }).callee;
@@ -361,12 +373,12 @@ export function getTestSpans(source: string, file?: string): TestSpans {
     let isHook = false;
     if (callee?.type === 'Identifier') {
       const name = (callee as { name?: string }).name;
-      if (name === 'test' || name === 'it') isTest = true;
+      if (name && isTestName(name)) isTest = true;
       else if (name && HOOK_NAMES.has(name)) isHook = true;
     } else if (callee?.type === 'MemberExpression' && !callee.computed) {
       const obj = callee.object as { type?: string; name?: string } | undefined;
       const prop = callee.property as { type?: string; name?: string } | undefined;
-      if (obj?.type === 'Identifier' && (obj.name === 'test' || obj.name === 'it') && prop?.type === 'Identifier') {
+      if (obj?.type === 'Identifier' && obj.name && isTestName(obj.name) && prop?.type === 'Identifier') {
         if (TEST_MODIFIERS.has(prop.name ?? '')) isTest = true;
         else if (HOOK_NAMES.has(prop.name ?? '')) isHook = true;
       }
@@ -428,10 +440,22 @@ export function attributeFindingScopes(
 const TEST_NON_DECL_RE =
   /\btest\.(describe|step|beforeEach|afterEach|beforeAll|afterAll|use|setTimeout|info|expect)\b/;
 
-/** Count test( / test.only( / test.skip( / test.fixme( style declarations (approx). */
-export function countTests(source: string): number {
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Count test( / test.only( / test.skip( / test.fixme( style declarations
+ * (approx) — the regex fallback used only when `parseSource` can't parse
+ * the file (see `getTestSpans`'s AST path, preferred whenever parsing
+ * succeeds). `testAliasNames` extends the matched identifier the same way
+ * `getTestSpans` does, so a parse-fallback file using an extended-fixture
+ * name isn't undercounted either.
+ */
+export function countTests(source: string, testAliasNames: readonly string[] = []): number {
   // Playwright's real modifier API is test.fixme() — not test.fix().
-  const re = /\btest(?:\.(?:only|skip|fixme|slow))?\s*\(/g;
+  const names = ['test', ...testAliasNames].map(escapeRegExp).join('|');
+  const re = new RegExp(`\\b(?:${names})(?:\\.(?:only|skip|fixme|slow))?\\s*\\(`, 'g');
   let count = 0;
   let m: RegExpExecArray | null;
   while ((m = re.exec(source)) !== null) {
@@ -496,10 +520,10 @@ export function findEslintDisableComments(source: string, file: string): Finding
   return findings;
 }
 
-export function analyzeSource(source: string, file: string) {
+export function analyzeSource(source: string, file: string, testAliasNames: readonly string[] = []) {
   return {
     sloc: countSloc(source),
-    tests: countTests(source),
+    tests: countTests(source, testAliasNames),
     locators: countLocators(source, file),
     // No homegrown "has no assertions" check here: playwright/expect-expect
     // (a real AST-based community rule, always enabled — see

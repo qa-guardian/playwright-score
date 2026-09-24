@@ -79,6 +79,14 @@ export interface ScoreResult {
    * if they'd otherwise be skipped.
    */
   skippedFiles?: string[];
+  /**
+   * A playwright.config.* was found at or above a scanned directory but
+   * could not be read statically (a dynamic value, e.g. `process.env`, a
+   * spread, or an unsupported export shape) — discovery fell back to
+   * today's filename-suffix behavior for that directory instead of acting
+   * on a partial or guessed reading. See playwright-config.ts.
+   */
+  configWarnings?: string[];
 }
 
 export interface ScoreOptions {

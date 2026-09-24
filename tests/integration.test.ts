@@ -1260,3 +1260,442 @@ describe('2.0.0 MUST FIX: noInlineConfig — an inline eslint-disable can no lon
     assert.notEqual(resultWith.score, 99, 'pre-fix regression: the blanket disable comment silenced every finding and scored 99/A');
   });
 });
+
+describe('2.1.0: custom test.extend() fixture names are recognized as test declarations', () => {
+  it('same-file: const loggedTest = test.extend(...) does not false-positive no-standalone-expect (regression: argos-ci/apache-superset shape)', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `const loggedTest = test.extend<{}>({});\n\n` +
+        `loggedTest('shows the dashboard', async ({ page }) => {\n` +
+        `  await page.goto('/dashboard');\n` +
+        `  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'playwright/no-standalone-expect'),
+      `expected no false no-standalone-expect finding: ${JSON.stringify(result.findings)}`
+    );
+    assert.equal(result.summary.tests, 1, `expected the loggedTest(...) declaration to count as one test, got ${result.summary.tests}`);
+    assert.equal(result.score, 100, `expected a clean score, got ${result.score}: ${JSON.stringify(result.findings)}`);
+  });
+
+  it('cross-file: an extended test imported from a local fixtures module is recognized, two hops deep (regression: argos-ci/argos — seedTest = test.extend(...) in one file, loggedTest = seedTest.extend(...) in a second, used in a third)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-extend-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'tests'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'tests', 'seed-test.ts'),
+        `import { test as base } from '@playwright/test';\n` +
+          `export const seedTest = base.extend<{}>({});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'tests', 'logged-test.ts'),
+        `import { seedTest } from './seed-test';\n` +
+          `export const loggedTest = seedTest.extend<{}>({});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'tests', 'dashboard.spec.ts'),
+        `import { expect } from '@playwright/test';\n` +
+          `import { loggedTest } from './logged-test';\n\n` +
+          `loggedTest('shows the dashboard', async ({ page }) => {\n` +
+          `  await page.goto('/dashboard');\n` +
+          `  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();\n` +
+          `});\n`
+      );
+
+      const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
+      assert.ok(
+        !result.findings.some((f) => f.rule === 'playwright/no-standalone-expect'),
+        `expected no false no-standalone-expect finding: ${JSON.stringify(result.findings)}`
+      );
+      assert.equal(result.summary.files, 1, 'only the spec file counts as a scored file');
+      assert.equal(result.summary.tests, 1, `expected the loggedTest(...) declaration to count as one test, got ${result.summary.tests}`);
+      assert.equal(result.score, 100, `expected a clean score, got ${result.score}: ${JSON.stringify(result.findings)}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('cross-file: a re-export barrel that renames the extended test is followed (regression: apache/superset — testAssets.ts exports `test`, a barrel re-exports it as `testWithAssets`)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-extend-barrel-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'tests'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'tests', 'testAssets.ts'),
+        `import { test as base } from '@playwright/test';\n` +
+          `export const test = base.extend<{}>({});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'tests', 'fixtures.ts'),
+        `export { test as testWithAssets, expect } from './testAssets';\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'tests', 'chart-list.spec.ts'),
+        `import { testWithAssets, expect } from './fixtures';\n\n` +
+          `testWithAssets('lists charts', async ({ page }) => {\n` +
+          `  await page.goto('/charts');\n` +
+          `  await expect(page.getByRole('heading', { name: 'Charts' })).toBeVisible();\n` +
+          `});\n`
+      );
+
+      const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
+      assert.ok(
+        !result.findings.some((f) => f.rule === 'playwright/no-standalone-expect'),
+        `expected no false no-standalone-expect finding: ${JSON.stringify(result.findings)}`
+      );
+      assert.equal(result.summary.tests, 1, `expected the testWithAssets(...) declaration to count as one test, got ${result.summary.tests}`);
+      assert.equal(result.score, 100, `expected a clean score, got ${result.score}: ${JSON.stringify(result.findings)}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not recognize an unrelated function that merely shares a name with no .extend() lineage (no false negative introduced)', async () => {
+    const result = await scoreSource(
+      `import { expect } from '@playwright/test';\n\n` +
+        `function loggedTest(name: string, fn: () => Promise<void>) {\n` +
+        `  return fn();\n` +
+        `}\n\n` +
+        `loggedTest('not a real test', async () => {\n` +
+        `  expect(1).toBe(1);\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'playwright/no-standalone-expect'),
+      'an unrelated same-named function must still be flagged — the alias must come from a real .extend() chain, not the name alone'
+    );
+  });
+
+  it('an aliased fixture\'s always-skipped declaration is still caught by pwscore/no-skipped-test-declaration', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `const loggedTest = test.extend<{}>({});\n\n` +
+        `loggedTest.skip('not ready yet', async ({ page }) => {\n` +
+        `  await expect(page).toHaveTitle('x');\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-skipped-test-declaration'),
+      `expected the always-skipped loggedTest.skip(...) declaration to be flagged: ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('an aliased fixture\'s soft-assertion-only test is still caught by pwscore/no-soft-assertion-only-test', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `const loggedTest = test.extend<{}>({});\n\n` +
+        `loggedTest('checks things softly', async ({ page }) => {\n` +
+        `  expect.soft(await page.title()).toBe('x');\n` +
+        `});\n`
+    );
+    assert.ok(
+      result.findings.some((f) => f.rule === 'pwscore/no-soft-assertion-only-test'),
+      `expected the soft-only loggedTest(...) to be flagged: ${JSON.stringify(result.findings)}`
+    );
+  });
+});
+
+describe('2.1.0: spec discovery honors the target\'s own playwright.config testDir/testMatch/testIgnore', () => {
+  it('a config with testMatch excluding Jest specs keeps only the real Playwright suite (regression: Ionic core/ — 419 real *.e2e.ts Playwright specs alongside 60 Jest *.spec.ts unit tests, both previously matched by filename-suffix discovery)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-config-testmatch-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'core'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'playwright.config.ts'),
+        `import { defineConfig } from '@playwright/test';\n` +
+          `export default defineConfig({\n` +
+          `  testDir: './core',\n` +
+          `  testMatch: '**/*.e2e.ts',\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'core', 'real.e2e.ts'),
+        `import { test, expect } from '@playwright/test';\n` +
+          `test('loads the page', async ({ page }) => {\n` +
+          `  await page.goto('/');\n` +
+          `  await expect(page).toHaveTitle('Home');\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'core', 'fake.spec.ts'),
+        `describe('a jest unit test', () => {\n` +
+          `  it('does something unrelated', () => {\n` +
+          `    expect(1 + 1).toBe(2);\n` +
+          `  });\n` +
+          `});\n`
+      );
+
+      const result = await scorePaths({ paths: [path.join(dir, 'core')], profile: 'standard', cwd: dir });
+
+      assert.equal(result.summary.files, 1, `expected only real.e2e.ts to be discovered, got ${result.summary.files}`);
+      assert.ok(
+        !result.findings.some((f) => f.file.includes('fake.spec.ts')),
+        `fake.spec.ts must never be scored once testMatch excludes it: ${JSON.stringify(result.findings)}`
+      );
+      assert.ok(result.score >= 80, `expected the real suite to score well, got ${result.score}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('the same directory without a config still discovers both files by filename suffix (control: proves the testMatch restriction above, not some other filter, is what excluded fake.spec.ts)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-config-control-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'core'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'core', 'real.e2e.ts'),
+        `import { test, expect } from '@playwright/test';\n` +
+          `test('loads the page', async ({ page }) => {\n` +
+          `  await page.goto('/');\n` +
+          `  await expect(page).toHaveTitle('Home');\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'core', 'fake.spec.ts'),
+        `describe('a jest unit test', () => {\n` +
+          `  it('does something unrelated', () => {\n` +
+          `    expect(1 + 1).toBe(2);\n` +
+          `  });\n` +
+          `});\n`
+      );
+
+      const result = await scorePaths({ paths: [path.join(dir, 'core')], profile: 'standard', cwd: dir });
+      assert.equal(result.summary.files, 2, `expected both files to be discovered with no config present, got ${result.summary.files}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('a config whose testDir is a dynamic (non-literal) value falls back to filename-based discovery with a warning, instead of guessing', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-config-unparseable-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'e2e'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'playwright.config.ts'),
+        `import { defineConfig } from '@playwright/test';\n` +
+          `const testDir = process.env.TEST_DIR || './e2e';\n` +
+          `export default defineConfig({\n` +
+          `  testDir,\n` +
+          `  testMatch: '**/*.e2e.ts',\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'e2e', 'real.e2e.ts'),
+        `import { test, expect } from '@playwright/test';\n` +
+          `test('a', async ({ page }) => {\n` +
+          `  await expect(page).toHaveTitle('x');\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'e2e', 'other.spec.ts'),
+        `import { test, expect } from '@playwright/test';\n` +
+          `test('b', async ({ page }) => {\n` +
+          `  await expect(page).toHaveTitle('y');\n` +
+          `});\n`
+      );
+
+      const result = await scorePaths({ paths: [path.join(dir, 'e2e')], profile: 'standard', cwd: dir });
+
+      assert.equal(
+        result.summary.files,
+        2,
+        `expected both files via the filename-suffix fallback (testDir could not be statically resolved), got ${result.summary.files}`
+      );
+      assert.ok(
+        result.configWarnings && result.configWarnings.length > 0,
+        'expected a configWarnings entry explaining the static-parse fallback'
+      );
+      assert.ok(
+        result.configWarnings!.some((w) => w.includes('playwright.config')),
+        `expected the warning to name the config file: ${JSON.stringify(result.configWarnings)}`
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('a testIgnore pattern excludes matching files in addition to testMatch', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-config-testignore-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'tests'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'playwright.config.ts'),
+        `import { defineConfig } from '@playwright/test';\n` +
+          `export default defineConfig({\n` +
+          `  testDir: './tests',\n` +
+          `  testIgnore: '**/legacy/**',\n` +
+          `});\n`
+      );
+      fs.mkdirSync(path.join(dir, 'tests', 'legacy'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'tests', 'current.spec.ts'),
+        `import { test, expect } from '@playwright/test';\n` +
+          `test('a', async ({ page }) => {\n` +
+          `  await expect(page).toHaveTitle('x');\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'tests', 'legacy', 'old.spec.ts'),
+        `import { test, expect } from '@playwright/test';\n` +
+          `test('b', async ({ page }) => {\n` +
+          `  await expect(page).toHaveTitle('y');\n` +
+          `});\n`
+      );
+
+      const result = await scorePaths({ paths: [path.join(dir, 'tests')], profile: 'standard', cwd: dir });
+      assert.equal(result.summary.files, 1, `expected the legacy/ file to be excluded by testIgnore, got ${result.summary.files}`);
+      assert.ok(!result.findings.some((f) => f.file.includes('legacy')));
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('a testMatch pattern with no leading **/ still matches files several directories deep, matching Playwright\'s own createFileMatcher (regression: payloadcms/payload — testDir: "", testMatch: ["*e2e.spec.ts"], every real spec nested under per-feature subdirectories, glob\'s own single-star semantics silently matched zero files)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-config-basename-glob-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'feature-a'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'playwright.config.ts'),
+        `import { defineConfig } from '@playwright/test';\n` +
+          `export default defineConfig({\n` +
+          `  testDir: '',\n` +
+          `  testMatch: ['*e2e.spec.ts'],\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'feature-a', 'e2e.spec.ts'),
+        `import { test, expect } from '@playwright/test';\n` +
+          `test('a', async ({ page }) => {\n` +
+          `  await expect(page).toHaveTitle('x');\n` +
+          `});\n`
+      );
+
+      const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
+      assert.equal(
+        result.summary.files,
+        1,
+        `expected the nested feature-a/e2e.spec.ts to be discovered despite testMatch having no leading **/, got ${result.summary.files}`
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('a fixtures module imported from a sibling directory of testDir (not inside it) is followed by the transitive-import safety net, not wrongly excluded (regression: appsmithorg/appsmith — spec imports test/expect from a sibling ../../fixtures, scoping the safety net\'s resolution boundary to testDir itself made every real spec fail the check)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-config-sibling-fixtures-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'playwright', 'tests', 'smoke'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'playwright.config.ts'),
+        `import { defineConfig } from '@playwright/test';\n` +
+          `export default defineConfig({\n` +
+          `  testDir: './playwright/tests',\n` +
+          `  testMatch: '**/*.spec.ts',\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'playwright', 'fixtures.ts'),
+        `import { test as base, expect } from '@playwright/test';\n` +
+          `export const test = base.extend<{}>({});\n` +
+          `export { expect };\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'playwright', 'tests', 'smoke', 'login.spec.ts'),
+        `import { test, expect } from '../../fixtures';\n` +
+          `test('logs in', async ({ page }) => {\n` +
+          `  await expect(page).toHaveTitle('x');\n` +
+          `});\n`
+      );
+
+      const result = await scorePaths({
+        paths: [path.join(dir, 'playwright', 'tests')],
+        profile: 'standard',
+        cwd: dir,
+      });
+      assert.equal(
+        result.summary.files,
+        1,
+        `expected login.spec.ts to be kept (its fixtures import resolves and is a real @playwright/test re-export), got ${result.summary.files}: ${JSON.stringify(result.configWarnings)}`
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('an unresolvable relative import (missing on disk — e.g. a sparse/partial checkout) fails OPEN and keeps the file, rather than treating it as evidence of a non-Playwright file', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-config-unresolvable-import-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'tests'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'playwright.config.ts'),
+        `import { defineConfig } from '@playwright/test';\n` +
+          `export default defineConfig({\n` +
+          `  testDir: './tests',\n` +
+          `  testMatch: '**/*.spec.ts',\n` +
+          `});\n`
+      );
+      // Imports a fixtures module that does not exist on disk at all —
+      // simulates a sparse checkout, or a scan root narrower than the real
+      // project boundary.
+      fs.writeFileSync(
+        path.join(dir, 'tests', 'login.spec.ts'),
+        `import { test, expect } from '../missing-fixtures';\n` +
+          `test('logs in', async ({ page }) => {\n` +
+          `  await expect(page).toHaveTitle('x');\n` +
+          `});\n`
+      );
+
+      const result = await scorePaths({ paths: [path.join(dir, 'tests')], profile: 'standard', cwd: dir });
+      assert.equal(
+        result.summary.files,
+        1,
+        `expected login.spec.ts to be kept even though its import target is missing on disk (inconclusive, not negative evidence), got ${result.summary.files}`
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('testDir above the scanned directory with a testMatch pattern anchored to real path segments (not a bare basename) still resolves correctly, and results stay scoped to the caller\'s own narrower directory (regression: PostHog/posthog — testDir: "..", testMatch: ["playwright/e2e/**/*.spec.ts", "products/*/frontend/e2e/**/*.spec.ts"]; globbing from the caller\'s narrower directory instead of testDir made the path-anchored pattern never match anything)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-config-testdir-above-'));
+    try {
+      fs.mkdirSync(path.join(dir, 'playwright', 'e2e'), { recursive: true });
+      fs.mkdirSync(path.join(dir, 'products', 'app', 'frontend', 'e2e'), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, 'playwright', 'playwright.config.ts'),
+        `import { defineConfig } from '@playwright/test';\n` +
+          `export default defineConfig({\n` +
+          `  testDir: '..',\n` +
+          `  testMatch: ['playwright/e2e/**/*.spec.ts', 'products/*/frontend/e2e/**/*.spec.ts'],\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'playwright', 'e2e', 'auth.spec.ts'),
+        `import { test, expect } from '@playwright/test';\n` +
+          `test('a', async ({ page }) => {\n` +
+          `  await expect(page).toHaveTitle('x');\n` +
+          `});\n`
+      );
+      fs.writeFileSync(
+        path.join(dir, 'products', 'app', 'frontend', 'e2e', 'checkout.spec.ts'),
+        `import { test, expect } from '@playwright/test';\n` +
+          `test('b', async ({ page }) => {\n` +
+          `  await expect(page).toHaveTitle('y');\n` +
+          `});\n`
+      );
+
+      const scoped = await scorePaths({ paths: [path.join(dir, 'playwright', 'e2e')], profile: 'standard', cwd: dir });
+      assert.equal(
+        scoped.summary.files,
+        1,
+        `expected only auth.spec.ts (the path-anchored testMatch entry resolved relative to testDir, not the caller's narrower dir), got ${scoped.summary.files}`
+      );
+      assert.ok(
+        !scoped.findings.some((f) => f.file.includes('checkout')),
+        'products/app/frontend/e2e/checkout.spec.ts is outside the requested directory and must not be pulled in'
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

@@ -26,19 +26,29 @@ type Node = {
   source?: { value?: unknown };
 };
 
-function isSkipCallee(callee: Node | undefined): boolean {
+/**
+ * `testNames` is `'test'` plus any `test.extend(...)`-derived fixture
+ * aliases detected by test-aliases.ts (see eslint-runner.ts, which feeds
+ * this rule's `testAliasNames` option) — a suite that always declares its
+ * tests via `loggedTest.skip(...)` instead of `test.skip(...)` still needs
+ * the always-skipped-declaration check below, same as upstream
+ * eslint-plugin-playwright's own rules need the alias for no-standalone-
+ * expect (see METHODOLOGY.md/test-aliases.ts).
+ */
+function isSkipCallee(callee: Node | undefined, testNames: ReadonlySet<string>): boolean {
   if (!callee || callee.type !== 'MemberExpression' || callee.computed) return false;
   const obj = callee.object;
   const prop = callee.property;
   if (prop?.type !== 'Identifier' || prop.name !== 'skip') return false;
-  // test.skip(...)
-  if (obj?.type === 'Identifier' && obj.name === 'test') return true;
-  // test.describe.skip(...)
+  // test.skip(...) / loggedTest.skip(...)
+  if (obj?.type === 'Identifier' && obj.name && testNames.has(obj.name)) return true;
+  // test.describe.skip(...) / loggedTest.describe.skip(...)
   if (
     obj?.type === 'MemberExpression' &&
     !obj.computed &&
     obj.object?.type === 'Identifier' &&
-    obj.object.name === 'test' &&
+    obj.object.name &&
+    testNames.has(obj.object.name) &&
     obj.property?.type === 'Identifier' &&
     obj.property.name === 'describe'
   ) {
@@ -82,12 +92,23 @@ const noSkippedTestDeclaration: Rule.RuleModule = {
     messages: {
       skipped: 'Unexpected use of the .skip() annotation to declare an always-skipped test.',
     },
-    schema: [],
+    schema: [
+      {
+        additionalProperties: false,
+        properties: {
+          testAliasNames: { items: { type: 'string' }, type: 'array' },
+        },
+        type: 'object',
+      },
+    ],
   },
   create(context) {
+    const testAliasNames = (context.options[0] as { testAliasNames?: string[] } | undefined)
+      ?.testAliasNames ?? [];
+    const testNames = new Set<string>(['test', ...testAliasNames]);
     return {
       CallExpression(node: Node) {
-        if (!isSkipCallee(node.callee)) return;
+        if (!isSkipCallee(node.callee, testNames)) return;
         const args = node.arguments ?? [];
         const lastArg = args[args.length - 1];
         const isDeclaration = args.length >= 2 && FUNCTION_TYPES.has(lastArg?.type ?? '');
@@ -713,14 +734,16 @@ const noTrivialAssertion: Rule.RuleModule = {
   },
 };
 
-function isTestDeclarationCallee(callee: Node | undefined): boolean {
+/** `testNames` — see isSkipCallee's doc comment above; same alias treatment. */
+function isTestDeclarationCallee(callee: Node | undefined, testNames: ReadonlySet<string>): boolean {
   if (!callee) return false;
-  if (callee.type === 'Identifier' && callee.name === 'test') return true;
+  if (callee.type === 'Identifier' && callee.name && testNames.has(callee.name)) return true;
   if (
     callee.type === 'MemberExpression' &&
     !callee.computed &&
     callee.object?.type === 'Identifier' &&
-    callee.object.name === 'test' &&
+    callee.object.name &&
+    testNames.has(callee.object.name) &&
     callee.property?.type === 'Identifier' &&
     (callee.property.name === 'only' || callee.property.name === 'fixme')
   ) {
@@ -754,12 +777,23 @@ const noSoftAssertionOnlyTest: Rule.RuleModule = {
       softOnly:
         'This test only uses expect.soft(...) assertions — a failed check is recorded but never fails the test. Use a hard expect() for anything that should stop the test.',
     },
-    schema: [],
+    schema: [
+      {
+        additionalProperties: false,
+        properties: {
+          testAliasNames: { items: { type: 'string' }, type: 'array' },
+        },
+        type: 'object',
+      },
+    ],
   },
   create(context) {
+    const testAliasNames = (context.options[0] as { testAliasNames?: string[] } | undefined)
+      ?.testAliasNames ?? [];
+    const testNames = new Set<string>(['test', ...testAliasNames]);
     return {
       CallExpression(node: Node) {
-        if (!isTestDeclarationCallee(node.callee)) return;
+        if (!isTestDeclarationCallee(node.callee, testNames)) return;
         const args = node.arguments ?? [];
         const body = args[args.length - 1];
         if (!body || !FUNCTION_TYPES.has(body.type)) return;

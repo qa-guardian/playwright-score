@@ -7,10 +7,28 @@ import { basePlugin } from './rules/base-plugin.js';
 import { mapRule } from './profiles.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
-function buildConfig(assertFunctionNames: string[]): Linter.Config[] {
+function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): Linter.Config[] {
   const base: Linter.Config[] = [
     {
       files: ['**/*.{ts,tsx,js,jsx,mjs,cjs}'],
+      // Identifiers bound to a `test.extend(...)`-derived fixture under a
+      // custom name (test-aliases.ts) — upstream eslint-plugin-playwright
+      // already dereferences a *same-file* extend chain internally, but
+      // can't follow one across files (its own `dereference` is scoped to
+      // the current file); this setting is what makes a cross-file alias
+      // (`import { loggedTest } from './fixtures'`) resolve to `test` for
+      // every rule that keys off the literal identifier — no-standalone-
+      // expect, no-conditional-expect, no-conditional-in-test, valid-expect,
+      // no-focused-test, and others built on the same parseFnCall/
+      // resolveToPlaywrightFn helper. Verified against two real corpus
+      // repos (argos-ci/argos's `loggedTest`, apache/superset's
+      // `testWithAssets`) where this exact cross-file shape was the actual
+      // false-positive cause.
+      settings: {
+        playwright: {
+          globalAliases: { test: testAliasNames },
+        },
+      },
       // A pre-2.0.0 review found `/* eslint-disable */` on line 1 of a
       // 10-test file (waitForTimeout + expect(true).toBe(true) in every
       // test) took it from 35/F to 99/A — every rule this package enables
@@ -86,7 +104,7 @@ function buildConfig(assertFunctionNames: string[]): Linter.Config[] {
         // with the same severity for the actual anti-pattern (an
         // always-skipped test declaration) only.
         'playwright/no-skipped-test': 'off',
-        'pwscore/no-skipped-test-declaration': 'warn',
+        'pwscore/no-skipped-test-declaration': ['warn', { testAliasNames }],
         'playwright/no-raw-locators': 'warn',
         // Both were mapped in profiles.ts (report-only, so they don't
         // double-penalize the ratio-based locators dimension) but never
@@ -139,7 +157,7 @@ function buildConfig(assertFunctionNames: string[]): Linter.Config[] {
         'pwscore/no-timer-sleep': 'error',
         'pwscore/no-coordinate-click': 'warn',
         'pwscore/no-trivial-assertion': 'error',
-        'pwscore/no-soft-assertion-only-test': 'warn',
+        'pwscore/no-soft-assertion-only-test': ['warn', { testAliasNames }],
       },
     },
   ];
@@ -170,6 +188,8 @@ export async function runEslint(options: {
   cwd?: string;
   /** See findLocalAssertionHelperNames in metrics.ts. */
   assertFunctionNames?: string[];
+  /** See detectExtendedTestAliases in test-aliases.ts. */
+  testAliasNames?: string[];
 }): Promise<Finding[]> {
   // ESLint 9 flat config resolves a `basePath` from `cwd` and silently
   // drops (as an untracked, ruleId-less message) any file that isn't
@@ -183,7 +203,7 @@ export async function runEslint(options: {
     options.files.length > 0
       ? commonAncestorDir(options.files)
       : (options.cwd ?? process.cwd());
-  const overrideConfig = buildConfig(options.assertFunctionNames ?? []);
+  const overrideConfig = buildConfig(options.assertFunctionNames ?? [], options.testAliasNames ?? []);
 
   // Try to attach typescript-eslint parser for .ts files
   try {

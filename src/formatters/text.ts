@@ -50,6 +50,14 @@ export function formatText(result: ScoreResult): string {
     }
   }
 
+  if (result.configWarnings?.length) {
+    lines.push('');
+    lines.push('Config warnings:');
+    for (const w of result.configWarnings) {
+      lines.push(`  ${w}`);
+    }
+  }
+
   return lines.join('\n');
 }
 

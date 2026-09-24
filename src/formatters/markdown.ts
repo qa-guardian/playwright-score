@@ -41,5 +41,14 @@ export function formatMarkdown(result: ScoreResult): string {
     lines.push('</details>');
   }
 
+  if (result.configWarnings?.length) {
+    lines.push('');
+    lines.push('## Config warnings');
+    lines.push('');
+    for (const w of result.configWarnings) {
+      lines.push(`- ${w}`);
+    }
+  }
+
   return lines.join('\n');
 }

@@ -227,25 +227,6 @@ public suites generally, not corpus-specific noise.
 
 ### Candidate scorer false positives found this pass (not fixed in this pass)
 
-- **Custom-named `test.extend()` wrapper functions aren't recognized by
-  upstream `eslint-plugin-playwright`'s `no-standalone-expect` (and likely
-  `no-conditional-expect`/`no-conditional-in-test`)**, which appear to key
-  off the literal identifier `test` (or a local rebinding *of* that exact
-  name, e.g. `const test = base.extend(...)`, which GitLens and Zotero use
-  and score fine). A project that instead calls its fixture something else
-  — `apache/superset`'s `testWithAssets(...)` (136 `no-standalone-expect`
-  findings, real cause of dropping it from B to 70/C) and especially
-  `argos-ci/argos`'s `loggedTest(...)` (406 findings — the dominant reason
-  it scores 57/F instead of something in the 80s) — gets every `expect()`
-  inside a completely normal, correctly-written test flagged as
-  "standalone". Verified by reading the actual source in both repos: the
-  flagged `expect()` calls are inside well-formed `loggedTest("...", async
-  ({ page }) => { ... })`/`testWithAssets("...", async ({ page,
-  testAssets }) => { ... })` bodies, not actually outside any test block.
-  This is a real, fixable gap (eslint-plugin-playwright has no
-  `additionalTestBlockFunctions`-style setting in the version vendored
-  here) and the single biggest concrete finding from this pass — worth a
-  follow-up ticket.
 - **`pwscore/no-coordinate-click`'s canvas-app exception (see below) has a
   second confirmed example**: `KittyCAD/modeling-app` (a browser-based CAD
   tool) accounts for 130 of this pass's 333 hits, on top of tldraw/AFFiNE
@@ -294,31 +275,14 @@ canvas/whiteboard/drawing-tool suite and need one.
   class they're each named for.** See CHANGELOG.md's 2.0.0 entry for
   exactly which respellings each one catches — any pattern not listed is
   a false negative this scorer will not see.
-- **`no-standalone-expect`/`no-conditional-expect`/`no-conditional-in-test`
-  (upstream `eslint-plugin-playwright`, not a pwscore rule) key off the
-  literal identifier `test`, not the target project's actual test-block
-  function.** A suite that names its `test.extend()` fixture something
-  else (`argos-ci/argos`'s `loggedTest`, `apache/superset`'s
-  `testWithAssets`) gets every `expect()` inside a normal, correctly
-  written test flagged as standalone — found 2026-09-23 scoring the
-  corpus-100 additions, see VALIDATION.md's "Candidate scorer false
-  positives" above for the evidence. Not fixed in that pass (found while
-  growing the validation corpus, not while working the scorer itself);
-  the fix would need this package's own `additionalTestBlockFunctions`-
-  style config, which `eslint-plugin-playwright` doesn't currently expose.
-- **Spec discovery globs the target directory by filename suffix only —
-  it never reads the target's own `playwright.config.*` `testDir`/
-  `testMatch`.** Most of the time this doesn't matter (the whole
-  directory really is Playwright specs), but when a different test
-  runner's files share the same directory and naming convention as the
-  real e2e suite, they get scored too. Found in
-  `ionic-team/ionic-framework`'s `core/` (60 Stencil/Jest `*.spec.ts`
-  unit tests alongside 419 real `*.e2e.ts` Playwright files, same `test/`
-  directories per component) — about 12.5% of that repo's corpus entry
-  isn't actually a Playwright test. A worse case
-  (`remix-run/remix`'s `packages/ui`, where *none* of the matched files
-  use `@playwright/test`) was caught and the repo simply wasn't added to
-  the corpus rather than published with a misleading score.
+- **`remix-run/remix`'s `packages/ui`** has a `playwright.config.ts` but
+  none of its matched test files actually import `@playwright/test` (a
+  different, custom test framework) — caught during discovery and the
+  repo simply wasn't added to the corpus rather than published with a
+  misleading score. Config-scoped discovery (see "Bugs found this way,
+  and fixed" below) would now also filter a case like this out on its own
+  via the transitive-`@playwright/test`-import safety net, but this repo
+  was excluded by hand before that existed.
 
 ## Bugs found this way, and fixed
 

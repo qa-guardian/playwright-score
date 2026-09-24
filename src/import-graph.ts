@@ -40,7 +40,7 @@ function extractRelativeImportSpecifiers(source: string, file: string): string[]
   return specifiers;
 }
 
-function resolveRelativeImport(
+export function resolveRelativeImport(
   fromFile: string,
   specifier: string,
   boundaryDir: string
