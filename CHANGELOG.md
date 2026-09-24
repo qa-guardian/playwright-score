@@ -1,17 +1,25 @@
 # Changelog
 
 All notable changes to this project are documented here. Any change that
-alters what a given suite scores is a new scoring-model version (see
-[METHODOLOGY.md](./METHODOLOGY.md)), not a quiet patch.
+alters what a given suite scores *by changing a rule's weight or
+severity* is a new scoring-model version (see
+[METHODOLOGY.md](./METHODOLOGY.md)), not a quiet patch. A release that
+leaves every rule's weight and severity untouched but changes which files
+or which test names get recognized in the first place — discovery and
+parsing accuracy, not grading policy — can still move a suite's score
+without itself being a new model version; 2.1.0 below is exactly that
+case, and says so explicitly.
 
 ## 2.1.0 — 2026-09-24
 
 Scoring model stays v4 — nothing here changes a rule's weight or
 severity, only whether a suite is *recognized* correctly in the first
-place. Every fix below made at least one real corpus repo's score more
-accurate, not less strict or more lenient by policy; see VALIDATION.md's
-"Bugs found this way, and fixed" for the full story (corpus repo, exact
-before/after) behind each one.
+place (see the note at the top of this file reconciling that with "any
+score-changing release is a new model version"). Every fix below made at
+least one real corpus repo's score more accurate — not uniformly higher,
+and not less strict or more lenient by policy; see "Behaviour change"
+below and VALIDATION.md's "Bugs found this way, and fixed" for the full
+story (corpus repo, exact before/after) behind each one.
 
 ### Fixed
 - **Custom `test.extend()` fixture names.** A suite that always declares
@@ -34,19 +42,25 @@ before/after) behind each one.
   alongside the real suite. `src/playwright-config.ts` statically parses
   (never executes — a scored repo's config is untrusted input) the
   nearest `playwright.config.{ts,js,mjs,cjs}` at or above the scanned
-  directory and scopes discovery to what the target itself declares,
-  falling back to the previous filename-based behavior (with a
-  `configWarnings` note in the result) when no config is found or it
-  can't be read statically. Includes three fixes found making this work
-  against real configs: matching Playwright's own `createFileMatcher`
-  auto-`**/`-prefix behavior for a `testMatch`/`testIgnore` pattern with
-  no leading `**/`; globbing from the config's `testDir` rather than the
-  caller's own (possibly narrower or differently-rooted) scanned
-  directory; and failing *open* (keeping a file) rather than treating an
-  unresolvable relative import as proof a file isn't a real spec, since
-  a sparse/partial checkout can legitimately be missing a fixtures
-  module the real project has. Scores rise for affected suites where the
-  old filename-only discovery had been over- or under-matching.
+  directory and scopes discovery to what the target itself declares.
+  When no config is found at all, this falls back to the previous
+  filename-based behavior silently, exactly as before this release; when
+  a config *is* found but can't be read statically (a dynamic value or
+  an unsupported shape, e.g. a `RegExp` `testMatch`), it falls back the
+  same way but now also adds an entry to the new, additive, optional
+  `ScoreResult.configWarnings` field so the caller can see why. Includes
+  three fixes found making this work against real configs: matching
+  Playwright's own `createFileMatcher` auto-`**/`-prefix behavior for a
+  `testMatch`/`testIgnore` pattern with no leading `**/`; globbing from
+  the config's `testDir` rather than the caller's own (possibly narrower
+  or differently-rooted) scanned directory; and failing *open* (keeping a
+  file) rather than treating an unresolvable relative import as proof a
+  file isn't a real spec, since a sparse/partial checkout can legitimately
+  be missing a fixtures module the real project has. This moves a
+  suite's score in *either* direction depending on whether the old
+  filename-only discovery had been over- or under-matching relative to
+  what the config itself declares — see "Behaviour change" below for a
+  concrete case where it lowers a score.
 - **Discovery no longer misses a plain CommonJS suite.** A follow-on to
   the config-scoped discovery fix above: the safety net that confirms a
   config-matched file transitively imports `@playwright/test` only
@@ -56,9 +70,40 @@ before/after) behind each one.
   opposite of the truth — and hard-failed to 0 files the moment
   config-scoped discovery activated for it. Fixed by also recognizing a
   top-level `require('x')` call the same way as an ES import.
+- **Config discovery and a config's `testDir` can no longer escape the
+  scanned repo.** Two cheap hardening fixes for a public tool that reads
+  an untrusted repo's own config: `findPlaywrightConfig` now stops
+  walking upward at the first ancestor directory containing `.git` (or
+  the filesystem root), so a coincidental `playwright.config.*` sitting
+  above the actual repo root — a shared CI runner, a monorepo checkout
+  nested inside another one — is never picked up. Separately, a
+  `testDir` that a config resolves *above* that same boundary (an
+  absolute `'/'`, a relative `'../../..'` that climbs out of the repo) is
+  now clamped to the repo root rather than handed to the glob as-is —
+  previously this would have handed the glob `/` (or another directory
+  well outside the repo) as its scan root, matching every `*.spec.ts`-
+  suffixed file readable on the machine, not just the target's own.
+  Neither case is exercised by any corpus repo (a legitimate config never
+  does this); found and fixed during this release's own review, not from
+  a corpus regression.
+
+### Behaviour change
+- **Config-scoped discovery can lower a suite's score, not just raise
+  it.** Scoping to what a target's own `playwright.config.*` actually
+  declares is strictly more accurate than the old filename-suffix match,
+  but "more accurate" isn't the same as "friendlier": `mattermost/
+  mattermost` moves **84/B → 79/C (a pass→fail flip)** because its
+  top-level config's `testDir` doesn't cover the real, correctly-written
+  `upgrade-specs/` suite it runs only through per-project `testDir`
+  overrides — `projects[].testDir` isn't read yet (see VALIDATION.md's
+  "Known limitations"). A future config parser that reads
+  `projects[].testDir` would recover this repo's full suite and its
+  higher score.
 
 ### Corpus
-Grown from 84 to 100 public suites — 16 new entries for brand
+Grown from 50 (2.0.0) to 100 public suites: 34 added in an interim,
+unpublished pass (84 total — see VALIDATION.md for the full accounting of
+that pass), then 16 more here for brand
 recognition (Nextcloud, Ghost, Pinterest, Microsoft, The Guardian,
 Shopify ×2, Adobe, Automattic, BBC, Google, Datadog, Twilio) plus three
 named competitors (Checkly, Currents, LambdaTest), scored under the
@@ -99,7 +144,7 @@ own official examples must still score >= 90/A (see
 `tests/official-examples.test.ts`, vendored from microsoft/playwright),
 and a hand-written "gold" fixture must still reach exactly 100.
 
-### Added — four rules narrowing the QAG-196 gameability gap (scored under `standard`)
+### Added — four rules narrowing the gameability gap (scored under `standard`)
 Narrowing, not closing: each rule matches specific known patterns (see the
 respellings each one closed in this same release), not the general class
 of "code that fakes stability or coverage" — a determined author can

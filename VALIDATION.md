@@ -29,14 +29,15 @@ time as these projects' own suites change; that's expected and fine.
 
 ## Results (last run: 2026-09-24, 2.1.0, scoring model v4, `standard` profile, threshold 80)
 
-Grown from 84 to exactly 100 repos (QAG-196, third pass) — 16 new
+Grown from 84 to exactly 100 repos (third pass) — 16 new
 entries chosen for brand recognition (Nextcloud, Ghost, Pinterest,
 Microsoft, The Guardian, Shopify ×2, Adobe, Automattic, BBC, Google,
 Datadog, Twilio) plus three named competitors (Checkly, Currents,
 LambdaTest), flagged as such in the table below and scored under the
-exact same rules as everyone else — no separate bar for them. Discovery
-method and full candidate list (including rejected ones and why):
-`.claude/team/reports/2026-09-24-scorer-corpus-brand-candidates.md`. All
+exact same rules as everyone else — no separate bar for them. Selected by
+hand for brand recognition rather than a mechanical repo search — see
+"Selection notes for the 16 newest repos" below for the full method and
+the candidates considered and rejected. All
 100 scores below are from one fresh run against each repo's live default
 branch on 2026-09-24 (bounded 4-way concurrency, `scripts/
 validate-corpus.sh`'s `MAX_PARALLEL`); every entry's exact commit SHA and
@@ -169,19 +170,21 @@ competitor's own thin example suite, and DataDog/documentation 50/F) were
 each read by hand (see "Most common findings" below) and are real
 raw-locator/conditional-logic findings, not scorer artifacts. Model v3
 was already deliberately stricter than the density models it replaced
-(see METHODOLOGY.md); v4 tightens it further by scoring the four QAG-196
+(see METHODOLOGY.md); v4 tightens it further by scoring the four
 gameability rules and the `eslint-disable-comment` finding directly under
 `standard` (owner direction — see CHANGELOG.md's 2.0.0 entry), instead of
 report-only under `standard` as a never-published 1.1.0 had planned.
 
-**Against 2.0.0 (last published), the 84 repos both passes share**: 10/84
+**53/84 passing at 2.0.0 → 65/100 at 2.1.0** (pass rate 63% → 65%, on a
+larger corpus). **Against 2.0.0 (last published), the 84 repos both
+passes share**: 10/84
 move, 74 unchanged. Two real, visible before/after wins from 2.1.0's two
 false-positive fixes (see CHANGELOG.md's 2.1.0 entry): `argos-ci/argos`
 **57/F → 95/A (+38)** — its entire suite calls its `test.extend()`
 fixture `loggedTest(...)`, which upstream `eslint-plugin-playwright`
 can't follow across files; `apache/superset` **70/C → 77/C (+7)** — same
 false-positive shape (`testWithAssets(...)`), smaller move because most
-of its suite's other findings are real. Three other repos moved for
+of its suite's other findings are real. Seven other repos moved for
 reasons *unrelated* to either fix — real upstream changes to those
 suites between 2026-09-23 and 2026-09-24 (`twentyhq/twenty` 91→84,
 `wireapp/wire-webapp` 91→88, plus five 1-point drifts: `n8n-io/n8n`,
@@ -201,8 +204,8 @@ old 1,219, 1,423 findings vs. 2,003) — an accuracy improvement that
 happens to cost points, the same category as the `ionic-team/
 ionic-framework` contamination noted below, not a regression.
 
-**Against the last actually-published version (1.0.0, model v3, no QAG-196
-rules at all), original 50 only**: 20/50 repos move. Net **+22** across
+**Against the last actually-published version (1.0.0, model v3, none of
+these rules at all), original 50 only**: 20/50 repos move. Net **+22** across
 the corpus, but that's almost entirely one repo — Flagsmith moves from a
 hard-failed 0 (its 20-spec suite wasn't discovered at all before the
 `.pw.ts` fix) to a real 62/D, +62 on its own. Excluding Flagsmith, the
@@ -300,11 +303,16 @@ limits allowed) to locate `playwright.config.*` and enumerate spec files,
 then 1–2 spec files per repo spot-read to confirm a genuine
 `@playwright/test` import (directly, or via a local fixture wrapper that
 itself imports it — several existing corpus entries already use this
-pattern). Full candidate list, including 19 vetted and the ones rejected
-and why (Vercel/Next.js, Sentry, Home Assistant, Atlassian, GitLab,
+pattern). 19 candidates were vetted this way; 16 were added, and 3 were
+vetted but left out (redundant brand coverage or a thinner suite than an
+already-shortlisted alternative, not a scorer or discovery problem).
+Others considered but not vetted this pass at all — a broader initial
+name sweep (Vercel/Next.js, Sentry, Home Assistant, Atlassian, GitLab,
 Elastic/Kibana, QA Wolf, Meticulous, Octomind, Reflect, Wix, Netlify,
-NYTimes, eBay, and more): `.claude/team/reports/
-2026-09-24-scorer-corpus-brand-candidates.md`. Two entries needed a
+NYTimes, eBay, and more) — turned out on inspection to have no
+`playwright.config.*` at all, or one whose matched files import a
+different test framework (the same failure mode documented for
+`remix-run/remix` under "Known limitations" below). Two entries needed a
 narrower scored subpath than their repo's obvious top-level test
 directory, because that directory mixes in a much larger *non*-Playwright
 test population:
@@ -377,8 +385,8 @@ doesn't own.
   rule a given comment targets (and whether that rule is even one this
   scorer emits) would make the finding precise instead of coarse; that's
   a known, intentional gap for now, not an oversight.
-- **The four QAG-196 rules match specific known patterns, not the general
-  class they're each named for.** See CHANGELOG.md's 2.0.0 entry for
+- **The four gameability rules match specific known patterns, not the
+  general class they're each named for.** See CHANGELOG.md's 2.0.0 entry for
   exactly which respellings each one catches — any pattern not listed is
   a false negative this scorer will not see.
 - **`remix-run/remix`'s `packages/ui`** has a `playwright.config.ts` but
@@ -451,12 +459,11 @@ a hypothetical:
   exactly the pipe buffer boundary when piped to another process. Anyone
   running `playwright-score ... | jq` (or any CI log processor) on a large
   enough suite got truncated, invalid JSON with no error.
-- **`.pw.ts` naming convention not discovered at all** (QAG-196,
-  2026-09-21) — Flagsmith's entire 20-spec `frontend/e2e` suite
+- **`.pw.ts` naming convention not discovered at all** (2026-09-21) — Flagsmith's entire 20-spec `frontend/e2e` suite
   (`billing-test.pw.ts`, `flag-tests.pw.ts`, ...) hard-failed with "no
   files matched", the same failure mode `.e2e.ts`/`.e2e-spec.ts` were
   fixed for above. Fixed by adding `pw` to the spec-suffix glob.
-- **Four gameable patterns had zero cost** (QAG-196, 2026-09-21,
+- **Four gameable patterns had zero cost** (2026-09-21,
   motivated by an internal finding that a spec built entirely from these
   four tricks scored 93/A): sleeping via
   `new Promise((resolve) => setTimeout(resolve, ms))` instead of
@@ -467,8 +474,7 @@ a hypothetical:
   2.0.0 entry for exactly what each one catches and the corpus
   before/after.
 - **A `test.extend()` fixture bound to a custom name was invisible to
-  every rule that keys off the literal identifier `test`** (QAG-196,
-  2026-09-23/24) — `argos-ci/argos`'s `loggedTest(...)` and
+  every rule that keys off the literal identifier `test`** (2026-09-23/24) — `argos-ci/argos`'s `loggedTest(...)` and
   `apache/superset`'s `testWithAssets(...)` each got every `expect()`
   inside a completely normal, well-formed test flagged as
   `no-standalone-expect`/`no-conditional-expect`/"outside a test block",
@@ -484,7 +490,7 @@ a hypothetical:
   mover to date), apache/superset 70/C → 77/C (+7, smaller because most
   of its other findings are real) — see "Against 2.0.0" above.
 - **Spec discovery matched by filename suffix only, never the scanned
-  repo's own `playwright.config.*`** (QAG-196, 2026-09-23/24) — could
+  repo's own `playwright.config.*`** (2026-09-23/24) — could
   both over-match (a different test runner's files sharing a directory
   and naming convention, `ionic-team/ionic-framework`'s 60 Stencil/Jest
   files, still an open caveat — see the original 34-repo selection notes
@@ -515,8 +521,8 @@ a hypothetical:
   unresolvable import instead of treating it as proof the file isn't a
   spec. `src/playwright-config.ts`, `tests/integration.test.ts`.
 - **The same transitive-import safety net only recognized ES `import`/
-  `export ... from` syntax, not CommonJS `require()`** (QAG-196,
-  2026-09-24, found scoring this very pass's 84→100 corpus re-run, after
+  `export ... from` syntax, not CommonJS `require()`** (2026-09-24,
+  found scoring this very pass's 84→100 corpus re-run, after
   the three fixes above had already shipped) — a plain CommonJS suite
   (`wekan/wekan`'s `tests/playwright/`: every spec does `const { test,
   expect } = require('../fixtures')`, `fixtures.js` does `const { test:
