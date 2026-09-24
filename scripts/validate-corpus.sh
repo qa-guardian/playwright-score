@@ -72,7 +72,12 @@ CORPUS=(
   "Plausible Analytics|plausible/analytics|e2e"
   "WordPress.com Calypso|Automattic/wp-calypso|test/e2e"
   "SigNoz|SigNoz/signoz|tests/e2e"
-  "Saleor Dashboard|saleor/saleor-dashboard|playwright"
+  # Path renamed upstream from "playwright" to "e2e-legacy" (2026-09-23
+  # re-run) when the project started a new, still-nascent "e2e" suite
+  # (one spec file so far) alongside its existing, actually-populated one
+  # — same 39 specs/158 tests/67 findings/84 score as this corpus always
+  # scored under the old path, just relocated. See VALIDATION.md.
+  "Saleor Dashboard|saleor/saleor-dashboard|e2e-legacy"
   "Vendure|vendure-ecommerce/vendure|packages/dashboard/e2e"
   "OpenReplay|openreplay/openreplay|frontend/tests/playwright"
   "Handsontable|handsontable/handsontable|tests/e2e"
