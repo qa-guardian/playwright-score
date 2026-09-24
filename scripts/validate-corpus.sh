@@ -92,6 +92,53 @@ CORPUS=(
   "Builder.io SDKs|BuilderIO/builder|packages/sdks-tests/src/e2e-tests"
   "Wekan|wekan/wekan|tests/playwright/specs"
   "VS Code (component fixtures)|microsoft/vscode|test/componentFixtures/playwright"
+  # QAG-196 corpus expansion (2026-09-23): 50 -> ~100. Same selection rule
+  # as above (real @playwright/test usage, >=10 specs, active in the last
+  # 12 months, not a fork/tutorial) plus a deliberate mix: major OSS
+  # platforms (Gitea, Nuxt, Superset, Vault/Consul, Sentry), framework/
+  # design-system authors (Ionic, Primer, Carbon, Radix, Mermaid), and
+  # smaller active projects (Cryptgeon, TagSpaces, Godot Launcher,
+  # Zotero web library, the PRADO PHP framework). Found via `gh search
+  # code`/`gh api orgs/<org>/repos` + `git/trees` tree search for
+  # playwright.config.*, same method as the 17->50 pass, this time run
+  # against candidate lists instead of guessed directory names. See
+  # VALIDATION.md for why each subpath was chosen over the config's
+  # literal testDir in the handful of cases where they differ (compiled
+  # output dirs, dynamic testDir expressions, BDD configs excluded).
+  "Apache APISIX Dashboard|apache/apisix-dashboard|e2e/tests"
+  "Apache Superset|apache/superset|superset-frontend/playwright/tests"
+  "Eclipse Theia|eclipse-theia/theia|examples/playwright/src/tests"
+  "GLPI|glpi-project/glpi|tests/e2e/specs"
+  "HashiCorp Vault UI|hashicorp/vault|ui/e2e"
+  "HashiCorp Consul UI|hashicorp/consul|ui/packages/consul-ui/e2e-tests/tests"
+  "Mozilla Firefox Accounts|mozilla/fxa|packages/functional-tests/tests"
+  "GitLens (GitKraken)|gitkraken/vscode-gitlens|tests/e2e/specs"
+  "KittyCAD Modeling App|KittyCAD/modeling-app|e2e/playwright"
+  "XMLUI|xmlui-org/xmlui|xmlui"
+  "Ionic Framework (core)|ionic-team/ionic-framework|core"
+  "IBM Carbon Design System|carbon-design-system/carbon|e2e"
+  "GitHub Primer React|primer/react|e2e"
+  "Apache Zeppelin (Angular UI)|apache/zeppelin|zeppelin-web-angular/e2e"
+  "Gitea|go-gitea/gitea|tests/e2e"
+  "Radix UI Primitives|radix-ui/primitives|e2e"
+  "Mermaid|mermaid-js/mermaid|e2e"
+  "TanStack Table (examples smoke suite)|tanstack/table|examples"
+  "Argos (visual testing)|argos-ci/argos|tests"
+  "Cryptgeon|cupcakearmy/cryptgeon|test"
+  "Gitako|EnixCoda/Gitako|e2e"
+  "TagSpaces|tagspaces/tagspaces|tests/e2e"
+  "Nuxt|nuxt/nuxt|test/e2e"
+  "Sanity Studio|sanity-io/sanity|e2e"
+  "Invoice Ninja|invoiceninja/invoiceninja|tests/e2e"
+  "Cloudflare Templates|cloudflare/templates|playwright-tests"
+  "Cloudflare Vinext|cloudflare/vinext|tests/e2e/pages-router"
+  "Elastic Charts|elastic/elastic-charts|e2e/tests"
+  "Sentry Spotlight|getsentry/spotlight|packages/spotlight/tests"
+  "Baloise Design System|baloise/design-system|packages/core"
+  "Godot Launcher|godotlauncher/launcher|e2e"
+  "Zotero Web Library|zotero/web-library|test/playwright"
+  "PRADO PHP Framework|pradosoft/prado|tests/playwright"
+  "What Got Done|mtlynch/whatgotdone|e2e"
 )
 
 echo "=== playwright-score real-world validation corpus · profile=$PROFILE threshold=$THRESHOLD ==="
