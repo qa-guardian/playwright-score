@@ -91,9 +91,31 @@ matching discovery alongside its own real target, and says so.
 - **Escape warning now prints cwd-relative paths**, matching every other
   `configWarning` in this package, instead of the runner's own absolute
   filesystem paths.
+- **A raw glob-pattern input pointing at a different repo than `cwd` no
+  longer hard-fails with 0 matches.** The repo-root containment fix above
+  used `cwd`'s own repo boundary for a bare glob pattern regardless of
+  where the pattern actually pointed — an absolute pattern into a sibling
+  repo (`['/abs/repoB/e2e/*.spec.ts']`), or an equivalent `../`-relative
+  one, had every match rejected as an "escape" of `cwd`'s repo, where the
+  same target passed as a directory already scored fine. `src/index.ts`'s
+  glob-input branch now derives its containment boundary from *the
+  pattern's own* literal (non-magic) leading-directory prefix, resolved
+  against `cwd`, not from `cwd` itself — a literal prefix that lands
+  inside another repo entirely is scored against that repo's own
+  boundary, while a symlink an in-bounds prefix still reaches that escapes
+  *that* repo is still dropped.
+- **An explicit target and a directory scan that reaches it again through
+  a symlink are no longer scored twice.** The realpath dedupe added above
+  only ever populated its map from `expanded` matches; an `explicit` file
+  and a same-realpath `expanded` symlink are two different literal paths,
+  so the separate "explicit wins" step (an exact literal-path delete)
+  never caught that pairing. The dedupe map is now seeded with
+  `explicit`'s own realpaths first, so a same-realpath `expanded` match is
+  recognized as a duplicate instead of surviving as a second, independent
+  file.
 
-25/25 corpus repos at unchanged upstream SHAs score identically; the
-other 75 moved upstream and were not re-run.
+Corpus rerun on this build: 96/100 repos score identically; 4 moved
+upstream; 0 changed.
 
 ## 2.1.0 — 2026-09-24
 

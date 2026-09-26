@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { globSync, Ignore, type IgnoreLike, type Path as GlobPath } from 'glob';
+import { globSync, hasMagic, Ignore, type IgnoreLike, type Path as GlobPath } from 'glob';
 import { runEslint } from './eslint-runner.js';
 import { commonAncestorDir } from './fs-util.js';
 import { collectLocallyImportedFiles } from './import-graph.js';
@@ -134,6 +134,44 @@ class RepoBoundaryIgnore implements IgnoreLike {
 }
 
 /**
+ * The literal (non-magic) leading-directory prefix of a raw glob pattern
+ * string, resolved against `cwd` — e.g. `/abs/repoB/e2e/*.spec.ts` ->
+ * `/abs/repoB/e2e`; `../repoB/e2e/*.spec.ts` -> `<cwd>/../repoB/e2e`
+ * (collapsed by path.resolve). Used to find *that pattern's own* repo
+ * boundary (QAG-230 round 3): a bare glob-pattern input isn't necessarily
+ * anywhere near `cwd`'s own repo — it can be an absolute path, or a
+ * relative one that climbs out via `../` — into a completely different
+ * repo, and computing containment from cwd's repo root regardless made
+ * every match there look like an escape (hard-failing a perfectly legit
+ * `['/abs/repoB/e2e/*.spec.ts']` down to 0 files, where the equivalent
+ * directory input `../repoB/e2e` already scored fine).
+ *
+ * Segments are checked with glob's own `hasMagic` — with `magicalBraces`
+ * on, since an unexpanded `{a,b}` segment isn't a real, literal directory
+ * name any more than a `*` is — so this only ever returns a directory
+ * that's guaranteed to be a plain path segment, never a piece the glob
+ * engine itself still has to interpret.
+ */
+function literalPrefixDir(pattern: string, cwd: string): string {
+  const segments = pattern.split('/');
+  const prefix: string[] = [];
+  let sawMagic = false;
+  for (const segment of segments) {
+    if (hasMagic(segment, { magicalBraces: true })) {
+      sawMagic = true;
+      break;
+    }
+    prefix.push(segment);
+  }
+  // No magic anywhere in the pattern: it's a literal path (only reachable
+  // here because it didn't exist on disk — an existing path is handled by
+  // the file/directory branches above) — its directory is the parent of
+  // the last (literal) segment, not the whole joined string.
+  const dirSegments = sawMagic ? prefix : prefix.slice(0, -1);
+  return path.resolve(cwd, dirSegments.join('/') || '.');
+}
+
+/**
  * `explicit`: paths the caller named directly (a literal existing file) —
  * always scored, regardless of whether they look like a Playwright spec.
  * `expanded`: everything else (matched via a directory scan or a glob
@@ -149,17 +187,6 @@ function expandPaths(
   const expanded = new Set<string>();
   const scanRootDirs = new Set<string>();
   const configWarnings: string[] = [];
-  // Repo boundary for a bare glob-pattern input (e.g. `tests/*.spec.ts`
-  // passed straight through to glob relative to `cwd`, below) — computed
-  // once, lazily, since most calls never hit that branch at all (every
-  // caller in this codebase, and the CLI's own argument handling, passes
-  // directory/file paths). Fallback is `cwd` itself, same conservative
-  // default used per-directory below, in case no `.git` turns up.
-  let cwdRepoRoot: string | undefined;
-  const getCwdRepoRoot = (): string => {
-    if (cwdRepoRoot === undefined) cwdRepoRoot = safeRealpath(findRepoBoundary(cwd, cwd));
-    return cwdRepoRoot;
-  };
   for (const input of inputs) {
     const abs = path.isAbsolute(input) ? input : path.resolve(cwd, input);
     if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
@@ -337,16 +364,22 @@ function expandPaths(
     // symlinked path segment explicitly, and skipping this check here
     // would have made switching from a directory argument to an
     // equivalent glob argument silently bypass it.
-    const repoRootForCwd = getCwdRepoRoot();
+    //
+    // The boundary itself comes from *this pattern's own* literal prefix
+    // directory (literalPrefixDir), not from `cwd` (QAG-230 round 3) — see
+    // that function's doc comment for why cwd's repo root is the wrong
+    // boundary for a pattern that points somewhere else entirely.
+    const prefixDir = literalPrefixDir(input, cwd);
+    const repoRootForPattern = safeRealpath(findRepoBoundary(prefixDir, prefixDir));
     for (const f of globSync(input, {
       cwd,
       absolute: true,
       nodir: true,
-      ignore: new RepoBoundaryIgnore(DEFAULT_IGNORE_GLOBS, repoRootForCwd),
+      ignore: new RepoBoundaryIgnore(DEFAULT_IGNORE_GLOBS, repoRootForPattern),
       follow: false,
     })) {
       const resolved = path.resolve(f);
-      if (!isAncestorOrSame(repoRootForCwd, safeRealpath(resolved))) continue;
+      if (!isAncestorOrSame(repoRootForPattern, safeRealpath(resolved))) continue;
       expanded.add(resolved);
     }
   }
@@ -361,6 +394,17 @@ function expandPaths(
   // in-repo duplicate (see CHANGELOG: this can change file counts for a
   // repo that happens to have such a link).
   const firstPathByRealpath = new Map<string, string>();
+  // Seeded with `explicit`'s own realpaths first: an explicit target and a
+  // directory scan containing a symlink to that same file are two
+  // different literal paths for the same file, so the plain "explicit
+  // wins" delete below (which only matches identical literal paths) can't
+  // catch that pairing — without this seeding, the symlinked match survives
+  // dedup (its realpath hadn't been seen yet) and gets scored a second
+  // time alongside the explicit path.
+  for (const f of [...explicit].sort()) {
+    const real = safeRealpath(f);
+    if (!firstPathByRealpath.has(real)) firstPathByRealpath.set(real, f);
+  }
   for (const f of [...expanded].sort()) {
     const real = safeRealpath(f);
     if (!firstPathByRealpath.has(real)) firstPathByRealpath.set(real, f);

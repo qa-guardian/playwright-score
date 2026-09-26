@@ -361,6 +361,124 @@ describe('QAG-230 review round: a glob-pattern input is realpath-contained too',
   });
 });
 
+// QAG-230 round 3: the glob-pattern branch above computed its repo-root
+// containment boundary from `cwd`'s own repo, regardless of where the
+// pattern itself actually pointed — a bare glob input naming a directory
+// in a *different* repo (an absolute path, or one that climbs out via
+// `../`) had every one of its matches rejected as an "escape" of cwd's
+// repo, hard-failing to 0 files where the equivalent directory input
+// already scored fine. `literalPrefixDir` (src/index.ts) fixes this by
+// deriving the boundary from the pattern's own literal (non-magic)
+// leading-directory prefix instead of from cwd.
+describe('QAG-230 round 3: a bare glob input uses its own pattern\'s repo boundary, not cwd\'s', () => {
+  it('an absolute glob pattern into a sibling repo is scored against that repo, not dropped as an escape of cwd\'s repo', async () => {
+    const repoA = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-r3-repoa-'));
+    const repoB = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-r3-repob-'));
+    try {
+      fs.mkdirSync(path.join(repoA, '.git'), { recursive: true });
+      fs.mkdirSync(path.join(repoB, '.git'), { recursive: true });
+      fs.mkdirSync(path.join(repoB, 'e2e'), { recursive: true });
+      fs.writeFileSync(path.join(repoB, 'e2e', 'a.spec.ts'), specBody('a'));
+
+      const pattern = path.join(repoB, 'e2e', '*.spec.ts');
+      const result = await scorePaths({ paths: [pattern], profile: 'standard', cwd: repoA });
+
+      assert.equal(
+        result.summary.files,
+        1,
+        `expected the absolute glob pattern into repoB to score its own file, not hard-fail against repoA's boundary: ${JSON.stringify(result.summary)}`
+      );
+    } finally {
+      fs.rmSync(repoA, { recursive: true, force: true });
+      fs.rmSync(repoB, { recursive: true, force: true });
+    }
+  });
+
+  it('a ../-relative glob pattern into a sibling repo is scored the same way', async () => {
+    const repoA = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-r3-relrepoa-'));
+    const repoB = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-r3-relrepob-'));
+    try {
+      fs.mkdirSync(path.join(repoA, '.git'), { recursive: true });
+      fs.mkdirSync(path.join(repoB, '.git'), { recursive: true });
+      fs.mkdirSync(path.join(repoB, 'e2e'), { recursive: true });
+      fs.writeFileSync(path.join(repoB, 'e2e', 'a.spec.ts'), specBody('a'));
+
+      const relPattern = `${path.relative(repoA, path.join(repoB, 'e2e'))}/*.spec.ts`;
+      const result = await scorePaths({ paths: [relPattern], profile: 'standard', cwd: repoA });
+
+      assert.equal(
+        result.summary.files,
+        1,
+        `expected the ../-relative glob pattern into repoB to score its own file: ${JSON.stringify(result.summary)}`
+      );
+    } finally {
+      fs.rmSync(repoA, { recursive: true, force: true });
+      fs.rmSync(repoB, { recursive: true, force: true });
+    }
+  });
+
+  it("a glob pattern whose literal prefix lands inside repoB still drops a match that escapes repoB through a symlink", async () => {
+    const repoA = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-r3-escrepoa-'));
+    const repoB = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-r3-escrepob-'));
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-r3-escoutside-'));
+    try {
+      fs.mkdirSync(path.join(repoA, '.git'), { recursive: true });
+      fs.mkdirSync(path.join(repoB, '.git'), { recursive: true });
+      fs.mkdirSync(path.join(repoB, 'e2e'), { recursive: true });
+      fs.writeFileSync(path.join(outsideDir, 'evil.spec.ts'), specBody('should never be scored'));
+      fs.symlinkSync(outsideDir, path.join(repoB, 'e2e', 'evil'), 'dir');
+
+      const pattern = path.join(repoB, 'e2e', 'evil', '*.spec.ts');
+      const result = await scorePaths({ paths: [pattern], profile: 'standard', cwd: repoA });
+
+      assert.ok(
+        !result.findings.some((f) => f.file.includes('evil')),
+        `evil.spec.ts must never be scored, even though the pattern's own literal prefix (repoB/e2e/evil) resolves inside repoB: ${JSON.stringify(result.findings)}`
+      );
+      assert.equal(
+        result.summary.files,
+        0,
+        `expected no files matched — the only candidate escapes repoB via the symlink: ${JSON.stringify(result.summary)}`
+      );
+    } finally {
+      fs.rmSync(repoA, { recursive: true, force: true });
+      fs.rmSync(repoB, { recursive: true, force: true });
+      fs.rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// QAG-230 round 3: the realpath dedupe added in 2.1.1 only ever seeded its
+// map from `expanded` matches; an `explicit` file and a same-realpath
+// `expanded` symlink are two different literal paths, so the separate
+// "explicit wins" step (an exact literal-path delete, further below in
+// expandPaths) never caught that pairing — the symlinked match survived
+// dedup and was scored a second time alongside the explicit path.
+describe('QAG-230 round 3: an explicit target and a directory scan reaching it again through a symlink are not double-counted', () => {
+  it('an explicitly-passed file and a directory scan containing a symlink to that same file are scored once, not twice', async () => {
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-r3-explicitdedupe-'));
+    try {
+      fs.mkdirSync(path.join(repoDir, '.git'), { recursive: true });
+      fs.writeFileSync(path.join(repoDir, 'real.spec.ts'), specBody('real'));
+      fs.symlinkSync(path.join(repoDir, 'real.spec.ts'), path.join(repoDir, 'alias.spec.ts'), 'file');
+
+      const result = await scorePaths({
+        paths: [path.join(repoDir, 'real.spec.ts'), repoDir],
+        profile: 'standard',
+        cwd: repoDir,
+      });
+
+      assert.equal(
+        result.summary.files,
+        1,
+        `expected real.spec.ts (explicit) and its own symlinked alias (rediscovered via the directory scan) to be scored once, not twice: ${JSON.stringify(result.summary)}`
+      );
+    } finally {
+      fs.rmSync(repoDir, { recursive: true, force: true });
+    }
+  });
+});
+
 // Pre-existing gap, not new to the 2026-09-26 escape fixes above: a
 // symlinked spec and its own real target can both independently match
 // discovery under the same scan and get scored twice, as if they were
