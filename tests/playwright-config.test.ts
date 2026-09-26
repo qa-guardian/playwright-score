@@ -280,3 +280,200 @@ describe('QAG-230: testDirEscapesRepo does not false-positive on a nonexistent t
     }
   });
 });
+
+const specBody = (title: string) =>
+  `import { test, expect } from '@playwright/test';\n` +
+  `test('${title}', async ({ page }) => {\n` +
+  `  await expect(page).toHaveTitle('${title}');\n` +
+  `});\n`;
+
+// QAG-230 review round: the 2026-09-26 fix for a match escaping the
+// scanned root (see the two "QAG-230" describes above) narrowed the
+// containment check enough that it also dropped a match resolving
+// in-repo, but outside the caller's narrower scanned subdirectory — a
+// real, common monorepo shape (a spec shared between packages via a
+// symlink) regressed from being scored to being silently dropped. The
+// fix compares every match's realpath against the *repo root*
+// (safeRealpath(findRepoBoundary(abs))), not the narrower scanned `abs`
+// itself, so only a true escape of the repo is ever dropped.
+describe('QAG-230 review round: an in-repo symlink outside the scanned subpath is kept', () => {
+  it('a match resolving to a sibling directory inside the same repo, but outside the scanned subdirectory, is still scored', async () => {
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-sibling-repo-'));
+    try {
+      fs.mkdirSync(path.join(repoDir, '.git'), { recursive: true });
+      fs.mkdirSync(path.join(repoDir, 'packages', 'app', 'e2e'), { recursive: true });
+      fs.mkdirSync(path.join(repoDir, 'shared', 'tests'), { recursive: true });
+
+      fs.writeFileSync(path.join(repoDir, 'packages', 'app', 'e2e', 'a.spec.ts'), specBody('a'));
+      fs.writeFileSync(path.join(repoDir, 'shared', 'tests', 's.spec.ts'), specBody('s'));
+      // A symlink inside the scanned subdirectory whose real target lives
+      // elsewhere in the same repo — must be kept, not dropped as if it
+      // were an escape.
+      fs.symlinkSync(
+        path.join(repoDir, 'shared', 'tests', 's.spec.ts'),
+        path.join(repoDir, 'packages', 'app', 'e2e', 's.spec.ts'),
+        'file'
+      );
+
+      const scanDir = path.join(repoDir, 'packages', 'app', 'e2e');
+      const result = await scorePaths({ paths: [scanDir], profile: 'standard', cwd: repoDir });
+
+      assert.equal(
+        result.summary.files,
+        2,
+        `expected both a.spec.ts and the in-repo symlinked s.spec.ts to be scored: ${JSON.stringify(result.summary)}`
+      );
+    } finally {
+      fs.rmSync(repoDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// QAG-230 review round: index.ts's final "treat as glob" branch (a bare
+// pattern like `tests/*.spec.ts` passed straight to `scorePaths`, not a
+// directory it walks itself) had no realpath containment check at all —
+// only the directory-scan branch did. Switching an otherwise-identical
+// call from a directory argument to an equivalent glob argument silently
+// bypassed the escape guard entirely.
+describe('QAG-230 review round: a glob-pattern input is realpath-contained too', () => {
+  it('a glob input naming a symlinked spec that escapes the repo drops that match, keeps the real one', async () => {
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-globinput-repo-'));
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-globinput-outside-'));
+    try {
+      fs.mkdirSync(path.join(repoDir, '.git'), { recursive: true });
+      fs.mkdirSync(path.join(repoDir, 'tests'), { recursive: true });
+
+      fs.writeFileSync(path.join(repoDir, 'tests', 'ok.spec.ts'), specBody('ok'));
+      fs.writeFileSync(path.join(outsideDir, 'evil.spec.ts'), specBody('should never be scored'));
+      fs.symlinkSync(path.join(outsideDir, 'evil.spec.ts'), path.join(repoDir, 'tests', 'evil.spec.ts'), 'file');
+
+      const result = await scorePaths({ paths: ['tests/*.spec.ts'], profile: 'standard', cwd: repoDir });
+
+      assert.ok(
+        !result.findings.some((f) => f.file.includes('evil')),
+        `evil.spec.ts (named only through a glob-pattern input, not a directory scan) must never be scored: ${JSON.stringify(result.findings)}`
+      );
+      assert.equal(result.summary.files, 1, `expected only ok.spec.ts to be scored: ${JSON.stringify(result.summary)}`);
+    } finally {
+      fs.rmSync(repoDir, { recursive: true, force: true });
+      fs.rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// Pre-existing gap, not new to the 2026-09-26 escape fixes above: a
+// symlinked spec and its own real target can both independently match
+// discovery under the same scan and get scored twice, as if they were
+// two different files.
+describe('QAG-230 review round: an in-repo symlinked spec is not double-counted against its own target', () => {
+  it('a symlink and its real target both matching discovery under the same scan are deduped by realpath', async () => {
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-dedupe-repo-'));
+    try {
+      fs.mkdirSync(path.join(repoDir, '.git'), { recursive: true });
+      fs.writeFileSync(path.join(repoDir, 'real.spec.ts'), specBody('real'));
+      fs.symlinkSync(path.join(repoDir, 'real.spec.ts'), path.join(repoDir, 'alias.spec.ts'), 'file');
+
+      const result = await scorePaths({ paths: [repoDir], profile: 'standard', cwd: repoDir });
+
+      assert.equal(
+        result.summary.files,
+        1,
+        `expected the symlink and its target to be scored once, not twice: ${JSON.stringify(result.summary)}`
+      );
+    } finally {
+      fs.rmSync(repoDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// QAG-230 review round: the per-match realpath containment check alone
+// still lets the walk pay to descend all the way through a huge symlinked
+// directory before every match inside it gets dropped one by one. Pruning
+// with glob's own `ignore.childrenIgnored` (RepoBoundaryIgnore in
+// src/index.ts) stops the walk from ever entering it.
+describe('QAG-230 review round: a symlinked directory outside the repo is pruned during the walk, not just filtered after', () => {
+  it('does not walk into a large symlinked directory whose realpath escapes the repo (bounded time)', async () => {
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-prune-repo-'));
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-prune-outside-'));
+    try {
+      fs.mkdirSync(path.join(repoDir, '.git'), { recursive: true });
+      fs.mkdirSync(path.join(repoDir, 'tests'), { recursive: true });
+      fs.writeFileSync(path.join(repoDir, 'tests', 'ok.spec.ts'), specBody('ok'));
+      fs.writeFileSync(
+        path.join(repoDir, 'playwright.config.ts'),
+        `import { defineConfig } from '@playwright/test';\n` +
+          `export default defineConfig({\n` +
+          `  testDir: './tests',\n` +
+          `  testMatch: ['evil/**/*.ts', '**/*.spec.ts'],\n` +
+          `});\n`
+      );
+      // A large, real, nested directory tree the symlink points at — big
+      // enough that actually walking it (the pre-fix behavior) would be
+      // clearly slow, not just theoretically wasteful.
+      for (let i = 0; i < 300; i++) {
+        const d = path.join(outsideDir, `d${i % 20}`, 'sub');
+        fs.mkdirSync(d, { recursive: true });
+        fs.writeFileSync(path.join(d, `f${i}.ts`), '');
+      }
+      fs.symlinkSync(outsideDir, path.join(repoDir, 'tests', 'evil'), 'dir');
+
+      const start = Date.now();
+      const result = await scorePaths({ paths: [repoDir], profile: 'standard', cwd: repoDir });
+      const elapsed = Date.now() - start;
+
+      assert.ok(
+        !result.findings.some((f) => f.file.includes('evil')),
+        `must never score anything from the escaped directory: ${JSON.stringify(result.findings)}`
+      );
+      assert.equal(result.summary.files, 1, `expected only ok.spec.ts to be scored: ${JSON.stringify(result.summary)}`);
+      assert.ok(
+        elapsed < 3000,
+        `expected the walk to be pruned at the symlink, not descend into ~300 nested files (took ${elapsed}ms)`
+      );
+    } finally {
+      fs.rmSync(repoDir, { recursive: true, force: true });
+      fs.rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// QAG-230 review round: verifies the "escape warning now prints
+// cwd-relative paths" fix with `cwd` actually different from the scanned
+// directory (every other test above passes `cwd: repoDir`, which can't
+// tell a cwd-relative path apart from an absolute one when they're
+// numerically the same string).
+describe('QAG-230 review round: escape-warning paths are cwd-relative even when cwd is not the scanned directory', () => {
+  it('reports the escaped testDir relative to cwd, not as an absolute filesystem path', async () => {
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-cwdrel-'));
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-cwdrel-outside-'));
+    try {
+      const repoDir = path.join(tmpRoot, 'myrepo');
+      fs.mkdirSync(path.join(repoDir, '.git'), { recursive: true });
+      fs.writeFileSync(path.join(repoDir, 'real.spec.ts'), specBody('real'));
+      fs.symlinkSync(outsideDir, path.join(repoDir, 'tests'), 'dir');
+      fs.writeFileSync(
+        path.join(repoDir, 'playwright.config.ts'),
+        `import { defineConfig } from '@playwright/test';\n` +
+          `export default defineConfig({ testDir: './tests' });\n`
+      );
+
+      const result = await scorePaths({ paths: [repoDir], profile: 'standard', cwd: tmpRoot });
+
+      const warning = (result.configWarnings ?? []).find((w) => w.includes('resolves outside the repository'));
+      assert.ok(warning, `expected an escape configWarning: ${JSON.stringify(result.configWarnings)}`);
+
+      const relRepoDir = path.relative(tmpRoot, repoDir);
+      assert.ok(
+        warning!.includes(relRepoDir),
+        `expected the warning to use the cwd-relative repo path (${relRepoDir}), got: ${warning}`
+      );
+      assert.ok(
+        !warning!.includes(tmpRoot),
+        `expected the warning not to contain the absolute cwd prefix (${tmpRoot}): ${warning}`
+      );
+    } finally {
+      fs.rmSync(tmpRoot, { recursive: true, force: true });
+      fs.rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+});

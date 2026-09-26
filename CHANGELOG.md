@@ -13,29 +13,69 @@ case, and says so explicitly.
 ## 2.1.1 — 2026-09-26
 
 Scoring model stays v4. Reviewer follow-ups from the 2.1.0 release review
-(QAG-230) — none of these blocked that release, and none change what a
-correctly-shaped suite scores; they close symlink-escape gaps a crafted
-repo could otherwise use, and quiet a false warning.
+(QAG-230) — none of these blocked that release. They close symlink-escape
+gaps a crafted repo could otherwise use, quiet a false warning, and fix a
+false-positive drop the first round of these same fixes introduced. None
+of that changes what an ordinary suite with no symlinked spec files
+scores; the realpath dedupe fix below is the one exception — it can
+change the file/test count for a suite that has a symlinked spec file
+matching discovery alongside its own real target, and says so.
 
 ### Fixed
-- **A match escaping the scanned root through a symlink is now dropped.**
-  `testDirEscapesRepo` (added in 2.1.0) only clamps a config's `testDir`
-  itself before it becomes a glob root — it couldn't see a symlinked
-  directory the glob then walked *through* on the way to an individual
-  match. A `testMatch` entry that names a symlinked directory by a
-  literal path segment (not a `**` wildcard) is still followed even with
-  glob's `follow: false` (that option only stops `**` from *expanding
-  into* a symlinked directory, not a pattern from naming one explicitly),
-  so a crafted repo (`tests/evil -> /`, `testMatch: ['evil/**/*.ts']`)
-  could make discovery walk arbitrary parts of the filesystem while every
-  match still lexically looked like it lived under the scanned directory.
-  The same gap let an individually symlinked spec file sitting directly
-  in the repo (no `testMatch` trickery needed) resolve to, and get
-  scored from, a file outside it. `src/index.ts`'s match loop now
-  realpath's every candidate match and drops it unless it's still
-  contained within the realpath of the directory the caller actually
-  scanned — the same containment primitive `testDirEscapesRepo` already
-  used for `testDir` itself, now applied per file too.
+- **A match escaping the *repository* through a symlink is now dropped —
+  scoped to the repo root, not the narrower directory the caller pointed
+  at.** `testDirEscapesRepo` (added in 2.1.0) only clamps a config's
+  `testDir` itself before it becomes a glob root — it couldn't see a
+  symlinked directory the glob then walked *through* on the way to an
+  individual match. A `testMatch` entry that names a symlinked directory
+  by a literal path segment (not a `**` wildcard) is still followed even
+  with glob's `follow: false` (that option only stops `**` from
+  *expanding into* a symlinked directory, not a pattern from naming one
+  explicitly), so a crafted repo (`tests/evil -> /`, `testMatch:
+  ['evil/**/*.ts']`) could make discovery walk arbitrary parts of the
+  filesystem while every match still lexically looked like it lived
+  under the scanned directory. The same gap let an individually
+  symlinked spec file sitting directly in the repo (no `testMatch`
+  trickery needed) resolve to, and get scored from, a file outside it.
+  `src/index.ts`'s match loop realpath's every candidate match and drops
+  it unless it's still contained within the realpath of the **repository
+  root** (`safeRealpath(findRepoBoundary(abs))`) — not, as this package
+  first shipped it, the narrower directory the caller actually scanned.
+  That first version silently dropped a real, common monorepo shape too:
+  a spec reachable through an in-repo symlink that resolves to a sibling
+  directory *outside* the caller's scanned subpath (one package's specs
+  shared with another via a symlink) is legitimate and is kept; only a
+  match whose realpath lands outside the repository itself is dropped.
+  The same repo-root containment now also applies to a bare glob-pattern
+  input (e.g. `tests/*.spec.ts` passed directly to `scorePaths`, not a
+  directory it walks itself) — the first version of this fix only
+  covered the directory-scan branch, so switching an otherwise-identical
+  call from a directory argument to an equivalent glob argument silently
+  bypassed the guard entirely.
+- **The walk itself is now pruned at a symlink that escapes the repo
+  root, not just filtered after the fact.** The realpath containment
+  check above still has to pay to walk all the way through a symlinked
+  directory before dropping every match inside it one by one — for a
+  large or slow target (`tests/evil -> /`) that's a real cost, not just
+  a theoretical one (measured: ~6.4s to fully walk a large symlinked
+  directory before this fix). `RepoBoundaryIgnore` (`src/index.ts`) wraps
+  glob's own `ignore` matching with a `childrenIgnored` check that stops
+  the walk from ever descending into a symlinked directory whose
+  realpath lands outside the repo root, only paying the realpath cost at
+  an actual symlink (a plain nested directory can't walk outside a root
+  its own parent is already inside, so it's never checked).
+- **An in-repo symlinked spec and its own real target are no longer both
+  scored, when both independently match discovery under the same scan.**
+  Pre-existing, not new to the fixes above: `expandPaths` deduped a
+  literal path only against `explicit` inputs, never against another
+  `expanded` match that happens to resolve to the same realpath. A
+  symlink sitting alongside its target inside the same scanned directory
+  (or reachable via two different scan roots in one `scorePaths` call)
+  was counted, and scored, twice. Now deduped by realpath, keeping the
+  first lexical path in sorted order. **This can change file/test counts
+  for a repo that has such a link** — said plainly here rather than
+  folded into "doesn't change what a correctly-shaped suite scores",
+  since a suite with this exact shape is exactly what changes.
 - **False "testDir resolves outside the repository" warning on a
   nonexistent `testDir` under a symlinked repo path.** `safeRealpath`
   only resolves the portion of a path that exists on disk, so a
@@ -52,8 +92,8 @@ repo could otherwise use, and quiet a false warning.
   `configWarning` in this package, instead of the runner's own absolute
   filesystem paths.
 
-No corpus score changed re-running the 100-repo validation corpus
-(`scripts/validate-corpus.sh`) against these fixes — see VALIDATION.md.
+25/25 corpus repos at unchanged upstream SHAs score identically; the
+other 75 moved upstream and were not re-run.
 
 ## 2.1.0 — 2026-09-24
 

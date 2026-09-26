@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { globSync } from 'glob';
+import { globSync, Ignore, type IgnoreLike, type Path as GlobPath } from 'glob';
 import { runEslint } from './eslint-runner.js';
 import { commonAncestorDir } from './fs-util.js';
 import { collectLocallyImportedFiles } from './import-graph.js';
@@ -91,6 +91,49 @@ const DEFAULT_IGNORE_GLOBS = [
 ];
 
 /**
+ * Wraps glob's own default `Ignore` (the string-pattern matcher behind
+ * DEFAULT_IGNORE_GLOBS/testIgnore) so this package can *also* prune the
+ * walk at a symlinked directory whose realpath escapes `realRoot`,
+ * without giving up the string-pattern ignores glob's `ignore` option
+ * only accepts one or the other of (a plain string[] XOR an IgnoreLike
+ * object — see glob's own types).
+ *
+ * Only `childrenIgnored` does the extra realpath work, and only for an
+ * actual symlink: a plain (non-symlinked) directory can't walk outside a
+ * root its own parent is already inside, so resolving its realpath would
+ * just be wasted syscalls on every directory in a large tree. This is
+ * what stops discovery from following a `testDir -> /` (or any other
+ * huge, real) symlinked directory arbitrarily far (QAG-230) — the
+ * per-match realpath containment check in expandPaths below still
+ * catches an escaping *match*, but only after the walk already paid to
+ * get there; this stops the walk itself from ever descending.
+ */
+class RepoBoundaryIgnore implements IgnoreLike {
+  private readonly inner: Ignore;
+  constructor(
+    patterns: string[],
+    private readonly realRoot: string
+  ) {
+    this.inner = new Ignore(patterns, {});
+  }
+  ignored(p: GlobPath): boolean {
+    return this.inner.ignored(p);
+  }
+  // Forwarded, not required by any globSync call this package makes today
+  // (includeChildMatches defaults to true, which never checks for this) —
+  // present anyway so relying on that default doesn't quietly become a
+  // hard requirement if it's ever overridden.
+  add(pattern: string): void {
+    this.inner.add(pattern);
+  }
+  childrenIgnored(p: GlobPath): boolean {
+    if (this.inner.childrenIgnored(p)) return true;
+    if (!p.isSymbolicLink()) return false;
+    return !isAncestorOrSame(this.realRoot, safeRealpath(p.fullpath()));
+  }
+}
+
+/**
  * `explicit`: paths the caller named directly (a literal existing file) —
  * always scored, regardless of whether they look like a Playwright spec.
  * `expanded`: everything else (matched via a directory scan or a glob
@@ -106,6 +149,17 @@ function expandPaths(
   const expanded = new Set<string>();
   const scanRootDirs = new Set<string>();
   const configWarnings: string[] = [];
+  // Repo boundary for a bare glob-pattern input (e.g. `tests/*.spec.ts`
+  // passed straight through to glob relative to `cwd`, below) — computed
+  // once, lazily, since most calls never hit that branch at all (every
+  // caller in this codebase, and the CLI's own argument handling, passes
+  // directory/file paths). Fallback is `cwd` itself, same conservative
+  // default used per-directory below, in case no `.git` turns up.
+  let cwdRepoRoot: string | undefined;
+  const getCwdRepoRoot = (): string => {
+    if (cwdRepoRoot === undefined) cwdRepoRoot = safeRealpath(findRepoBoundary(cwd, cwd));
+    return cwdRepoRoot;
+  };
   for (const input of inputs) {
     const abs = path.isAbsolute(input) ? input : path.resolve(cwd, input);
     if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
@@ -120,11 +174,19 @@ function expandPaths(
       // needs this wider boundary, not the narrower common ancestor of
       // only the matched spec files.
       scanRootDirs.add(abs);
-      // Realpath'd once per scan root, reused for every match below — see
-      // the realpath containment check in the glob loop for why this
-      // exists alongside (not instead of) testDirEscapesRepo's own
-      // realpath check on testDir itself.
-      const realAbs = safeRealpath(abs);
+      // Repo boundary for this scan's per-match realpath containment check
+      // and glob-walk pruning below (see the containment check itself, and
+      // RepoBoundaryIgnore, for why this must be the *repo root*, not the
+      // narrower `abs`): a scan pointed at one monorepo package's specs
+      // must still keep an in-repo symlink that resolves to a sibling
+      // directory outside that subpath, while still rejecting anything
+      // that resolves outside the repo entirely (QAG-230). Starts with the
+      // same conservative fallback-to-`abs` findRepoBoundary uses
+      // elsewhere in this file; replaced below with the wider boundary a
+      // successfully parsed config already computes for testDirEscapesRepo,
+      // so both checks share one repo boundary instead of computing it
+      // twice.
+      let repoRootForContainment = findRepoBoundary(abs, abs);
 
       // A playwright.config.* at or above this directory, when it can be
       // read statically, is authoritative about what this target itself
@@ -164,6 +226,7 @@ function expandPaths(
           // same of it), else `abs` itself. Never the filesystem root or
           // 20 levels up — see findRepoBoundary's doc comment.
           const repoRoot = findRepoBoundary(abs, path.dirname(configFile));
+          repoRootForContainment = repoRoot;
           if (testDirEscapesRepo(parsedConfig.testDirAbs, repoRoot)) {
             // The config's testDir resolves outside the repo boundary
             // (directly, or via a symlink — see testDirEscapesRepo). Its
@@ -188,12 +251,21 @@ function expandPaths(
         }
       }
 
+      const realRepoRoot = safeRealpath(repoRootForContainment);
       for (const g of specGlobs) {
         for (const f of globSync(g, {
           cwd: globCwd,
           absolute: true,
           nodir: true,
-          ignore: ignoreGlobs,
+          // RepoBoundaryIgnore keeps ignoreGlobs' own string-pattern
+          // matching (node_modules/, testIgnore, ...) and *additionally*
+          // stops the walk from ever descending into a symlinked directory
+          // whose realpath escapes realRepoRoot — see its own doc comment.
+          // Pruning during the walk (not just filtering matches after the
+          // fact, below) is what keeps a `testDir/evil -> /` (or any
+          // other huge, real symlinked target) from making discovery
+          // actually walk arbitrary parts of the filesystem (QAG-230).
+          ignore: new RepoBoundaryIgnore(ignoreGlobs, realRepoRoot),
           // glob's own default for `follow` is already false (don't
           // descend into a symlinked directory while expanding `**`), but
           // this is untrusted-repo territory (see testDirEscapesRepo
@@ -217,8 +289,15 @@ function expandPaths(
           // resolve to a file outside it. A lexical containment check
           // can't catch either case — both matches still "look" like they
           // live under `abs` right up until the symlink is resolved — so
-          // this compares realpaths on both sides (QAG-230).
-          if (!isAncestorOrSame(realAbs, safeRealpath(resolved))) continue;
+          // this compares realpaths on both sides. Checked against the
+          // *repo root* (realRepoRoot), not `abs` itself: a scan pointed
+          // at one monorepo package's specs must still keep a match that
+          // resolves, in-repo, to a sibling directory outside that
+          // subpath — only a true escape of the repo itself is dropped
+          // here (QAG-230; the config-scoped re-narrowing to `abs` right
+          // below handles the "don't silently widen past what the caller
+          // asked for" half of this separately).
+          if (!isAncestorOrSame(realRepoRoot, safeRealpath(resolved))) continue;
           // resolveConfigScopedRoot always globs from testDir (Playwright's
           // own testMatch/testIgnore semantics — see its doc comment), which
           // can be wider than the directory the caller actually pointed
@@ -250,16 +329,44 @@ function expandPaths(
       }
       continue;
     }
-    // treat as glob
+    // treat as glob — a raw pattern the caller passed directly (e.g.
+    // `tests/*.spec.ts`), resolved relative to `cwd` rather than a
+    // directory this function itself walked. Same realpath containment
+    // and walk-pruning as the directory branch above applies here too
+    // (QAG-230): a bare glob input is just as capable of naming a
+    // symlinked path segment explicitly, and skipping this check here
+    // would have made switching from a directory argument to an
+    // equivalent glob argument silently bypass it.
+    const repoRootForCwd = getCwdRepoRoot();
     for (const f of globSync(input, {
       cwd,
       absolute: true,
       nodir: true,
-      ignore: DEFAULT_IGNORE_GLOBS,
+      ignore: new RepoBoundaryIgnore(DEFAULT_IGNORE_GLOBS, repoRootForCwd),
+      follow: false,
     })) {
-      expanded.add(path.resolve(f));
+      const resolved = path.resolve(f);
+      if (!isAncestorOrSame(repoRootForCwd, safeRealpath(resolved))) continue;
+      expanded.add(resolved);
     }
   }
+  // De-dupe by realpath: an in-repo symlinked spec and its real target can
+  // both independently match discovery (the symlink itself sitting under
+  // one scanned root, its target sitting somewhere else under the same
+  // repo) and would otherwise be scored twice, as if they were two
+  // different files. Keeps the first lexical path per realpath, in sorted
+  // order, so which one "wins" is deterministic rather than depending on
+  // Set insertion order. Pre-existing gap, not new to the escape fixes
+  // above — those only ever drop a true escape, never a legitimate
+  // in-repo duplicate (see CHANGELOG: this can change file counts for a
+  // repo that happens to have such a link).
+  const firstPathByRealpath = new Map<string, string>();
+  for (const f of [...expanded].sort()) {
+    const real = safeRealpath(f);
+    if (!firstPathByRealpath.has(real)) firstPathByRealpath.set(real, f);
+  }
+  expanded.clear();
+  for (const f of firstPathByRealpath.values()) expanded.add(f);
   // A file can be reached both explicitly and via expansion (e.g. an
   // explicit path plus an overlapping glob); explicit intent wins.
   for (const f of explicit) expanded.delete(f);
