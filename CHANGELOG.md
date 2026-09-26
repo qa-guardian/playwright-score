@@ -114,8 +114,9 @@ matching discovery alongside its own real target, and says so.
   recognized as a duplicate instead of surviving as a second, independent
   file.
 
-Corpus rerun on this build: 96/100 repos score identically; 4 moved
-upstream; 0 changed.
+Corpus rerun (100 public repos, directory inputs, run on the round-2 build;
+the round-3 fixes only touch glob-pattern inputs): 96/100 repos score
+identically, 4 moved upstream, 0 changed.
 
 ## 2.1.0 — 2026-09-24
 
