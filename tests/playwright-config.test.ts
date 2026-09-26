@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { findRepoBoundary, resolveConfigScopedRoot } from '../src/playwright-config.js';
+import { findRepoBoundary, resolveConfigScopedRoot, testDirEscapesRepo } from '../src/playwright-config.js';
 import { scorePaths } from '../src/index.js';
 
 // review-round fixes: findRepoBoundary must not fall back to the
@@ -144,6 +144,139 @@ describe('symlinked testDir cannot escape the repo boundary', () => {
     } finally {
       fs.rmSync(repoDir, { recursive: true, force: true });
       fs.rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// QAG-230: testDirEscapesRepo only clamps testDir itself before it becomes
+// a glob root — it can't see a symlinked directory the glob then walks
+// *through* on the way to a match (a literal path segment in testMatch is
+// still followed even with glob's `follow: false`, which only stops `**`
+// from expanding into a symlinked directory), and it can't catch an
+// individually symlinked spec file sitting directly in the repo either.
+// Both are index.ts's own realpath containment check on every match, not
+// testDirEscapesRepo's job — see expandPaths in src/index.ts.
+describe('QAG-230: a match escaping the scanned root through a symlink is dropped', () => {
+  it('a symlinked directory named by testMatch (not walked via `**`) is not scored, even though the config\'s own testDir never escapes the repo', async () => {
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-dirlink-repo-'));
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-dirlink-outside-'));
+    try {
+      fs.mkdirSync(path.join(repoDir, '.git'), { recursive: true });
+      fs.mkdirSync(path.join(repoDir, 'tests'), { recursive: true });
+
+      const specBody = (title: string) =>
+        `import { test, expect } from '@playwright/test';\n` +
+        `test('${title}', async ({ page }) => {\n` +
+        `  await expect(page).toHaveTitle('${title}');\n` +
+        `});\n`;
+
+      // A real Playwright spec OUTSIDE the repo, reachable only by
+      // walking into `tests/evil`, a symlinked directory named explicitly
+      // (not via a `**` wildcard) in testMatch.
+      fs.writeFileSync(path.join(outsideDir, 'evil.spec.ts'), specBody('should never be scored'));
+      fs.symlinkSync(outsideDir, path.join(repoDir, 'tests', 'evil'), 'dir');
+
+      // A real spec inside the repo, also reachable through testMatch, so
+      // the fix must not zero out legitimate discovery.
+      fs.writeFileSync(path.join(repoDir, 'tests', 'real.spec.ts'), specBody('real'));
+
+      fs.writeFileSync(
+        path.join(repoDir, 'playwright.config.ts'),
+        `import { defineConfig } from '@playwright/test';\n` +
+          `export default defineConfig({\n` +
+          `  testDir: './tests',\n` +
+          `  testMatch: ['evil/**/*.ts', 'real.spec.ts'],\n` +
+          `});\n`
+      );
+
+      const result = await scorePaths({ paths: [repoDir], profile: 'standard', cwd: repoDir });
+
+      assert.ok(
+        !result.findings.some((f) => f.file.includes('evil')),
+        `evil.spec.ts (reached only via the symlinked testMatch directory) must never be scored: ${JSON.stringify(result.findings)}`
+      );
+      assert.equal(result.summary.files, 1, `expected only the real in-repo spec to be scored: ${JSON.stringify(result.summary)}`);
+    } finally {
+      fs.rmSync(repoDir, { recursive: true, force: true });
+      fs.rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+
+  it('an individually symlinked spec file sitting directly in the repo (no testMatch trickery) is not scored', async () => {
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-filelink-repo-'));
+    const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-filelink-outside-'));
+    try {
+      fs.mkdirSync(path.join(repoDir, '.git'), { recursive: true });
+
+      const specBody = (title: string) =>
+        `import { test, expect } from '@playwright/test';\n` +
+        `test('${title}', async ({ page }) => {\n` +
+        `  await expect(page).toHaveTitle('${title}');\n` +
+        `});\n`;
+
+      // The real file lives outside the repo; only a symlink to it sits
+      // inside — plain filename-based discovery (no playwright.config.*
+      // at all here), the same default path every scan without a config
+      // goes through.
+      fs.writeFileSync(path.join(outsideDir, 'evil.spec.ts'), specBody('should never be scored'));
+      fs.symlinkSync(path.join(outsideDir, 'evil.spec.ts'), path.join(repoDir, 'evil.spec.ts'), 'file');
+
+      fs.writeFileSync(path.join(repoDir, 'real.spec.ts'), specBody('real'));
+
+      const result = await scorePaths({ paths: [repoDir], profile: 'standard', cwd: repoDir });
+
+      assert.ok(
+        !result.findings.some((f) => f.file.includes('evil')),
+        `the symlinked evil.spec.ts must never be scored: ${JSON.stringify(result.findings)}`
+      );
+      assert.equal(result.summary.files, 1, `expected only the real in-repo spec to be scored: ${JSON.stringify(result.summary)}`);
+    } finally {
+      fs.rmSync(repoDir, { recursive: true, force: true });
+      fs.rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// QAG-230: a nonexistent testDir must never be reported as "escaping the
+// repository" just because the repo itself happens to sit under a
+// symlinked path prefix (macOS: /tmp -> /private/tmp) — safeRealpath only
+// resolves the portion of a path that exists on disk, so an unresolved,
+// nonexistent testDirAbs compared against a fully-resolved repoRoot used
+// to disagree even when nothing actually escaped anything.
+describe('QAG-230: testDirEscapesRepo does not false-positive on a nonexistent testDir under a symlinked repo path', () => {
+  it('returns false when testDir does not exist, even though the repo root is reached through a symlink', () => {
+    const realBase = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-realbase-'));
+    const linkedRepoRoot = path.join(os.tmpdir(), `pw-score-qag230-link-${process.pid}-${Date.now()}`);
+    try {
+      fs.mkdirSync(path.join(realBase, '.git'), { recursive: true });
+      fs.symlinkSync(realBase, linkedRepoRoot, 'dir');
+
+      const nonexistentTestDir = path.join(linkedRepoRoot, 'tests');
+      assert.equal(fs.existsSync(nonexistentTestDir), false, 'test setup: testDir must not exist');
+
+      assert.equal(
+        testDirEscapesRepo(nonexistentTestDir, linkedRepoRoot),
+        false,
+        'a nonexistent testDir must not be reported as escaping the repo'
+      );
+    } finally {
+      fs.rmSync(linkedRepoRoot, { force: true });
+      fs.rmSync(realBase, { recursive: true, force: true });
+    }
+  });
+
+  it('still detects a real escape once testDir exists and resolves outside the repo', () => {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-realescape-repo-'));
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-realescape-outside-'));
+    try {
+      fs.mkdirSync(path.join(repo, '.git'), { recursive: true });
+      const testDir = path.join(repo, 'tests');
+      fs.symlinkSync(outside, testDir, 'dir');
+
+      assert.equal(testDirEscapesRepo(testDir, repo), true, 'an existing testDir symlinked outside the repo must still be flagged');
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+      fs.rmSync(outside, { recursive: true, force: true });
     }
   });
 });

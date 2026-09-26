@@ -10,6 +10,51 @@ parsing accuracy, not grading policy — can still move a suite's score
 without itself being a new model version; 2.1.0 below is exactly that
 case, and says so explicitly.
 
+## 2.1.1 — 2026-09-26
+
+Scoring model stays v4. Reviewer follow-ups from the 2.1.0 release review
+(QAG-230) — none of these blocked that release, and none change what a
+correctly-shaped suite scores; they close symlink-escape gaps a crafted
+repo could otherwise use, and quiet a false warning.
+
+### Fixed
+- **A match escaping the scanned root through a symlink is now dropped.**
+  `testDirEscapesRepo` (added in 2.1.0) only clamps a config's `testDir`
+  itself before it becomes a glob root — it couldn't see a symlinked
+  directory the glob then walked *through* on the way to an individual
+  match. A `testMatch` entry that names a symlinked directory by a
+  literal path segment (not a `**` wildcard) is still followed even with
+  glob's `follow: false` (that option only stops `**` from *expanding
+  into* a symlinked directory, not a pattern from naming one explicitly),
+  so a crafted repo (`tests/evil -> /`, `testMatch: ['evil/**/*.ts']`)
+  could make discovery walk arbitrary parts of the filesystem while every
+  match still lexically looked like it lived under the scanned directory.
+  The same gap let an individually symlinked spec file sitting directly
+  in the repo (no `testMatch` trickery needed) resolve to, and get
+  scored from, a file outside it. `src/index.ts`'s match loop now
+  realpath's every candidate match and drops it unless it's still
+  contained within the realpath of the directory the caller actually
+  scanned — the same containment primitive `testDirEscapesRepo` already
+  used for `testDir` itself, now applied per file too.
+- **False "testDir resolves outside the repository" warning on a
+  nonexistent `testDir` under a symlinked repo path.** `safeRealpath`
+  only resolves the portion of a path that exists on disk, so a
+  nonexistent `testDir` kept its literal, unresolved form while
+  `repoRoot` (which does exist) got fully resolved — on a host where the
+  repo itself sits under a symlinked prefix (macOS: `/tmp` ->
+  `/private/tmp`), that asymmetry alone made the two sides disagree and
+  fired a false escape warning for an ordinary missing `testDir`.
+  `testDirEscapesRepo` now checks existence first and returns "does not
+  escape" immediately for a `testDir` that isn't on disk — consistent
+  with `resolveConfigScopedRoot`'s own existing "nothing to score there"
+  handling for the same case.
+- **Escape warning now prints cwd-relative paths**, matching every other
+  `configWarning` in this package, instead of the runner's own absolute
+  filesystem paths.
+
+No corpus score changed re-running the 100-repo validation corpus
+(`scripts/validate-corpus.sh`) against these fixes — see VALIDATION.md.
+
 ## 2.1.0 — 2026-09-24
 
 Scoring model stays v4 — nothing here changes a rule's weight or

@@ -17,8 +17,10 @@ import {
   findPlaywrightConfig,
   findRepoBoundary,
   importsPlaywrightTestTransitively,
+  isAncestorOrSame,
   parsePlaywrightConfig,
   resolveConfigScopedRoot,
+  safeRealpath,
   testDirEscapesRepo,
 } from './playwright-config.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
@@ -118,6 +120,11 @@ function expandPaths(
       // needs this wider boundary, not the narrower common ancestor of
       // only the matched spec files.
       scanRootDirs.add(abs);
+      // Realpath'd once per scan root, reused for every match below — see
+      // the realpath containment check in the glob loop for why this
+      // exists alongside (not instead of) testDirEscapesRepo's own
+      // realpath check on testDir itself.
+      const realAbs = safeRealpath(abs);
 
       // A playwright.config.* at or above this directory, when it can be
       // read statically, is authoritative about what this target itself
@@ -164,7 +171,7 @@ function expandPaths(
             // so applying them to the clamped repoRoot instead would be a
             // silent mismatch; fall back to filename-based discovery.
             configWarnings.push(
-              `Found ${path.relative(cwd, configFile) || configFile} but its testDir (${parsedConfig.testDirAbs}) resolves outside the repository (${repoRoot}) — falling back to filename-based spec discovery for ${path.relative(cwd, abs) || abs}.`
+              `Found ${path.relative(cwd, configFile) || configFile} but its testDir (${path.relative(cwd, parsedConfig.testDirAbs) || parsedConfig.testDirAbs}) resolves outside the repository (${path.relative(cwd, repoRoot) || repoRoot}) — falling back to filename-based spec discovery for ${path.relative(cwd, abs) || abs}.`
             );
           } else {
             const scopedRoot = resolveConfigScopedRoot(abs, parsedConfig.testDirAbs, repoRoot);
@@ -195,6 +202,23 @@ function expandPaths(
           follow: false,
         })) {
           const resolved = path.resolve(f);
+          // testDirEscapesRepo (above) only clamps testDir itself before
+          // it becomes a glob root — it can't see what the glob then
+          // actually walks *through* on the way to a match. A testMatch
+          // entry that names a symlinked directory by a literal path
+          // segment (not a `**` wildcard) still gets followed even with
+          // `follow: false` on the globSync call above, since that option
+          // only stops `**` from *expanding into* a symlinked directory —
+          // it doesn't stop a pattern from naming one explicitly (e.g.
+          // `tests/evil -> /` with `testMatch: ['evil/**/*.ts']` walks
+          // `/`, and every match still lexically looks like it's under
+          // `abs`). The same gap lets an individually symlinked spec file
+          // sitting directly in the repo (no testMatch trickery needed)
+          // resolve to a file outside it. A lexical containment check
+          // can't catch either case — both matches still "look" like they
+          // live under `abs` right up until the symlink is resolved — so
+          // this compares realpaths on both sides (QAG-230).
+          if (!isAncestorOrSame(realAbs, safeRealpath(resolved))) continue;
           // resolveConfigScopedRoot always globs from testDir (Playwright's
           // own testMatch/testIgnore semantics — see its doc comment), which
           // can be wider than the directory the caller actually pointed

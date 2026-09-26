@@ -278,15 +278,23 @@ export function parsePlaywrightConfig(configFile: string): ParsedPlaywrightConfi
   };
 }
 
-function isAncestorOrSame(ancestor: string, descendant: string): boolean {
+/** Exported for index.ts's own realpath containment check on matched spec
+ * files (see expandPaths) — a config-scoped `testDir`/`testMatch` can be
+ * clamped to the repo boundary here, but the glob it drives can still walk
+ * through a symlinked directory *inside* that boundary whose real target
+ * is outside it (see testDirEscapesRepo's doc comment for why a lexical
+ * check alone isn't enough); index.ts needs the same primitive to catch
+ * that per-match, not just per-testDir. */
+export function isAncestorOrSame(ancestor: string, descendant: string): boolean {
   const rel = path.relative(ancestor, descendant);
   return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
 }
 
 /** Resolves symlinks; falls back to the input path unchanged when it
  * doesn't exist on disk (matches the existing "testDir doesn't exist"
- * behavior elsewhere in this file rather than throwing). */
-function safeRealpath(p: string): string {
+ * behavior elsewhere in this file rather than throwing). Exported for the
+ * same reason as isAncestorOrSame above. */
+export function safeRealpath(p: string): string {
   try {
     return fs.realpathSync(p);
   } catch {
@@ -304,8 +312,22 @@ function safeRealpath(p: string): string {
  * this public tool glob outside its own boundary. Both sides are
  * realpath'd (never just testDirAbs) because `repoRoot` itself could in
  * principle be reached through a symlinked path.
+ *
+ * A nonexistent `testDirAbs` (nothing to score there — resolveConfigScopedRoot's
+ * own existence check downstream already handles that) short-circuits to
+ * "doesn't escape" *before* either side is realpath'd: `safeRealpath` only
+ * resolves symlinks up to the point where a path stops existing on disk,
+ * so a testDir that doesn't exist keeps its literal (unresolved) form
+ * while `repoRoot` — which does exist — gets fully resolved. On a host
+ * where the repo itself sits under a symlinked prefix (macOS: `/tmp` ->
+ * `/private/tmp`), that asymmetry alone made the two sides disagree and
+ * fired a false "escapes the repository" warning for a perfectly ordinary
+ * missing testDir (QAG-230). Checked with a plain `fs.existsSync`, not
+ * `safeRealpath`'s own try/catch, so this stays a pure existence check
+ * with no symlink resolution of its own to get wrong.
  */
 export function testDirEscapesRepo(testDirAbs: string, repoRoot: string): boolean {
+  if (!fs.existsSync(testDirAbs)) return false;
   const realRepoRoot = safeRealpath(repoRoot);
   const realTestDirAbs = safeRealpath(testDirAbs);
   return !isAncestorOrSame(realRepoRoot, realTestDirAbs);
