@@ -68,6 +68,8 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
 
   // Assertions
   'playwright/expect-expect': { dimension: 'assertions' },
+  // Report-only: see finding-triage.ts. A test that calls into code the scan cannot read.
+  'playwright-score/assertion-unverified': { dimension: 'assertions', severityOverride: 'info', reportOnly: true },
   // No severityOverride: matches eslint-plugin-playwright's own
   // recommended severity ('error'), set via eslint-runner.ts's rule config.
   'playwright/prefer-web-first-assertions': { dimension: 'assertions' },

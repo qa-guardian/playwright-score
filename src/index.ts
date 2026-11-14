@@ -1,3 +1,4 @@
+import { triageFindings } from './finding-triage.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { globSync, hasMagic, Ignore, type IgnoreLike, type Path as GlobPath } from 'glob';
@@ -579,13 +580,16 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   // base-plugin.ts).
   const testAliasNames = detectExtendedTestAliases(sources, importedFiles, importBoundary);
 
-  const eslintFindings = await runEslint({
-    files,
-    profile,
-    cwd,
-    assertFunctionNames: [...assertFunctionNames],
-    testAliasNames,
-  });
+  const eslintFindings = triageFindings(
+    await runEslint({
+      files,
+      profile,
+      cwd,
+      assertFunctionNames: [...assertFunctionNames],
+      testAliasNames,
+    }),
+    { filesBase, sources, importedFiles }
+  );
 
   let totalSloc = 0;
   let totalTests = 0;
