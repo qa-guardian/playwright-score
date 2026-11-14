@@ -126,6 +126,20 @@ The exact ESLint rules that produce findings are enabled explicitly in
 eslint-plugin-playwright's `recommended` set at install time, so identical
 code scores identically regardless of which plugin version npm resolves.
 
+### Tests that would miss a real bug
+
+Five rules (QAG-287) target tests that pass whatever the app does. Each
+matches one exact syntactic shape and stays silent when unsure.
+
+| Rule | Dimension, severity | Exact shape |
+|---|---|---|
+| `pwscore/no-fixme-test` | structure, warning | `test.fixme('t', fn)` / `test.describe.fixme(...)` declarations; in-body `test.fixme()` or `test.fixme(true, ...)`. Conditional `test.fixme(cond, 'why')` is clean. |
+| `pwscore/no-swallowed-assertion` | assertions, error | `expect(...)` in a `try` whose `catch` has no throw, expect, fail-ish call, returned value or assignment (not inside a loop); or `await expect(...).catch(fn)` as a statement where `fn` does not throw. |
+| `pwscore/no-weak-assertion` | assertions, error | `.count()`/`.length` `toBeGreaterThanOrEqual(0)`; a syntactic Locator (`page.locator`, `getBy*`, or a const from one) asserted `toBeTruthy`/`toBeDefined`/`not.toBeNull`; `isVisible()`-style and `count()` results asserted `toBeDefined`. `toBeTruthy()` on other values is not flagged. |
+| `pwscore/no-unawaited-expect-value` | assertions, error | `expect(<promise call>)` without `await`, receiver syntactically a Page/Locator, matcher not web-first (also an un-awaited promise call as the expected value of `toBe`/`toEqual`). `.resolves`/`.rejects` are exempt. |
+| `pwscore/no-self-fulfilling-fallback` | assertions, warning | Inside a test: `if (!check) { actions }`, the `else` of `if (check) {...} else { actions }`, or `try { expect/check } catch { actions }`, followed in the same block by an `expect` on a locator shared with the check or the actions. Positive-branch actions (dismiss a banner if visible) are never flagged. |
+
+
 ---
 
 ## Why v4

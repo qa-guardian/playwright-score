@@ -10,6 +10,18 @@ parsing accuracy, not grading policy — can still move a suite's score
 without itself being a new model version; 2.1.0 below is exactly that
 case, and says so explicitly.
 
+## Unreleased
+
+New detections for tests that would miss a real bug (QAG-287 slice 2a).
+**Scores can fall** for suites that use these patterns; no existing rule's
+weight or severity changed.
+
+- `pwscore/no-fixme-test` (structure, warning): unconditional `test.fixme('t', fn)`, `test.describe.fixme(...)`, in-body `test.fixme()` and `test.fixme(true, ...)`. `test.fixme(condition, reason)` stays clean.
+- `pwscore/no-swallowed-assertion` (assertions, error): `expect(...)` inside a `try` whose `catch` neither rethrows, asserts, fails, returns a value nor records state; and `await expect(...).catch(() => {})` with the result discarded. Retry loops are not flagged.
+- `pwscore/no-weak-assertion` (assertions, error): `expect(count).toBeGreaterThanOrEqual(0)`, `expect(<Locator>).toBeTruthy()/toBeDefined()/not.toBeNull()`, `expect(await x.isVisible()).toBeDefined()`.
+- `pwscore/no-unawaited-expect-value` (assertions, error): a Promise-returning Playwright call such as `page.title()` or `locator.innerText()` used without `await` inside `expect()` with a non-web-first matcher. Replaces the misleading `playwright/prefer-web-first-assertions` message on the same line.
+- `pwscore/no-self-fulfilling-fallback` (assertions, warning): a negated state check (or a `catch` of a failed expect) whose fallback performs the actions itself, followed by an assertion on the same locator.
+
 ## 2.2.0 — 2026-11-14
 
 False-positive fixes found by hand-checking error-level findings on public
