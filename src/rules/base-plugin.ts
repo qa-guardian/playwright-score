@@ -208,38 +208,54 @@ const LOOP_TYPES = new Set(['ForStatement', 'ForInStatement', 'ForOfStatement', 
 
 /**
  * A retry/backoff pause inside a plain helper function (an API retry loop,
- * `for (...) { try { ... } catch { await sleep(500) } }`) is not a test
- * waiting on the UI: it paces calls to a service. Only that shape is
- * exempt — the sleep must sit in a loop or catch clause inside a function
- * that is *defined* (function declaration, `const f = () => ...`, class
- * method) rather than passed to test()/describe()/a hook/test.step. A sleep
- * directly in a test body or spec-file hook, or a bare `sleep()` helper with
- * no loop around the pause, is still flagged. `from` is the ancestor index
- * to start climbing from (the Promise executor's own parent).
+ * `for (...) { try { await call() } catch { await sleep(500) } }`) is not a
+ * test waiting on the UI: it paces calls to a service. Only that shape is
+ * exempt: the sleep sits inside a catch clause, or inside a loop whose body
+ * contains a try/catch, and the enclosing function is *defined* (function
+ * declaration, `const f = () => ...`, class method) and is not itself nested
+ * in a callback handed to a call (a test, hook, describe or step body). A
+ * hand-rolled polling wait (`while (await x.isVisible()) sleep()`), a sleep
+ * directly in a test body or hook, a helper declared inside a test callback
+ * and a bare `sleep()` helper are all still flagged. `from` is the ancestor
+ * index to start climbing from (the Promise executor's own parent).
  */
 function isRetryBackoffInHelper(ancestors: Node[], from: number): boolean {
-  let inLoopOrCatch = false;
+  let retryShape = false;
+  let helperFound = false;
   for (let i = from; i >= 0; i--) {
     const anc = ancestors[i];
-    if (LOOP_TYPES.has(anc.type) || anc.type === 'CatchClause') inLoopOrCatch = true;
+    if (!helperFound) {
+      if (anc.type === 'CatchClause') retryShape = true;
+      if (LOOP_TYPES.has(anc.type) && containsTryCatch((anc as { body?: Node }).body)) retryShape = true;
+    }
     if (!FUNCTION_TYPES.has(anc.type) && anc.type !== 'FunctionDeclaration') continue;
     const parent = ancestors[i - 1];
+    if (parent?.type === 'CallExpression' || parent?.type === 'NewExpression') {
+      // Callback handed to a call (test body, hook, describe, .then, step):
+      // either the sleep is not in a free-standing helper at all, or the
+      // helper lives inside such a callback. Not exempt either way.
+      return false;
+    }
+    if (helperFound) continue; // a function around the helper: keep checking the callback chain
     if (
       anc.type === 'FunctionDeclaration' ||
       parent?.type === 'MethodDefinition' ||
       parent?.type === 'PropertyDefinition' ||
       (parent?.type === 'VariableDeclarator' && (parent as { init?: Node }).init === anc)
     ) {
-      return inLoopOrCatch;
-    }
-    if (parent?.type === 'CallExpression' || parent?.type === 'NewExpression') {
-      // Callback handed to a call (test body, hook, describe, .then, step):
-      // not a free-standing helper. Keep climbing only through promise
-      // glue so a loop around `await new Promise(...)` still counts.
-      return false;
+      if (!retryShape) return false;
+      helperFound = true;
     }
   }
-  return false;
+  return helperFound;
+}
+
+function containsTryCatch(root: Node | undefined): boolean {
+  let found = false;
+  walkNode(root, (n) => {
+    if (n.type === 'TryStatement' && (n as { handler?: unknown }).handler) found = true;
+  });
+  return found;
 }
 
 /**
@@ -620,34 +636,84 @@ function collectConstBindings(root: Node | Node[] | null | undefined): Map<strin
   return bindings;
 }
 
+const MUTATING_METHODS = new Set([
+  'push', 'unshift', 'splice', 'pop', 'shift', 'sort', 'reverse', 'fill', 'copyWithin',
+]);
+
+/**
+ * True when no reference to `name` under `root` could change the array:
+ * every reference is a declaration, the subject of expect(...), a `.length`
+ * or index read, or the receiver of a non-mutating method. A reference that
+ * is a call argument (it may be handed to code that fills it), the
+ * receiver of a mutating method, an assignment/update target, or any other
+ * use that aliases the array (returned, assigned on, spread, put in an
+ * object) counts as possibly mutating, wherever it sits — including inside
+ * a closure such as a listener. Same-named properties (`obj.name`,
+ * `{ name: 1 }`) are not references. Shadowing is not resolved: a shadowing
+ * binding is read like the outer one, which can only keep a finding quiet.
+ */
 function isOnlyReadAsExpectSubject(root: unknown, name: string): boolean {
   let ok = true;
-  const visit = (node: unknown, parent: Node | undefined): void => {
+  const visit = (node: unknown, stack: Node[]): void => {
     if (!ok || !node || typeof node !== 'object') return;
     if (Array.isArray(node)) {
-      for (const item of node) visit(item, parent);
+      for (const item of node) visit(item, stack);
       return;
     }
     const rec = node as Record<string, unknown>;
     if (typeof rec.type !== 'string') return;
     const n = node as Node & { id?: Node };
     if (n.type === 'Identifier' && n.name === name) {
-      const isDeclId = parent?.type === 'VariableDeclarator' && (parent as { id?: Node }).id === n;
-      const isExpectSubject =
-        parent?.type === 'CallExpression' &&
-        (parent.arguments ?? [])[0] === n &&
-        isExpectCallNode(parent);
-      if (!isDeclId && !isExpectSubject) ok = false;
+      if (referenceMayMutate(n, stack)) ok = false;
       return;
     }
+    const next = [...stack, n];
     for (const key of Object.keys(rec)) {
       if (key === 'parent') continue;
       const v = rec[key];
-      if (v && typeof v === 'object') visit(v, n);
+      if (v && typeof v === 'object') visit(v, next);
     }
   };
-  visit(root, undefined);
+  visit(root, []);
   return ok;
+}
+
+function referenceMayMutate(id: Node, stack: Node[]): boolean {
+  const parent = stack[stack.length - 1] as (Node & Record<string, unknown>) | undefined;
+  const grand = stack[stack.length - 2] as (Node & Record<string, unknown>) | undefined;
+  if (!parent) return true;
+  switch (parent.type) {
+    case 'VariableDeclarator':
+      return (parent as { id?: Node }).id !== id; // `const b = expected` aliases it
+    case 'CallExpression':
+      if ((parent.arguments as Node[] | undefined)?.[0] === id && isExpectCallNode(parent)) return false;
+      return (parent.callee as Node) !== id || false; // an argument, or the array called
+    case 'MemberExpression': {
+      if (parent.object !== id) return false; // `obj.expected`: a property name, not this binding
+      const prop = parent.property as { type?: string; name?: string };
+      if (grand?.type === 'AssignmentExpression' && grand.left === parent) return true;
+      if (grand?.type === 'UpdateExpression') return true;
+      if (grand?.type === 'UnaryExpression' && (grand as { operator?: string }).operator === 'delete') return true;
+      if (
+        !parent.computed &&
+        prop?.type === 'Identifier' &&
+        prop.name &&
+        MUTATING_METHODS.has(prop.name) &&
+        grand?.type === 'CallExpression' &&
+        grand.callee === parent
+      ) {
+        return true;
+      }
+      return false; // `.length`, `[0]`, `.map(...)`, ... are reads
+    }
+    case 'Property':
+    case 'PropertyDefinition':
+      // Non-computed key position is a name, not a reference; a value (or
+      // shorthand) puts the array inside an object.
+      return !((parent.key === id || false) && !parent.computed && !parent.shorthand);
+    default:
+      return true;
+  }
 }
 
 /**

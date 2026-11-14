@@ -6,9 +6,12 @@ import { test, expect } from '@playwright/test';
 async function fetchWithRetry(url: string, attempts = 3): Promise<Response> {
   let last: Response | undefined;
   for (let i = 0; i < attempts; i++) {
-    last = await fetch(url);
-    if (last.ok) return last;
-    await new Promise((resolve) => setTimeout(resolve, 500 * (i + 1)));
+    try {
+      last = await fetch(url);
+      if (last.ok) return last;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 500 * (i + 1)));
+    }
   }
   return last as Response;
 }
