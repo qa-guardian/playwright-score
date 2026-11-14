@@ -56,12 +56,17 @@ export const MODEL = {
 
 const PENALTY_DIMENSIONS: DimensionName[] = ['playwrightHygiene', 'assertions', 'structure'];
 
+/** Lowest score of each grade, best first. Shared with the report's score explanation. */
+export const GRADE_BANDS: ReadonlyArray<{ grade: Grade; min: number }> = [
+  { grade: 'A', min: 90 },
+  { grade: 'B', min: 80 },
+  { grade: 'C', min: 70 },
+  { grade: 'D', min: 60 },
+  { grade: 'F', min: 0 },
+];
+
 export function gradeFromScore(score: number): Grade {
-  if (score >= 90) return 'A';
-  if (score >= 80) return 'B';
-  if (score >= 70) return 'C';
-  if (score >= 60) return 'D';
-  return 'F';
+  return (GRADE_BANDS.find((b) => score >= b.min) ?? GRADE_BANDS[GRADE_BANDS.length - 1]!).grade;
 }
 
 export function locatorsScore(native: number, raw: number): number {

@@ -1,42 +1,90 @@
 import type { ScoreResult } from '../types.js';
-import { sortFindings } from '../confidence.js';
+import { CONFIDENCE_LABEL, compareFindings, isNeedsCheck } from '../confidence.js';
+import { copyFor } from '../rule-copy.js';
+import {
+  DIMENSIONS,
+  notScoredHeadline,
+  notScoredState,
+  plural,
+  rankGroups,
+} from '../report-model.js';
 
-export function formatText(result: ScoreResult): string {
-  const lines: string[] = [];
-  lines.push(
-    `Playwright Spec Score ${result.scoreVersion} · profile=${result.profile}`
-  );
-  lines.push(
-    `Score: ${result.score}/100 (${result.grade}) · ${result.pass ? 'PASS' : 'FAIL'} (threshold ${result.threshold})`
-  );
-  lines.push('');
-  lines.push('Dimensions:');
-  for (const [k, v] of Object.entries(result.dimensions)) {
-    if (v === undefined) continue;
-    lines.push(`  ${k}: ${v}`);
+export interface TextOptions {
+  suiteName?: string;
+  version?: string;
+  customThreshold?: boolean;
+}
+
+/** Groups shown, and locations shown per group; the rest collapse into "+N more". */
+const MAX_GROUPS = 10;
+const MAX_LOCATIONS = 3;
+const MAX_PATH = 100;
+
+/** Relative path, shortened in the middle to MAX_PATH. An absolute path never gets through. */
+function shortPath(file: string, line?: number): string {
+  let p = file.replace(/\\/g, '/');
+  if (p.startsWith('/') || /^[A-Za-z]:\//.test(p)) p = p.split('/').filter(Boolean).slice(-3).join('/');
+  const suffix = line ? `:${line}` : '';
+  const budget = MAX_PATH - suffix.length;
+  if (p.length > budget) {
+    const tail = p.split('/').pop() ?? p;
+    const keep = Math.max(10, budget - tail.length - 5);
+    p = tail.length >= budget ? '...' + tail.slice(-(budget - 3)) : `${p.slice(0, keep)}/.../${tail}`;
   }
-  lines.push('');
-  lines.push(
-    `Summary: files=${result.summary.files} tests=${result.summary.tests} sloc=${result.summary.sloc} ` +
-      `findings=${result.summary.findings} (errors=${result.summary.errors} warnings=${result.summary.warnings}) ` +
-      `locators native/raw=${result.summary.nativeLocators}/${result.summary.rawLocators} ` +
-      `tests asserting=${result.summary.tests - result.summary.unassertedTests - result.summary.unverifiedTests}/${result.summary.tests}` +
-      `${result.summary.unverifiedTests ? ` (unverified=${result.summary.unverifiedTests})` : ''} ` +
-      `clean tests=${result.summary.cleanTests}/${result.summary.tests}`
-  );
+  return p + suffix;
+}
 
-  if (result.findings.length) {
+export function formatText(result: ScoreResult, opts: TextOptions = {}): string {
+  const { summary } = result;
+  const state = notScoredState(result);
+  const lines: string[] = [];
+  const counts = state
+    ? plural(summary.files, 'file')
+    : `${plural(summary.tests, 'test')} in ${plural(summary.files, 'file')}`;
+  lines.push(opts.suiteName ? `${opts.suiteName}  ·  ${counts}` : counts);
+  if (state) {
+    lines.push(`Not scored: ${notScoredHeadline(result).headline.replace(/, so this suite could not be scored\.$/, '')}.`);
+    const first = result.findings.find((f) => f.rule === 'playwright-score/parse-error');
+    if (first) lines.push(`  ${shortPath(first.file, first.line)}`);
+    lines.push(notScoredHeadline(result).line);
+  } else {
+    const clean = summary.cleanTests;
+    lines.push(
+      `Score ${result.score}/100 (${result.grade})  ·  ${result.pass ? 'PASS' : 'FAIL'} (${opts.customThreshold ? 'your bar' : 'bar'} ${result.threshold})  ·  ${clean} ${clean === 1 ? 'test has' : 'tests have'} no issues`
+    );
+    lines.push(
+      DIMENSIONS.filter((d) => result.dimensions[d.key] !== undefined)
+        .map((d) => `${d.label} ${result.dimensions[d.key]}`)
+        .join(' · ')
+    );
+  }
+
+  const groups = rankGroups(result.findings);
+  if (groups.length) {
     lines.push('');
-    lines.push('Findings:');
-    for (const f of sortFindings(result.findings).slice(0, 50)) {
-      const loc = f.line ? `:${f.line}` : '';
+    lines.push('Top issues (worst first)');
+    groups.slice(0, MAX_GROUPS).forEach((g, i) => {
+      const where = `${g.findings.length} in ${plural(g.testsAffected, 'test')}`;
+      lines.push(` ${i + 1}. ${copyFor(g.rule).title}   ${where}   ${CONFIDENCE_LABEL[g.confidence]}`);
+      for (const f of g.findings.slice(0, MAX_LOCATIONS)) lines.push(`    ${shortPath(f.file, f.line)}`);
+      if (g.findings.length > MAX_LOCATIONS) lines.push(`    + ${g.findings.length - MAX_LOCATIONS} more`);
+    });
+    if (groups.length > MAX_GROUPS) {
       lines.push(
-        `  [${f.severity}] ${f.rule} ${pathBasename(f.file)}${loc} — ${f.message}`
+        ` + ${plural(groups.length - MAX_GROUPS, 'more issue type')}. Full list: playwright-score <path> --format report --out report.html`
       );
     }
-    if (result.findings.length > 50) {
-      lines.push(`  … and ${result.findings.length - 50} more`);
-    }
+  }
+
+  const human = result.findings.filter(isNeedsCheck).sort(compareFindings);
+  if (human.length && !state) {
+    const files = [...new Set(human.map((f) => f.file))];
+    lines.push('');
+    lines.push(
+      `Needs a human check (not in the score): ${plural(human.length, 'test')} in ${plural(files.length, 'file')} ${human.length === 1 ? 'relies' : 'rely'} on helpers we could not read.`
+    );
+    for (const f of files.slice(0, 5)) lines.push(`    ${shortPath(f)}`);
+    if (files.length > 5) lines.push(`    + ${files.length - 5} more`);
   }
 
   if (result.skippedFiles?.length) {
@@ -60,10 +108,10 @@ export function formatText(result: ScoreResult): string {
     }
   }
 
+  lines.push('');
+  if (!state) lines.push(`Score ${result.score}/100 (${result.grade})  ·  ${result.pass ? 'PASS' : 'FAIL'}`);
+  lines.push(
+    `${opts.version ? `QA Guardian playwright-score ${opts.version} (rules ${result.scoreVersion})` : `QA Guardian playwright-score (rules ${result.scoreVersion})`}`
+  );
   return lines.join('\n');
-}
-
-function pathBasename(p: string): string {
-  const parts = p.split(/[/\\]/);
-  return parts[parts.length - 1] ?? p;
 }

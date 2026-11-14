@@ -59,6 +59,33 @@ New report format (QAG-288), output only:
   markdown or HTML output. A rule without plain-English copy renders with a
   generic title instead of failing.
 
+Report and terminal polish (QAG-288 slice 3b), output only, scores unchanged:
+
+- The HTML report is now a Summary page plus a Details part. The Summary
+  (score, score by area, top 3 findings as rows without code, next steps) prints
+  on one A4 or Letter page; Details (code excerpts, findings 4-5, the
+  human-check list) starts on page 2. The duplicate "Flake risk" table is gone:
+  each top finding names the file with the most occurrences, and Details lists
+  the most flake-prone files.
+- A line under the score explains it (weighted average of four areas, the
+  grade bands, the pass bar; "your bar" when `--threshold` was passed). "clean"
+  became "have no issues".
+- Confidence reads Definite / Likely / Needs a human check, with one legend
+  line and neutral tags (fixes the 3.95:1 contrast failure of the amber tag).
+  The four areas are named Reliability, Checks, Resilience to UI changes and
+  Maintainability (the JSON keys are unchanged).
+- A suite with a syntax error or no tests shows "Not scored" instead of
+  "0/100 F", with no zero bars and consistent counts.
+- Rule copy says "can" instead of "will" for outcomes static analysis cannot
+  prove. The weakest area gets a slot in the top 3 when it scores under 75.
+- Without `--name`, the suite name falls back to the last two or three path
+  segments for a folder (never above the home directory), so
+  `e2e-tests/playwright` is no longer just `playwright`.
+- Terminal output (`--format text`) is grouped by rule, worst first, with a
+  count per rule, relative paths, at most three locations per rule (`+ N more`)
+  and at most ten rules; it opens with the verdict and repeats it on the last
+  line. `--format json`, `sarif` and `markdown` are byte-identical to before.
+
 ## 2.2.0 — 2026-11-14
 
 False-positive fixes found by hand-checking error-level findings on public
