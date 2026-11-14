@@ -13,12 +13,12 @@ export interface RuleCopy {
 export const RULE_COPY: Record<string, RuleCopy> = {
   'playwright/no-wait-for-timeout': {
     title: 'Fixed pause before continuing',
-    why: 'Fixed delays make runs slower and cause random red builds, so engineers re-run pipelines and learn to ignore failures.',
+    why: 'Fixed delays make runs slower and can cause random red builds, so engineers re-run pipelines and learn to ignore failures.',
     fix: 'Replace waitForTimeout() with a web-first assertion such as expect(locator).toBeVisible().',
   },
   'playwright/no-networkidle': {
     title: 'Waiting for the network to go quiet',
-    why: 'Pages that poll or stream never go quiet, so these tests time out at random and block releases for no real defect.',
+    why: 'Pages that keep polling or streaming never go quiet, so tests that wait for it can time out at random and hold up releases without a real defect.',
     fix: 'Wait for the specific element or response the test needs instead of networkidle.',
   },
   'playwright/no-force-option': {
@@ -43,7 +43,7 @@ export const RULE_COPY: Record<string, RuleCopy> = {
   },
   'playwright/no-element-handle': {
     title: 'Element handle instead of a locator',
-    why: 'Stale handles fail after the page re-renders, which shows up as random red builds nobody can reproduce.',
+    why: 'Stale handles can fail after the page re-renders, which can show up as random red builds nobody can reproduce.',
     fix: 'Replace $() and $$() handles with page.locator() or role-based locators.',
   },
   'playwright/no-eval': {
@@ -74,11 +74,11 @@ export const RULE_COPY: Record<string, RuleCopy> = {
   'playwright/expect-expect': {
     title: 'Test with no assertion',
     why: 'A test with no check passes even when the feature is broken, so a green build can hide a real outage.',
-    fix: 'Add at least one expect() that proves the outcome the test is named for.',
+    fix: 'Add at least one expect() that checks the outcome the test is named for.',
   },
   'playwright/prefer-web-first-assertions': {
     title: 'Assertion that does not retry',
-    why: 'A one-shot check fails whenever the page is a moment slow, so the build goes red without a real defect.',
+    why: 'A one-shot check can fail when the page is a moment slow, so the build goes red without a real defect.',
     fix: 'Use await expect(locator).toBeVisible() or toHaveText() in place of expect(await locator.isVisible()).',
   },
   'playwright/valid-expect': {
@@ -93,22 +93,22 @@ export const RULE_COPY: Record<string, RuleCopy> = {
   },
   'playwright/no-raw-locators': {
     title: 'CSS or XPath locator',
-    why: 'Selectors tied to CSS or XPath break on every redesign, so each UI change means unplanned test maintenance.',
+    why: 'Selectors tied to CSS or XPath can break on a redesign, so a UI change can mean unplanned test maintenance.',
     fix: 'Use getByRole, getByLabel or getByTestId so locators follow what the user sees.',
   },
   'playwright/prefer-native-locators': {
     title: 'Generic locator where a built-in one exists',
-    why: 'Selectors tied to markup break on redesigns, so UI changes turn into test-maintenance work.',
+    why: 'Selectors tied to markup can break on redesigns, so UI changes can turn into test-maintenance work.',
     fix: 'Switch locator("text=...") style calls to getByText, getByRole or getByLabel.',
   },
   'playwright/prefer-locator': {
     title: 'Page method used where a locator is better',
-    why: 'Page-level helpers do not retry, so tests fail on slow pages and need hand-fixing.',
+    why: 'Page-level helpers do not retry, so tests can fail on slow pages and need hand-fixing.',
     fix: 'Create a locator and call the action on it.',
   },
   'playwright/no-focused-test': {
     title: 'Focused test left in (test.only)',
-    why: 'test.only silently skips every other test, so the build looks green while most of the suite never ran.',
+    why: 'test.only silently skips every other test in the run, so the build can look green while most of the suite never ran.',
     fix: 'Remove .only and set forbidOnly: !!process.env.CI in the Playwright config.',
   },
   'pwscore/no-skipped-test-declaration': {
@@ -133,12 +133,12 @@ export const RULE_COPY: Record<string, RuleCopy> = {
   },
   'pwscore/no-timer-sleep': {
     title: 'Sleep written as a timer',
-    why: 'A timer is a fixed delay in disguise: slower runs and random red builds that cost engineering time.',
+    why: 'A timer is a fixed delay in disguise: it slows runs and can cause random red builds.',
     fix: 'Replace the timer with an assertion on the state you are waiting for.',
   },
   'pwscore/no-coordinate-click': {
     title: 'Click at screen coordinates',
-    why: 'Pixel positions break at another screen size or layout, so the test fails when nothing is wrong with the product.',
+    why: 'Pixel positions can break at another screen size or layout, so the test can fail when nothing is wrong with the product.',
     fix: 'Click a locator instead of page.mouse.click(x, y), except on canvas surfaces.',
   },
   'pwscore/no-trivial-assertion': {
@@ -158,17 +158,17 @@ export const RULE_COPY: Record<string, RuleCopy> = {
   },
   'pwscore/no-unawaited-action': {
     title: 'Click or navigation that is not awaited',
-    why: 'The test moves on before the action finishes, so it fails at random or passes without the step having happened, and real regressions hide behind the noise.',
+    why: 'The test moves on before the action finishes, so it can fail at random or pass without the step having happened, and real regressions hide behind the noise.',
     fix: 'Add await in front of the action.',
   },
   'pwscore/no-brittle-selector': {
     title: 'Selector tied to page layout',
-    why: 'A cosmetic redesign breaks the test even though the product still works, which costs engineering time on false alarms.',
+    why: 'A cosmetic redesign can break the test even though the product still works, which costs engineering time on false alarms.',
     fix: 'Use a role, label or test id the page owner keeps stable.',
   },
   'pwscore/no-shared-mutable-state': {
     title: 'Tests that depend on each other through shared state',
-    why: 'One failure or a changed run order makes later tests fail for the wrong reason, so a failure report points at the wrong feature.',
+    why: 'One failure or a changed run order can make later tests fail for the wrong reason, so a failure report points at the wrong feature.',
     fix: 'Create the data each test needs inside that test or in a fixture.',
   },
   'pwscore/serial-mode-dependency': {
@@ -183,7 +183,7 @@ export const RULE_COPY: Record<string, RuleCopy> = {
   },
   'pwscore/no-fixme-test': {
     title: 'Test switched off with fixme',
-    why: 'The feature it covers has no automated check, so a regression there ships unnoticed.',
+    why: 'The feature it covers has no automated check, so a regression there can ship unnoticed.',
     fix: 'Fix and re-enable the test, or delete it and track the gap in the backlog.',
   },
   'pwscore/no-swallowed-assertion': {
@@ -198,7 +198,7 @@ export const RULE_COPY: Record<string, RuleCopy> = {
   },
   'pwscore/no-unawaited-expect-value': {
     title: 'Missing await inside an assertion',
-    why: 'The assertion compares a pending promise instead of the page value, so it passes or fails without checking the feature.',
+    why: 'The assertion compares a pending promise instead of the page value, so it can pass or fail without checking the feature.',
     fix: 'Add await, or use a web-first assertion such as toHaveText.',
   },
   'pwscore/no-self-fulfilling-fallback': {
@@ -207,8 +207,8 @@ export const RULE_COPY: Record<string, RuleCopy> = {
     fix: 'Remove the fallback and assert on what the page shows.',
   },
   'playwright-score/assertion-unverified': {
-    title: 'Test that may check nothing',
-    why: 'The test may check nothing of its own, so it could pass while the feature is broken. A human should confirm.',
+    title: 'Test whose checks we could not see',
+    why: 'The checks probably live in a helper the score cannot read, so a person should confirm the test really verifies the page.',
     fix: 'Confirm the helper really asserts, or add an expect() to the test itself.',
   },
   'playwright-score/parse-error': {
@@ -220,7 +220,7 @@ export const RULE_COPY: Record<string, RuleCopy> = {
 
 export const FALLBACK_COPY: RuleCopy = {
   title: 'Other quality issue',
-  why: 'The scorer flagged this pattern as a quality risk.',
+  why: 'This pattern often makes tests less reliable.',
   fix: 'Review the flagged lines and simplify them.',
 };
 
