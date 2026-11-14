@@ -158,6 +158,12 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
         'pwscore/no-coordinate-click': 'warn',
         'pwscore/no-trivial-assertion': 'error',
         'pwscore/no-soft-assertion-only-test': ['warn', { testAliasNames }],
+        // QAG-287 slice 2b flake-risk rules, one file each under src/rules/.
+        'pwscore/no-unawaited-action': 'error',
+        'pwscore/no-brittle-selector': 'warn',
+        'pwscore/no-shared-mutable-state': ['warn', { testAliasNames }],
+        'pwscore/serial-mode-dependency': ['warn', { testAliasNames }],
+        'pwscore/no-excessive-timeout': ['warn', { testAliasNames }],
       },
     },
   ];

@@ -133,6 +133,12 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
   'pwscore/no-coordinate-click': { dimension: 'playwrightHygiene', severityOverride: 'warning' },
   'pwscore/no-trivial-assertion': { dimension: 'assertions' },
   'pwscore/no-soft-assertion-only-test': { dimension: 'assertions', severityOverride: 'warning' },
+  // QAG-287 slice 2b. no-brittle-selector is report-only: the locators ratio already counts every raw call.
+  'pwscore/no-unawaited-action': { dimension: 'playwrightHygiene' },
+  'pwscore/no-brittle-selector': { dimension: 'locators', severityOverride: 'warning', reportOnly: true },
+  'pwscore/no-shared-mutable-state': { dimension: 'structure', severityOverride: 'warning' },
+  'pwscore/serial-mode-dependency': { dimension: 'structure', severityOverride: 'info', reportOnly: true },
+  'pwscore/no-excessive-timeout': { dimension: 'playwrightHygiene', severityOverride: 'warning' },
 };
 
 export function mapRule(ruleId: string): RuleMapping {
