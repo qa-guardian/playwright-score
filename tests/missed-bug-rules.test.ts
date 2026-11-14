@@ -61,6 +61,17 @@ describe('QAG-287 fix round 1: no-swallowed-assertion log-only catch', () => {
   });
 });
 
+describe('QAG-287 fix round 2: no-swallowed-assertion skip in catch', () => {
+  it('does not report a catch that calls test.skip(...)', async () => {
+    const { own, all } = await hits('good-swallowed-skip.spec.ts', 'pwscore/no-swallowed-assertion');
+    assert.equal(own.length, 0, JSON.stringify(all));
+  });
+  it('still reports an empty catch and a page-action-only catch', async () => {
+    const { own, all } = await hits('bad-swallowed-empty-or-action.spec.ts', 'pwscore/no-swallowed-assertion');
+    assert.equal(own.length, 2, JSON.stringify(all));
+  });
+});
+
 describe('QAG-287 2a: severities and de-duplication', () => {
   it('weak/unawaited are errors; swallowed is a warning; fallback is info and report-only', async () => {
     const w = await hits('bad-weak.spec.ts', 'pwscore/no-weak-assertion');

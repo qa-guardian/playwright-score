@@ -26,6 +26,7 @@ import {
 } from './playwright-config.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
 import { computeScore } from './score-engine.js';
+import { resetRuleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
 import type { Finding, ProfileName, ScoreOptions, ScoreResult } from './types.js';
 
 export type { ScoreResult, ScoreOptions, Finding, ProfileName } from './types.js';
@@ -468,6 +469,13 @@ function hardFail(
  * Score Playwright spec files. Deterministic and AI-free.
  */
 export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
+  resetRuleCrashes();
+  const result = await scorePathsInner(options);
+  const crashes = summarizeRuleCrashes();
+  return crashes.length > 0 ? { ...result, ruleCrashes: crashes } : result;
+}
+
+async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   const cwd = options.cwd ?? process.cwd();
   const profile: ProfileName = options.profile ?? 'standard';
   const threshold =

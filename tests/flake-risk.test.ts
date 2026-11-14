@@ -71,6 +71,17 @@ describe('QAG-287 2b: pwscore/no-shared-mutable-state', () => {
     assert.equal(f.length, 1, JSON.stringify(f));
     assert.match(f[0].message, /`id`/);
   });
+  it('module-level state shared by tests that are all inside a serial describe is exempt', async () => {
+    for (const file of ['good-serial-module-var-configure', 'good-serial-module-var-describe-serial']) {
+      const f = await findings(`flake-risk/${file}.spec.ts`, 'pwscore/no-shared-mutable-state');
+      assert.equal(f.length, 0, `${file}: ${JSON.stringify(f)}`);
+    }
+  });
+  it('module-level state written in a serial describe and read outside it still fires', async () => {
+    const f = await findings('flake-risk/bad-shared-module-var-serial-writer-only.spec.ts', 'pwscore/no-shared-mutable-state');
+    assert.equal(f.length, 1, JSON.stringify(f));
+    assert.match(f[0].message, /`bookingId`/);
+  });
   it('stays clean for beforeEach setup, own-test writes and test-local state', async () => {
     const f = await findings('flake-risk/good-isolated-state.spec.ts', 'pwscore/no-shared-mutable-state');
     assert.equal(f.length, 0, JSON.stringify(f));

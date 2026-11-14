@@ -147,7 +147,11 @@ export const noSharedMutableState: Rule.RuleModule = {
           if (hookReset || writes.size === 0) continue;
           for (const [test, id] of reads) {
             if (writes.has(test)) continue;
-            const writer = [...writes.keys()][0];
+            // Serial mode orders the tests that share state: skip a writer/reader
+            // pair only when BOTH sit in a serial scope.
+            const readerSerial = isInSerialScope(test, testNames);
+            const writer = [...writes.keys()].find((w) => !(readerSerial && isInSerialScope(w, testNames)));
+            if (!writer) continue;
             context.report({
               node: id as never,
               messageId: 'shared',

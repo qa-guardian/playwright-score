@@ -11,6 +11,8 @@ import { GRADE_BANDS } from './score-engine.js';
 
 /** Shared by the HTML report and the terminal output. */
 
+export const INCOMPLETE_NOTE = 'Some checks could not run on this suite; results may be incomplete.';
+
 export const PARSE_ERROR_RULE = 'playwright-score/parse-error';
 
 export const DIMENSIONS: ReadonlyArray<{ key: DimensionName; label: string; meaning: string }> = [

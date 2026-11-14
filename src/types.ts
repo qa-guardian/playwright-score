@@ -97,6 +97,11 @@ export interface ScoreResult {
    * on a partial or guessed reading. See playwright-config.ts.
    */
   configWarnings?: string[];
+  /**
+   * Rules that threw while scoring this run (contained, so the run finished
+   * but their findings may be missing). Present only when non-empty.
+   */
+  ruleCrashes?: Array<{ rule: string; count: number }>;
 }
 
 export interface ScoreOptions {

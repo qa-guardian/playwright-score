@@ -25,13 +25,13 @@ New rules, flake risk (QAG-287 slice 2b):
 
 - `pwscore/no-unawaited-action` (error, hygiene): Playwright action or navigation on a Page/Locator as a bare statement without `await`.
 - `pwscore/no-brittle-selector` (warning, report-only): XPath, `:nth-child`, 4+ combinator CSS chains, generated class names, positional `.first()/.nth()/.last()` on a raw `.locator()`.
-- `pwscore/no-shared-mutable-state` (warning, structure) and report-only `pwscore/serial-mode-dependency` (info): state written in one test and read in another (not flagged under serial mode); serial describe mode.
-- `pwscore/no-excessive-timeout` (warning, hygiene): option timeouts > 60s (a round 60s is not flagged), `test.setTimeout` >= 5 min, unconditional `test.slow()`.
+- `pwscore/no-shared-mutable-state` (warning, structure) and report-only `pwscore/serial-mode-dependency` (info): state written in one test and read in another. Not flagged when the writing and the reading test both sit in a serial describe (`test.describe.serial` or `test.describe.configure({ mode: 'serial' })`, at file or describe level), wherever the variable is declared; flagged when either test is outside serial scope. Plus a report-only note for serial describe blocks.
+- `pwscore/no-excessive-timeout` (warning, hygiene): option timeouts over 60s (exactly 60s is not flagged), `test.setTimeout` >= 5 min, unconditional `test.slow()`.
 
 New rules, tests that would miss a real bug (QAG-287 slice 2a):
 
 - `pwscore/no-fixme-test` (structure, warning): unconditional `test.fixme('t', fn)`, `test.describe.fixme(...)`, in-body `test.fixme()` and `test.fixme(true, ...)`. `test.fixme(condition, reason)` stays clean.
-- `pwscore/no-swallowed-assertion` (assertions, warning): `expect(...)` inside a `try` whose `catch` neither rethrows, asserts, fails, returns a value nor records state; and `await expect(...).catch(() => {})` with the result discarded. Retry loops are not flagged. Warning, not error, because some real suites use deliberate soft checks.
+- `pwscore/no-swallowed-assertion` (assertions, warning): `expect(...)` inside a `try` whose `catch` neither rethrows, asserts, fails, returns a value, records state nor calls `.skip(...)`; and `await expect(...).catch(() => {})` with the result discarded. Retry loops are not flagged. Warning, not error, because some real suites use deliberate soft checks.
 - `pwscore/no-weak-assertion` (assertions, error): `expect(count).toBeGreaterThanOrEqual(0)`, `expect(<Locator>).toBeTruthy()/toBeDefined()/not.toBeNull()`, `expect(await x.isVisible()).toBeDefined()`.
 - `pwscore/no-unawaited-expect-value` (assertions, error): a Promise-returning Playwright call such as `page.title()` or `locator.innerText()` used without `await` inside `expect()` with a non-web-first matcher. Replaces the misleading `playwright/prefer-web-first-assertions` message on the same line.
 - `pwscore/no-self-fulfilling-fallback` (assertions, info, report-only): a negated state check (or a `catch` of a failed expect) whose fallback fills in or selects the value itself (click-only fallbacks are setup and stay clean), followed by an assertion on the same locator.
@@ -45,7 +45,9 @@ New report format (QAG-288), output only:
   items needing a human check, next steps). Light/dark, phone width, prints
   to one or two pages. All source and paths are HTML-escaped. `--output` is
   accepted as an alias of `--out`. New `--name <suite name>` sets the report
-  headline (default: the directory basename).
+  headline. Without it the label is the last two path segments (three when the
+  folder is generic, e.g. `e2e` or `tests`); it never includes a home directory
+  or anything above it, and a home directory itself is labelled "Playwright suite".
 - Findings are ranked with a display-only confidence tier (high / medium /
   needs-check) and every rule has a plain-English title. The text and
   markdown formats list findings by severity, then confidence, instead of
@@ -78,6 +80,14 @@ Report and terminal polish (QAG-288 slice 3b), output only, scores unchanged:
   "0/100 F", with no zero bars and consistent counts.
 - Rule copy says "can" instead of "will" for outcomes static analysis cannot
   prove. The weakest area gets a slot in the top 3 when it scores under 75.
+- A rule that throws while scoring no longer vanishes silently: the run still
+  finishes, the CLI prints `warning: rule <id> crashed on <n> node(s); results
+  may be incomplete` to stderr, the text, markdown and report formats say "Some
+  checks could not run on this suite; results may be incomplete.", and the JSON
+  result gains `ruleCrashes: [{ rule, count }]`, only when a rule crashed (JSON
+  of a clean run is unchanged).
+- A suite with no tests no longer lists the working directory as an issue, and
+  it is "Not scored" rather than "0/100 F".
 - Without `--name`, the suite name falls back to the last two or three path
   segments for a folder (never above the home directory), so
   `e2e-tests/playwright` is no longer just `playwright`.

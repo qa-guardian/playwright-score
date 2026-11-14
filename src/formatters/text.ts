@@ -7,6 +7,7 @@ import {
   notScoredState,
   plural,
   rankGroups,
+  INCOMPLETE_NOTE,
 } from '../report-model.js';
 
 export interface TextOptions {
@@ -59,7 +60,8 @@ export function formatText(result: ScoreResult, opts: TextOptions = {}): string 
     );
   }
 
-  const groups = rankGroups(result.findings);
+  // 'no-tests' hard-fail findings carry the absolute working directory as their file.
+  const groups = state === 'no-tests' ? [] : rankGroups(result.findings);
   if (groups.length) {
     lines.push('');
     lines.push('Top issues (worst first)');
@@ -85,6 +87,11 @@ export function formatText(result: ScoreResult, opts: TextOptions = {}): string 
     );
     for (const f of files.slice(0, 5)) lines.push(`    ${shortPath(f)}`);
     if (files.length > 5) lines.push(`    + ${files.length - 5} more`);
+  }
+
+  if (result.ruleCrashes?.length) {
+    lines.push('');
+    lines.push(INCOMPLETE_NOTE);
   }
 
   if (result.skippedFiles?.length) {

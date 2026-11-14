@@ -172,6 +172,9 @@ async function main(): Promise<void> {
 
   try {
     const result = await scorePaths({ paths, profile, threshold });
+    for (const c of result.ruleCrashes ?? []) {
+      console.error(`warning: rule ${c.rule} crashed on ${c.count} node(s); results may be incomplete`);
+    }
     let body: string;
     switch (format) {
       case 'json':

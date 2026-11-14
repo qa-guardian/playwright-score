@@ -1017,6 +1017,18 @@ const rawRules: Record<string, Rule.RuleModule> = {
  */
 export const ruleCrashes: Array<{ rule: string; error: unknown }> = [];
 
+/** Clear the crash log; scorePaths calls this at the start of every run. */
+export function resetRuleCrashes(): void {
+  ruleCrashes.length = 0;
+}
+
+/** Crashes of the current run, one entry per rule, in first-crash order. */
+export function summarizeRuleCrashes(): Array<{ rule: string; count: number }> {
+  const counts = new Map<string, number>();
+  for (const c of ruleCrashes) counts.set(c.rule, (counts.get(c.rule) ?? 0) + 1);
+  return [...counts].map(([rule, count]) => ({ rule, count }));
+}
+
 export function contain(name: string, rule: Rule.RuleModule): Rule.RuleModule {
   return {
     ...rule,

@@ -15,6 +15,7 @@ import {
   rankGroups,
   summaryTop,
   type RuleGroup,
+  INCOMPLETE_NOTE,
 } from '../report-model.js';
 
 export { rankTopFindings, compareGroups, type RuleGroup } from '../report-model.js';
@@ -250,6 +251,7 @@ export function formatReport(result: ScoreResult, opts: ReportOptions): string {
     humanCount > 0 && !state
       ? `\n<p class="check">${humanItems.length ? '<a href="#human-check">' : ''}${plural(humanCount, 'test')} ${humanCount === 1 ? 'needs' : 'need'} a human check and ${humanCount === 1 ? 'is' : 'are'} left out of the score.${humanItems.length ? '</a>' : ''}</p>`
       : '';
+  const crashLine = result.ruleCrashes?.length ? `\n<p class="check">${escapeHtml(INCOMPLETE_NOTE)}</p>` : '';
   const meta = state
     ? plural(summary.files, 'file')
     : `${plural(summary.tests, 'test')} in ${plural(summary.files, 'file')}`;
@@ -261,7 +263,7 @@ export function formatReport(result: ScoreResult, opts: ReportOptions): string {
 ${scoreBox}
 <div>
 <h1>${srScore}${escapeHtml(headline)}</h1>
-<p class="explain">${escapeHtml(explain)}</p>${humanLine}
+<p class="explain">${escapeHtml(explain)}</p>${humanLine}${crashLine}
 <p class="meta">${meta} · scored ${escapeHtml(longDate(opts.date))}</p>
 </div>
 </div>

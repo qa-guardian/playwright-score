@@ -370,4 +370,17 @@ describe('report polish (QAG-288 slice 3b)', () => {
     assert.equal(suiteLabel('/home/u/playwright', true, '/home/u'), 'playwright');
     assert.equal(suiteLabel('/home/u/proj/playwright', true, '/home/u'), 'proj/playwright');
   });
+
+  it('never leaks a user name, whatever $HOME says (QAG-287 fix round 2)', () => {
+    for (const home of ['/root', '/nohome', '']) {
+      assert.equal(suiteLabel('/tmp/home/alice/e2e', true, home), 'e2e');
+      assert.equal(suiteLabel('/home/alice/e2e', true, home), 'e2e');
+      assert.equal(suiteLabel('/Users/alice/proj/e2e', true, home), 'proj/e2e');
+      assert.equal(suiteLabel('/Users/alice', true, home), 'Playwright suite');
+      assert.equal(suiteLabel('/home/alice', true, home), 'Playwright suite');
+    }
+    assert.equal(suiteLabel('/root', true, '/root'), 'Playwright suite');
+    assert.equal(suiteLabel('/root/proj/e2e', true, '/root'), 'proj/e2e');
+    assert.equal(suiteLabel('/w/acme/web-app', true, '/root'), 'acme/web-app');
+  });
 });

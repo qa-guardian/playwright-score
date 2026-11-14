@@ -45,6 +45,7 @@ function propagates(body: N | undefined): boolean {
         if (isLoggerCall(c)) return undefined; // a log line is not a failure
         const name = c?.type === 'Identifier' ? c.name : memberName(c);
         if (c?.type === 'MemberExpression' && c.object?.type === 'Identifier' && c.object.name === 'expect') ok = true;
+        else if (c?.type === 'MemberExpression' && memberName(c) === 'skip') ok = true; // test.skip(...) in the catch: a deliberate, visible outcome
         else if (name && FAILISH.test(name)) ok = true;
         else if (name && ['push', 'add', 'set'].includes(name)) ok = true; // collects errors for later
       }
