@@ -10,6 +10,45 @@ parsing accuracy, not grading policy — can still move a suite's score
 without itself being a new model version; 2.1.0 below is exactly that
 case, and says so explicitly.
 
+## 2.2.0 — 2026-11-14
+
+False-positive fixes found by hand-checking error-level findings on public
+suites (7 of 18 were wrong). No rule's weight or severity changed, so this
+is not a new scoring model (still v4), but **scores can rise**: findings
+that were wrong are no longer reported. Nothing gets stricter.
+
+- `playwright/expect-expect`: a test that asserts through a fixture
+  function injected via the test args (`test.extend({ check: ... })` whose
+  body runs `expect`), or through an object-literal method / class-property
+  arrow function in a file it imports (a fixture factory's returned object,
+  a page object), is no longer reported as having no assertion. When a test
+  has no `expect` of its own but calls methods on an object this scan
+  cannot read (an injected fixture from another package, an unresolvable
+  import), it is no longer an error: it is reported as the report-only
+  finding `playwright-score/assertion-unverified` ("needs a human check"),
+  which does not lower the score and is not counted in
+  `summary.unassertedTests`. A test that only calls Playwright API on
+  `page`/`request`/..., or helpers whose body we can read and which do not
+  assert, is still an `expect-expect` error.
+- `pwscore/no-trivial-assertion`: `expect(pageErrors).toEqual([])` where
+  `pageErrors` is a `const` array that is also used anywhere else (pushed
+  to from a listener, passed along, spread) is no longer flagged. Literals
+  and a `const` array only ever read as the expect subject are still flagged.
+- `pwscore/no-timer-sleep`: a retry/backoff pause (a loop or `catch` around
+  the sleep) inside a plain helper function (declaration, `const f = () =>`,
+  class method) is no longer flagged. Sleeps directly in a test body, in a
+  hook, in a loop inside a test callback, and bare `sleep()` helpers are
+  still flagged.
+- `playwright/no-conditional-in-test`: a guard whose only body is `throw`
+  (`if (!id) throw new Error(...)`, no `else`) is no longer flagged.
+- `playwright/valid-expect`: a helper whose name merely ends in `Expect`
+  (`clickSortableHeaderAndExpect(...)`) is no longer reported as an
+  `expect()` without a matcher.
+- Known and not fixed: `playwright/no-standalone-expect` on tests declared
+  through a factory function that returns a `test.extend(...)` result
+  (`const t = testWithConfig({...}); t('name', ...)`). The alias detection
+  only follows direct `test.extend` chains.
+
 ## 2.1.1 — 2026-09-26
 
 Scoring model stays v4. Reviewer follow-ups from the 2.1.0 release review
