@@ -33,7 +33,7 @@ const CASES: Array<[string, string, number]> = [
   ['no-fixme-test', 'fixme', 2],
   ['no-swallowed-assertion', 'swallowed', 2],
   ['no-weak-assertion', 'weak', 5],
-  ['no-unawaited-expect-value', 'unawaited-value', 2],
+  ['no-unawaited-expect-value', 'unawaited-value', 3],
   ['no-self-fulfilling-fallback', 'self-fulfilling', 2],
 ];
 

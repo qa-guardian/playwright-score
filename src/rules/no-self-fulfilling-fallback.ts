@@ -7,8 +7,10 @@
  *  - `try { ...expect/state check... } catch { ...actions... }`
  * ALL of the following must hold:
  *  (a) the fallback branch (not descending into nested functions) calls a
- *      Playwright user action: click, dblclick, fill, type, press,
- *      pressSequentially, check, uncheck, selectOption, setInputFiles, clear;
+ *      content-supplying Playwright action: fill, type,
+ *      pressSequentially, selectOption, setInputFiles (click-only fallbacks
+ *      are the common "ensure the menu/toggle is open" setup idiom and are
+ *      not flagged);
  *  (b) a later statement in the same block contains an expect(...);
  *  (c) the later expect's text shares a locator/selector expression with the
  *      state check (or try block), or with the action targets. "Locator
@@ -31,9 +33,11 @@ const CHECKS = new Set([
   'textContent', 'innerText', 'inputValue', 'getAttribute', 'allTextContents', 'allInnerTexts',
 ]);
 const NEGATIVE_STATE_CHECKS = new Set(['isHidden', 'isDisabled']);
-const ACTIONS = new Set([
-  'click', 'dblclick', 'fill', 'type', 'press', 'pressSequentially', 'check', 'uncheck', 'selectOption', 'setInputFiles', 'clear',
-]);
+// Only actions that SUPPLY content count. A click-only fallback is the
+// "make sure the menu/toggle is open, then assert" setup idiom (checked on
+// rill, mattermost: all click-only hits were setup, not self-fulfilment;
+// `press('Escape')` in an else branch was setup too, so press is excluded).
+const ACTIONS = new Set(['fill', 'type', 'pressSequentially', 'selectOption', 'setInputFiles']);
 
 export const noSelfFulfillingFallback: Rule.RuleModule = {
   meta: {

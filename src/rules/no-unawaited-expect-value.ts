@@ -9,13 +9,14 @@
  * count/title/allInnerTexts/allTextContents/boundingBox/content, and the
  * receiver is syntactically a Page/Locator (page, locator(), getBy*(), a
  * const from one, `*Locator`/`*Page` names). Also flags an un-awaited such
- * call as the argument of toBe/toEqual/toStrictEqual. Never flags
+ * call as the argument of toBe/toEqual/toStrictEqual. Either position may be
+ * a const initialised (un-awaited) from such a call. Never flags
  * `.resolves`/`.rejects` chains or web-first matchers.
  * `playwright/prefer-web-first-assertions` hits on the same line/column are
  * dropped by eslint-runner in favour of this message.
  */
 import type { Rule } from 'eslint';
-import { isPlaywrightReceiver, memberName, parseMatcherCall, type N } from './ast-util.js';
+import { isPlaywrightReceiver, memberName, parseMatcherCall, resolveConstInit, type N } from './ast-util.js';
 
 export const PROMISE_METHODS = new Set([
   'innerText', 'innerHTML', 'textContent', 'inputValue', 'getAttribute', 'isVisible', 'isHidden',
@@ -36,7 +37,9 @@ export const noUnawaitedExpectValue: Rule.RuleModule = {
     schema: [],
   },
   create(context) {
-    function bareCall(n: N | undefined): string | undefined {
+    function bareCall(n0: N | undefined): string | undefined {
+      // `const t = page.title(); expect(t)...`: a const initialised from an un-awaited call.
+      const n = n0?.type === 'Identifier' ? resolveConstInit(context, n0) : n0;
       if (!n || n.type !== 'CallExpression') return undefined; // AwaitExpression etc. are not bare
       const name = memberName(n.callee);
       if (!name || !PROMISE_METHODS.has(name)) return undefined;

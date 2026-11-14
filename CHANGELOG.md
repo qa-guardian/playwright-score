@@ -20,7 +20,7 @@ weight or severity changed.
 - `pwscore/no-swallowed-assertion` (assertions, error): `expect(...)` inside a `try` whose `catch` neither rethrows, asserts, fails, returns a value nor records state; and `await expect(...).catch(() => {})` with the result discarded. Retry loops are not flagged.
 - `pwscore/no-weak-assertion` (assertions, error): `expect(count).toBeGreaterThanOrEqual(0)`, `expect(<Locator>).toBeTruthy()/toBeDefined()/not.toBeNull()`, `expect(await x.isVisible()).toBeDefined()`.
 - `pwscore/no-unawaited-expect-value` (assertions, error): a Promise-returning Playwright call such as `page.title()` or `locator.innerText()` used without `await` inside `expect()` with a non-web-first matcher. Replaces the misleading `playwright/prefer-web-first-assertions` message on the same line.
-- `pwscore/no-self-fulfilling-fallback` (assertions, warning): a negated state check (or a `catch` of a failed expect) whose fallback performs the actions itself, followed by an assertion on the same locator.
+- `pwscore/no-self-fulfilling-fallback` (assertions, warning): a negated state check (or a `catch` of a failed expect) whose fallback fills in or selects the value itself (click-only fallbacks are setup and stay clean), followed by an assertion on the same locator.
 
 ## 2.2.0 — 2026-11-14
 
