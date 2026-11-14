@@ -168,3 +168,51 @@ describe('QAG-287 fix round 1: holes that let a test with no assertion escape', 
     assert.ok(!rules(r).includes('pwscore/no-trivial-assertion'), JSON.stringify(r.findings));
   });
 });
+
+describe('QAG-287 fix round 2: more ways a test with no assertion escaped', () => {
+  it('twin: an expect in a fixture setup does not turn a same-named page-object method into an assertion', async () => {
+    const r = await score('round2/setup-expect-fixture/bad-setup-expect.spec.ts');
+    assert.equal(rules(r).filter((x) => x === 'playwright/expect-expect').length, 1, JSON.stringify(r.findings));
+    assert.ok(!rules(r).includes('playwright-score/assertion-unverified'), JSON.stringify(r.findings));
+  });
+
+  it('a fixture called from an unresolved (tsconfig alias) module is unverified, not asserting and not an error', async () => {
+    const r = await score('round2/alias/specs/alias.spec.ts');
+    assert.equal(rules(r).filter((x) => x === 'playwright/expect-expect').length, 0, JSON.stringify(r.findings));
+    assert.equal(rules(r).filter((x) => x === 'playwright-score/assertion-unverified').length, 1, JSON.stringify(r.findings));
+    assert.equal(r.summary.unverifiedTests, 1);
+  });
+
+  it('twin: query names, built-ins and Playwright-named actions on unreadable objects stay expect-expect errors', async () => {
+    const r = await score('round2/bad-assertion-lookalike-names.spec.ts');
+    assert.equal(rules(r).filter((x) => x === 'playwright/expect-expect').length, 6, JSON.stringify(r.findings));
+    assert.ok(!rules(r).includes('playwright-score/assertion-unverified'), JSON.stringify(r.findings));
+  });
+
+  it('names that read like an assertion on an unreadable object are unverified', async () => {
+    const r = await score('round2/good-assertion-like-names.spec.ts');
+    assert.equal(rules(r).filter((x) => x === 'playwright-score/assertion-unverified').length, 2, JSON.stringify(r.findings));
+    assert.ok(!rules(r).includes('playwright/expect-expect'), JSON.stringify(r.findings));
+  });
+
+  it('an assertion-like call on a destructured name is unverified; twin: a non-assertion call stays an error', async () => {
+    const good = await score('round2/good-destructure-assertion.spec.ts');
+    assert.equal(rules(good).filter((x) => x === 'playwright-score/assertion-unverified').length, 1, JSON.stringify(good.findings));
+    assert.ok(!rules(good).includes('playwright/expect-expect'), JSON.stringify(good.findings));
+    const bad = await score('round2/bad-destructure-non-assertion.spec.ts');
+    assert.equal(rules(bad).filter((x) => x === 'playwright/expect-expect').length, 1, JSON.stringify(bad.findings));
+    assert.ok(!rules(bad).includes('playwright-score/assertion-unverified'), JSON.stringify(bad.findings));
+  });
+
+  it('an inner array mutated through an index makes the outer assertion real; twin: index reads do not', async () => {
+    const good = await score('round2/good-mutation-through-index.spec.ts');
+    assert.ok(!rules(good).includes('pwscore/no-trivial-assertion'), JSON.stringify(good.findings));
+    const bad = await score('round2/bad-mutation-index-read.spec.ts');
+    assert.equal(rules(bad).filter((x) => x === 'pwscore/no-trivial-assertion').length, 1, JSON.stringify(bad.findings));
+  });
+
+  it('twin: a loop around an empty try block is not a retry/backoff helper', async () => {
+    const r = await score('round2/bad-empty-try-retry-sleep.spec.ts');
+    assert.equal(rules(r).filter((x) => x === 'pwscore/no-timer-sleep').length, 1, JSON.stringify(r.findings));
+  });
+});

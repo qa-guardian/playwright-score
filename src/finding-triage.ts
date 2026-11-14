@@ -38,22 +38,29 @@ const NEUTRAL_ROOTS = new Set([
   'URL', 'Buffer', 'fetch', 'undefined', 'globalThis', 'window', 'document',
 ]);
 
-const ASSERTIONISH_PREFIX = /^(assert|verify|check|validate|expect|ensure|should|confirm)/i;
-const ASSERTIONISH_TO = /^to[A-Z]/;
+// Word-boundary, case-sensitive (same idea as the assertFunctionPatterns in
+// eslint-runner.ts): `checkout`, `toISOString`, `toLowerCase` or `shop.checkout()`
+// are not assertions, `checkFoo`, `assert_ok` and `toBeVisible` are.
+const ASSERTIONISH_PREFIX = /^(assert|verify|check|validate|expect|ensure|should|confirm)([A-Z_0-9]|$)/;
+const ASSERTIONISH_TO = /^to(Be|Have|Contain|Match|Equal|Throw)/;
+
+/** JS / Node built-ins: `new Date().toISOString()` is never a page-object call. */
+const BUILTIN_CLASSES = new Set([
+  'Date', 'Map', 'Set', 'WeakMap', 'WeakSet', 'URL', 'URLSearchParams', 'Array', 'Error', 'TypeError',
+  'RangeError', 'RegExp', 'Promise', 'Object', 'String', 'Number', 'Boolean', 'Buffer', 'Uint8Array',
+  'ArrayBuffer', 'Intl', 'AbortController', 'TextEncoder', 'TextDecoder', 'FormData', 'Headers', 'Blob',
+]);
 
 /**
  * Only a method whose NAME reads like an assertion may be a hidden one:
  * `app.waitForLoad()` or `users.list()` on an unreadable object is just an
- * unverified call, and the test stays an expect-expect error. A Playwright
- * action on a locator chain (`po.locator('x').check()`) is not one either.
+ * unverified call, and the test stays an expect-expect error. A name that is
+ * a Playwright API verb (`check`, `fill`, `goto`) is an action whatever the
+ * receiver: `loginPage.rememberMe.check()` is a locator held in a property.
  */
-function isAssertionLikeCall(name: string, callee: N): boolean {
+function isAssertionLikeCall(name: string): boolean {
   if (!ASSERTIONISH_PREFIX.test(name) && !ASSERTIONISH_TO.test(name)) return false;
-  if (!PLAYWRIGHT_API_METHODS.has(name)) return true;
-  const recv = callee?.type === 'MemberExpression' ? callee.object : undefined;
-  const inner = recv?.type === 'AwaitExpression' ? recv.argument : recv;
-  const m = inner?.type === 'CallExpression' ? inner.callee : undefined;
-  return !(m?.type === 'MemberExpression' && m.property?.type === 'Identifier' && PLAYWRIGHT_API_METHODS.has(m.property.name));
+  return !PLAYWRIGHT_API_METHODS.has(name);
 }
 
 function walk(node: N, visit: (n: N, parent: N | undefined) => void, parent?: N): void {
@@ -136,6 +143,8 @@ interface Knowledge {
    * Playwright fixture (`page`, `context`, ...).
    */
   assertingFixtures: Map<string, Set<string>>;
+  /** Per file: every `test.extend({...})` fixture name, asserting or not. */
+  fixtureKeys: Map<string, Set<string>>;
   cache: AstCache;
 }
 
@@ -154,6 +163,7 @@ function usesAssertingCallable(fixtureFn: N): boolean {
 function gather(ctx: TriageContext, cache: AstCache): Knowledge {
   const defined = new Set<string>();
   const assertingFixtures = new Map<string, Set<string>>();
+  const fixtureKeys = new Map<string, Set<string>>();
   const all = [...ctx.sources, ...ctx.importedFiles];
   for (const [file, source] of all) {
     const ast = parse(cache, source, file);
@@ -178,6 +188,10 @@ function gather(ctx: TriageContext, cache: AstCache): Knowledge {
       ) {
         for (const p of n.arguments[0].properties ?? []) {
           const k = propKeyName(p);
+          if (k) {
+            if (!fixtureKeys.has(file)) fixtureKeys.set(file, new Set());
+            fixtureKeys.get(file)!.add(k);
+          }
           if (!k || NEUTRAL_ROOTS.has(k) || !isFn(p.value) || !usesAssertingCallable(p.value)) continue;
           if (!assertingFixtures.has(file)) assertingFixtures.set(file, new Set());
           assertingFixtures.get(file)!.add(k);
@@ -185,7 +199,18 @@ function gather(ctx: TriageContext, cache: AstCache): Knowledge {
       }
     });
   }
-  return { defined, assertingFixtures, cache };
+  return { defined, assertingFixtures, fixtureKeys, cache };
+}
+
+/** Names bound by an identifier, object or array pattern. */
+function boundNames(pat: N, out: string[] = []): string[] {
+  if (!pat) return out;
+  if (pat.type === 'Identifier') out.push(pat.name);
+  else if (pat.type === 'ObjectPattern') for (const p of pat.properties ?? []) boundNames(p.type === 'RestElement' ? p.argument : p.value, out);
+  else if (pat.type === 'ArrayPattern') for (const e of pat.elements ?? []) boundNames(e, out);
+  else if (pat.type === 'AssignmentPattern') boundNames(pat.left, out);
+  else if (pat.type === 'RestElement') boundNames(pat.argument, out);
+  return out;
 }
 
 /** Root identifier / expression of a call or member chain. */
@@ -238,6 +263,7 @@ function unresolvedCalls(testCall: N, ast: N, know: Knowledge): string[] {
   const rootKind = (root: N): Kind => {
     if (root?.type === 'NewExpression') {
       const cls = root.callee?.name;
+      if (cls && (BUILTIN_CLASSES.has(cls) || NEUTRAL_ROOTS.has(cls))) return 'neutral';
       return cls && know.defined.has(cls) ? 'neutral' : 'external';
     }
     if (root?.type !== 'Identifier') return 'neutral';
@@ -249,8 +275,11 @@ function unresolvedCalls(testCall: N, ast: N, know: Knowledge): string[] {
 
   const unresolved: string[] = [];
   walk(fn.body, (n) => {
-    if (n.type === 'VariableDeclarator' && n.id?.type === 'Identifier' && n.init) {
-      kinds.set(n.id.name, rootKind(chainRoot(n.init)));
+    if (n.type === 'VariableDeclarator' && n.init) {
+      // `const x = ...` and destructuring (`const { a, b: [c] } = await ...`):
+      // every bound name takes the kind of the initializer's root.
+      const kind = rootKind(chainRoot(n.init));
+      for (const bound of boundNames(n.id)) kinds.set(bound, kind);
       return;
     }
     if (n.type !== 'CallExpression') return;
@@ -260,7 +289,7 @@ function unresolvedCalls(testCall: N, ast: N, know: Knowledge): string[] {
     else if (c?.type === 'MemberExpression' && !c.computed && c.property?.type === 'Identifier') name = c.property.name;
     if (!name || know.defined.has(name)) return;
     const kind = rootKind(chainRoot(c));
-    if ((kind === 'external' || kind === 'lib') && isAssertionLikeCall(name, c)) unresolved.push(name);
+    if ((kind === 'external' || kind === 'lib') && isAssertionLikeCall(name)) unresolved.push(name);
   });
   return unresolved;
 }
@@ -298,6 +327,36 @@ function assertingFixtureLocals(testFn: N, reachable: Set<string>, know: Knowled
     if (local?.type === 'Identifier') locals.add(local.name);
   }
   return locals;
+}
+
+/**
+ * Fixtures the test destructures AND calls (`a11y()`) that no reachable file
+ * defines, while its `test` comes from a non-relative module this scan does
+ * not resolve (a tsconfig `paths` alias such as `@fx/base`, a workspace
+ * package). The fixture may well assert there, so it is "unverified", not
+ * "no assertion". Relative imports are followed by reachableFiles instead.
+ */
+function unresolvedFixtureCalls(call: N, ast: N, fn: N, reachable: Set<string>, know: Knowledge): string[] {
+  const testRoot = chainRoot(call.callee);
+  if (testRoot?.type !== 'Identifier') return [];
+  const fromUnresolvedModule = (ast.body ?? []).some(
+    (stmt: N) =>
+      stmt.type === 'ImportDeclaration' &&
+      typeof stmt.source?.value === 'string' &&
+      !stmt.source.value.startsWith('.') &&
+      !/^(@playwright\/|playwright|node:)/.test(stmt.source.value) &&
+      (stmt.specifiers ?? []).some((sp: N) => sp.local?.name === testRoot.name)
+  );
+  if (!fromUnresolvedModule) return [];
+  const out: string[] = [];
+  for (const p of fn?.params?.[0]?.properties ?? []) {
+    const key = propKeyName(p);
+    if (!key || NEUTRAL_ROOTS.has(key)) continue;
+    if ([...reachable].some((f) => know.fixtureKeys.get(f)?.has(key))) continue;
+    const local = p.value?.type === 'AssignmentPattern' ? p.value.left : p.value;
+    if (local?.type === 'Identifier' && callsAny(fn.body, new Set([local.name]))) out.push(key);
+  }
+  return out;
 }
 
 /** Does the body call `name(...)` directly (the fixture is invoked, not merely destructured)? */
@@ -385,9 +444,10 @@ export function triageFindings(findings: Finding[], ctx: TriageContext): Finding
       continue;
     }
     const fn = [...(call.arguments ?? [])].reverse().find(isFn);
-    const fixtureLocals = assertingFixtureLocals(fn, reachableFiles(abs, ctx, know), know);
+    const reachable = reachableFiles(abs, ctx, know);
+    const fixtureLocals = assertingFixtureLocals(fn, reachable, know);
     if (fixtureLocals.size > 0 && callsAny(fn.body, fixtureLocals)) continue; // a callable fixture that asserts is invoked
-    const calls = [...new Set(unresolvedCalls(call, ast, know))];
+    const calls = [...new Set([...unresolvedCalls(call, ast, know), ...unresolvedFixtureCalls(call, ast, fn, reachable, know)])];
     if (calls.length === 0) {
       out.push(f);
       continue;

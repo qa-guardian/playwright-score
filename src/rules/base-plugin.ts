@@ -253,7 +253,9 @@ function isRetryBackoffInHelper(ancestors: Node[], from: number): boolean {
 function containsTryCatch(root: Node | undefined): boolean {
   let found = false;
   walkNode(root, (n) => {
-    if (n.type === 'TryStatement' && (n as { handler?: unknown }).handler) found = true;
+    if (n.type !== 'TryStatement' || !(n as { handler?: unknown }).handler) return;
+    // An empty `try {}` is not a retry shape.
+    if (((n as { block?: { body?: unknown[] } }).block?.body ?? []).length > 0) found = true;
   });
   return found;
 }
@@ -678,6 +680,22 @@ function isOnlyReadAsExpectSubject(root: unknown, name: string): boolean {
   return ok;
 }
 
+/** Is the member expression `m` itself written, deleted or the receiver of a mutating method? */
+function memberMutates(m: Node & Record<string, unknown>, above: Node & Record<string, unknown>): boolean {
+  if (above.type === 'AssignmentExpression' && above.left === m) return true;
+  if (above.type === 'UpdateExpression') return true;
+  if (above.type === 'UnaryExpression' && (above as { operator?: string }).operator === 'delete') return true;
+  const prop = m.property as { type?: string; name?: string } | undefined;
+  return (
+    !m.computed &&
+    prop?.type === 'Identifier' &&
+    !!prop.name &&
+    MUTATING_METHODS.has(prop.name) &&
+    above.type === 'CallExpression' &&
+    above.callee === m
+  );
+}
+
 function referenceMayMutate(id: Node, stack: Node[]): boolean {
   const parent = stack[stack.length - 1] as (Node & Record<string, unknown>) | undefined;
   const grand = stack[stack.length - 2] as (Node & Record<string, unknown>) | undefined;
@@ -690,19 +708,15 @@ function referenceMayMutate(id: Node, stack: Node[]): boolean {
       return (parent.callee as Node) !== id || false; // an argument, or the array called
     case 'MemberExpression': {
       if (parent.object !== id) return false; // `obj.expected`: a property name, not this binding
-      const prop = parent.property as { type?: string; name?: string };
-      if (grand?.type === 'AssignmentExpression' && grand.left === parent) return true;
-      if (grand?.type === 'UpdateExpression') return true;
-      if (grand?.type === 'UnaryExpression' && (grand as { operator?: string }).operator === 'delete') return true;
-      if (
-        !parent.computed &&
-        prop?.type === 'Identifier' &&
-        prop.name &&
-        MUTATING_METHODS.has(prop.name) &&
-        grand?.type === 'CallExpression' &&
-        grand.callee === parent
-      ) {
-        return true;
+      // Mutation of the member itself (`a.x = 1`, `a.push(1)`), then, for a
+      // computed access chain (`rows[0].push(9)`, `rows[0][1] = 2`), of
+      // the element it reaches: the inner array is part of the asserted one.
+      let member: Node & Record<string, unknown> = parent;
+      for (let up = stack.length - 2; up >= 0; up--) {
+        const above = stack[up] as Node & Record<string, unknown>;
+        if (memberMutates(member, above)) return true;
+        if (!member.computed || above.type !== 'MemberExpression' || above.object !== member) break;
+        member = above;
       }
       return false; // `.length`, `[0]`, `.map(...)`, ... are reads
     }
