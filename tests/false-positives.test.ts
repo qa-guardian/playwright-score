@@ -46,6 +46,12 @@ describe('QAG-287: expect-expect resolution', () => {
     assert.equal(r.findings.length, 0, JSON.stringify(r.findings));
   });
 
+  it('an object-literal method of a fixture factory in an imported file counts as an assertion', async () => {
+    const r = await score('page-object-delegation/good-factory-object-method.spec.ts');
+    assert.equal(r.score, 100, JSON.stringify(r.findings));
+    assert.equal(r.findings.length, 0, JSON.stringify(r.findings));
+  });
+
   it('a call on an unreadable injected object becomes a report-only human-check finding', async () => {
     const r = await score('good-standard-unresolved-fixture-call.spec.ts');
     assert.equal(r.score, 100, JSON.stringify(r.findings));
@@ -108,5 +114,18 @@ describe('QAG-287: no-conditional-in-test', () => {
   it('twin: real branching is still flagged', async () => {
     const r = await score('bad-standard-real-branching.spec.ts');
     assert.equal(rules(r).filter((x) => x === 'playwright/no-conditional-in-test').length, 2, JSON.stringify(r.findings));
+  });
+});
+
+describe('QAG-287: valid-expect', () => {
+  it('a helper named ...Expect is not an expect() without a matcher', async () => {
+    const r = await score('good-standard-expect-named-helper.spec.ts');
+    assert.equal(r.score, 100, JSON.stringify(r.findings));
+    assert.ok(!rules(r).includes('playwright/valid-expect'));
+  });
+
+  it('twin: a real expect() without a matcher is still flagged', async () => {
+    const r = await score('bad-standard-expect-without-matcher.spec.ts');
+    assert.ok(rules(r).includes('playwright/valid-expect'), JSON.stringify(r.findings));
   });
 });

@@ -11,6 +11,8 @@
  *   something this static scan cannot read, and kept as the error it is
  *   when every call resolves to code we could read (or is plain Playwright
  *   API on `page`, `request`, ...).
+ * - `playwright/valid-expect` fires on a helper whose name ends in
+ *   "Expect" (`clickSortableHeaderAndExpect(...)`) as if it were expect().
  * - `playwright/no-conditional-in-test` fires on a guard whose only body is
  *   `throw`. That is an assertion in disguise, not branching test logic.
  *
@@ -246,14 +248,19 @@ function isThrowOnly(stmt: N): boolean {
 
 export function triageFindings(findings: Finding[], ctx: TriageContext): Finding[] {
   const wants = findings.some(
-    (f) => f.rule === 'playwright/expect-expect' || f.rule === 'playwright/no-conditional-in-test'
+    (f) =>
+      f.rule === 'playwright/expect-expect' ||
+      f.rule === 'playwright/no-conditional-in-test' ||
+      f.rule === 'playwright/valid-expect'
   );
   if (!wants) return findings;
   const know = gather(ctx);
   const out: Finding[] = [];
   for (const f of findings) {
     if (
-      (f.rule !== 'playwright/expect-expect' && f.rule !== 'playwright/no-conditional-in-test') ||
+      (f.rule !== 'playwright/expect-expect' &&
+        f.rule !== 'playwright/no-conditional-in-test' &&
+        f.rule !== 'playwright/valid-expect') ||
       f.line === undefined ||
       f.column === undefined
     ) {
@@ -264,6 +271,20 @@ export function triageFindings(findings: Finding[], ctx: TriageContext): Finding
     const source = ctx.sources.get(abs);
     const ast = source === undefined ? undefined : parse(source, abs);
     if (!ast) {
+      out.push(f);
+      continue;
+    }
+    if (f.rule === 'playwright/valid-expect') {
+      // Upstream treats any callee whose name merely ends in "Expect"
+      // (`clickSortableHeaderAndExpect(header, 'ascending')`) as an expect()
+      // call missing its matcher. Only the real `expect` is one.
+      const node = findCall(ast, f.line, f.column - 1);
+      const callee = node?.callee;
+      const isRealExpect =
+        callee?.type === 'Identifier'
+          ? callee.name === 'expect'
+          : callee?.type === 'MemberExpression' && callee.object?.name === 'expect';
+      if (node && !isRealExpect) continue;
       out.push(f);
       continue;
     }

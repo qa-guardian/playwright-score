@@ -279,6 +279,22 @@ export function findLocalAssertionHelperNames(source: string, file?: string): st
         name = id.name;
         body = init;
       }
+    } else if (
+      // `{ checkTab: async () => { await expect(...) } }` — an object-literal
+      // method (a fixture factory's returned object, a test.extend entry) or
+      // a class property holding an arrow function (`check = async () => {}`).
+      (node.type === 'Property' || node.type === 'PropertyDefinition') &&
+      !node.computed
+    ) {
+      const key = node.key as { type?: string; name?: string } | undefined;
+      const value = node.value as { type?: string } | undefined;
+      if (
+        key?.type === 'Identifier' &&
+        (value?.type === 'ArrowFunctionExpression' || value?.type === 'FunctionExpression')
+      ) {
+        name = key.name;
+        body = value;
+      }
     } else if (node.type === 'MethodDefinition') {
       const key = node.key as { type?: string; name?: string } | undefined;
       if (!node.computed && key?.type === 'Identifier' && node.kind === 'method') {
