@@ -32,31 +32,43 @@ that were wrong are no longer reported. Nothing gets stricter.
   method (`goto`, `click`, `fill`, `check`, `get`, `post`, ...) is never
   treated as an assertion helper, so it cannot turn every `page.goto()` into
   an assertion. When a test has no `expect` of its own but calls an
-  assertion-named method (`assert*`, `verify*`, `check*`, `validate*`,
-  `expect*`, `ensure*`, `should*`, `confirm*`, `toX`) on an object this scan
+  assertion-named method (`assert`, `verify`, `check`, `validate`, `expect`,
+  `ensure`, `should`, `confirm` followed by an upper-case letter, `_`, a digit
+  or nothing, such as `checkTotals` but not `checkout`; or `toBe*`, `toHave*`,
+  `toContain*`, `toMatch*`, `toEqual*`, `toThrow*`) on an object this scan
   cannot read (an injected fixture from another package, an unresolvable
   import, a third-party package), it is no longer an error: it is reported
   as the report-only finding `playwright-score/assertion-unverified`
   ("needs a human check"), which does not lower the score and is not
   counted in `summary.unassertedTests`. Those tests are counted separately
-  in the new `summary.unverifiedTests` (the text and Markdown reports show
-  them as unverified, never as asserting): they are not known to assert. A
-  call whose name is not assertion-like (`app.waitForLoad()`,
-  `helpers.waitForNetworkIdle(page)`, `users.list()`), a test that only
-  calls Playwright API on `page`/`request`/..., and helpers whose body we
-  can read and which do not assert are still `expect-expect` errors.
+  in `summary.unverifiedTests`, a new field that is always present in the
+  JSON output (`0` when nothing is unverified; the text and Markdown reports
+  show those tests as unverified, never as asserting): they are not known to
+  assert. A fixture a test calls, whose `test` comes from a module the scan
+  does not resolve (a tsconfig `paths` alias, a workspace package), is
+  unverified the same way. Names bound by destructuring
+  (`const { channelsPage } = await pw.login(user)`) take the kind of the
+  expression they come from. Query-style names (`is...`, `has...`,
+  `wait...`), helper methods named like Playwright actions (`fill`, `check`,
+  `goto`, ...), built-in calls (`new Date().toISOString()`,
+  `user.email.toLowerCase()`, `x.toString()`), `shop.checkout()` and
+  `loginPage.rememberMe.check()` are not treated as assertions: a call whose
+  name is not assertion-like, a test that only calls Playwright API on
+  `page`/`request`/..., and helpers whose body we can read and which do not
+  assert are still `expect-expect` errors.
 - `pwscore/no-trivial-assertion`: `expect(pageErrors).toEqual([])` where
   `pageErrors` is a `const` array that may be mutated (passed to a call as
   an argument, the receiver of `push`/`pop`/`splice`/`sort`/..., an
   assignment target, aliased, or captured by a closure that does one of
-  those, such as a listener) is no longer flagged. A `.length` or index
+  those, such as a listener, or an inner array reached through an index:
+  `rows[0].push(9)`) is no longer flagged. A `.length` or index
   read, a non-mutating method such as `.map()`, and an unrelated property
   with the same name (`obj.expected`) do not count as mutation; literals
   and a `const` array that is only read are still flagged.
 - `pwscore/no-timer-sleep`: a retry/backoff pause inside a plain helper
   function (declaration, `const f = () =>`, class method) is no longer
   flagged, but only when the sleep sits in a `catch` clause or in a loop
-  whose body contains a `try`/`catch`, and the helper is not declared inside
+  whose body contains a non-empty `try` with a `catch`, and the helper is not declared inside
   a test, hook, describe or step callback. Sleeps directly in a test body or
   hook, any loop without `try`/`catch` (including a hand-rolled
   `while (await x.isVisible()) sleep()` polling wait), helpers declared
