@@ -166,7 +166,9 @@ describe('report golden (fixtures/)', () => {
     assert.equal(html, fs.readFileSync(goldenFile, 'utf8'));
     assert.ok(result.baseDir, 'scorePaths should record baseDir');
     assert.ok(!html.includes(result.baseDir!), 'local absolute path leaked into the report');
-    assert.ok(!html.includes('http://') && !html.includes('https://'), 'report must have no external links');
+    // Code excerpts show customer source, which may contain URL strings; only markup outside them can link out.
+    const markup = html.replace(/<pre class="code"[\s\S]*?<\/pre>/g, '');
+    assert.ok(!markup.includes('http://') && !markup.includes('https://'), 'report must have no external links');
     assert.ok(!/<script|<link|@import|url\(/i.test(html), 'report must be self-contained');
   });
 });
@@ -209,5 +211,47 @@ describe('report robustness (QAG-288 slice 1b)', () => {
     } finally {
       fs.rmSync(tmp, { recursive: true, force: true });
     }
+  });
+});
+
+describe('baseDir and --name (QAG-288)', () => {
+  it('keeps baseDir in memory but never in json, sarif, markdown, text or report output', async () => {
+    const root = packageRoot();
+    const result = await scorePaths({ paths: [path.join(root, 'fixtures', 'gold.spec.ts')] });
+    assert.ok(result.baseDir && path.isAbsolute(result.baseDir), 'baseDir stays on the in-memory result');
+    const { formatJson } = await import('../src/formatters/json.js');
+    const { formatMarkdown } = await import('../src/formatters/markdown.js');
+    const { formatSarif } = await import('../src/formatters/sarif.js');
+    const outputs = {
+      json: formatJson(result),
+      markdown: formatMarkdown(result),
+      sarif: formatSarif(result),
+      text: formatText(result),
+      report: formatReport(result, {
+        date: '2026-01-01',
+        version: 'x',
+        suiteName: 'suite',
+        readSource: makeSourceReader([path.join(root, 'fixtures')], process.cwd(), result.baseDir),
+      }),
+    };
+    for (const [k, v] of Object.entries(outputs)) {
+      assert.ok(!v.includes(result.baseDir!), `${k} output leaks baseDir`);
+    }
+    assert.ok(!('baseDir' in JSON.parse(outputs.json)));
+  });
+
+  it('--name sets the report headline; default stays the directory basename', async () => {
+    const { execFile } = await import('node:child_process');
+    const run = (extra: string[]) =>
+      new Promise<string>((resolve, reject) =>
+        execFile(
+          process.execPath,
+          [path.join(packageRoot(), 'dist', 'cli.js'), path.join(packageRoot(), 'fixtures', 'gold.spec.ts'), '--format', 'report', ...extra],
+          { maxBuffer: 10_000_000 },
+          (err, stdout) => (stdout ? resolve(stdout) : reject(err))
+        )
+      );
+    assert.match(await run(['--name', 'My Suite']), /<code>My Suite<\/code>/);
+    assert.match(await run([]), /<code>gold\.spec\.ts<\/code>/);
   });
 });

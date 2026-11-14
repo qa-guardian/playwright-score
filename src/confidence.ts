@@ -18,6 +18,16 @@ export const CONFIDENCE_BY_RULE: Record<string, Confidence> = {
   'playwright/no-focused-test': 'high',
   'playwright/no-page-pause': 'high',
   'playwright-score/parse-error': 'high',
+  'pwscore/no-unawaited-action': 'high',
+  'pwscore/no-unawaited-expect-value': 'high',
+  'pwscore/no-weak-assertion': 'high',
+  'pwscore/no-fixme-test': 'high',
+  'pwscore/no-excessive-timeout': 'high',
+  'pwscore/no-swallowed-assertion': 'medium',
+  'pwscore/no-shared-mutable-state': 'medium',
+  'pwscore/no-self-fulfilling-fallback': 'needs-check',
+  'pwscore/no-brittle-selector': 'needs-check',
+  'pwscore/serial-mode-dependency': 'needs-check',
 
   'playwright-score/assertion-unverified': 'needs-check',
 

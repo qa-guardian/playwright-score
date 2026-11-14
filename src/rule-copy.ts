@@ -156,6 +156,56 @@ export const RULE_COPY: Record<string, RuleCopy> = {
     why: 'A disable comment hides a problem from reviewers and from this score, so known issues stay unfixed.',
     fix: 'Fix the code the comment is hiding, or justify the exception in review.',
   },
+  'pwscore/no-unawaited-action': {
+    title: 'Click or navigation that is not awaited',
+    why: 'The test moves on before the action finishes, so it fails at random or passes without the step having happened, and real regressions hide behind the noise.',
+    fix: 'Add await in front of the action.',
+  },
+  'pwscore/no-brittle-selector': {
+    title: 'Selector tied to page layout',
+    why: 'A cosmetic redesign breaks the test even though the product still works, which costs engineering time on false alarms.',
+    fix: 'Use a role, label or test id the page owner keeps stable.',
+  },
+  'pwscore/no-shared-mutable-state': {
+    title: 'Tests that depend on each other through shared state',
+    why: 'One failure or a changed run order makes later tests fail for the wrong reason, so a failure report points at the wrong feature.',
+    fix: 'Create the data each test needs inside that test or in a fixture.',
+  },
+  'pwscore/serial-mode-dependency': {
+    title: 'Tests that must run in order',
+    why: 'One failing step skips every test after it, so a single bug can hide the state of the rest of the flow.',
+    fix: 'Make each test independent, or keep serial mode only where the flow truly needs it.',
+  },
+  'pwscore/no-excessive-timeout': {
+    title: 'Very long timeout',
+    why: 'A long timeout hides slow or hung pages and makes a broken release take many minutes to be reported.',
+    fix: 'Remove the long timeout and fix the slow step, or wait for a specific condition.',
+  },
+  'pwscore/no-fixme-test': {
+    title: 'Test switched off with fixme',
+    why: 'The feature it covers has no automated check, so a regression there ships unnoticed.',
+    fix: 'Fix and re-enable the test, or delete it and track the gap in the backlog.',
+  },
+  'pwscore/no-swallowed-assertion': {
+    title: 'Assertion whose failure is ignored',
+    why: 'A failing check is caught and dropped, so the test passes while the feature may be broken. Deliberate soft checks are the usual exception.',
+    fix: 'Let the failure fail the test, or use expect.soft if the check is optional.',
+  },
+  'pwscore/no-weak-assertion': {
+    title: 'Assertion that can never fail',
+    why: 'The check passes whatever the page shows, so the test gives false confidence that the feature works.',
+    fix: 'Assert on a concrete value, such as an exact count, text or URL.',
+  },
+  'pwscore/no-unawaited-expect-value': {
+    title: 'Missing await inside an assertion',
+    why: 'The assertion compares a pending promise instead of the page value, so it passes or fails without checking the feature.',
+    fix: 'Add await, or use a web-first assertion such as toHaveText.',
+  },
+  'pwscore/no-self-fulfilling-fallback': {
+    title: 'Test fills in the value it then checks',
+    why: 'If the page is missing the value, the test types it in and then confirms it, so the check passes on a broken feature.',
+    fix: 'Remove the fallback and assert on what the page shows.',
+  },
   'playwright-score/assertion-unverified': {
     title: 'Test that may check nothing',
     why: 'The test may check nothing of its own, so it could pass while the feature is broken. A human should confirm.',

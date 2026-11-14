@@ -66,7 +66,7 @@ section{break-inside:auto}
 <div>
 <h1>1 file could not be parsed, so the suite was not scored.</h1>
 <p class="muted">Below the pass mark of 80.</p>
-<p class="meta"><code>fixtures</code><br>0 tests in 49 files · 2026-11-14 · scorer 0.0.0-test</p>
+<p class="meta"><code>fixtures</code><br>0 tests in 69 files · 2026-11-14 · scorer 0.0.0-test</p>
 </div>
 </header>
 
@@ -108,18 +108,18 @@ section{break-inside:auto}
 <p class="muted">One occurrence.</p>
 </article>
 <article class="finding sev-error">
-<h3><span class="rank">4</span>Test with no assertion <span class="tag medium">medium confidence</span></h3>
-<p class="where"><code>bad-no-expects.spec.ts:4</code></p>
-<pre class="code" aria-label="Code excerpt"><span class="ln"><i>1</i>import { test } from &#39;@playwright/test&#39;;</span><span class="ln"><i>2</i> </span><span class="ln"><i>3</i>test.describe(&#39;No assertions&#39;, () =&gt; {</span><span class="ln hit"><i>4</i>  test(&#39;clicks around&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>5</i>    await page.goto(&#39;/app&#39;);</span><span class="ln"><i>6</i>    await page.getByRole(&#39;button&#39;, { name: &#39;Go&#39; }).click();</span><span class="ln"><i>7</i>  });</span></pre>
-<p class="why">A test with no check passes even when the feature is broken, so a green build can hide a real outage.</p>
-<p class="muted">19 occurrences across 19 tests.</p>
+<h3><span class="rank">4</span>Click or navigation that is not awaited <span class="tag high">high confidence</span></h3>
+<p class="where"><code>flake-risk/bad-unawaited-action.spec.ts:4</code></p>
+<pre class="code" aria-label="Code excerpt"><span class="ln"><i>1</i>import { test, expect } from &#39;@playwright/test&#39;;</span><span class="ln"><i>2</i> </span><span class="ln"><i>3</i>test(&#39;forgets to await actions&#39;, async ({ page }) =&gt; {</span><span class="ln hit"><i>4</i>  page.goto(&#39;https://example.com/login&#39;);</span><span class="ln"><i>5</i>  page.getByRole(&#39;button&#39;, { name: &#39;Sign in&#39; }).click();</span><span class="ln"><i>6</i>  const field = page.getByLabel(&#39;Email&#39;);</span><span class="ln"><i>7</i>  field.fill(&#39;a@example.com&#39;);</span></pre>
+<p class="why">The test moves on before the action finishes, so it fails at random or passes without the step having happened, and real regressions hide behind the noise.</p>
+<p class="muted">3 occurrences across 1 test.</p>
 </article>
 <article class="finding sev-error">
-<h3><span class="rank">5</span>Sleep written as a timer <span class="tag medium">medium confidence</span></h3>
-<p class="where"><code>bad-gameable.spec.ts:12</code></p>
-<pre class="code" aria-label="Code excerpt"><span class="ln"><i>9</i>test.describe(&#39;gameable patterns&#39;, () =&gt; {</span><span class="ln"><i>10</i>  test(&#39;sleeps instead of waiting for a condition&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>11</i>    await page.goto(&#39;/app&#39;);</span><span class="ln hit"><i>12</i>    await new Promise((resolve) =&gt; setTimeout(resolve, 5000));</span><span class="ln"><i>13</i>    await expect(page.getByRole(&#39;heading&#39;)).toBeVisible();</span><span class="ln"><i>14</i>  });</span><span class="ln"><i>15</i> </span></pre>
-<p class="why">A timer is a fixed delay in disguise: slower runs and random red builds that cost engineering time.</p>
-<p class="muted">9 occurrences across 8 tests.</p>
+<h3><span class="rank">5</span>Missing await inside an assertion <span class="tag high">high confidence</span></h3>
+<p class="where"><code>missed-bug/bad-unawaited-value.spec.ts:6</code></p>
+<pre class="code" aria-label="Code excerpt"><span class="ln"><i>3</i>test(&#39;compares promises&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>4</i>  await page.goto(&#39;/&#39;);</span><span class="ln"><i>5</i>  const other = page.locator(&#39;h2&#39;);</span><span class="ln hit"><i>6</i>  expect(page.locator(&#39;h1&#39;).innerText()).not.toBe(other.innerText());</span><span class="ln"><i>7</i>  expect(page.title()).toBe(&#39;Home&#39;);</span><span class="ln"><i>8</i>  const first = page.locator(&#39;[data-testid=first]&#39;).innerText();</span><span class="ln"><i>9</i>  const second = page.locator(&#39;[data-testid=second]&#39;).innerText();</span></pre>
+<p class="why">The assertion compares a pending promise instead of the page value, so it passes or fails without checking the feature.</p>
+<p class="muted">3 occurrences across 1 test.</p>
 </article>
 </section>
 
@@ -129,7 +129,7 @@ section{break-inside:auto}
 </section>
 
 <section><h2>Needs a human check</h2>
-<p class="note">5 tests may not check anything, or check it somewhere the scorer cannot see. They are <strong>not counted in the score</strong>: confirm that the helper behind each one really asserts.</p><ul class="plain"><li><code>good-standard-unresolved-fixture-call.spec.ts</code> <span class="muted">1 test, line 7</span><br><span class="muted">No expect() in the test; it calls toBeVisible() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li><li><code>round2/alias/specs/alias.spec.ts</code> <span class="muted">1 test, line 2</span><br><span class="muted">No expect() in the test; it calls a11y() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li><li><code>round2/good-assertion-like-names.spec.ts</code> <span class="muted">2 tests, lines 6, 9</span><br><span class="muted">No expect() in the test; it calls checkInvoiceTotals() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li><li><code>round2/good-destructure-assertion.spec.ts</code> <span class="muted">1 test, line 5</span><br><span class="muted">No expect() in the test; it calls toBeVisible(), toHaveTitle() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li></ul>
+<p class="note">8 tests may not check anything, or check it somewhere the scorer cannot see. They are <strong>not counted in the score</strong>: confirm that the helper behind each one really asserts.</p><ul class="plain"><li><code>flake-risk/bad-shared-state.spec.ts</code> <span class="muted">1 test, line 6</span><br><span class="muted">Serial mode: the tests in this scope depend on running in order, so one failure skips the rest and retries rerun the whole group. Information only.</span></li><li><code>good-standard-unresolved-fixture-call.spec.ts</code> <span class="muted">1 test, line 7</span><br><span class="muted">No expect() in the test; it calls toBeVisible() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li><li><code>missed-bug/bad-self-fulfilling.spec.ts</code> <span class="muted">2 tests, lines 6, 16</span><br><span class="muted">Self-fulfilling fallback: when the app does not produce this state, the test performs the actions itself and then asserts the result. The assertion can no longer detect the app failing to do it. Assert first and fail, or remove the fallback.</span></li><li><code>round2/alias/specs/alias.spec.ts</code> <span class="muted">1 test, line 2</span><br><span class="muted">No expect() in the test; it calls a11y() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li><li><code>round2/good-assertion-like-names.spec.ts</code> <span class="muted">2 tests, lines 6, 9</span><br><span class="muted">No expect() in the test; it calls checkInvoiceTotals() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li><li><code>round2/good-destructure-assertion.spec.ts</code> <span class="muted">1 test, line 5</span><br><span class="muted">No expect() in the test; it calls toBeVisible(), toHaveTitle() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li></ul>
 </section>
 
 <section><h2>What to do next</h2>

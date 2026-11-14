@@ -29,6 +29,8 @@ Options:
                                   Output format (default: text). report is a
                                   self-contained one-page HTML suite report.
   --out, --output <file>          Write report to file
+  --name <suite name>             Suite name for the report headline
+                                  (default: the directory basename)
   --version                       Print version
   --help                          Show help
 
@@ -91,7 +93,7 @@ async function main(): Promise<void> {
   type Format = 'text' | 'json' | 'markdown' | 'sarif' | 'report';
   let format: Format = 'text';
   let out: string | undefined;
-  const paths: string[] = [];
+  let name: string | undefined;  const paths: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
@@ -134,6 +136,13 @@ async function main(): Promise<void> {
       format = f;
     } else if (a === '--out' || a === '--output') {
       out = args[++i];
+    } else if (a === '--name') {
+      name = args[++i];
+      if (!name) {
+        console.error('--name requires a value');
+        process.exitCode = 2;
+        return;
+      }
     } else if (a === '--version' || a === '-v') {
       continue;
     } else if (a.startsWith('-')) {
@@ -168,7 +177,7 @@ async function main(): Promise<void> {
         body = formatReport(result, {
           date: new Date().toISOString().slice(0, 10),
           version: await packageVersion(),
-          suiteName: suiteName(paths),
+          suiteName: name ?? suiteName(paths),
           readSource: makeSourceReader(paths, process.cwd(), result.baseDir),
         });
         break;

@@ -141,10 +141,10 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
   'pwscore/no-excessive-timeout': { dimension: 'playwrightHygiene', severityOverride: 'warning' },
   // QAG-287 slice 2a: tests that would miss a real bug.
   'pwscore/no-fixme-test': { dimension: 'structure' },
-  'pwscore/no-swallowed-assertion': { dimension: 'assertions' },
+  'pwscore/no-swallowed-assertion': { dimension: 'assertions', severityOverride: 'warning' },
   'pwscore/no-weak-assertion': { dimension: 'assertions' },
   'pwscore/no-unawaited-expect-value': { dimension: 'assertions' },
-  'pwscore/no-self-fulfilling-fallback': { dimension: 'assertions', severityOverride: 'warning' },
+  'pwscore/no-self-fulfilling-fallback': { dimension: 'assertions', severityOverride: 'info', reportOnly: true },
 };
 
 export function mapRule(ruleId: string): RuleMapping {

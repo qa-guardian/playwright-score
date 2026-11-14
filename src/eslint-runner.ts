@@ -166,7 +166,7 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
         'pwscore/no-excessive-timeout': ['warn', { testAliasNames }],
         // QAG-287 slice 2a: tests that would miss a real bug.
         'pwscore/no-fixme-test': ['warn', { testAliasNames }],
-        'pwscore/no-swallowed-assertion': 'error',
+        'pwscore/no-swallowed-assertion': 'warn',
         'pwscore/no-weak-assertion': 'error',
         'pwscore/no-unawaited-expect-value': 'error',
         'pwscore/no-self-fulfilling-fallback': ['warn', { testAliasNames }],
