@@ -55,6 +55,10 @@ export interface ScoreSummary {
   /** Tests with no recognized assertion (uncapped playwright/expect-expect
    * census, after delegation resolution). */
   unassertedTests: number;
+  /** Tests with no expect(...) that call something this scan cannot read
+   * (`playwright-score/assertion-unverified`, report-only). They are NOT in
+   * `unassertedTests` and not penalised, but they are not known to assert. */
+  unverifiedTests: number;
   /** Tests with no demerit in any dimension — the headline the score is
    * built from: the weighted share of tests that are clean. */
   cleanTests: number;

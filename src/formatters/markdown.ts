@@ -16,7 +16,8 @@ export function formatMarkdown(result: ScoreResult): string {
   }
   lines.push('');
   lines.push(
-    `Files: ${result.summary.files} · Tests: ${result.summary.tests} · SLOC: ${result.summary.sloc} · Findings: ${result.summary.findings}`
+    `Files: ${result.summary.files} · Tests: ${result.summary.tests} · SLOC: ${result.summary.sloc} · Findings: ${result.summary.findings}` +
+      (result.summary.unverifiedTests ? ` · Unverified assertions: ${result.summary.unverifiedTests}` : '')
   );
   if (result.findings.length) {
     lines.push('');

@@ -448,6 +448,7 @@ function hardFail(
       nativeLocators: 0,
       rawLocators: 0,
       unassertedTests: 0,
+      unverifiedTests: 0,
       cleanTests: 0,
       ...extra,
     },
@@ -588,7 +589,7 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
       assertFunctionNames: [...assertFunctionNames],
       testAliasNames,
     }),
-    { filesBase, sources, importedFiles }
+    { filesBase, sources, importedFiles, importBoundary }
   );
 
   let totalSloc = 0;

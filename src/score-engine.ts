@@ -245,6 +245,7 @@ export function computeScore(input: {
       unassertedTests: input.findings.filter(
         (f) => f.rule === 'playwright/expect-expect' && !f.reportOnly
       ).length,
+      unverifiedTests: input.findings.filter((f) => f.rule === 'playwright-score/assertion-unverified').length,
       cleanTests,
     },
     dimensions: dims,

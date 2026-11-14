@@ -21,6 +21,8 @@
  */
 import path from 'node:path';
 import { parseForESLint } from '@typescript-eslint/parser';
+import { resolveRelativeImport } from './import-graph.js';
+import { PLAYWRIGHT_API_METHODS } from './playwright-api-names.js';
 import type { Finding } from './types.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,7 +38,23 @@ const NEUTRAL_ROOTS = new Set([
   'URL', 'Buffer', 'fetch', 'undefined', 'globalThis', 'window', 'document',
 ]);
 
-const ASSERTIONISH = /^(assert|verify|check|validate|expect|ensure|should|is|has|wait|confirm)/i;
+const ASSERTIONISH_PREFIX = /^(assert|verify|check|validate|expect|ensure|should|confirm)/i;
+const ASSERTIONISH_TO = /^to[A-Z]/;
+
+/**
+ * Only a method whose NAME reads like an assertion may be a hidden one:
+ * `app.waitForLoad()` or `users.list()` on an unreadable object is just an
+ * unverified call, and the test stays an expect-expect error. A Playwright
+ * action on a locator chain (`po.locator('x').check()`) is not one either.
+ */
+function isAssertionLikeCall(name: string, callee: N): boolean {
+  if (!ASSERTIONISH_PREFIX.test(name) && !ASSERTIONISH_TO.test(name)) return false;
+  if (!PLAYWRIGHT_API_METHODS.has(name)) return true;
+  const recv = callee?.type === 'MemberExpression' ? callee.object : undefined;
+  const inner = recv?.type === 'AwaitExpression' ? recv.argument : recv;
+  const m = inner?.type === 'CallExpression' ? inner.callee : undefined;
+  return !(m?.type === 'MemberExpression' && m.property?.type === 'Identifier' && PLAYWRIGHT_API_METHODS.has(m.property.name));
+}
 
 function walk(node: N, visit: (n: N, parent: N | undefined) => void, parent?: N): void {
   if (!node || typeof node !== 'object') return;
@@ -53,8 +71,8 @@ function walk(node: N, visit: (n: N, parent: N | undefined) => void, parent?: N)
   }
 }
 
-const astCache = new Map<string, N>();
-function parse(source: string, file: string): N {
+type AstCache = Map<string, N>;
+function parse(astCache: AstCache, source: string, file: string): N {
   const hit = astCache.get(file);
   if (hit && hit.source === source) return hit.ast;
   let ast: N;
@@ -104,21 +122,41 @@ export interface TriageContext {
   sources: Map<string, string>;
   /** Locally imported dependency files (page objects, fixtures), absolute path -> source. */
   importedFiles: Map<string, string>;
+  /** Directory relative imports may not climb out of (defaults to filesBase). */
+  importBoundary?: string;
 }
 
 interface Knowledge {
   /** Every function / method / class name declared in any readable file. */
   defined: Set<string>;
-  /** Names of `test.extend({...})` fixtures whose body contains an expect(...). */
-  assertingFixtures: Set<string>;
+  /**
+   * Per file: names of `test.extend({...})` fixtures that hand a CALLABLE
+   * containing an expect(...) to `use(...)`. Expects in fixture setup or
+   * teardown do not count, and neither does a fixture named like a built-in
+   * Playwright fixture (`page`, `context`, ...).
+   */
+  assertingFixtures: Map<string, Set<string>>;
+  cache: AstCache;
 }
 
-function gather(ctx: TriageContext): Knowledge {
+/** Does the fixture function hand a function containing expect(...) to use(...)? */
+function usesAssertingCallable(fixtureFn: N): boolean {
+  const p1 = fixtureFn.params?.[1];
+  const useName = p1?.type === 'Identifier' ? p1.name : 'use';
+  let found = false;
+  walk(fixtureFn.body, (n) => {
+    if (found || n.type !== 'CallExpression' || n.callee?.type !== 'Identifier' || n.callee.name !== useName) return;
+    if ((n.arguments ?? []).some((a: N) => isFn(a) && containsExpect(a))) found = true;
+  });
+  return found;
+}
+
+function gather(ctx: TriageContext, cache: AstCache): Knowledge {
   const defined = new Set<string>();
-  const assertingFixtures = new Set<string>();
+  const assertingFixtures = new Map<string, Set<string>>();
   const all = [...ctx.sources, ...ctx.importedFiles];
   for (const [file, source] of all) {
-    const ast = parse(source, file);
+    const ast = parse(cache, source, file);
     if (!ast) continue;
     walk(ast, (n) => {
       if (n.type === 'FunctionDeclaration' && n.id?.name) defined.add(n.id.name);
@@ -140,12 +178,14 @@ function gather(ctx: TriageContext): Knowledge {
       ) {
         for (const p of n.arguments[0].properties ?? []) {
           const k = propKeyName(p);
-          if (k && isFn(p.value) && containsExpect(p.value)) assertingFixtures.add(k);
+          if (!k || NEUTRAL_ROOTS.has(k) || !isFn(p.value) || !usesAssertingCallable(p.value)) continue;
+          if (!assertingFixtures.has(file)) assertingFixtures.set(file, new Set());
+          assertingFixtures.get(file)!.add(k);
         }
       }
     });
   }
-  return { defined, assertingFixtures };
+  return { defined, assertingFixtures, cache };
 }
 
 /** Root identifier / expression of a call or member chain. */
@@ -220,9 +260,53 @@ function unresolvedCalls(testCall: N, ast: N, know: Knowledge): string[] {
     else if (c?.type === 'MemberExpression' && !c.computed && c.property?.type === 'Identifier') name = c.property.name;
     if (!name || know.defined.has(name)) return;
     const kind = rootKind(chainRoot(c));
-    if (kind === 'external' || (kind === 'lib' && ASSERTIONISH.test(name))) unresolved.push(name);
+    if ((kind === 'external' || kind === 'lib') && isAssertionLikeCall(name, c)) unresolved.push(name);
   });
   return unresolved;
+}
+
+/** The spec file plus every file reachable from it through relative imports / re-exports. */
+function reachableFiles(spec: string, ctx: TriageContext, know: Knowledge): Set<string> {
+  const boundary = ctx.importBoundary ?? ctx.filesBase;
+  const seen = new Set<string>([spec]);
+  const queue = [spec];
+  while (queue.length) {
+    const file = queue.pop()!;
+    const source = ctx.sources.get(file) ?? ctx.importedFiles.get(file);
+    const ast = source === undefined ? undefined : parse(know.cache, source, file);
+    for (const stmt of ast?.body ?? []) {
+      const spec2 = stmt.source?.value;
+      if (typeof spec2 !== 'string' || !spec2.startsWith('.')) continue;
+      const target = resolveRelativeImport(file, spec2, boundary);
+      if (target && !seen.has(target)) {
+        seen.add(target);
+        queue.push(target);
+      }
+    }
+  }
+  return seen;
+}
+
+/** Local names of destructured test args that are asserting fixtures reachable from this spec. */
+function assertingFixtureLocals(testFn: N, reachable: Set<string>, know: Knowledge): Set<string> {
+  const locals = new Set<string>();
+  for (const p of testFn?.params?.[0]?.properties ?? []) {
+    const key = propKeyName(p);
+    if (!key || NEUTRAL_ROOTS.has(key)) continue;
+    if (![...reachable].some((f) => know.assertingFixtures.get(f)?.has(key))) continue;
+    const local = p.value?.type === 'AssignmentPattern' ? p.value.left : p.value;
+    if (local?.type === 'Identifier') locals.add(local.name);
+  }
+  return locals;
+}
+
+/** Does the body call `name(...)` directly (the fixture is invoked, not merely destructured)? */
+function callsAny(body: N, names: Set<string>): boolean {
+  let found = false;
+  walk(body, (n) => {
+    if (!found && n.type === 'CallExpression' && n.callee?.type === 'Identifier' && names.has(n.callee.name)) found = true;
+  });
+  return found;
 }
 
 function findCall(ast: N, line: number, col0: number): N | undefined {
@@ -254,7 +338,8 @@ export function triageFindings(findings: Finding[], ctx: TriageContext): Finding
       f.rule === 'playwright/valid-expect'
   );
   if (!wants) return findings;
-  const know = gather(ctx);
+  const cache: AstCache = new Map(); // per call: nothing leaks between scorePaths runs
+  const know = gather(ctx, cache);
   const out: Finding[] = [];
   for (const f of findings) {
     if (
@@ -269,7 +354,7 @@ export function triageFindings(findings: Finding[], ctx: TriageContext): Finding
     }
     const abs = path.resolve(ctx.filesBase, f.file);
     const source = ctx.sources.get(abs);
-    const ast = source === undefined ? undefined : parse(source, abs);
+    const ast = source === undefined ? undefined : parse(cache, source, abs);
     if (!ast) {
       out.push(f);
       continue;
@@ -300,12 +385,8 @@ export function triageFindings(findings: Finding[], ctx: TriageContext): Finding
       continue;
     }
     const fn = [...(call.arguments ?? [])].reverse().find(isFn);
-    const params = new Set<string>();
-    for (const p of fn?.params?.[0]?.properties ?? []) {
-      const k = propKeyName(p);
-      if (k) params.add(k);
-    }
-    if ([...params].some((p) => know.assertingFixtures.has(p))) continue; // fixture asserts
+    const fixtureLocals = assertingFixtureLocals(fn, reachableFiles(abs, ctx, know), know);
+    if (fixtureLocals.size > 0 && callsAny(fn.body, fixtureLocals)) continue; // a callable fixture that asserts is invoked
     const calls = [...new Set(unresolvedCalls(call, ast, know))];
     if (calls.length === 0) {
       out.push(f);
