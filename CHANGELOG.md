@@ -10,22 +10,54 @@ parsing accuracy, not grading policy — can still move a suite's score
 without itself being a new model version; 2.1.0 below is exactly that
 case, and says so explicitly.
 
-## Unreleased
+## 2.3.0 — 2026-11-14
 
-- New `pwscore/no-unawaited-action` (error, hygiene): Playwright action or navigation on a Page/Locator as a bare statement without `await`.
-- New `pwscore/no-brittle-selector` (warning, report-only): XPath, `:nth-child`, 4+ combinator CSS chains, generated class names, positional `.first()/.nth()/.last()` on a raw `.locator()`. Report-only so the raw-locator ratio is not charged twice.
-- New `pwscore/no-shared-mutable-state` (warning, structure) and report-only `pwscore/serial-mode-dependency` (info): state written in one test and read in another; serial describe mode.
-- New `pwscore/no-excessive-timeout` (warning, hygiene): option timeouts >= 60s, `test.setTimeout` >= 5 min, unconditional `test.slow()`.
-- Fix: tests declared through a factory function (`const t = testWithConfig({...}); t('x', ...)`, in the same or an imported file) are recognised as tests, removing false `playwright/no-standalone-expect` errors.
-New detections for tests that would miss a real bug (QAG-287 slice 2a).
-**Scores can fall** for suites that use these patterns; no existing rule's
-weight or severity changed.
+Scoring weights and the scoring model (v4) are unchanged, but **scores can
+fall**: this release adds ten rules that catch tests which would miss a real
+bug or flake, and suites that use those patterns now lose points. Nothing
+gets more lenient. Two of the new rules are report-only (shown in the report,
+no effect on the score): `pwscore/no-self-fulfilling-fallback` (info, no real
+suite hit it yet, validated on fixtures only) and `pwscore/no-brittle-selector`
+(its cost is already counted by the raw-locator ratio), plus
+`pwscore/serial-mode-dependency` (info).
+
+New rules, flake risk (QAG-287 slice 2b):
+
+- `pwscore/no-unawaited-action` (error, hygiene): Playwright action or navigation on a Page/Locator as a bare statement without `await`.
+- `pwscore/no-brittle-selector` (warning, report-only): XPath, `:nth-child`, 4+ combinator CSS chains, generated class names, positional `.first()/.nth()/.last()` on a raw `.locator()`.
+- `pwscore/no-shared-mutable-state` (warning, structure) and report-only `pwscore/serial-mode-dependency` (info): state written in one test and read in another; serial describe mode.
+- `pwscore/no-excessive-timeout` (warning, hygiene): option timeouts >= 60s, `test.setTimeout` >= 5 min, unconditional `test.slow()`.
+
+New rules, tests that would miss a real bug (QAG-287 slice 2a):
 
 - `pwscore/no-fixme-test` (structure, warning): unconditional `test.fixme('t', fn)`, `test.describe.fixme(...)`, in-body `test.fixme()` and `test.fixme(true, ...)`. `test.fixme(condition, reason)` stays clean.
-- `pwscore/no-swallowed-assertion` (assertions, error): `expect(...)` inside a `try` whose `catch` neither rethrows, asserts, fails, returns a value nor records state; and `await expect(...).catch(() => {})` with the result discarded. Retry loops are not flagged.
+- `pwscore/no-swallowed-assertion` (assertions, warning): `expect(...)` inside a `try` whose `catch` neither rethrows, asserts, fails, returns a value nor records state; and `await expect(...).catch(() => {})` with the result discarded. Retry loops are not flagged. Warning, not error, because some real suites use deliberate soft checks.
 - `pwscore/no-weak-assertion` (assertions, error): `expect(count).toBeGreaterThanOrEqual(0)`, `expect(<Locator>).toBeTruthy()/toBeDefined()/not.toBeNull()`, `expect(await x.isVisible()).toBeDefined()`.
 - `pwscore/no-unawaited-expect-value` (assertions, error): a Promise-returning Playwright call such as `page.title()` or `locator.innerText()` used without `await` inside `expect()` with a non-web-first matcher. Replaces the misleading `playwright/prefer-web-first-assertions` message on the same line.
-- `pwscore/no-self-fulfilling-fallback` (assertions, warning): a negated state check (or a `catch` of a failed expect) whose fallback fills in or selects the value itself (click-only fallbacks are setup and stay clean), followed by an assertion on the same locator.
+- `pwscore/no-self-fulfilling-fallback` (assertions, info, report-only): a negated state check (or a `catch` of a failed expect) whose fallback fills in or selects the value itself (click-only fallbacks are setup and stay clean), followed by an assertion on the same locator.
+
+Fix (test-factory recognition): tests declared through a factory function (`const t = testWithConfig({...}); t('x', ...)`, in the same or an imported file) are now recognised as tests, removing false `playwright/no-standalone-expect` errors.
+
+New report format (QAG-288), output only:
+
+- New `--format report`: a one-page, self-contained HTML suite report
+  (headline, dimension bars, top findings with code excerpts, flake risk,
+  items needing a human check, next steps). Light/dark, phone width, prints
+  to one or two pages. All source and paths are HTML-escaped. `--output` is
+  accepted as an alias of `--out`. New `--name <suite name>` sets the report
+  headline (default: the directory basename).
+- Findings are ranked with a display-only confidence tier (high / medium /
+  needs-check) and every rule has a plain-English title. The text and
+  markdown formats list findings by severity, then confidence, instead of
+  file order.
+- The report states how many tests need a human check (the report-only
+  `playwright-score/assertion-unverified` findings, kept out of the score),
+  groups them by file, and reads "why it matters" in business terms. A suite
+  hard-failed by an unparseable file says so in the headline.
+- Results gain an optional in-memory `baseDir`, used only by the report to
+  read code excerpts. It is never printed and is not part of the JSON, SARIF,
+  markdown or HTML output. A rule without plain-English copy renders with a
+  generic title instead of failing.
 
 ## 2.2.0 — 2026-11-14
 

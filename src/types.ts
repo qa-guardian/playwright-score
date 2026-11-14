@@ -75,6 +75,12 @@ export interface ScoreResult {
   dimensions: ScoreDimensions;
   findings: Finding[];
   /**
+   * Absolute directory that every `Finding.file` is relative to (the scored
+   * files' common ancestor). Lets a consumer locate source for excerpts. Local
+   * to the machine that ran the scan: never put it in a shareable artifact.
+   */
+  baseDir?: string;
+  /**
    * Files matched by a directory/glob input but skipped because they show
    * positive evidence of being a non-Playwright test (an import from
    * vitest/jest/mocha/jasmine/@testing-library, or React Testing Library's

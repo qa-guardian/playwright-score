@@ -1,4 +1,5 @@
 import type { ScoreResult } from '../types.js';
+import { sortFindings } from '../confidence.js';
 
 export function formatText(result: ScoreResult): string {
   const lines: string[] = [];
@@ -27,7 +28,7 @@ export function formatText(result: ScoreResult): string {
   if (result.findings.length) {
     lines.push('');
     lines.push('Findings:');
-    for (const f of result.findings.slice(0, 50)) {
+    for (const f of sortFindings(result.findings).slice(0, 50)) {
       const loc = f.line ? `:${f.line}` : '';
       lines.push(
         `  [${f.severity}] ${f.rule} ${pathBasename(f.file)}${loc} — ${f.message}`

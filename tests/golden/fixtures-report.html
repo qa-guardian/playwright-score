@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Suite report: fixtures</title>
+<style>
+:root{--bg:#fff;--fg:#1a1d23;--muted:#5b6472;--line:#e3e6eb;--card:#f6f7f9;--accent:#2f5bea;--hit:#fff1c2;--hitfg:#1a1d23;--good:#1a7f4b;--warn:#b26a00;--bad:#c62828;--track:#e8ebf0}
+@media (prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#e8eaee;--muted:#9aa3b2;--line:#2a2e36;--card:#1c1f25;--accent:#7c9bff;--hit:#4a3d10;--hitfg:#fff;--good:#4cc38a;--warn:#f0a63a;--bad:#ff6b6b;--track:#2a2e36}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:820px;margin:0 auto;padding:28px 20px 40px}
+header{display:flex;gap:24px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:20px}
+h1{font-size:22px;margin:0 0 4px}
+h2{font-size:17px;margin:28px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+h3{font-size:15px;margin:0 0 4px}
+p{margin:4px 0}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px}
+code{overflow-wrap:anywhere}
+.muted{color:var(--muted);font-size:13px}
+.meta{color:var(--muted);font-size:13px;margin-top:8px}
+.sub{font-weight:600;margin:12px 0 4px}
+.score{display:flex;align-items:baseline;gap:2px;padding:14px 20px;border-radius:12px;background:var(--card);border:2px solid var(--muted)}
+.score .big{font-size:52px;font-weight:700;line-height:1}
+.score .of{color:var(--muted);font-size:16px}
+.score .grade{margin-left:12px;font-size:28px;font-weight:700}
+.g-A,.g-B{border-color:var(--good)}.g-A .grade,.g-B .grade{color:var(--good)}
+.g-C{border-color:var(--warn)}.g-C .grade{color:var(--warn)}
+.g-D,.g-F{border-color:var(--bad)}.g-D .grade,.g-F .grade{color:var(--bad)}
+.dim{margin:10px 0}.dimhead{display:flex;justify-content:space-between}
+.bar{height:10px;background:var(--track);border-radius:5px;overflow:hidden;margin:4px 0}
+.bar span{display:block;height:100%;background:var(--accent);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.finding{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:8px;padding:12px 14px;margin:12px 0;break-inside:avoid}
+.finding.sev-error{border-left-color:var(--bad)}
+.rank{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:50%;background:var(--fg);color:var(--bg);font-size:12px;margin-right:8px}
+.tag{font-size:11px;font-weight:600;border:1px solid var(--line);border-radius:10px;padding:1px 8px;margin-left:6px;color:var(--muted);white-space:nowrap}
+.tag.high{color:var(--good);border-color:var(--good)}.tag.medium{color:var(--warn);border-color:var(--warn)}
+.where{margin:2px 0 6px}
+pre.code{margin:6px 0;padding:8px 0;background:var(--bg);border:1px solid var(--line);border-radius:6px;overflow-x:auto}
+.ln{display:block;white-space:pre;padding:0 10px}
+.ln i{display:inline-block;width:3.2em;color:var(--muted);font-style:normal;user-select:none}
+.ln.hit{background:var(--hit);color:var(--hitfg);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.why{margin:6px 0}
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
+.num{text-align:right;width:80px}
+ul.plain{list-style:none;padding:0;margin:6px 0}ul.plain li{padding:5px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.note{background:var(--card);border-radius:6px;padding:8px 12px}
+ol{padding-left:22px}ol li{margin:6px 0}
+footer{margin-top:32px;padding-top:12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+@media (max-width:520px){main{padding:16px 12px}.score .big{font-size:44px}.tag{display:inline-block;margin:4px 0 0}}
+@media print{
+@page{margin:14mm}
+body{font-size:11.5px}main{max-width:none;padding:0}
+h2{margin:16px 0 8px;break-after:avoid}.finding{margin:8px 0;padding:8px 10px}
+pre.code{overflow:visible;white-space:pre-wrap}
+section{break-inside:auto}
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="score g-F"><span class="big">0</span><span class="of">/100</span><span class="grade">F</span></div>
+<div>
+<h1>1 file could not be parsed, so the suite was not scored.</h1>
+<p class="muted">Below the pass mark of 80.</p>
+<p class="meta"><code>fixtures</code><br>0 tests in 49 files · 2026-11-14 · scorer 0.0.0-test</p>
+</div>
+</header>
+
+<section><h2>Score by dimension</h2>
+<div class="dim"><div class="dimhead"><span>Hygiene <span class="muted">weight 40</span></span><strong>0</strong></div>
+<div class="bar" role="img" aria-label="Hygiene 0 out of 100"><span style="width:0%"></span></div>
+<p class="muted">Waits, forced clicks and un-awaited calls: the habits that make tests flake.</p></div>
+<div class="dim"><div class="dimhead"><span>Assertions <span class="muted">weight 25</span></span><strong>0</strong></div>
+<div class="bar" role="img" aria-label="Assertions 0 out of 100"><span style="width:0%"></span></div>
+<p class="muted">Whether tests check something real, with assertions that retry.</p></div>
+<div class="dim"><div class="dimhead"><span>Locators <span class="muted">weight 20</span></span><strong>0</strong></div>
+<div class="bar" role="img" aria-label="Locators 0 out of 100"><span style="width:0%"></span></div>
+<p class="muted">How many elements are found by role, label or test id instead of CSS or XPath.</p></div>
+<div class="dim"><div class="dimhead"><span>Structure <span class="muted">weight 15</span></span><strong>0</strong></div>
+<div class="bar" role="img" aria-label="Structure 0 out of 100"><span style="width:0%"></span></div>
+<p class="muted">Focused or skipped tests, nesting and file size: how maintainable the suite is.</p></div>
+</section>
+
+<section><h2>Top findings</h2>
+<article class="finding sev-error">
+<h3><span class="rank">1</span>File that could not be parsed <span class="tag high">high confidence</span></h3>
+<p class="where"><code>bad-syntax-error.spec.ts:5</code></p>
+<pre class="code" aria-label="Code excerpt"><span class="ln"><i>2</i> </span><span class="ln"><i>3</i>test(&#39;broken&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>4</i>  await page.goto(&#39;/foo&#39;</span><span class="ln hit"><i>5</i>  await expect(page).toHaveTitle(&#39;x&#39;);</span><span class="ln"><i>6</i>});</span><span class="ln"><i>7</i> </span></pre>
+<p class="why">The file cannot run, so none of its tests protect the product until the syntax error is fixed.</p>
+<p class="muted">One occurrence.</p>
+</article>
+<article class="finding sev-error">
+<h3><span class="rank">2</span>Waiting for the network to go quiet <span class="tag high">high confidence</span></h3>
+<p class="where"><code>bad-waits.spec.ts:8</code></p>
+<pre class="code" aria-label="Code excerpt"><span class="ln"><i>5</i>    await page.goto(&#39;/app&#39;);</span><span class="ln"><i>6</i>    await page.waitForTimeout(5000);</span><span class="ln"><i>7</i>    await page.locator(&#39;.btn-primary&#39;).click({ force: true });</span><span class="ln hit"><i>8</i>    await page.waitForLoadState(&#39;networkidle&#39;);</span><span class="ln"><i>9</i>    await expect(page.locator(&#39;.done&#39;)).toBeVisible();</span><span class="ln"><i>10</i>  });</span><span class="ln"><i>11</i>});</span></pre>
+<p class="why">Pages that poll or stream never go quiet, so these tests time out at random and block releases for no real defect.</p>
+<p class="muted">One occurrence.</p>
+</article>
+<article class="finding sev-error">
+<h3><span class="rank">3</span>Fixed pause before continuing <span class="tag high">high confidence</span></h3>
+<p class="where"><code>bad-waits.spec.ts:6</code></p>
+<pre class="code" aria-label="Code excerpt"><span class="ln"><i>3</i>test.describe(&#39;Flaky waits&#39;, () =&gt; {</span><span class="ln"><i>4</i>  test(&#39;uses hard waits&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>5</i>    await page.goto(&#39;/app&#39;);</span><span class="ln hit"><i>6</i>    await page.waitForTimeout(5000);</span><span class="ln"><i>7</i>    await page.locator(&#39;.btn-primary&#39;).click({ force: true });</span><span class="ln"><i>8</i>    await page.waitForLoadState(&#39;networkidle&#39;);</span><span class="ln"><i>9</i>    await expect(page.locator(&#39;.done&#39;)).toBeVisible();</span></pre>
+<p class="why">Fixed delays make runs slower and cause random red builds, so engineers re-run pipelines and learn to ignore failures.</p>
+<p class="muted">One occurrence.</p>
+</article>
+<article class="finding sev-error">
+<h3><span class="rank">4</span>Test with no assertion <span class="tag medium">medium confidence</span></h3>
+<p class="where"><code>bad-no-expects.spec.ts:4</code></p>
+<pre class="code" aria-label="Code excerpt"><span class="ln"><i>1</i>import { test } from &#39;@playwright/test&#39;;</span><span class="ln"><i>2</i> </span><span class="ln"><i>3</i>test.describe(&#39;No assertions&#39;, () =&gt; {</span><span class="ln hit"><i>4</i>  test(&#39;clicks around&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>5</i>    await page.goto(&#39;/app&#39;);</span><span class="ln"><i>6</i>    await page.getByRole(&#39;button&#39;, { name: &#39;Go&#39; }).click();</span><span class="ln"><i>7</i>  });</span></pre>
+<p class="why">A test with no check passes even when the feature is broken, so a green build can hide a real outage.</p>
+<p class="muted">19 occurrences across 19 tests.</p>
+</article>
+<article class="finding sev-error">
+<h3><span class="rank">5</span>Sleep written as a timer <span class="tag medium">medium confidence</span></h3>
+<p class="where"><code>bad-gameable.spec.ts:12</code></p>
+<pre class="code" aria-label="Code excerpt"><span class="ln"><i>9</i>test.describe(&#39;gameable patterns&#39;, () =&gt; {</span><span class="ln"><i>10</i>  test(&#39;sleeps instead of waiting for a condition&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>11</i>    await page.goto(&#39;/app&#39;);</span><span class="ln hit"><i>12</i>    await new Promise((resolve) =&gt; setTimeout(resolve, 5000));</span><span class="ln"><i>13</i>    await expect(page.getByRole(&#39;heading&#39;)).toBeVisible();</span><span class="ln"><i>14</i>  });</span><span class="ln"><i>15</i> </span></pre>
+<p class="why">A timer is a fixed delay in disguise: slower runs and random red builds that cost engineering time.</p>
+<p class="muted">9 occurrences across 8 tests.</p>
+</article>
+</section>
+
+<section><h2>Flake risk</h2>
+<table><thead><tr><th>Pattern</th><th class="num">Count</th></tr></thead><tbody><tr><td>Sleep written as a timer</td><td class="num">9</td></tr><tr><td>Click forced past a blocking element</td><td class="num">1</td></tr><tr><td>Waiting for the network to go quiet</td><td class="num">1</td></tr><tr><td>Fixed pause before continuing</td><td class="num">1</td></tr></tbody></table>
+<p class="sub">Worst files</p><ul class="plain"><li><code>bad-standard-sleep-in-test.spec.ts</code> <span class="muted">4 flake-prone calls</span></li><li><code>bad-standard-polling-sleep.spec.ts</code> <span class="muted">3 flake-prone calls</span></li><li><code>bad-waits.spec.ts</code> <span class="muted">3 flake-prone calls</span></li></ul>
+</section>
+
+<section><h2>Needs a human check</h2>
+<p class="note">5 tests may not check anything, or check it somewhere the scorer cannot see. They are <strong>not counted in the score</strong>: confirm that the helper behind each one really asserts.</p><ul class="plain"><li><code>good-standard-unresolved-fixture-call.spec.ts</code> <span class="muted">1 test, line 7</span><br><span class="muted">No expect() in the test; it calls toBeVisible() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li><li><code>round2/alias/specs/alias.spec.ts</code> <span class="muted">1 test, line 2</span><br><span class="muted">No expect() in the test; it calls a11y() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li><li><code>round2/good-assertion-like-names.spec.ts</code> <span class="muted">2 tests, lines 6, 9</span><br><span class="muted">No expect() in the test; it calls checkInvoiceTotals() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li><li><code>round2/good-destructure-assertion.spec.ts</code> <span class="muted">1 test, line 5</span><br><span class="muted">No expect() in the test; it calls toBeVisible(), toHaveTitle() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li></ul>
+</section>
+
+<section><h2>What to do next</h2>
+<ol><li>Fix the syntax error and re-run the score.</li><li>Wait for the specific element or response the test needs instead of networkidle.</li><li>Have someone confirm that the tests under &quot;Needs a human check&quot; really assert, since the score cannot tell.</li></ol>
+</section>
+
+<footer>Generated by @qaguardian/playwright-score 0.0.0-test. Deterministic: the same files always give the same score.</footer>
+</main>
+</body>
+</html>
