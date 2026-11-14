@@ -3,6 +3,10 @@
  * style — always active.
  */
 import type { Rule } from 'eslint';
+import { noUnawaitedAction } from './no-unawaited-action.js';
+import { noBrittleSelector } from './no-brittle-selector.js';
+import { noSharedMutableState, serialModeDependency } from './no-shared-mutable-state.js';
+import { noExcessiveTimeout } from './no-excessive-timeout.js';
 
 type Node = {
   type: string;
@@ -990,5 +994,10 @@ export const basePlugin = {
     'no-coordinate-click': noCoordinateClick,
     'no-trivial-assertion': noTrivialAssertion,
     'no-soft-assertion-only-test': noSoftAssertionOnlyTest,
+    'no-unawaited-action': noUnawaitedAction,
+    'no-brittle-selector': noBrittleSelector,
+    'no-shared-mutable-state': noSharedMutableState,
+    'serial-mode-dependency': serialModeDependency,
+    'no-excessive-timeout': noExcessiveTimeout,
   },
 };

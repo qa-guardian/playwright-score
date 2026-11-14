@@ -10,6 +10,14 @@ parsing accuracy, not grading policy — can still move a suite's score
 without itself being a new model version; 2.1.0 below is exactly that
 case, and says so explicitly.
 
+## Unreleased
+
+- New `pwscore/no-unawaited-action` (error, hygiene): Playwright action or navigation on a Page/Locator as a bare statement without `await`.
+- New `pwscore/no-brittle-selector` (warning, report-only): XPath, `:nth-child`, 4+ combinator CSS chains, generated class names, positional `.first()/.nth()/.last()` on a raw `.locator()`. Report-only so the raw-locator ratio is not charged twice.
+- New `pwscore/no-shared-mutable-state` (warning, structure) and report-only `pwscore/serial-mode-dependency` (info): state written in one test and read in another; serial describe mode.
+- New `pwscore/no-excessive-timeout` (warning, hygiene): option timeouts >= 60s, `test.setTimeout` >= 5 min, unconditional `test.slow()`.
+- Fix: tests declared through a factory function (`const t = testWithConfig({...}); t('x', ...)`, in the same or an imported file) are recognised as tests, removing false `playwright/no-standalone-expect` errors.
+
 ## 2.2.0 — 2026-11-14
 
 False-positive fixes found by hand-checking error-level findings on public

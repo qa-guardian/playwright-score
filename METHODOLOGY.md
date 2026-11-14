@@ -190,3 +190,30 @@ real inputs:
    diluted `findings/SLOC` and raised the score without fixing anything.
    A per-test ratio has no such lever — padding with fake tests costs
    assertions coverage instead.
+
+---
+
+## Flake-risk rules (unreleased)
+
+Five static checks for the patterns that make a test pass or fail by luck.
+Each is syntactic and conservative: when the receiver or value cannot be
+read from the source, nothing is reported.
+
+| Rule | Exact shape | Severity / dimension |
+|---|---|---|
+| `pwscore/no-unawaited-action` | An expression statement that is exactly `<receiver>.<action>(...)` inside an `async` function, where the receiver is `page`, a `.page` property, a `page.locator/getBy*/first/nth/filter` chain, or a `const` initialised from one, and the action is goto/reload/goBack/goForward/click/dblclick/fill/clear/press/type/check/uncheck/setChecked/selectOption/hover/focus/tap/dragTo/setInputFiles/setContent/waitFor*. Not matched: await, return, void, assignment, argument, `Promise.all`, `.catch()`/`.then()` chains, other receivers. Chosen over eslint-plugin-playwright's `missing-playwright-await` `includePageLocatorMethods` option because that one matches the method name on any receiver. | error / hygiene |
+| `pwscore/no-brittle-selector` | A fully static selector string passed to `.locator()`, `.frameLocator()` or a legacy selector method on a Page/Locator that is XPath (`xpath=`, `//`, `(//`), uses `:nth-child`/`:nth-of-type`, is a plain CSS chain with 4 or more combinators, or contains a generated class (`.css-1a2b3c`, `.sc-bdfBwQ`, `.jss12`, `.MuiBox-root-12`); plus `.nth()/.first()/.last()` directly on a raw `.locator('<string>')` (test-id, `role=` and `text=` strings exempt). | warning, **report-only** / locators |
+| `pwscore/no-shared-mutable-state` | A module- or describe-level `let`/`var` (or `const` object/array/Map/Set) that one `test()` body assigns or mutates and another `test()` body reads without writing it. Not matched: writes only in hooks, any `beforeEach` write, reader that also writes. | warning / structure |
+| `pwscore/serial-mode-dependency` | `test.describe.configure({ mode: 'serial' })` or `test.describe.serial(...)`. | info, **report-only** / structure |
+| `pwscore/no-excessive-timeout` | `{ timeout: N }` with N >= 60,000 on an action, wait or matcher call; `test.setTimeout(N)`/`testInfo.setTimeout(N)` with N >= 300,000; `test.slow()` with no arguments directly at file or describe level. Literals and simple arithmetic only (`2 * 60 * 1000`, `60_000`). Config files are not read. | warning / hygiene |
+
+`no-brittle-selector` is report-only on purpose: the locators dimension is a
+native/raw ratio that already counts every raw `.locator()` and legacy
+selector call, so scoring the same call again would charge it twice. The
+finding is named evidence for why that raw call is fragile.
+
+**Test factories.** A function whose `return` is `<test>.extend(...)`, a known
+test alias, or a call of another such function (same file or imported through
+relative paths) is a test factory; `const t = factory(...)` makes `t` a test
+alias, so `t('name', ...)` is a test declaration and its `expect` calls are not
+"standalone".
