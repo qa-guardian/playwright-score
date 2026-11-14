@@ -261,10 +261,23 @@ export function findLocalAssertionHelperNames(source: string, file?: string): st
   const ast = parseSource(source, file);
   if (!ast) return [];
   const candidates: Array<{ name: string; body: unknown }> = [];
+  // `test.extend({ login: async ({page}, use) => {...} })` entries are
+  // fixtures, not callable helpers: an expect in their setup says nothing
+  // about whoever uses the name, so they never register as helper names
+  // (src/finding-triage.ts resolves a fixture that hands `use()` an
+  // asserting callable). Parents are visited before children, so marking
+  // the entries when the extend call is seen is early enough.
+  const fixtureEntries = new Set<unknown>();
   walk(ast, (node) => {
     let name: string | undefined;
     let body: unknown;
-    if (node.type === 'FunctionDeclaration') {
+    if (node.type === 'CallExpression') {
+      const callee = node.callee as { type?: string; property?: { name?: string } } | undefined;
+      const arg0 = (node.arguments as Array<{ type?: string; properties?: unknown[] }> | undefined)?.[0];
+      if (callee?.type === 'MemberExpression' && callee.property?.name === 'extend' && arg0?.type === 'ObjectExpression') {
+        for (const p of arg0.properties ?? []) fixtureEntries.add(p);
+      }
+    } else if (node.type === 'FunctionDeclaration') {
       const id = node.id as { type?: string; name?: string } | undefined;
       if (id?.type === 'Identifier') {
         name = id.name;
@@ -285,7 +298,8 @@ export function findLocalAssertionHelperNames(source: string, file?: string): st
       // method (a fixture factory's returned object, a test.extend entry) or
       // a class property holding an arrow function (`check = async () => {}`).
       (node.type === 'Property' || node.type === 'PropertyDefinition') &&
-      !node.computed
+      !node.computed &&
+      !fixtureEntries.has(node)
     ) {
       const key = node.key as { type?: string; name?: string } | undefined;
       const value = node.value as { type?: string } | undefined;
