@@ -1,6 +1,7 @@
 import { parseForESLint } from '@typescript-eslint/parser';
 import type { Finding, LocatorCounts } from './types.js';
 import { countSloc } from './sloc.js';
+import { factoryNamesOf, plainAliasNames } from './test-aliases.js';
 import { PLAYWRIGHT_API_METHODS } from './playwright-api-names.js';
 
 // A positive "this IS a Playwright spec" check turned out to be unsafe:
@@ -382,6 +383,58 @@ function hasFunctionArg(node: Record<string, unknown>): boolean {
  * `test` identifier here, same as `it`. Without this, a suite that always
  * calls its extended fixture under a custom name would count zero tests.
  */
+/**
+ * `factory({...})` where `factory` is a known test factory (test-aliases.ts):
+ * used as the callee of the real test call, `factory({...})("title", fn)`.
+ * An unknown inner callee never matches, so look-alike curried calls change
+ * nothing.
+ */
+export function isCurriedFactoryCall(
+  node: Record<string, unknown> | undefined,
+  factories: ReadonlySet<string>
+): boolean {
+  if (!node || node.type !== 'CallExpression') return false;
+  const inner = (node as { callee?: { type?: string; name?: string } }).callee;
+  return inner?.type === 'Identifier' && !!inner.name && factories.has(inner.name);
+}
+
+/**
+ * Line/column ranges of the function arguments of curried test calls
+ * (`factory({...})("title", async () => {...})`, also `.only`/`.skip`/...).
+ * eslint-plugin-playwright matches tests by callee name and cannot see these
+ * as tests, so its `no-standalone-expect` reports every expect in them; the
+ * eslint runner drops findings inside these ranges. The factory's own
+ * options object is not a range: an expect there is still standalone.
+ */
+export function getCurriedTestCallbackRanges(
+  source: string,
+  file: string | undefined,
+  testAliasNames: readonly string[]
+): Array<{ start: { line: number; column: number }; end: { line: number; column: number } }> {
+  const factories = factoryNamesOf(testAliasNames);
+  const out: Array<{ start: { line: number; column: number }; end: { line: number; column: number } }> = [];
+  if (factories.size === 0) return out;
+  const ast = parseSource(source, file);
+  if (!ast) return out;
+  walk(ast, (node) => {
+    if (node.type !== 'CallExpression') return;
+    const callee = (node as { callee?: Record<string, unknown> }).callee;
+    const curried =
+      isCurriedFactoryCall(callee, factories) ||
+      (callee?.type === 'MemberExpression' &&
+        !callee.computed &&
+        isCurriedFactoryCall(callee.object as Record<string, unknown>, factories) &&
+        TEST_MODIFIERS.has((callee.property as { name?: string })?.name ?? ''));
+    if (!curried) return;
+    for (const arg of ((node as { arguments?: Array<Record<string, unknown>> }).arguments ?? [])) {
+      if (arg.type !== 'ArrowFunctionExpression' && arg.type !== 'FunctionExpression') continue;
+      const loc = (arg as { loc?: { start: { line: number; column: number }; end: { line: number; column: number } } }).loc;
+      if (loc) out.push({ start: loc.start, end: loc.end });
+    }
+  });
+  return out;
+}
+
 export function getTestSpans(
   source: string,
   file?: string,
@@ -391,7 +444,8 @@ export function getTestSpans(
   const hooks: SourceSpan[] = [];
   const ast = parseSource(source, file);
   if (!ast) return { tests, hooks };
-  const aliasSet = new Set(testAliasNames);
+  const aliasSet = new Set(plainAliasNames(testAliasNames));
+  const factories = factoryNamesOf(testAliasNames);
   const isTestName = (name: string) => name === 'test' || name === 'it' || aliasSet.has(name);
   walk(ast, (node) => {
     if (node.type !== 'CallExpression') return;
@@ -402,7 +456,16 @@ export function getTestSpans(
 
     let isTest = false;
     let isHook = false;
-    if (callee?.type === 'Identifier') {
+    if (isCurriedFactoryCall(callee, factories)) {
+      isTest = true;
+    } else if (
+      callee?.type === 'MemberExpression' &&
+      !callee.computed &&
+      isCurriedFactoryCall(callee.object as Record<string, unknown>, factories) &&
+      TEST_MODIFIERS.has((callee.property as { name?: string })?.name ?? '')
+    ) {
+      isTest = true;
+    } else if (callee?.type === 'Identifier') {
       const name = (callee as { name?: string }).name;
       if (name && isTestName(name)) isTest = true;
       else if (name && HOOK_NAMES.has(name)) isHook = true;
@@ -485,7 +548,7 @@ function escapeRegExp(value: string): string {
  */
 export function countTests(source: string, testAliasNames: readonly string[] = []): number {
   // Playwright's real modifier API is test.fixme() — not test.fix().
-  const names = ['test', ...testAliasNames].map(escapeRegExp).join('|');
+  const names = ['test', ...plainAliasNames(testAliasNames)].map(escapeRegExp).join('|');
   const re = new RegExp(`\\b(?:${names})(?:\\.(?:only|skip|fixme|slow))?\\s*\\(`, 'g');
   let count = 0;
   let m: RegExpExecArray | null;

@@ -10,6 +10,10 @@ parsing accuracy, not grading policy — can still move a suite's score
 without itself being a new model version; 2.1.0 below is exactly that
 case, and says so explicitly.
 
+## Unreleased
+
+- Tests declared through a curried test factory, `factory({...})("title", async ({ page }) => {...})` (also `.only`/`.skip`/`.fixme`), are now recognised as tests when `factory` is a function that returns `test.extend(...)` (same-file or imported). They count in `summary.tests`, are attributed and checked by the package's own rules, and no longer produce false `playwright/no-standalone-expect` errors for the expects in their bodies. A curried call whose inner callee is not a known factory changes nothing. No rule weight or severity changed.
+
 ## 2.3.0 — 2026-11-14
 
 Scoring weights and the scoring model (v4) are unchanged, but **scores can

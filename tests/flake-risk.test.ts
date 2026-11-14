@@ -113,3 +113,35 @@ describe('QAG-287 2b: tests declared through a factory function', () => {
     assert.ok(f.length >= 1, JSON.stringify(f));
   });
 });
+
+describe('QAG-287: curried test-factory calls factory({...})("title", fn)', () => {
+  async function run(rel: string) {
+    return scorePaths({ paths: [path.join(fixtures, rel)], profile: 'standard', threshold: 0, cwd: fixtures });
+  }
+  it('factory imported from a helper file: no standalone-expect, three tests counted (plain, .only, .skip)', async () => {
+    const r = await run('test-factory/good-curried.spec.ts');
+    assert.deepEqual(r.findings.filter((f) => f.rule === 'playwright/no-standalone-expect'), []);
+    assert.equal(r.summary.tests, 3);
+  });
+  it('factory defined in the same file', async () => {
+    const r = await run('test-factory/good-curried-same-file.spec.ts');
+    assert.deepEqual(r.findings.filter((f) => f.rule === 'playwright/no-standalone-expect'), []);
+    assert.equal(r.summary.tests, 1);
+  });
+  it('a curried test is eligible for our own rules (no-unawaited-action)', async () => {
+    const r = await run('test-factory/bad-curried-unawaited.spec.ts');
+    assert.equal(r.summary.tests, 1);
+    const f = r.findings.filter((x) => x.rule === 'pwscore/no-unawaited-action');
+    assert.equal(f.length, 1, JSON.stringify(f));
+    assert.equal(f[0].scope, 'test');
+  });
+  it('NEGATIVE: curried calls whose inner callee is not a known factory change nothing', async () => {
+    const r = await run('test-factory/bad-curried-unknown.spec.ts');
+    assert.equal(r.summary.tests, 0);
+    assert.equal(r.findings.filter((f) => f.rule === 'playwright/no-standalone-expect').length, 2);
+  });
+  it('an expect in the factory options object stays standalone', async () => {
+    const r = await run('test-factory/bad-curried-options-expect.spec.ts');
+    assert.equal(r.findings.filter((f) => f.rule === 'playwright/no-standalone-expect').length, 1);
+  });
+});

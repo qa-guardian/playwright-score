@@ -1,3 +1,5 @@
+import { FACTORY_MARK } from '../test-aliases.js';
+
 /**
  * Small AST helpers shared by the QAG-287 flake-risk rules (one rule per
  * file). Nodes are typed loosely on purpose: the parser may produce
@@ -149,10 +151,21 @@ export function staticString(node: AnyNode): string | undefined {
   return undefined;
 }
 
+function isCurriedFactory(node: AnyNode, testNames: ReadonlySet<string>): boolean {
+  return node?.type === 'CallExpression' && node.callee?.type === 'Identifier' && testNames.has(node.callee.name + FACTORY_MARK);
+}
+
 /** `test(...)`, `test.only(...)`, `it(...)` — a test declaration call (not describe/hook). */
 export function isTestDeclaration(call: AnyNode, testNames: ReadonlySet<string>): boolean {
   if (call?.type !== 'CallExpression') return false;
   const c = call.callee;
+  // Curried `factory({...})("title", fn)` / `.only/.skip/.fixme` (QAG-287);
+  // factories travel in the same name set as `name()` (see test-aliases.ts).
+  if (isCurriedFactory(c, testNames)) return true;
+  if (c?.type === 'MemberExpression' && isCurriedFactory(c.object, testNames)) {
+    const m = propName(c);
+    return m === 'only' || m === 'fail' || m === 'fixme' || m === 'skip';
+  }
   if (c?.type === 'Identifier') return testNames.has(c.name) || c.name === 'it';
   if (c?.type === 'MemberExpression' && c.object?.type === 'Identifier') {
     const m = propName(c);

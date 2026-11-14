@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { ESLint } from 'eslint';
 import { commonAncestorDir } from './fs-util.js';
@@ -5,6 +6,8 @@ import type { Linter } from 'eslint';
 import playwright from 'eslint-plugin-playwright';
 import { basePlugin } from './rules/base-plugin.js';
 import { mapRule } from './profiles.js';
+import { getCurriedTestCallbackRanges } from './metrics.js';
+import { plainAliasNames } from './test-aliases.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
 function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): Linter.Config[] {
@@ -26,7 +29,7 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
       // false-positive cause.
       settings: {
         playwright: {
-          globalAliases: { test: testAliasNames },
+          globalAliases: { test: plainAliasNames(testAliasNames) },
         },
       },
       // A pre-2.0.0 review found `/* eslint-disable */` on line 1 of a
@@ -256,6 +259,28 @@ export async function runEslint(options: {
       result.messages.filter((m) => m.ruleId === 'pwscore/no-unawaited-expect-value').map((m) => m.line)
     );
     const absFile = path.resolve(result.filePath);
+    // Curried test declarations `factory({...})("title", fn)` are invisible to
+    // eslint-plugin-playwright (it matches tests by callee name), so its
+    // no-standalone-expect flags every expect in them: drop those (QAG-287).
+    let curriedRanges: ReturnType<typeof getCurriedTestCallbackRanges> | undefined;
+    const insideCurriedTest = (line: number | undefined, column: number | undefined): boolean => {
+      if (line === undefined || column === undefined) return false;
+      if (curriedRanges === undefined) {
+        try {
+          const src = result.source ?? fs.readFileSync(absFile, 'utf8');
+          curriedRanges = getCurriedTestCallbackRanges(src, absFile, options.testAliasNames ?? []);
+        } catch {
+          curriedRanges = [];
+        }
+      }
+      // ESLint columns are 1-based, AST columns 0-based.
+      const col = column - 1;
+      return curriedRanges.some(
+        (r) =>
+          (line > r.start.line || (line === r.start.line && col >= r.start.column)) &&
+          (line < r.end.line || (line === r.end.line && col <= r.end.column))
+      );
+    };
     const file = path.relative(cwd, absFile) || path.basename(absFile);
     for (const msg of result.messages) {
       // A `// eslint-disable-next-line some/rule-we-dont-bundle` comment is
@@ -301,6 +326,7 @@ export async function runEslint(options: {
         continue;
       }
       if (!msg.ruleId) continue;
+      if (msg.ruleId === 'playwright/no-standalone-expect' && insideCurriedTest(msg.line, msg.column)) continue;
       if (msg.ruleId === 'playwright/prefer-web-first-assertions' && unawaitedLines.has(msg.line)) continue;
       const mapping = mapRule(msg.ruleId);
       findings.push({

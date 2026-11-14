@@ -312,6 +312,48 @@ export function detectExtendedTestAliases(
   importedFiles: Map<string, string>,
   boundaryDir: string
 ): string[] {
+  return detectTestAliasesAndFactories(sources, importedFiles, boundaryDir).aliases;
+}
+
+/**
+ * Suffix marking a test-FACTORY name inside the `testAliasNames` list that
+ * rules and metrics receive: `testWithConfig()` means a curried call
+ * `testWithConfig({...})("title", fn)` is a test declaration (QAG-287).
+ * Plain alias names never contain parentheses, so the two kinds share one
+ * list without any option-schema change. eslint-plugin-playwright (which
+ * matches callee NAMES only and cannot see a call used as a callee) never
+ * receives the marked entries: see `plainAliasNames`.
+ */
+export const FACTORY_MARK = '()';
+
+export function plainAliasNames(names: readonly string[]): string[] {
+  return names.filter((n) => !n.endsWith(FACTORY_MARK));
+}
+
+/** Names of the test factories in a mixed alias list (without the marker). */
+export function factoryNamesOf(names: readonly string[]): Set<string> {
+  return new Set(names.filter((n) => n.endsWith(FACTORY_MARK)).map((n) => n.slice(0, -FACTORY_MARK.length)));
+}
+
+/**
+ * Aliases plus test factories (functions whose call returns a test), the
+ * latter as `name()` entries so that a curried
+ * `factory({...})("title", fn)` is recognised wherever aliases are.
+ */
+export function detectTestAliasNamesWithFactories(
+  sources: Map<string, string>,
+  importedFiles: Map<string, string>,
+  boundaryDir: string
+): string[] {
+  const { aliases, factories } = detectTestAliasesAndFactories(sources, importedFiles, boundaryDir);
+  return [...aliases, ...factories.map((n) => n + FACTORY_MARK)];
+}
+
+function detectTestAliasesAndFactories(
+  sources: Map<string, string>,
+  importedFiles: Map<string, string>,
+  boundaryDir: string
+): { aliases: string[]; factories: string[] } {
   const allFiles = new Map<string, string>([...sources, ...importedFiles]);
   const parsed = new Map<string, ParsedFileInfo>();
   for (const [file, source] of allFiles) {
@@ -433,5 +475,9 @@ export function detectExtendedTestAliases(
   for (const names of localAlias.values()) {
     for (const name of names) result.add(name);
   }
-  return [...result].sort();
+  const factoryResult = new Set<string>();
+  for (const names of localFactory.values()) {
+    for (const name of names) factoryResult.add(name);
+  }
+  return { aliases: [...result].sort(), factories: [...factoryResult].sort() };
 }

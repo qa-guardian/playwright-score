@@ -13,7 +13,7 @@ import {
   getTestSpans,
   looksLikeNonPlaywrightTest,
 } from './metrics.js';
-import { detectExtendedTestAliases } from './test-aliases.js';
+import { detectTestAliasNamesWithFactories } from './test-aliases.js';
 import {
   findPlaywrightConfig,
   findRepoBoundary,
@@ -587,7 +587,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   // both eslint-plugin-playwright's rules (fed via runEslint's settings
   // below) and this package's own AST checks (getTestSpans/countTests,
   // base-plugin.ts).
-  const testAliasNames = detectExtendedTestAliases(sources, importedFiles, importBoundary);
+  const testAliasNames = detectTestAliasNamesWithFactories(sources, importedFiles, importBoundary);
 
   const eslintFindings = triageFindings(
     await runEslint({
