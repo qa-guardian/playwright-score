@@ -13,32 +13,54 @@ case, and says so explicitly.
 ## 2.2.0 — 2026-11-14
 
 False-positive fixes found by hand-checking error-level findings on public
-suites (7 of 18 were wrong). No rule's weight or severity changed, so this
+suites (7 of 18 were wrong), then tightened after review so the fixes cannot be used to hide a test with no assertion. No rule's weight or severity changed, so this
 is not a new scoring model (still v4), but **scores can rise**: findings
 that were wrong are no longer reported. Nothing gets stricter.
 
 - `playwright/expect-expect`: a test that asserts through a fixture
-  function injected via the test args (`test.extend({ check: ... })` whose
-  body runs `expect`), or through an object-literal method / class-property
+  function injected via the test args is no longer reported as having no
+  assertion, but only when the fixture is a callable that really asserts:
+  a `test.extend({ check: async ({ page }, use) => { await use(async () =>
+  { await expect(...) }) } })` entry whose function handed to `use(...)`
+  runs `expect`, the test destructures it AND calls it, and the fixtures
+  module is reachable from that spec through relative imports. An `expect`
+  in a fixture's setup or teardown does not count, nor does any fixture
+  named like a built-in one (`page`, `context`, `request`, ...). A test
+  also counts as asserting through an object-literal method / class-property
   arrow function in a file it imports (a fixture factory's returned object,
-  a page object), is no longer reported as having no assertion. When a test
-  has no `expect` of its own but calls methods on an object this scan
+  a page object), except that a helper whose name collides with a Playwright
+  method (`goto`, `click`, `fill`, `check`, `get`, `post`, ...) is never
+  treated as an assertion helper, so it cannot turn every `page.goto()` into
+  an assertion. When a test has no `expect` of its own but calls an
+  assertion-named method (`assert*`, `verify*`, `check*`, `validate*`,
+  `expect*`, `ensure*`, `should*`, `confirm*`, `toX`) on an object this scan
   cannot read (an injected fixture from another package, an unresolvable
-  import), it is no longer an error: it is reported as the report-only
-  finding `playwright-score/assertion-unverified` ("needs a human check"),
-  which does not lower the score and is not counted in
-  `summary.unassertedTests`. A test that only calls Playwright API on
-  `page`/`request`/..., or helpers whose body we can read and which do not
-  assert, is still an `expect-expect` error.
+  import, a third-party package), it is no longer an error: it is reported
+  as the report-only finding `playwright-score/assertion-unverified`
+  ("needs a human check"), which does not lower the score and is not
+  counted in `summary.unassertedTests`. Those tests are counted separately
+  in the new `summary.unverifiedTests` (the text and Markdown reports show
+  them as unverified, never as asserting): they are not known to assert. A
+  call whose name is not assertion-like (`app.waitForLoad()`,
+  `helpers.waitForNetworkIdle(page)`, `users.list()`), a test that only
+  calls Playwright API on `page`/`request`/..., and helpers whose body we
+  can read and which do not assert are still `expect-expect` errors.
 - `pwscore/no-trivial-assertion`: `expect(pageErrors).toEqual([])` where
-  `pageErrors` is a `const` array that is also used anywhere else (pushed
-  to from a listener, passed along, spread) is no longer flagged. Literals
-  and a `const` array only ever read as the expect subject are still flagged.
-- `pwscore/no-timer-sleep`: a retry/backoff pause (a loop or `catch` around
-  the sleep) inside a plain helper function (declaration, `const f = () =>`,
-  class method) is no longer flagged. Sleeps directly in a test body, in a
-  hook, in a loop inside a test callback, and bare `sleep()` helpers are
-  still flagged.
+  `pageErrors` is a `const` array that may be mutated (passed to a call as
+  an argument, the receiver of `push`/`pop`/`splice`/`sort`/..., an
+  assignment target, aliased, or captured by a closure that does one of
+  those, such as a listener) is no longer flagged. A `.length` or index
+  read, a non-mutating method such as `.map()`, and an unrelated property
+  with the same name (`obj.expected`) do not count as mutation; literals
+  and a `const` array that is only read are still flagged.
+- `pwscore/no-timer-sleep`: a retry/backoff pause inside a plain helper
+  function (declaration, `const f = () =>`, class method) is no longer
+  flagged, but only when the sleep sits in a `catch` clause or in a loop
+  whose body contains a `try`/`catch`, and the helper is not declared inside
+  a test, hook, describe or step callback. Sleeps directly in a test body or
+  hook, any loop without `try`/`catch` (including a hand-rolled
+  `while (await x.isVisible()) sleep()` polling wait), helpers declared
+  inside a test callback, and bare `sleep()` helpers are still flagged.
 - `playwright/no-conditional-in-test`: a guard whose only body is `throw`
   (`if (!id) throw new Error(...)`, no `else`) is no longer flagged.
 - `playwright/valid-expect`: a helper whose name merely ends in `Expect`

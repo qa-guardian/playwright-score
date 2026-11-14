@@ -62,6 +62,7 @@ describe('QAG-287: expect-expect resolution', () => {
     assert.equal(f.severity, 'info');
     assert.match(f.message, /Needs a human check/);
     assert.equal(r.summary.unassertedTests, 0);
+    assert.equal(r.summary.unverifiedTests, 1);
   });
 
   it('twin: only goto/click on page still errors', async () => {
@@ -127,5 +128,43 @@ describe('QAG-287: valid-expect', () => {
   it('twin: a real expect() without a matcher is still flagged', async () => {
     const r = await score('bad-standard-expect-without-matcher.spec.ts');
     assert.ok(rules(r).includes('playwright/valid-expect'), JSON.stringify(r.findings));
+  });
+});
+
+describe('QAG-287 fix round 1: holes that let a test with no assertion escape', () => {
+  it('twin: methods on unreadable objects with non-assertion names stay expect-expect errors', async () => {
+    const r = await score('bad-standard-unreadable-non-assertion-calls.spec.ts');
+    assert.equal(rules(r).filter((x) => x === 'playwright/expect-expect').length, 3, JSON.stringify(r.findings));
+    assert.ok(!rules(r).includes('playwright-score/assertion-unverified'), JSON.stringify(r.findings));
+    assert.equal(r.summary.unassertedTests, 3);
+    assert.equal(r.summary.unverifiedTests, 0);
+  });
+
+  it('twin: a page override that asserts only in setup, or a fixture never called, or a spec that never imports the fixtures, does not assert', async () => {
+    // Scored together on purpose: the unrelated spec must not inherit the
+    // fixtures of a module only its sibling imports.
+    const r = await score('fixture-scope/bad-page-override.spec.ts', 'fixture-scope/bad-unrelated-file.spec.ts');
+    assert.equal(rules(r).filter((x) => x === 'playwright/expect-expect').length, 3, JSON.stringify(r.findings));
+    assert.equal(r.summary.unassertedTests, 3);
+  });
+
+  it('twin: a helper named like a Playwright method does not make page.goto/fill count as assertions', async () => {
+    const r = await score('helper-name-collision/bad-playwright-named-helper.spec.ts');
+    assert.equal(rules(r).filter((x) => x === 'playwright/expect-expect').length, 1, JSON.stringify(r.findings));
+  });
+
+  it('twin: polling loops and helpers nested in a test callback are still flagged as sleeps', async () => {
+    const r = await score('bad-standard-polling-sleep.spec.ts');
+    assert.equal(rules(r).filter((x) => x === 'pwscore/no-timer-sleep').length, 3, JSON.stringify(r.findings));
+  });
+
+  it('twin: a .length read or a same-named property is not a mutation of the asserted array', async () => {
+    const r = await score('bad-standard-mutation-lookalike.spec.ts');
+    assert.equal(rules(r).filter((x) => x === 'pwscore/no-trivial-assertion').length, 2, JSON.stringify(r.findings));
+  });
+
+  it('an array passed to a callee or pushed to in a closure may be mutated, so its assertion is real', async () => {
+    const r = await score('good-standard-mutation-by-callee.spec.ts');
+    assert.ok(!rules(r).includes('pwscore/no-trivial-assertion'), JSON.stringify(r.findings));
   });
 });
