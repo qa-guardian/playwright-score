@@ -133,6 +133,12 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
   'pwscore/no-coordinate-click': { dimension: 'playwrightHygiene', severityOverride: 'warning' },
   'pwscore/no-trivial-assertion': { dimension: 'assertions' },
   'pwscore/no-soft-assertion-only-test': { dimension: 'assertions', severityOverride: 'warning' },
+  // QAG-287 slice 2a: tests that would miss a real bug.
+  'pwscore/no-fixme-test': { dimension: 'structure' },
+  'pwscore/no-swallowed-assertion': { dimension: 'assertions' },
+  'pwscore/no-weak-assertion': { dimension: 'assertions' },
+  'pwscore/no-unawaited-expect-value': { dimension: 'assertions' },
+  'pwscore/no-self-fulfilling-fallback': { dimension: 'assertions', severityOverride: 'warning' },
 };
 
 export function mapRule(ruleId: string): RuleMapping {

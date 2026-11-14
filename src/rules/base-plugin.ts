@@ -3,6 +3,11 @@
  * style — always active.
  */
 import type { Rule } from 'eslint';
+import { noFixmeTest } from './no-fixme-test.js';
+import { noSwallowedAssertion } from './no-swallowed-assertion.js';
+import { noWeakAssertion } from './no-weak-assertion.js';
+import { noUnawaitedExpectValue } from './no-unawaited-expect-value.js';
+import { noSelfFulfillingFallback } from './no-self-fulfilling-fallback.js';
 
 type Node = {
   type: string;
@@ -990,5 +995,10 @@ export const basePlugin = {
     'no-coordinate-click': noCoordinateClick,
     'no-trivial-assertion': noTrivialAssertion,
     'no-soft-assertion-only-test': noSoftAssertionOnlyTest,
+    'no-fixme-test': noFixmeTest,
+    'no-swallowed-assertion': noSwallowedAssertion,
+    'no-weak-assertion': noWeakAssertion,
+    'no-unawaited-expect-value': noUnawaitedExpectValue,
+    'no-self-fulfilling-fallback': noSelfFulfillingFallback,
   },
 };
