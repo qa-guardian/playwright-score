@@ -4,6 +4,9 @@ import {
   enclosingFunction,
   hookName,
   isDescribeCall,
+  isInSerialScope,
+  isSerialConfigureCall,
+  isSerialDescribeCall,
   isTestDeclaration,
   propName,
   testNamesFromOptions,
@@ -19,7 +22,9 @@ import {
  * itself. Run alone, in another order or on another worker, the reader sees
  * the initial value, so the suite is order-dependent.
  *
- * Not matched: assignment only inside `beforeEach`/`beforeAll`/`afterEach`
+ * Not matched: variables in serial mode (`test.describe.serial`, or
+ * `test.describe.configure({ mode: 'serial' })` at file level or in an
+ * enclosing describe); assignment only inside `beforeEach`/`beforeAll`/`afterEach`
  * (setup); a variable that any `beforeEach` assigns (it is reset before each
  * test); a reader that also writes the variable itself (its own setup);
  * variables declared inside a test.
@@ -118,6 +123,8 @@ export const noSharedMutableState: Rule.RuleModule = {
           if (decl.id?.type !== 'Identifier' || !isMutableInit(node.kind, decl.init)) continue;
           const [variable] = context.sourceCode.getDeclaredVariables(decl) as AnyNode[];
           if (!variable) continue;
+          // Serial mode is Playwright's documented way to share state in order.
+          if (isInSerialScope(decl, testNames)) continue;
 
           const writes = new Map<AnyNode, AnyNode>(); // test call -> write node
           const reads = new Map<AnyNode, AnyNode>(); // test call -> first read identifier
@@ -168,22 +175,8 @@ export const serialModeDependency: Rule.RuleModule = {
     const testNames = testNamesFromOptions(context.options);
     return {
       CallExpression(node: AnyNode) {
-        const callee = unwrap(node.callee);
-        if (callee?.type !== 'MemberExpression') return;
-        const name = propName(callee);
-        const obj = unwrap(callee.object);
-        if (name === 'serial' && obj?.type === 'MemberExpression' && propName(obj) === 'describe' && obj.object?.type === 'Identifier' && testNames.has(obj.object.name)) {
+        if (isSerialDescribeCall(node, testNames) || isSerialConfigureCall(node, testNames)) {
           context.report({ node: node as never, messageId: 'serial' });
-          return;
-        }
-        if (name === 'configure' && obj?.type === 'MemberExpression' && propName(obj) === 'describe' && obj.object?.type === 'Identifier' && testNames.has(obj.object.name)) {
-          const arg = unwrap(node.arguments?.[0]);
-          if (arg?.type !== 'ObjectExpression') return;
-          for (const p of arg.properties) {
-            if (p.type === 'Property' && (p.key?.name ?? p.key?.value) === 'mode' && p.value?.type === 'Literal' && p.value.value === 'serial') {
-              context.report({ node: node as never, messageId: 'serial' });
-            }
-          }
         }
       },
     };

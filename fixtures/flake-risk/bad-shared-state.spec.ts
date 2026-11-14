@@ -3,8 +3,6 @@ import { test, expect } from '@playwright/test';
 let createdId = '';
 const seen: string[] = [];
 
-test.describe.configure({ mode: 'serial' });
-
 test('creates a record', async ({ page }) => {
   await page.goto('https://example.com/new');
   createdId = await page.getByTestId('id').innerText();

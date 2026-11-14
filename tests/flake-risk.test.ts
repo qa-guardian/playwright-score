@@ -52,13 +52,24 @@ describe('QAG-287 2b: pwscore/no-brittle-selector', () => {
 });
 
 describe('QAG-287 2b: pwscore/no-shared-mutable-state', () => {
-  it('fires when one test writes and another reads; serial mode is report-only info', async () => {
+  it('fires when one test writes and another reads (no serial mode)', async () => {
     const f = await findings('flake-risk/bad-shared-state.spec.ts', 'pwscore/no-shared-mutable-state');
     assert.equal(f.length, 2, JSON.stringify(f)); // createdId and seen
-    const s = await findings('flake-risk/bad-shared-state.spec.ts', 'pwscore/serial-mode-dependency');
-    assert.equal(s.length, 1);
-    assert.equal(s[0].severity, 'info');
-    assert.equal(s[0].reportOnly, true);
+  });
+  it('serial mode is report-only info and exempts the shared state it declares', async () => {
+    for (const file of ['good-serial-describe', 'good-serial-configure-file', 'good-serial-configure-describe']) {
+      const f = await findings(`flake-risk/${file}.spec.ts`, 'pwscore/no-shared-mutable-state');
+      assert.equal(f.length, 0, `${file}: ${JSON.stringify(f)}`);
+      const s = await findings(`flake-risk/${file}.spec.ts`, 'pwscore/serial-mode-dependency');
+      assert.equal(s.length, 1, file);
+      assert.equal(s[0].severity, 'info');
+      assert.equal(s[0].reportOnly, true);
+    }
+  });
+  it('still fires in a non-serial describe next to a serial one', async () => {
+    const f = await findings('flake-risk/bad-shared-state-beside-serial.spec.ts', 'pwscore/no-shared-mutable-state');
+    assert.equal(f.length, 1, JSON.stringify(f));
+    assert.match(f[0].message, /`id`/);
   });
   it('stays clean for beforeEach setup, own-test writes and test-local state', async () => {
     const f = await findings('flake-risk/good-isolated-state.spec.ts', 'pwscore/no-shared-mutable-state');
@@ -73,6 +84,10 @@ describe('QAG-287 2b: pwscore/no-excessive-timeout', () => {
   });
   it('stays clean for sane timeouts and conditional slow', async () => {
     const f = await findings('flake-risk/good-sane-timeout.spec.ts', 'pwscore/no-excessive-timeout');
+    assert.equal(f.length, 0, JSON.stringify(f));
+  });
+  it('does not flag a round 60 second timeout, only strictly more', async () => {
+    const f = await findings('flake-risk/good-excessive-timeout-60s.spec.ts', 'pwscore/no-excessive-timeout');
     assert.equal(f.length, 0, JSON.stringify(f));
   });
 });

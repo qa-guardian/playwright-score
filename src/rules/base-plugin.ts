@@ -991,23 +991,61 @@ const noSoftAssertionOnlyTest: Rule.RuleModule = {
   },
 };
 
+const rawRules: Record<string, Rule.RuleModule> = {
+  'no-skipped-test-declaration': noSkippedTestDeclaration,
+  'no-timer-sleep': noTimerSleep,
+  'no-coordinate-click': noCoordinateClick,
+  'no-trivial-assertion': noTrivialAssertion,
+  'no-soft-assertion-only-test': noSoftAssertionOnlyTest,
+  'no-unawaited-action': noUnawaitedAction,
+  'no-brittle-selector': noBrittleSelector,
+  'no-shared-mutable-state': noSharedMutableState,
+  'serial-mode-dependency': serialModeDependency,
+  'no-excessive-timeout': noExcessiveTimeout,
+  'no-fixme-test': noFixmeTest,
+  'no-swallowed-assertion': noSwallowedAssertion,
+  'no-weak-assertion': noWeakAssertion,
+  'no-unawaited-expect-value': noUnawaitedExpectValue,
+  'no-self-fulfilling-fallback': noSelfFulfillingFallback,
+};
+
+/**
+ * Rule crashes are contained: an exception thrown while a rule builds its
+ * listeners or runs one on some unusual syntax must not abort the run for
+ * the whole suite. The rule simply reports nothing for that node. Crashes are
+ * recorded so tests can assert there are none.
+ */
+export const ruleCrashes: Array<{ rule: string; error: unknown }> = [];
+
+export function contain(name: string, rule: Rule.RuleModule): Rule.RuleModule {
+  return {
+    ...rule,
+    create(context) {
+      let listeners: Rule.RuleListener;
+      try {
+        listeners = rule.create(context);
+      } catch (error) {
+        ruleCrashes.push({ rule: name, error });
+        return {};
+      }
+      const safe: Record<string, unknown> = {};
+      for (const [key, fn] of Object.entries(listeners)) {
+        if (typeof fn !== 'function') continue;
+        safe[key] = (...args: unknown[]) => {
+          try {
+            return (fn as (...a: unknown[]) => unknown)(...args);
+          } catch (error) {
+            ruleCrashes.push({ rule: name, error });
+            return undefined;
+          }
+        };
+      }
+      return safe as Rule.RuleListener;
+    },
+  };
+}
+
 export const basePlugin = {
   meta: { name: 'pwscore-base', version: '0.1.0' },
-  rules: {
-    'no-skipped-test-declaration': noSkippedTestDeclaration,
-    'no-timer-sleep': noTimerSleep,
-    'no-coordinate-click': noCoordinateClick,
-    'no-trivial-assertion': noTrivialAssertion,
-    'no-soft-assertion-only-test': noSoftAssertionOnlyTest,
-    'no-unawaited-action': noUnawaitedAction,
-    'no-brittle-selector': noBrittleSelector,
-    'no-shared-mutable-state': noSharedMutableState,
-    'serial-mode-dependency': serialModeDependency,
-    'no-excessive-timeout': noExcessiveTimeout,
-    'no-fixme-test': noFixmeTest,
-    'no-swallowed-assertion': noSwallowedAssertion,
-    'no-weak-assertion': noWeakAssertion,
-    'no-unawaited-expect-value': noUnawaitedExpectValue,
-    'no-self-fulfilling-fallback': noSelfFulfillingFallback,
-  },
+  rules: Object.fromEntries(Object.entries(rawRules).map(([name, rule]) => [name, contain(name, rule)])),
 };

@@ -25,8 +25,8 @@ New rules, flake risk (QAG-287 slice 2b):
 
 - `pwscore/no-unawaited-action` (error, hygiene): Playwright action or navigation on a Page/Locator as a bare statement without `await`.
 - `pwscore/no-brittle-selector` (warning, report-only): XPath, `:nth-child`, 4+ combinator CSS chains, generated class names, positional `.first()/.nth()/.last()` on a raw `.locator()`.
-- `pwscore/no-shared-mutable-state` (warning, structure) and report-only `pwscore/serial-mode-dependency` (info): state written in one test and read in another; serial describe mode.
-- `pwscore/no-excessive-timeout` (warning, hygiene): option timeouts >= 60s, `test.setTimeout` >= 5 min, unconditional `test.slow()`.
+- `pwscore/no-shared-mutable-state` (warning, structure) and report-only `pwscore/serial-mode-dependency` (info): state written in one test and read in another (not flagged under serial mode); serial describe mode.
+- `pwscore/no-excessive-timeout` (warning, hygiene): option timeouts > 60s (a round 60s is not flagged), `test.setTimeout` >= 5 min, unconditional `test.slow()`.
 
 New rules, tests that would miss a real bug (QAG-287 slice 2a):
 

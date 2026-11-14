@@ -15,6 +15,21 @@ import { FN_TYPES, memberName, parseMatcherCall, walk, type N } from './ast-util
 const LOOPS = new Set(['ForStatement', 'ForInStatement', 'ForOfStatement', 'WhileStatement', 'DoWhileStatement']);
 const FAILISH = /fail|error|throw|assert|report|expect/i;
 
+const LOGGERS = /^(console|logger|log|logging|consola|pino|winston|bunyan|debug)$/i;
+
+/** `console.error(...)`, `logger.warn(...)`, `this.logger.error(...)`: logging reports, it does not fail. */
+function isLoggerCall(callee: N | undefined): boolean {
+  if (callee?.type !== 'MemberExpression') return false;
+  let o: N | undefined = callee.object;
+  while (o) {
+    if (o.type === 'Identifier') return LOGGERS.test(o.name ?? '');
+    if (o.type !== 'MemberExpression') return false;
+    if (!o.computed && o.property?.type === 'Identifier' && LOGGERS.test(o.property.name ?? '')) return true;
+    o = o.object;
+  }
+  return false;
+}
+
 /** True when `body` can carry the failure onward: throw, expect, test.fail, return value, assignment, fail-ish call. */
 function propagates(body: N | undefined): boolean {
   let ok = false;
@@ -27,6 +42,7 @@ function propagates(body: N | undefined): boolean {
       else if (n.type === 'AssignmentExpression' || n.type === 'UpdateExpression') ok = true;
       else if (n.type === 'CallExpression') {
         const c = n.callee;
+        if (isLoggerCall(c)) return undefined; // a log line is not a failure
         const name = c?.type === 'Identifier' ? c.name : memberName(c);
         if (c?.type === 'MemberExpression' && c.object?.type === 'Identifier' && c.object.name === 'expect') ok = true;
         else if (name && FAILISH.test(name)) ok = true;

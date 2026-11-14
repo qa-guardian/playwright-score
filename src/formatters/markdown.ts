@@ -1,6 +1,11 @@
 import type { ScoreResult } from '../types.js';
 import { sortFindings } from '../confidence.js';
 
+/** Make a value safe inside a Markdown table cell: no pipe or newline can end the cell or row. */
+export function escapeCell(v: unknown): string {
+  return String(v).replace(/\|/g, '\\|').replace(/\r?\n|\r/g, ' ');
+}
+
 export function formatMarkdown(result: ScoreResult): string {
   const lines: string[] = [];
   lines.push(`# Playwright Spec Score (\`${result.scoreVersion}\`)`);
@@ -13,7 +18,7 @@ export function formatMarkdown(result: ScoreResult): string {
   lines.push('|---|---|');
   for (const [k, v] of Object.entries(result.dimensions)) {
     if (v === undefined) continue;
-    lines.push(`| ${k} | ${v} |`);
+    lines.push(`| ${escapeCell(k)} | ${escapeCell(v)} |`);
   }
   lines.push('');
   lines.push(
@@ -26,7 +31,7 @@ export function formatMarkdown(result: ScoreResult): string {
     lines.push('');
     for (const f of sortFindings(result.findings).slice(0, 40)) {
       const loc = f.line ? `:${f.line}` : '';
-      lines.push(`- **${f.severity}** \`${f.rule}\` \`${f.file}${loc}\` — ${f.message}`);
+      lines.push(`- **${f.severity}** \`${f.rule}\` \`${escapeCell(f.file)}${loc}\` — ${escapeCell(f.message)}`);
     }
   }
 

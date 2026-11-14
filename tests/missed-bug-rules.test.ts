@@ -50,6 +50,17 @@ for (const [rule, stem, count] of CASES) {
   });
 }
 
+describe('QAG-287 fix round 1: no-swallowed-assertion log-only catch', () => {
+  it('reports a catch that only logs (console.*, logger.*)', async () => {
+    const { own, all } = await hits('bad-swallowed-logonly.spec.ts', 'pwscore/no-swallowed-assertion');
+    assert.equal(own.length, 2, JSON.stringify(all));
+  });
+  it('does not report a catch that throws, expects, test.fail or assert.fail', async () => {
+    const { own, all } = await hits('good-swallowed-propagates.spec.ts', 'pwscore/no-swallowed-assertion');
+    assert.equal(own.length, 0, JSON.stringify(all));
+  });
+});
+
 describe('QAG-287 2a: severities and de-duplication', () => {
   it('weak/unawaited are errors; swallowed is a warning; fallback is info and report-only', async () => {
     const w = await hits('bad-weak.spec.ts', 'pwscore/no-weak-assertion');

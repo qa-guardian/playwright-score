@@ -192,6 +192,55 @@ export function isDescribeCall(call: AnyNode, testNames: ReadonlySet<string>): b
   return false;
 }
 
+/** `test.describe.serial(...)` call. */
+export function isSerialDescribeCall(call: AnyNode, testNames: ReadonlySet<string>): boolean {
+  if (call?.type !== 'CallExpression') return false;
+  const c = unwrap(call.callee);
+  if (c?.type !== 'MemberExpression' || propName(c) !== 'serial') return false;
+  const o = unwrap(c.object);
+  return o?.type === 'MemberExpression' && propName(o) === 'describe' && o.object?.type === 'Identifier' && testNames.has(o.object.name);
+}
+
+/** `test.describe.configure({ mode: 'serial' })` call. */
+export function isSerialConfigureCall(call: AnyNode, testNames: ReadonlySet<string>): boolean {
+  if (call?.type !== 'CallExpression') return false;
+  const c = unwrap(call.callee);
+  if (c?.type !== 'MemberExpression' || propName(c) !== 'configure') return false;
+  const o = unwrap(c.object);
+  if (!(o?.type === 'MemberExpression' && propName(o) === 'describe' && o.object?.type === 'Identifier' && testNames.has(o.object.name))) return false;
+  const arg = unwrap(call.arguments?.[0]);
+  if (arg?.type !== 'ObjectExpression') return false;
+  return arg.properties.some(
+    (p: AnyNode) => p.type === 'Property' && (p.key?.name ?? p.key?.value) === 'mode' && p.value?.type === 'Literal' && p.value.value === 'serial'
+  );
+}
+
+/** Does this statement list directly contain `test.describe.configure({ mode: 'serial' })`? */
+function bodyHasSerialConfigure(body: AnyNode[] | undefined, testNames: ReadonlySet<string>): boolean {
+  return (body ?? []).some((st) => {
+    if (st?.type !== 'ExpressionStatement') return false;
+    const e = unwrap(st.expression);
+    return isSerialConfigureCall(e?.type === 'AwaitExpression' ? unwrap(e.argument) : e, testNames);
+  });
+}
+
+/**
+ * Is `node` in a scope declared serial: the file has a top-level
+ * `test.describe.configure({ mode: 'serial' })`, or any enclosing describe is
+ * `test.describe.serial(...)` or configures serial mode in its own body.
+ */
+export function isInSerialScope(node: AnyNode, testNames: ReadonlySet<string>): boolean {
+  for (let p = node?.parent; p; p = p.parent) {
+    if (p.type === 'Program') return bodyHasSerialConfigure(p.body, testNames);
+    if ((p.type === 'ArrowFunctionExpression' || p.type === 'FunctionExpression') && p.parent?.type === 'CallExpression' && p.parent.arguments.includes(p)) {
+      const call = p.parent;
+      if (isSerialDescribeCall(call, testNames)) return true;
+      if (isDescribeCall(call, testNames) && p.body?.type === 'BlockStatement' && bodyHasSerialConfigure(p.body.body, testNames)) return true;
+    }
+  }
+  return false;
+}
+
 export function testNamesFromOptions(options: unknown[]): Set<string> {
   const names = (options[0] as { testAliasNames?: string[] } | undefined)?.testAliasNames ?? [];
   return new Set<string>(['test', ...names]);

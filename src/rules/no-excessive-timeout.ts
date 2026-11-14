@@ -17,7 +17,7 @@ import {
  * failure takes minutes to show and a slow app is silently tolerated.
  * Matches (literals and simple arithmetic such as `2 * 60 * 1000`, numeric
  * separators included):
- *  - `{ timeout: N }` with N >= 60_000 passed to an action, wait or
+ *  - `{ timeout: N }` with N > 60_000 passed to an action, wait or
  *    matcher call: `x.click/fill/goto/waitFor*(...)`, `expect(..).toXxx(..)`,
  *    `expect.poll(..)`
  *  - `test.setTimeout(N)` / `testInfo.setTimeout(N)` with N >= 300_000
@@ -87,7 +87,7 @@ export const noExcessiveTimeout: Rule.RuleModule = {
             const key = prop.key?.name ?? prop.key?.value;
             if (key !== 'timeout') continue;
             const ms = evalNumber(prop.value);
-            if (ms !== undefined && ms >= 60_000) {
+            if (ms !== undefined && ms > 60_000) {
               context.report({ node: prop as never, messageId: 'long', data: { seconds: String(ms / 1000) } });
             }
           }
