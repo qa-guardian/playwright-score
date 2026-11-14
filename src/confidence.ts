@@ -39,6 +39,13 @@ export const CONFIDENCE_BY_RULE: Record<string, Confidence> = {
   'playwright/no-conditional-expect': 'medium',
 };
 
+/** Display names (the Confidence values themselves never change). */
+export const CONFIDENCE_LABEL: Record<Confidence, string> = {
+  high: 'Definite',
+  medium: 'Likely',
+  'needs-check': 'Needs a human check',
+};
+
 /** Rules not listed above (and not needs-check) are medium. */
 export const DEFAULT_CONFIDENCE: Confidence = 'medium';
 

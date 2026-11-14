@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { scorePaths } from '../src/index.js';
 import { ESLINT_RULE_MAP } from '../src/profiles.js';
 import { RULE_COPY } from '../src/rule-copy.js';
-import { confidenceOf, sortFindings } from '../src/confidence.js';
+import { confidenceOf, CONFIDENCE_LABEL } from '../src/confidence.js';
+import { suiteLabel } from '../src/suite-name.js';
+import { gradeBandText } from '../src/report-model.js';
 import { formatReport, rankTopFindings, escapeHtml } from '../src/formatters/report.js';
 import { makeSourceReader } from '../src/report-source.js';
 import os from 'node:os';
@@ -113,20 +115,39 @@ describe('confidence and ranking', () => {
     assert.ok(!top.some((g) => g.rule === 'playwright/expect-expect'));
   });
 
-  it('sorts the flat text output by severity then confidence', () => {
+  it('groups the terminal output by rule, worst first, with a per-rule cap and relative paths', () => {
+    const many = Array.from({ length: 12 }, (_, i) =>
+      finding({ rule: 'playwright/no-force-option', file: `dir/sub/f${i}.spec.ts`, line: i + 1, testKey: `t${i}`, scope: 'test' })
+    );
     const r = fakeResult([
+      ...many,
+      finding({ rule: 'playwright/no-networkidle', file: '/abs/leak/z.spec.ts', line: 9 }),
       finding({ rule: 'playwright/no-force-option', severity: 'warning', file: 'a.spec.ts' }),
-      finding({ rule: 'playwright/no-force-option', severity: 'error', file: 'z.spec.ts' }),
-      finding({ rule: 'playwright/no-networkidle', severity: 'error', file: 'z.spec.ts', line: 9 }),
     ]);
-    const sorted = sortFindings(r.findings).map((f) => `${f.severity}:${f.rule}`);
-    assert.deepEqual(sorted, [
-      'error:playwright/no-networkidle',
-      'error:playwright/no-force-option',
-      'warning:playwright/no-force-option',
-    ]);
-    const text = formatText(r);
-    assert.ok(text.indexOf('no-networkidle') < text.indexOf('[warning]'));
+    const text = formatText(r, { suiteName: 'my/suite', version: '9.9.9' });
+    const lines = text.split('\n');
+    assert.match(lines[0]!, /^my\/suite {2}· {2}10 tests in 2 files$/);
+    assert.match(lines[1]!, /^Score 61\/100 \(D\) {2}· {2}FAIL \(bar 80\) {2}· {2}4 tests have no issues$/);
+    assert.match(lines[2]!, /^Reliability 50 · Checks 70 · Resilience to UI changes 60 · Maintainability 90$/);
+    // networkidle is high confidence, so it leads; the force rule has 13 findings in one group
+    const idle = text.indexOf('Waiting for the network to go quiet');
+    const force = text.indexOf('Click forced past a blocking element');
+    assert.ok(idle > 0 && idle < force, 'worst group first');
+    assert.match(text, /13 in 13 tests {3}Likely|13 in \d+ tests {3}Likely/);
+    assert.equal((text.match(/dir\/sub\/f\d+\.spec\.ts/g) ?? []).length, 3, 'three locations per rule');
+    assert.ok(text.includes('+ 10 more'));
+    assert.ok(!text.includes('/abs/leak'), 'an absolute path must never reach the terminal');
+    assert.ok(text.includes('leak/z.spec.ts:9'));
+    assert.ok(!/playwrightHygiene|\[error\]/.test(text));
+    assert.ok(text.trimEnd().split('\n').slice(-2)[0]!.startsWith('Score 61/100 (D)'), 'verdict repeats at the bottom');
+    assert.ok(text.includes('playwright-score 9.9.9 (rules v4)'));
+  });
+
+  it('caps terminal groups at 10 and says how to see the rest', () => {
+    const rules = Object.keys(RULE_COPY).filter((x) => x !== 'playwright-score/assertion-unverified').slice(0, 14);
+    const text = formatText(fakeResult(rules.map((rule) => finding({ rule }))));
+    assert.ok(text.includes('+ 4 more issue types. Full list: playwright-score <path> --format report --out report.html'));
+    assert.equal(text.split('\n').filter((l) => /^ {1,2}\d+\. /.test(l)).length, 10);
   });
 });
 
@@ -147,6 +168,7 @@ describe('report escaping', () => {
     assert.ok(!html.includes('<img'), 'raw <img> leaked into the report');
     assert.ok(html.includes(escapeHtml(evil)));
     assert.ok(html.includes('class="ln hit"'));
+    assert.ok(!html.includes('<script') && html.includes('&quot;&gt;&lt;script&gt;x&lt;/script&gt;'), 'suite name is escaped');
   });
 });
 
@@ -184,9 +206,9 @@ describe('report robustness (QAG-288 slice 1b)', () => {
   it('shows the unverified count in the headline area', () => {
     const r = fakeResult([]);
     r.summary.unverifiedTests = 3;
-    assert.ok(formatReport(r, opts).includes('3 tests need a human check, not counted in the score.'));
+    assert.ok(formatReport(r, opts).includes('3 tests need a human check and are left out of the score.'));
     r.summary.unverifiedTests = 0;
-    assert.ok(!formatReport(r, opts).includes('human check, not counted'));
+    assert.ok(!formatReport(r, opts).includes('left out of the score.'));
   });
 
   it('tiers assertion-unverified as needs-check', () => {
@@ -240,7 +262,7 @@ describe('baseDir and --name (QAG-288)', () => {
     assert.ok(!('baseDir' in JSON.parse(outputs.json)));
   });
 
-  it('--name sets the report headline; default stays the directory basename', async () => {
+  it('--name sets the report headline; a file keeps its basename', async () => {
     const { execFile } = await import('node:child_process');
     const run = (extra: string[]) =>
       new Promise<string>((resolve, reject) =>
@@ -251,7 +273,101 @@ describe('baseDir and --name (QAG-288)', () => {
           (err, stdout) => (stdout ? resolve(stdout) : reject(err))
         )
       );
-    assert.match(await run(['--name', 'My Suite']), /<code>My Suite<\/code>/);
-    assert.match(await run([]), /<code>gold\.spec\.ts<\/code>/);
+    assert.match(await run(['--name', 'My Suite']), /<p class="suite">My Suite<\/p>/);
+    assert.match(await run([]), /<p class="suite">gold\.spec\.ts<\/p>/);
+  });
+});
+
+describe('report polish (QAG-288 slice 3b)', () => {
+  const opts = { date: '2026-11-14', version: '2.3.0', suiteName: 'acme/e2e-tests/playwright' };
+  const five = ['playwright/no-networkidle', 'playwright/no-wait-for-timeout', 'playwright/no-page-pause', 'playwright/no-focused-test', 'playwright/missing-playwright-await'];
+  const html = formatReport(
+    fakeResult(five.map((rule, i) => finding({ rule, file: `e2e/f${i}.spec.ts`, line: 3 }))),
+    { ...opts, readSource: () => 'a\nb\nawait page.waitForTimeout(1);\nc' }
+  );
+  const summary = html.slice(html.indexOf('<section class="summary">'), html.indexOf('<section class="details">'));
+  const details = html.slice(html.indexOf('<section class="details">'));
+
+  it('splits into a Summary and a Details part; the summary has three findings and no code', () => {
+    assert.ok(summary && details.includes('<h2>Details</h2>'));
+    assert.equal((summary.match(/<li class="top">/g) ?? []).length, 3);
+    assert.ok(!summary.includes('<pre'), 'no code excerpt in the summary');
+    assert.ok(details.includes('<pre class="code"'), 'excerpts live in Details');
+    assert.equal((details.match(/<article class="finding/g) ?? []).length, 5);
+    assert.ok(summary.includes('<h2>Score by area</h2>') && summary.includes('<h2>What to do next</h2>'));
+    assert.match(html, /\.details\{break-before:page\}/);
+    assert.ok(!html.includes('Flake risk'), 'the duplicate flake table is gone');
+    assert.ok(summary.includes('Definite: the code does this for certain.'));
+  });
+
+  it('explains the score and uses plain labels', () => {
+    assert.match(html, /<p class="explain">A weighted average of four areas below\. D means 60-69; C starts at 70\. Below the default bar of 80\.<\/p>/);
+    assert.ok(html.includes('tests have no issues.'));
+    assert.ok(!html.includes('are clean'));
+    assert.ok(html.includes('<span class="sr-only">Score 61 out of 100, grade D. </span>'));
+    assert.ok(html.includes('Resilience to UI changes') && html.includes('40% of score'));
+    assert.equal(gradeBandText('B', true), 'B means 80-89; A is 90 and up.');
+    assert.equal(gradeBandText('A', true), 'A means 90-100.');
+    assert.equal(gradeBandText('F', false), 'F means below 60; D starts at 60.');
+    assert.match(formatReport(fakeResult([]), { ...opts, customThreshold: true }), /Below your bar of 80\./);
+  });
+
+  it('labels confidence Definite / Likely / Needs a human check with neutral tags', () => {
+    assert.deepEqual(CONFIDENCE_LABEL, { high: 'Definite', medium: 'Likely', 'needs-check': 'Needs a human check' });
+    assert.ok(summary.includes('<span class="tag">Definite</span>'));
+    assert.ok(!/high confidence|medium confidence/.test(html));
+    assert.ok(!/\.tag\.(high|medium)/.test(html), 'no green/amber tag colours');
+    const likely = formatReport(fakeResult([finding({ rule: 'playwright/no-force-option' })]), opts);
+    assert.ok(likely.includes('<span class="tag">Likely</span>'));
+  });
+
+  it('shows the most affected file on each top finding', () => {
+    const r = fakeResult([
+      finding({ file: 'dir/a.spec.ts', line: 4 }),
+      finding({ file: 'dir/b.spec.ts', line: 7 }),
+      finding({ file: 'dir/b.spec.ts', line: 9 }),
+    ]);
+    assert.match(formatReport(r, opts), /3 places in 2 tests\. Most in <code>b\.spec\.ts<\/code> \(line 7\)\./);
+  });
+
+  it('shows "Not scored" for a syntax error and hides the zero bars and test count', () => {
+    const r = fakeResult([
+      finding({ rule: 'playwright-score/parse-error', file: 'bad.spec.ts', line: 5, severity: 'error' }),
+      finding({ rule: 'playwright/expect-expect', dimension: 'assertions' }),
+    ]);
+    r.score = 0; r.grade = 'F'; r.summary.tests = 0; r.summary.files = 49;
+    r.dimensions = { playwrightHygiene: 0, assertions: 0, locators: 0, structure: 0 };
+    const h = formatReport(r, opts);
+    assert.ok(h.includes('1 file has a syntax error, so this suite could not be scored.'));
+    assert.ok(h.includes('Not scored') && h.includes('<span class="big">--</span>'));
+    assert.ok(!h.includes('Score by area') && !h.includes('class="bar"'));
+    assert.ok(!/0\/100|>F</.test(h) && !h.includes('0 tests') && h.includes('49 files'));
+    assert.ok(!h.includes('weighted average'));
+    const t = formatText(r, { suiteName: 's' });
+    assert.ok(t.includes('Not scored: 1 file has a syntax error.') && !t.includes('0/100') && !t.includes('0 tests'));
+  });
+
+  it('shows "Not scored" and nothing else for a suite with no tests', () => {
+    const r = fakeResult([]);
+    r.summary.tests = 0; r.summary.cleanTests = 0;
+    const h = formatReport(r, opts);
+    assert.ok(h.includes('No Playwright tests were found.') && h.includes('Not scored'));
+    assert.ok(!/<h2>/.test(h), 'no sections');
+    assert.ok(h.includes('<footer>'));
+  });
+
+  it('uses "can", not "will", and never "proves" in rule copy', () => {
+    for (const [rule, c] of Object.entries(RULE_COPY)) {
+      assert.ok(!/\bwill\b|\bproves?\b/i.test(c.why + c.fix), `overclaim in ${rule}`);
+    }
+    assert.ok(RULE_COPY['playwright/no-networkidle']!.why.includes('can time out at random'));
+  });
+
+  it('falls back to the last path segments for a generic suite folder, never the home dir or absolute path', () => {
+    assert.equal(suiteLabel('/w/mattermost/e2e-tests/playwright', true, '/nohome'), 'mattermost/e2e-tests/playwright');
+    assert.equal(suiteLabel('/w/acme/web-app', true, '/nohome'), 'acme/web-app');
+    assert.equal(suiteLabel('/w/acme/web-app/a.spec.ts', false), 'a.spec.ts');
+    assert.equal(suiteLabel('/home/u/playwright', true, '/home/u'), 'playwright');
+    assert.equal(suiteLabel('/home/u/proj/playwright', true, '/home/u'), 'proj/playwright');
   });
 });

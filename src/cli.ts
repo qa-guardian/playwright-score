@@ -11,6 +11,7 @@ import { formatMarkdown } from './formatters/markdown.js';
 import { formatSarif } from './formatters/sarif.js';
 import { formatReport } from './formatters/report.js';
 import { makeSourceReader } from './report-source.js';
+import { suiteLabel } from './suite-name.js';
 import type { ProfileName } from './types.js';
 
 function printHelp(): void {
@@ -62,9 +63,17 @@ async function packageVersion(): Promise<string> {
   }
 }
 
-// Basename only: an absolute local path has no place in a report that gets shared.
+// Never an absolute local path: see suite-name.ts.
 function suiteName(paths: string[]): string {
-  const names = paths.slice(0, 2).map((p) => path.basename(path.resolve(p)) || p);
+  const names = paths.slice(0, 2).map((p) => {
+    let isDir = false;
+    try {
+      isDir = fs.statSync(p).isDirectory();
+    } catch {
+      /* missing path: scorePaths reports it */
+    }
+    return suiteLabel(p, isDir);
+  });
   return names.join(', ') + (paths.length > 2 ? ` and ${paths.length - 2} more` : '');
 }
 
@@ -93,7 +102,8 @@ async function main(): Promise<void> {
   type Format = 'text' | 'json' | 'markdown' | 'sarif' | 'report';
   let format: Format = 'text';
   let out: string | undefined;
-  let name: string | undefined;  const paths: string[] = [];
+  let name: string | undefined;
+  const paths: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
@@ -178,11 +188,16 @@ async function main(): Promise<void> {
           date: new Date().toISOString().slice(0, 10),
           version: await packageVersion(),
           suiteName: name ?? suiteName(paths),
+          customThreshold: threshold !== undefined,
           readSource: makeSourceReader(paths, process.cwd(), result.baseDir),
         });
         break;
       default:
-        body = formatText(result);
+        body = formatText(result, {
+          suiteName: name ?? suiteName(paths),
+          version: await packageVersion(),
+          customThreshold: threshold !== undefined,
+        });
     }
 
     if (out) {
