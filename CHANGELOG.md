@@ -10,6 +10,20 @@ parsing accuracy, not grading policy — can still move a suite's score
 without itself being a new model version; 2.1.0 below is exactly that
 case, and says so explicitly.
 
+## Unreleased
+
+Scoring is unchanged. Output only (QAG-288).
+
+- New `--format report`: a one-page, self-contained HTML suite report
+  (headline, dimension bars, top findings with code excerpts, flake risk,
+  items needing a human check, next steps). Light/dark, phone width, prints
+  to one or two pages. All source and paths are HTML-escaped. `--output` is
+  accepted as an alias of `--out`.
+- Findings are ranked with a display-only confidence tier (high / medium /
+  needs-check) and every rule has a plain-English title. The text and
+  markdown formats list findings by severity, then confidence, instead of
+  file order.
+
 ## 2.2.0 — 2026-11-14
 
 False-positive fixes found by hand-checking error-level findings on public

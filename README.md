@@ -99,7 +99,7 @@ npx playwright-score ./flow.spec.ts --format json --out report.json
 |---|---|
 | `--profile standard` | Scoring profile (default, and only, profile) |
 | `--threshold <n>` | Pass bar 0–100 |
-| `--format text\|json\|markdown\|sarif` | Output format |
+| `--format text\|json\|markdown\|sarif\|report` | Output format (`report` is a self-contained one-page HTML suite report) |
 | `--out <file>` | Write report to file |
 | `--version` | Print version |
 

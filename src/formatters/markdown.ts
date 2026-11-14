@@ -1,4 +1,5 @@
 import type { ScoreResult } from '../types.js';
+import { sortFindings } from '../confidence.js';
 
 export function formatMarkdown(result: ScoreResult): string {
   const lines: string[] = [];
@@ -23,7 +24,7 @@ export function formatMarkdown(result: ScoreResult): string {
     lines.push('');
     lines.push('## Findings');
     lines.push('');
-    for (const f of result.findings.slice(0, 40)) {
+    for (const f of sortFindings(result.findings).slice(0, 40)) {
       const loc = f.line ? `:${f.line}` : '';
       lines.push(`- **${f.severity}** \`${f.rule}\` \`${f.file}${loc}\` — ${f.message}`);
     }

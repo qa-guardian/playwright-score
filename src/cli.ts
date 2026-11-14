@@ -9,6 +9,8 @@ import { formatJson } from './formatters/json.js';
 import { formatText } from './formatters/text.js';
 import { formatMarkdown } from './formatters/markdown.js';
 import { formatSarif } from './formatters/sarif.js';
+import { formatReport } from './formatters/report.js';
+import { makeSourceReader } from './report-source.js';
 import type { ProfileName } from './types.js';
 
 function printHelp(): void {
@@ -23,8 +25,10 @@ Options:
   --profile <standard>             Scoring profile (default, and only
                                    supported value, as of 2.0.0: standard).
   --threshold <n>                 Pass threshold 0-100 (default: 80)
-  --format <text|json|markdown|sarif>  Output format (default: text)
-  --out <file>                    Write report to file
+  --format <text|json|markdown|sarif|report>
+                                  Output format (default: text). report is a
+                                  self-contained one-page HTML suite report.
+  --out, --output <file>          Write report to file
   --version                       Print version
   --help                          Show help
 
@@ -46,6 +50,22 @@ Methodology: METHODOLOGY.md (scoring model v4)
 // size (64KB on macOS/Linux). Setting process.exitCode and returning lets
 // Node exit naturally once pending I/O actually completes, which is the
 // standard fix for this class of bug.
+async function packageVersion(): Promise<string> {
+  try {
+    const { createRequire } = await import('node:module');
+    const require = createRequire(import.meta.url);
+    return (require('../package.json') as { version?: string }).version ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+// Basename only: an absolute local path has no place in a report that gets shared.
+function suiteName(paths: string[]): string {
+  const names = paths.slice(0, 2).map((p) => path.basename(path.resolve(p)) || p);
+  return names.join(', ') + (paths.length > 2 ? ` and ${paths.length - 2} more` : '');
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.includes('--version') || args.includes('-v')) {
@@ -68,7 +88,7 @@ async function main(): Promise<void> {
 
   let profile: ProfileName = 'standard';
   let threshold: number | undefined;
-  type Format = 'text' | 'json' | 'markdown' | 'sarif';
+  type Format = 'text' | 'json' | 'markdown' | 'sarif' | 'report';
   let format: Format = 'text';
   let out: string | undefined;
   const paths: string[] = [];
@@ -106,13 +126,13 @@ async function main(): Promise<void> {
       }
     } else if (a === '--format') {
       const f = args[++i];
-      if (f !== 'text' && f !== 'json' && f !== 'markdown' && f !== 'sarif') {
+      if (f !== 'text' && f !== 'json' && f !== 'markdown' && f !== 'sarif' && f !== 'report') {
         console.error(`Invalid format: ${f}`);
         process.exitCode = 2;
         return;
       }
       format = f;
-    } else if (a === '--out') {
+    } else if (a === '--out' || a === '--output') {
       out = args[++i];
     } else if (a === '--version' || a === '-v') {
       continue;
@@ -143,6 +163,14 @@ async function main(): Promise<void> {
         break;
       case 'sarif':
         body = formatSarif(result);
+        break;
+      case 'report':
+        body = formatReport(result, {
+          date: new Date().toISOString().slice(0, 10),
+          version: await packageVersion(),
+          suiteName: suiteName(paths),
+          readSource: makeSourceReader(paths, process.cwd()),
+        });
         break;
       default:
         body = formatText(result);
