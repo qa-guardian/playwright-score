@@ -17,6 +17,15 @@ case, and says so explicitly.
 - New `pwscore/no-shared-mutable-state` (warning, structure) and report-only `pwscore/serial-mode-dependency` (info): state written in one test and read in another; serial describe mode.
 - New `pwscore/no-excessive-timeout` (warning, hygiene): option timeouts >= 60s, `test.setTimeout` >= 5 min, unconditional `test.slow()`.
 - Fix: tests declared through a factory function (`const t = testWithConfig({...}); t('x', ...)`, in the same or an imported file) are recognised as tests, removing false `playwright/no-standalone-expect` errors.
+New detections for tests that would miss a real bug (QAG-287 slice 2a).
+**Scores can fall** for suites that use these patterns; no existing rule's
+weight or severity changed.
+
+- `pwscore/no-fixme-test` (structure, warning): unconditional `test.fixme('t', fn)`, `test.describe.fixme(...)`, in-body `test.fixme()` and `test.fixme(true, ...)`. `test.fixme(condition, reason)` stays clean.
+- `pwscore/no-swallowed-assertion` (assertions, error): `expect(...)` inside a `try` whose `catch` neither rethrows, asserts, fails, returns a value nor records state; and `await expect(...).catch(() => {})` with the result discarded. Retry loops are not flagged.
+- `pwscore/no-weak-assertion` (assertions, error): `expect(count).toBeGreaterThanOrEqual(0)`, `expect(<Locator>).toBeTruthy()/toBeDefined()/not.toBeNull()`, `expect(await x.isVisible()).toBeDefined()`.
+- `pwscore/no-unawaited-expect-value` (assertions, error): a Promise-returning Playwright call such as `page.title()` or `locator.innerText()` used without `await` inside `expect()` with a non-web-first matcher. Replaces the misleading `playwright/prefer-web-first-assertions` message on the same line.
+- `pwscore/no-self-fulfilling-fallback` (assertions, warning): a negated state check (or a `catch` of a failed expect) whose fallback fills in or selects the value itself (click-only fallbacks are setup and stay clean), followed by an assertion on the same locator.
 
 ## 2.2.0 — 2026-11-14
 

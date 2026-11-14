@@ -164,6 +164,12 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
         'pwscore/no-shared-mutable-state': ['warn', { testAliasNames }],
         'pwscore/serial-mode-dependency': ['warn', { testAliasNames }],
         'pwscore/no-excessive-timeout': ['warn', { testAliasNames }],
+        // QAG-287 slice 2a: tests that would miss a real bug.
+        'pwscore/no-fixme-test': ['warn', { testAliasNames }],
+        'pwscore/no-swallowed-assertion': 'error',
+        'pwscore/no-weak-assertion': 'error',
+        'pwscore/no-unawaited-expect-value': 'error',
+        'pwscore/no-self-fulfilling-fallback': ['warn', { testAliasNames }],
       },
     },
   ];
@@ -243,6 +249,12 @@ export async function runEslint(options: {
   const findings: Finding[] = [];
 
   for (const result of results) {
+    // pwscore/no-unawaited-expect-value says "missing await" for the same
+    // expect(); upstream prefer-web-first-assertions says something
+    // misleading about it. Keep ours (same line).
+    const unawaitedLines = new Set(
+      result.messages.filter((m) => m.ruleId === 'pwscore/no-unawaited-expect-value').map((m) => m.line)
+    );
     const absFile = path.resolve(result.filePath);
     const file = path.relative(cwd, absFile) || path.basename(absFile);
     for (const msg of result.messages) {
@@ -289,6 +301,7 @@ export async function runEslint(options: {
         continue;
       }
       if (!msg.ruleId) continue;
+      if (msg.ruleId === 'playwright/prefer-web-first-assertions' && unawaitedLines.has(msg.line)) continue;
       const mapping = mapRule(msg.ruleId);
       findings.push({
         rule: msg.ruleId,

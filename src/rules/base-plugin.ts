@@ -7,6 +7,11 @@ import { noUnawaitedAction } from './no-unawaited-action.js';
 import { noBrittleSelector } from './no-brittle-selector.js';
 import { noSharedMutableState, serialModeDependency } from './no-shared-mutable-state.js';
 import { noExcessiveTimeout } from './no-excessive-timeout.js';
+import { noFixmeTest } from './no-fixme-test.js';
+import { noSwallowedAssertion } from './no-swallowed-assertion.js';
+import { noWeakAssertion } from './no-weak-assertion.js';
+import { noUnawaitedExpectValue } from './no-unawaited-expect-value.js';
+import { noSelfFulfillingFallback } from './no-self-fulfilling-fallback.js';
 
 type Node = {
   type: string;
@@ -999,5 +1004,10 @@ export const basePlugin = {
     'no-shared-mutable-state': noSharedMutableState,
     'serial-mode-dependency': serialModeDependency,
     'no-excessive-timeout': noExcessiveTimeout,
+    'no-fixme-test': noFixmeTest,
+    'no-swallowed-assertion': noSwallowedAssertion,
+    'no-weak-assertion': noWeakAssertion,
+    'no-unawaited-expect-value': noUnawaitedExpectValue,
+    'no-self-fulfilling-fallback': noSelfFulfillingFallback,
   },
 };

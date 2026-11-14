@@ -139,6 +139,12 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
   'pwscore/no-shared-mutable-state': { dimension: 'structure', severityOverride: 'warning' },
   'pwscore/serial-mode-dependency': { dimension: 'structure', severityOverride: 'info', reportOnly: true },
   'pwscore/no-excessive-timeout': { dimension: 'playwrightHygiene', severityOverride: 'warning' },
+  // QAG-287 slice 2a: tests that would miss a real bug.
+  'pwscore/no-fixme-test': { dimension: 'structure' },
+  'pwscore/no-swallowed-assertion': { dimension: 'assertions' },
+  'pwscore/no-weak-assertion': { dimension: 'assertions' },
+  'pwscore/no-unawaited-expect-value': { dimension: 'assertions' },
+  'pwscore/no-self-fulfilling-fallback': { dimension: 'assertions', severityOverride: 'warning' },
 };
 
 export function mapRule(ruleId: string): RuleMapping {
