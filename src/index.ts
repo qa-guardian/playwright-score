@@ -23,7 +23,9 @@ import {
   resolveConfigScopedRoot,
   safeRealpath,
   testDirEscapesRepo,
+  withTestDirSuffixPatterns,
 } from './playwright-config.js';
+import { SPEC_EXTENSION_RE } from './source-type.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
 import { computeScore } from './score-engine.js';
 import { resetRuleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
@@ -63,11 +65,33 @@ export { formatSarif } from './formatters/sarif.js';
 // (billing-test.pw.ts, flag-tests.pw.ts, ...) hard-failed with "no files
 // matched" without it, the same failure mode cal.com/Immich already fixed
 // for their own suffixes.
+//
+// Extensions follow Playwright's own default testMatch
+// (`**/*.@(spec|test).?(c|m)[jt]s?(x)`): .mjs/.cjs/.mts/.cts specs are as
+// real as .ts ones (QAG-287: neomjs/neo's 1,007 *.spec.mjs files scored
+// "0 tests / F").
 const SPEC_GLOBS = [
-  '**/*.{spec,test,e2e,e2e-spec,e2e-test,pw}.{ts,tsx,js,jsx}',
+  '**/*.{spec,test,e2e,e2e-spec,e2e-test,pw}.{ts,tsx,js,jsx,mjs,cjs,mts,cts}',
   '**/*.spec.ts',
   '**/*.test.ts',
 ];
+
+// A config-matched file already named like a spec (`*.spec.*`, `*.test.*`,
+// `*.e2e.*`, ...) is a spec by convention: the transitive-import safety net
+// below exists for a generic testMatch sweeping in *non*-test sources, and
+// would wrongly drop real specs that import their `test` from a wrapper
+// package or a tsconfig path alias (`@lib/BaseTest`, `@microsoft/fast-test-
+// harness`) — no relative import, no direct `@playwright/test`.
+const SPEC_NAME_RE = /\.(spec|test|e2e|e2e-spec|e2e-test|pw)\.(ts|tsx|js|jsx|mjs|cjs|mts|cts)$/;
+
+/** What to glob (and what to ignore) for one config scope, or for the no-config default. */
+interface DiscoveryJob {
+  globCwd: string;
+  globs: string[];
+  regexes: RegExp[];
+  ignoreGlobs: string[];
+  ignoreRegexes: RegExp[];
+}
 
 // Directory/glob expansion must never sweep in vendored or generated code —
 // verified as a real bug: scanning a project root with a plain node_modules
@@ -224,9 +248,9 @@ function expandPaths(
       // isn't found, doesn't overlap this scan, or can't be parsed
       // statically (a dynamic/unsupported shape) — the last case surfaces
       // a warning rather than silently guessing.
-      let globCwd = abs;
-      let specGlobs: string[] = SPEC_GLOBS;
-      let ignoreGlobs: string[] = DEFAULT_IGNORE_GLOBS;
+      let jobs: DiscoveryJob[] = [
+        { globCwd: abs, globs: SPEC_GLOBS, regexes: [], ignoreGlobs: DEFAULT_IGNORE_GLOBS, ignoreRegexes: [] },
+      ];
       let configApplied = false;
       // Boundary for the transitive-import safety net below — widened to
       // the config's own directory (not `abs`), for the same reason
@@ -256,23 +280,40 @@ function expandPaths(
           // 20 levels up — see findRepoBoundary's doc comment.
           const repoRoot = findRepoBoundary(abs, path.dirname(configFile));
           repoRootForContainment = repoRoot;
-          if (testDirEscapesRepo(parsedConfig.testDirAbs, repoRoot)) {
-            // The config's testDir resolves outside the repo boundary
+          const escaped = parsedConfig.scopes.find((sc) => testDirEscapesRepo(sc.testDirAbs, repoRoot));
+          if (escaped) {
+            // A testDir resolves outside the repo boundary
             // (directly, or via a symlink — see testDirEscapesRepo). Its
             // testMatch/testIgnore were written for that escaped testDir,
             // so applying them to the clamped repoRoot instead would be a
             // silent mismatch; fall back to filename-based discovery.
             configWarnings.push(
-              `Found ${path.relative(cwd, configFile) || configFile} but its testDir (${path.relative(cwd, parsedConfig.testDirAbs) || parsedConfig.testDirAbs}) resolves outside the repository (${path.relative(cwd, repoRoot) || repoRoot}) — falling back to filename-based spec discovery for ${path.relative(cwd, abs) || abs}.`
+              `Found ${path.relative(cwd, configFile) || configFile} but its testDir (${path.relative(cwd, escaped.testDirAbs) || escaped.testDirAbs}) resolves outside the repository (${path.relative(cwd, repoRoot) || repoRoot}) — falling back to filename-based spec discovery for ${path.relative(cwd, abs) || abs}.`
             );
           } else {
-            const scopedRoot = resolveConfigScopedRoot(abs, parsedConfig.testDirAbs, repoRoot);
-            if (scopedRoot) {
-              globCwd = scopedRoot;
-              if (parsedConfig.testMatch) specGlobs = parsedConfig.testMatch;
-              if (parsedConfig.testIgnore) {
-                ignoreGlobs = [...DEFAULT_IGNORE_GLOBS, ...parsedConfig.testIgnore];
-              }
+            // One job per distinct project scope (Playwright resolves
+            // testDir/testMatch/testIgnore per project; a file is a test if
+            // any project picks it up).
+            const scopeJobs: DiscoveryJob[] = [];
+            for (const scope of parsedConfig.scopes) {
+              const scopedRoot = resolveConfigScopedRoot(abs, scope.testDirAbs, repoRoot);
+              if (!scopedRoot) continue;
+              scopeJobs.push({
+                globCwd: scopedRoot,
+                // Only regex entries: the regex walk below is the whole
+                // match; no glob entries and no regex: the default names.
+                globs: scope.testMatch
+                  ? withTestDirSuffixPatterns(scope.testMatch, scopedRoot)
+                  : scope.testMatchRegex
+                    ? []
+                    : SPEC_GLOBS,
+                regexes: scope.testMatchRegex ?? [],
+                ignoreGlobs: scope.testIgnore ? [...DEFAULT_IGNORE_GLOBS, ...scope.testIgnore] : DEFAULT_IGNORE_GLOBS,
+                ignoreRegexes: scope.testIgnoreRegex ?? [],
+              });
+            }
+            if (scopeJobs.length > 0) {
+              jobs = scopeJobs;
               configApplied = true;
               importSafetyNetBoundary = path.dirname(configFile);
             }
@@ -281,9 +322,9 @@ function expandPaths(
       }
 
       const realRepoRoot = safeRealpath(repoRootForContainment);
-      for (const g of specGlobs) {
-        for (const f of globSync(g, {
-          cwd: globCwd,
+      for (const job of jobs) {
+        const globOptions = {
+          cwd: job.globCwd,
           absolute: true,
           nodir: true,
           // RepoBoundaryIgnore keeps ignoreGlobs' own string-pattern
@@ -294,15 +335,29 @@ function expandPaths(
           // fact, below) is what keeps a `testDir/evil -> /` (or any
           // other huge, real symlinked target) from making discovery
           // actually walk arbitrary parts of the filesystem (QAG-230).
-          ignore: new RepoBoundaryIgnore(ignoreGlobs, realRepoRoot),
+          ignore: new RepoBoundaryIgnore(job.ignoreGlobs, realRepoRoot),
           // glob's own default for `follow` is already false (don't
           // descend into a symlinked directory while expanding `**`), but
           // this is untrusted-repo territory (see testDirEscapesRepo
           // above), so pin it explicitly rather than relying on a default
           // that could change upstream.
           follow: false,
-        })) {
+        };
+        const candidates: string[] = [];
+        for (const g of job.globs) candidates.push(...globSync(g, globOptions));
+        if (job.regexes.length > 0) {
+          // A regex `testMatch` is tested against the absolute path (as
+          // Playwright does); it needs the full walk. Only code-like
+          // extensions are candidates, so a loose regex never drags an
+          // image or a fixture into the parser.
+          for (const f of globSync('**/*', globOptions)) {
+            const r = path.resolve(f);
+            if (SPEC_EXTENSION_RE.test(r) && job.regexes.some((re) => re.test(r))) candidates.push(f);
+          }
+        }
+        for (const f of candidates) {
           const resolved = path.resolve(f);
+          if (job.ignoreRegexes.some((re) => re.test(resolved))) continue;
           // testDirEscapesRepo (above) only clamps testDir itself before
           // it becomes a glob root — it can't see what the glob then
           // actually walks *through* on the way to a match. A testMatch
@@ -334,7 +389,7 @@ function expandPaths(
           // inside a monorepo testDir that also covers others). Filter back
           // down to what the caller asked for so scoping to testDir for
           // correct path matching never silently widens the scored set.
-          if (configApplied && globCwd !== abs) {
+          if (configApplied && job.globCwd !== abs) {
             const rel = path.relative(abs, resolved);
             if (rel.startsWith('..') || path.isAbsolute(rel)) continue;
           }
@@ -344,7 +399,7 @@ function expandPaths(
           // '@playwright/test' directly nor (transitively, through a local
           // module) re-exports it isn't a Playwright spec regardless of
           // what the config's glob matched.
-          if (configApplied) {
+          if (configApplied && !SPEC_NAME_RE.test(resolved)) {
             let source: string;
             try {
               source = fs.readFileSync(resolved, 'utf8');

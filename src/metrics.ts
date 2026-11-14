@@ -3,6 +3,7 @@ import type { Finding, LocatorCounts } from './types.js';
 import { countSloc } from './sloc.js';
 import { factoryNamesOf, plainAliasNames } from './test-aliases.js';
 import { PLAYWRIGHT_API_METHODS } from './playwright-api-names.js';
+import { sourceTypeFor } from './source-type.js';
 
 // A positive "this IS a Playwright spec" check turned out to be unsafe:
 // Playwright's own custom-fixtures pattern (test/expect re-exported from a
@@ -18,7 +19,7 @@ import { PLAYWRIGHT_API_METHODS } from './playwright-api-names.js';
 // safer — a missed rare/unusual file just scores harmlessly, where a
 // falsely-skipped real spec silently stops being scored at all.
 const NON_PLAYWRIGHT_IMPORT_RE =
-  /from\s+['"](?:vitest|jest|@jest\/[a-z-]+|mocha|jasmine|chai|@testing-library\/[a-z-]+|cypress)['"]/;
+  /(?:from\s+|require\(\s*)['"](?:vitest|jest|@jest\/[a-z-]+|mocha|jasmine|chai|@testing-library\/[a-z-]+|cypress|node:test|bun:test|uvu|ava|tape)['"]/;
 const RTL_API_RE = /\bscreen\.(?:getBy|queryBy|findBy|getAllBy|queryAllBy|findAllBy)\w*\(|\btoBeInTheDocument\(/;
 // Cypress's `cy` command object is globally available without an import in
 // the framework's default setup, the same way RTL's `screen` often is —
@@ -87,7 +88,7 @@ function parseSource(source: string, file?: string): unknown {
   try {
     return parseForESLint(source, {
       ecmaVersion: 2022,
-      sourceType: 'module',
+      sourceType: sourceTypeFor(file),
       // JSX must be extension-driven, not always-on: a bare .ts file can
       // legally use the old-style `<Type>value` cast syntax, which is
       // ambiguous with — and would be misparsed as — a JSX element if JSX

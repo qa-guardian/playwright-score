@@ -1557,7 +1557,7 @@ describe('2.1.0: spec discovery honors the target\'s own playwright.config testD
     }
   });
 
-  it('a testMatch given as a RegExp (Playwright accepts one; this package deliberately does not try to statically evaluate one) falls back to filename-based discovery with a configWarning, instead of silently ignoring just that field', async () => {
+  it('a testMatch given as a RegExp literal is read statically and applied (QAG-287 B), with no configWarning', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-config-regexp-testmatch-'));
     try {
       fs.mkdirSync(path.join(dir, 'e2e'), { recursive: true });
@@ -1582,16 +1582,9 @@ describe('2.1.0: spec discovery honors the target\'s own playwright.config testD
       assert.equal(
         result.summary.files,
         1,
-        `expected the filename-suffix fallback to still find real.e2e.ts despite the unparseable RegExp testMatch, got ${result.summary.files}`
+        `expected the regex testMatch to find real.e2e.ts, got ${result.summary.files}`
       );
-      assert.ok(
-        result.configWarnings && result.configWarnings.length > 0,
-        'expected a configWarnings entry explaining the RegExp testMatch could not be statically parsed'
-      );
-      assert.ok(
-        result.configWarnings!.some((w) => w.includes('playwright.config')),
-        `expected the warning to name the config file: ${JSON.stringify(result.configWarnings)}`
-      );
+      assert.equal(result.configWarnings, undefined);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

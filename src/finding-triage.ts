@@ -24,6 +24,7 @@ import { parseForESLint } from '@typescript-eslint/parser';
 import { resolveRelativeImport } from './import-graph.js';
 import { PLAYWRIGHT_API_METHODS } from './playwright-api-names.js';
 import type { Finding } from './types.js';
+import { sourceTypeFor } from './source-type.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type N = any;
@@ -86,7 +87,7 @@ function parse(astCache: AstCache, source: string, file: string): N {
   try {
     ast = parseForESLint(source, {
       ecmaVersion: 2022,
-      sourceType: 'module',
+      sourceType: sourceTypeFor(file),
       ecmaFeatures: { jsx: /\.(tsx|jsx)$/.test(file) },
     }).ast;
   } catch {

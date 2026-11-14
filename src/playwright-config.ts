@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseForESLint } from '@typescript-eslint/parser';
+import { hasMagic } from 'glob';
 import { resolveRelativeImport } from './import-graph.js';
+import { sourceTypeFor } from './source-type.js';
 
 // Spec discovery (index.ts's SPEC_GLOBS) matches by filename suffix only —
 // it never reads the scanned repo's own playwright.config.*, so it can't
@@ -95,13 +97,32 @@ export function findPlaywrightConfig(scanRootAbs: string): string | undefined {
   return undefined;
 }
 
-export interface ParsedPlaywrightConfig {
-  /** Resolved absolute path (config's `testDir`, default: the config's own directory). */
+/**
+ * What one Playwright project (or, absent any, the config's top level)
+ * considers a spec. Playwright resolves `testDir`/`testMatch`/`testIgnore`
+ * per project, falling back to the top-level value for whatever a project
+ * leaves unset, and a file is a test if *any* project picks it up.
+ */
+export interface ConfigScope {
+  /** Resolved absolute path (`testDir`, default: the config's own directory). */
   testDirAbs: string;
-  /** Glob patterns, relative to testDirAbs — undefined when the config didn't set testMatch (index.ts's own default SPEC_GLOBS still apply). */
+  /** Glob patterns (string entries of `testMatch`, each already given Playwright's implicit `**\/` prefix) — undefined when no string pattern is set. */
   testMatch?: string[];
-  /** Glob patterns, relative to testDirAbs — undefined when the config didn't set testIgnore. */
+  /** `testMatch` entries written as regex literals; matched against the absolute file path, like Playwright does. */
+  testMatchRegex?: RegExp[];
+  /** Glob patterns from `testIgnore`. */
   testIgnore?: string[];
+  /** `testIgnore` entries written as regex literals. */
+  testIgnoreRegex?: RegExp[];
+}
+
+export interface ParsedPlaywrightConfig extends ConfigScope {
+  /**
+   * One entry per distinct project scope, with top-level values inherited
+   * (just the top level when `projects` is absent or not statically
+   * readable). The fields above describe the top level only.
+   */
+  scopes: ConfigScope[];
 }
 
 function isStringLiteral(node: Record<string, unknown> | undefined): node is { value: string } {
@@ -136,18 +157,87 @@ function toRecursiveGlob(pattern: string): string {
   return pattern.startsWith('**/') ? pattern : `**/${pattern}`;
 }
 
-function extractStringOrStringArray(node: Record<string, unknown> | undefined): string[] | undefined {
+interface Matchers {
+  globs: string[];
+  regexes: RegExp[];
+}
+
+const MAX_REGEX_SOURCE = 300;
+
+/**
+ * A string literal, a regex literal, or an array of only those — the shapes
+ * Playwright accepts for `testMatch`/`testIgnore` that a static reader can
+ * take at face value. Anything else (a variable, a call, a spread) returns
+ * undefined and the caller treats the config as unreadable. A regex literal
+ * is only ever *tested against file path strings*, never used to read or
+ * run anything from the repo; an oversized pattern is refused rather than
+ * compiled (an untrusted config must not be able to hand this tool a
+ * pathological expression).
+ */
+function extractMatchers(node: Record<string, unknown> | undefined): Matchers | undefined {
   if (!node) return undefined;
-  if (isStringLiteral(node)) return [toRecursiveGlob(node.value)];
-  if (node.type === 'ArrayExpression') {
-    const elements = (node as { elements?: Array<Record<string, unknown> | null> }).elements ?? [];
-    const values: string[] = [];
-    for (const el of elements) {
-      const candidate = el ?? undefined;
-      if (!isStringLiteral(candidate)) return undefined;
-      values.push(toRecursiveGlob(candidate.value));
+  const out: Matchers = { globs: [], regexes: [] };
+  const add = (n: Record<string, unknown> | null | undefined): boolean => {
+    if (!n) return false;
+    if (isStringLiteral(n)) {
+      out.globs.push(toRecursiveGlob(n.value));
+      return true;
     }
-    return values;
+    const regex = n.type === 'Literal' ? (n as { regex?: { pattern: string; flags: string } }).regex : undefined;
+    if (regex) {
+      if (regex.pattern.length > MAX_REGEX_SOURCE) return false;
+      try {
+        out.regexes.push(new RegExp(regex.pattern, regex.flags.replace(/[gy]/g, '')));
+      } catch {
+        return false;
+      }
+      return true;
+    }
+    return false;
+  };
+  if (node.type === 'ArrayExpression') {
+    for (const el of (node as { elements?: Array<Record<string, unknown> | null> }).elements ?? []) {
+      if (!add(el)) return undefined;
+    }
+    return out;
+  }
+  return add(node) ? out : undefined;
+}
+
+/**
+ * A directory expression a config can use for `testDir`: a string literal,
+ * `__dirname`, `import.meta.dirname`, or `path.join/resolve(...)` over those
+ * and string literals. Resolved against the config's own directory. Returns
+ * undefined for anything else (an env var, a helper call, ...).
+ */
+function resolveDirExpression(node: Record<string, unknown> | undefined, configDir: string): string | undefined {
+  if (!node) return undefined;
+  if (isStringLiteral(node)) return path.resolve(configDir, node.value);
+  if (node.type === 'Identifier' && (node as { name?: string }).name === '__dirname') return configDir;
+  if (node.type === 'MemberExpression') {
+    const m = node as { object?: Record<string, unknown>; property?: { name?: string } };
+    const o = m.object as { type?: string; meta?: { name?: string }; property?: { name?: string } } | undefined;
+    if (o?.type === 'MetaProperty' && o.meta?.name === 'import' && o.property?.name === 'meta' && m.property?.name === 'dirname') {
+      return configDir;
+    }
+    return undefined;
+  }
+  if (node.type === 'CallExpression') {
+    const call = node as { callee?: Record<string, unknown>; arguments?: Array<Record<string, unknown>> };
+    const callee = call.callee as { type?: string; object?: { name?: string }; property?: { name?: string } } | undefined;
+    if (
+      callee?.type === 'MemberExpression' &&
+      callee.object?.name === 'path' &&
+      (callee.property?.name === 'join' || callee.property?.name === 'resolve')
+    ) {
+      const parts: string[] = [];
+      for (const arg of call.arguments ?? []) {
+        const part = isStringLiteral(arg) ? arg.value : resolveDirExpression(arg, configDir);
+        if (part === undefined) return undefined;
+        parts.push(part);
+      }
+      return path.resolve(configDir, ...parts);
+    }
   }
   return undefined;
 }
@@ -162,6 +252,23 @@ function findConfigObjectLiteral(body: Array<Record<string, unknown>>): Record<s
   const unwrapToObjectLiteral = (node: Record<string, unknown> | undefined): Record<string, unknown> | undefined => {
     if (!node) return undefined;
     if (node.type === 'ObjectExpression') return node;
+    // `export default config as Config` / `config satisfies Config`
+    if (node.type === 'TSAsExpression' || node.type === 'TSSatisfiesExpression') {
+      return unwrapToObjectLiteral((node as { expression?: Record<string, unknown> }).expression);
+    }
+    // `const config = {...}; export default config;` (also `module.exports = config`)
+    if (node.type === 'Identifier') {
+      const name = (node as { name?: string }).name;
+      for (const stmt of body) {
+        if (stmt.type !== 'VariableDeclaration') continue;
+        for (const decl of (stmt as { declarations?: Array<{ id?: { name?: string }; init?: Record<string, unknown> | null }> }).declarations ?? []) {
+          if (decl.id?.name === name && decl.init && decl.init.type !== 'Identifier') {
+            return unwrapToObjectLiteral(decl.init);
+          }
+        }
+      }
+      return undefined;
+    }
     if (node.type === 'CallExpression') {
       // defineConfig({...}) (any callee shape — named import, namespace
       // access, etc.) — only the single object-literal argument shape is
@@ -222,7 +329,7 @@ export function parsePlaywrightConfig(configFile: string): ParsedPlaywrightConfi
   try {
     ast = parseForESLint(source, {
       ecmaVersion: 2022,
-      sourceType: 'module',
+      sourceType: sourceTypeFor(configFile),
     }).ast as unknown as { body?: Array<Record<string, unknown>> };
   } catch {
     return undefined;
@@ -231,16 +338,61 @@ export function parsePlaywrightConfig(configFile: string): ParsedPlaywrightConfi
   const configObject = findConfigObjectLiteral(ast.body ?? []);
   if (!configObject) return undefined;
 
-  const properties = (configObject as { properties?: Array<Record<string, unknown>> }).properties ?? [];
-  let testDir: string | undefined;
-  let testMatch: string[] | undefined;
-  let testIgnore: string[] | undefined;
-  let sawTestMatchKey = false;
-  let sawTestIgnoreKey = false;
+  const configDir = path.dirname(configFile);
+  const top = readScopeObject(configObject, configDir, true);
+  if (!top) return undefined;
 
+  // Per-project overrides. Only taken into account when every project is a
+  // plain object literal this reader fully understands; anything else
+  // (`projects: makeProjects()`, a spread, a project built elsewhere) is
+  // ignored, exactly as before projects were read at all.
+  const scopes: ConfigScope[] = [];
+  if (top.projectsNode?.type === 'ArrayExpression') {
+    const elements = (top.projectsNode as { elements?: Array<Record<string, unknown> | null> }).elements ?? [];
+    const projectScopes: ConfigScope[] = [];
+    let readable = elements.length > 0;
+    for (const el of elements) {
+      if (!el || el.type !== 'ObjectExpression') {
+        readable = false;
+        break;
+      }
+      const own = readScopeObject(el, configDir, false);
+      if (!own) {
+        readable = false;
+        break;
+      }
+      projectScopes.push(mergeScope(top.scope, own.scope, own.keys));
+    }
+    if (readable) scopes.push(...projectScopes);
+  }
+  if (scopes.length === 0) scopes.push(top.scope);
+  const seen = new Set<string>();
+  const distinct = scopes.filter((sc) => {
+    const key = JSON.stringify([sc.testDirAbs, sc.testMatch, sc.testMatchRegex?.map(String), sc.testIgnore, sc.testIgnoreRegex?.map(String)]);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return { ...top.scope, scopes: distinct };
+}
+
+interface ScopeRead {
+  scope: ConfigScope;
+  keys: Set<string>;
+  projectsNode?: Record<string, unknown>;
+}
+
+/** Reads testDir/testMatch/testIgnore (and the raw `projects` node) off a config or project object literal. */
+function readScopeObject(obj: Record<string, unknown>, configDir: string, isTop: boolean): ScopeRead | undefined {
+  const properties = (obj as { properties?: Array<Record<string, unknown>> }).properties ?? [];
+  const keys = new Set<string>();
+  let testDirAbs = configDir;
+  let match: Matchers | undefined;
+  let ignore: Matchers | undefined;
+  let projectsNode: Record<string, unknown> | undefined;
   for (const prop of properties) {
     // A spread (`...shared`) or computed key makes the object's real shape
-    // impossible to read statically — bail on the whole config rather than
+    // impossible to read statically — bail on the whole object rather than
     // silently ignoring part of it.
     if (prop.type === 'SpreadElement') return undefined;
     if (prop.type !== 'Property') continue;
@@ -256,26 +408,71 @@ export function parsePlaywrightConfig(configFile: string): ParsedPlaywrightConfi
     if (!keyName) continue;
     const value = (prop as { value?: Record<string, unknown> }).value;
     if (keyName === 'testDir') {
-      if (!isStringLiteral(value)) return undefined;
-      testDir = value.value;
+      const dir = resolveDirExpression(value, configDir);
+      if (dir === undefined) return undefined;
+      testDirAbs = dir;
+      keys.add(keyName);
     } else if (keyName === 'testMatch') {
-      sawTestMatchKey = true;
-      testMatch = extractStringOrStringArray(value);
-      if (testMatch === undefined) return undefined;
+      match = extractMatchers(value);
+      if (match === undefined) return undefined;
+      keys.add(keyName);
     } else if (keyName === 'testIgnore') {
-      sawTestIgnoreKey = true;
-      testIgnore = extractStringOrStringArray(value);
-      if (testIgnore === undefined) return undefined;
+      ignore = extractMatchers(value);
+      if (ignore === undefined) return undefined;
+      keys.add(keyName);
+    } else if (keyName === 'projects' && isTop) {
+      projectsNode = value;
     }
   }
-
-  const configDir = path.dirname(configFile);
-  const testDirAbs = testDir ? path.resolve(configDir, testDir) : configDir;
   return {
-    testDirAbs,
-    testMatch: sawTestMatchKey ? testMatch : undefined,
-    testIgnore: sawTestIgnoreKey ? testIgnore : undefined,
+    scope: {
+      testDirAbs,
+      testMatch: match && match.globs.length > 0 ? match.globs : undefined,
+      testMatchRegex: match && match.regexes.length > 0 ? match.regexes : undefined,
+      testIgnore: ignore && ignore.globs.length > 0 ? ignore.globs : undefined,
+      testIgnoreRegex: ignore && ignore.regexes.length > 0 ? ignore.regexes : undefined,
+    },
+    keys,
+    projectsNode,
   };
+}
+
+/** A project's own values win; whatever it leaves unset comes from the top level. */
+function mergeScope(top: ConfigScope, own: ConfigScope, ownKeys: Set<string>): ConfigScope {
+  return {
+    testDirAbs: ownKeys.has('testDir') ? own.testDirAbs : top.testDirAbs,
+    ...(ownKeys.has('testMatch')
+      ? { testMatch: own.testMatch, testMatchRegex: own.testMatchRegex }
+      : { testMatch: top.testMatch, testMatchRegex: top.testMatchRegex }),
+    ...(ownKeys.has('testIgnore')
+      ? { testIgnore: own.testIgnore, testIgnoreRegex: own.testIgnoreRegex }
+      : { testIgnore: top.testIgnore, testIgnoreRegex: top.testIgnoreRegex }),
+  };
+}
+
+/**
+ * Playwright matches a string `testMatch` against the file's *absolute*
+ * path (with an implicit `**\/` prefix), so a pattern's leading directory
+ * names can sit above `testDir`: lowdefy's config lives in
+ * `.../e2e/enrichment/` and says `**\/e2e/enrichment/tests/*.e2e.spec.js`.
+ * Globbing from testDir alone never matches that. For each leading literal
+ * run of the pattern that equals the tail of testDir, also emit the
+ * remainder anchored at testDir (`tests/*.e2e.spec.js`). The original
+ * pattern stays, so every file it matched before still matches.
+ */
+export function withTestDirSuffixPatterns(globs: string[], testDirAbs: string): string[] {
+  const dirSegs = testDirAbs.split('/').filter(Boolean);
+  const out = new Set(globs);
+  for (const g of globs) {
+    const segs = g.replace(/^\*\*\//, '').split('/');
+    for (let k = 1; k < segs.length; k++) {
+      if (hasMagic(segs[k - 1]!, { magicalBraces: true })) break;
+      if (k <= dirSegs.length && dirSegs.slice(-k).join('/') === segs.slice(0, k).join('/')) {
+        out.add(segs.slice(k).join('/'));
+      }
+    }
+  }
+  return [...out];
 }
 
 /** Exported for index.ts's own realpath containment check on matched spec
@@ -487,7 +684,7 @@ export function importsPlaywrightTestTransitively(
     try {
       ast = parseForESLint(next.source, {
         ecmaVersion: 2022,
-        sourceType: 'module',
+        sourceType: sourceTypeFor(next.file),
         ecmaFeatures: { jsx: /\.(tsx|jsx)$/.test(next.file) },
       }).ast as unknown as { body?: Array<Record<string, unknown>> };
     } catch {

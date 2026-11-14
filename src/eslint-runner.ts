@@ -13,7 +13,7 @@ import type { Finding, ProfileName, Severity } from './types.js';
 function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): Linter.Config[] {
   const base: Linter.Config[] = [
     {
-      files: ['**/*.{ts,tsx,js,jsx,mjs,cjs}'],
+      files: ['**/*.{ts,tsx,js,jsx,mjs,cjs,mts,cts}'],
       // Identifiers bound to a `test.extend(...)`-derived fixture under a
       // custom name (test-aliases.ts) — upstream eslint-plugin-playwright
       // already dereferences a *same-file* extend chain internally, but
@@ -175,6 +175,12 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
         'pwscore/no-self-fulfilling-fallback': ['warn', { testAliasNames }],
       },
     },
+    // .cjs/.cts are always CommonJS (top-level `return`, `require`, no
+    // import/export): parse them as such instead of as an ES module.
+    {
+      files: ['**/*.{cjs,cts}'],
+      languageOptions: { sourceType: 'commonjs' },
+    },
   ];
 
   return base;
@@ -230,7 +236,7 @@ export async function runEslint(options: {
           parser: tsParser as unknown as Linter.Parser,
           parserOptions: {
             ecmaVersion: 2022,
-            sourceType: 'module',
+            sourceType: cfg.languageOptions?.sourceType === 'commonjs' ? 'commonjs' : 'module',
           },
         };
       }

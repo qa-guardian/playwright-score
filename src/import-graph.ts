@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseForESLint } from '@typescript-eslint/parser';
+import { sourceTypeFor } from './source-type.js';
 
-const RESOLVE_EXTENSIONS = ['', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
+const RESOLVE_EXTENSIONS = ['', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.mts', '.cts'];
 const INDEX_FILES = ['index.ts', 'index.tsx', 'index.js', 'index.jsx'];
 
 // Bounds on the traversal so a large, deep, or circular import graph can't
@@ -17,7 +18,7 @@ function extractRelativeImportSpecifiers(source: string, file: string): string[]
   try {
     ast = parseForESLint(source, {
       ecmaVersion: 2022,
-      sourceType: 'module',
+      sourceType: sourceTypeFor(file),
       ecmaFeatures: { jsx: /\.(tsx|jsx)$/.test(file) },
     }).ast as unknown as { body?: Array<Record<string, unknown>> };
   } catch {
