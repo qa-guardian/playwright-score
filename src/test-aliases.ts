@@ -36,6 +36,80 @@ interface ParsedFileInfo {
    * bound in this file) — either way, does NOT create a local binding
    * usable within this file, only something importers of this file see. */
   reExports: Array<{ exportedName: string; localName: string; source?: string }>;
+  /** Functions with the shapes their `return` statements can take (QAG-287 factories). */
+  functions: Array<{ name: string; returns: FactoryReturn[]; exported: boolean }>;
+  /** `const declaredName = calleeName(...)` (any scope, plain identifier callee). */
+  callDeclarations: Array<{ declaredName: string; calleeName: string }>;
+}
+
+/**
+ * What a function returns, as far as alias detection cares: `X.extend(...)`
+ * (`base`), a bare identifier (`ident`, an alias or a function's own const),
+ * or a call to another function (`call`, e.g. a factory delegating to a
+ * factory).
+ */
+type FactoryReturn =
+  | { kind: 'extend'; baseName: string }
+  | { kind: 'ident'; name: string }
+  | { kind: 'call'; calleeName: string };
+
+function classifyReturn(expr: Record<string, unknown> | null | undefined): FactoryReturn | undefined {
+  if (!expr) return undefined;
+  if (expr.type === 'Identifier' && typeof expr.name === 'string') {
+    return { kind: 'ident', name: expr.name };
+  }
+  if (expr.type !== 'CallExpression') return undefined;
+  const callee = expr.callee as Record<string, unknown> | undefined;
+  if (callee?.type === 'Identifier' && typeof callee.name === 'string') {
+    return { kind: 'call', calleeName: callee.name };
+  }
+  if (callee?.type === 'MemberExpression' && !callee.computed) {
+    const prop = callee.property as { type?: string; name?: string } | undefined;
+    const obj = callee.object as { type?: string; name?: string } | undefined;
+    if (prop?.type === 'Identifier' && prop.name === 'extend' && obj?.type === 'Identifier' && obj.name) {
+      return { kind: 'extend', baseName: obj.name };
+    }
+  }
+  return undefined;
+}
+
+/** `return <expr>` statements of one function body, not descending into nested functions. */
+function collectFunctionReturns(fn: Record<string, unknown>): FactoryReturn[] {
+  const out: FactoryReturn[] = [];
+  const body = fn.body as Record<string, unknown> | undefined;
+  if (!body) return out;
+  if (body.type !== 'BlockStatement') {
+    const r = classifyReturn(body);
+    if (r) out.push(r);
+    return out;
+  }
+  const visit = (node: unknown): void => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      for (const n of node) visit(n);
+      return;
+    }
+    const obj = node as Record<string, unknown>;
+    if (
+      obj.type === 'FunctionDeclaration' ||
+      obj.type === 'FunctionExpression' ||
+      obj.type === 'ArrowFunctionExpression'
+    ) {
+      return;
+    }
+    if (obj.type === 'ReturnStatement') {
+      const r = classifyReturn(obj.argument as Record<string, unknown> | null);
+      if (r) out.push(r);
+      return;
+    }
+    for (const key in obj) {
+      if (key === 'parent') continue;
+      const v = obj[key];
+      if (v && typeof v === 'object') visit(v);
+    }
+  };
+  visit(body.body);
+  return out;
 }
 
 function isRelativeSpecifier(value: unknown): value is string {
@@ -59,6 +133,30 @@ function parseFileInfo(source: string, file: string): ParsedFileInfo | undefined
   const directExportNames = new Set<string>();
   const imports: Array<{ localName: string; importedName: string; source: string }> = [];
   const reExports: Array<{ exportedName: string; localName: string; source?: string }> = [];
+  const functions: ParsedFileInfo['functions'] = [];
+  const callDeclarations: ParsedFileInfo['callDeclarations'] = [];
+
+  function collectFunction(node: Record<string, unknown>, exported: boolean): void {
+    if (node.type === 'FunctionDeclaration') {
+      const name = (node.id as { name?: string } | null)?.name;
+      if (name) functions.push({ name, returns: collectFunctionReturns(node), exported });
+    } else if (node.type === 'VariableDeclaration') {
+      for (const d of (node.declarations ?? []) as Array<{
+        id?: { type?: string; name?: string };
+        init?: Record<string, unknown> | null;
+      }>) {
+        const init = d.init;
+        if (
+          d.id?.type === 'Identifier' &&
+          d.id.name &&
+          init &&
+          (init.type === 'ArrowFunctionExpression' || init.type === 'FunctionExpression')
+        ) {
+          functions.push({ name: d.id.name, returns: collectFunctionReturns(init), exported });
+        }
+      }
+    }
+  }
 
   function collectExtendFromVariableDeclaration(decl: Record<string, unknown>): void {
     const declarations = (decl.declarations ?? []) as Array<{
@@ -68,6 +166,13 @@ function parseFileInfo(source: string, file: string): ParsedFileInfo | undefined
     for (const d of declarations) {
       if (d.id?.type !== 'Identifier' || !d.id.name || !d.init) continue;
       const init = d.init;
+      if (
+        init.type === 'CallExpression' &&
+        (init as { callee?: Record<string, unknown> }).callee?.type === 'Identifier'
+      ) {
+        const calleeName = ((init as { callee: { name?: string } }).callee).name;
+        if (calleeName) callDeclarations.push({ declaredName: d.id.name, calleeName });
+      }
       if (
         init.type === 'CallExpression' &&
         (init as { callee?: Record<string, unknown> }).callee?.type === 'MemberExpression'
@@ -106,6 +211,9 @@ function parseFileInfo(source: string, file: string): ParsedFileInfo | undefined
   }
 
   for (const node of ast.body ?? []) {
+    if (node.type === 'FunctionDeclaration' || node.type === 'VariableDeclaration') {
+      collectFunction(node, false);
+    }
     if (node.type === 'ImportDeclaration') {
       const src = (node.source as { value?: unknown } | undefined)?.value;
       if (!isRelativeSpecifier(src)) {
@@ -138,6 +246,7 @@ function parseFileInfo(source: string, file: string): ParsedFileInfo | undefined
     } else if (node.type === 'ExportNamedDeclaration') {
       const declaration = node.declaration as Record<string, unknown> | undefined;
       const src = (node.source as { value?: unknown } | undefined)?.value;
+      if (declaration) collectFunction(declaration, true);
       if (declaration?.type === 'VariableDeclaration') {
         collectExtendFromVariableDeclaration(declaration);
         for (const d of (declaration.declarations ?? []) as Array<{
@@ -176,6 +285,8 @@ function parseFileInfo(source: string, file: string): ParsedFileInfo | undefined
     directExportNames,
     imports,
     reExports,
+    functions,
+    callDeclarations,
   };
 }
 
@@ -210,9 +321,15 @@ export function detectExtendedTestAliases(
 
   const localAlias = new Map<string, Set<string>>();
   const exportedAlias = new Map<string, Set<string>>();
+  // Test-factory functions (QAG-287): `function make(cfg) { return test.extend(...) }`.
+  // `const t = make(cfg)` then makes `t` a test alias.
+  const localFactory = new Map<string, Set<string>>();
+  const exportedFactory = new Map<string, Set<string>>();
   for (const file of parsed.keys()) {
     localAlias.set(file, new Set());
     exportedAlias.set(file, new Set());
+    localFactory.set(file, new Set());
+    exportedFactory.set(file, new Set());
   }
 
   const resolve = (fromFile: string, specifier: string): string | undefined =>
@@ -238,12 +355,55 @@ export function detectExtendedTestAliases(
         }
       }
 
+      const factories = localFactory.get(file)!;
+      const exportedFactories = exportedFactory.get(file)!;
+
       for (const { localName, importedName, source } of info.imports) {
-        if (known.has(localName)) continue;
         const resolved = resolve(file, source);
         if (!resolved) continue;
-        if (exportedAlias.get(resolved)?.has(importedName)) {
+        if (!known.has(localName) && exportedAlias.get(resolved)?.has(importedName)) {
           known.add(localName);
+          changed = true;
+        }
+        if (!factories.has(localName) && exportedFactory.get(resolved)?.has(importedName)) {
+          factories.add(localName);
+          changed = true;
+        }
+      }
+
+      for (const fn of info.functions) {
+        if (!factories.has(fn.name)) {
+          const returnsAlias = fn.returns.some((r) =>
+            r.kind === 'extend'
+              ? info.playwrightTestLocalNames.has(r.baseName) || known.has(r.baseName)
+              : r.kind === 'ident'
+                ? known.has(r.name)
+                : factories.has(r.calleeName)
+          );
+          if (returnsAlias) {
+            factories.add(fn.name);
+            changed = true;
+          }
+        }
+        if (fn.exported && factories.has(fn.name) && !exportedFactories.has(fn.name)) {
+          exportedFactories.add(fn.name);
+          changed = true;
+        }
+      }
+
+      for (const { declaredName, calleeName } of info.callDeclarations) {
+        if (known.has(declaredName) || !factories.has(calleeName)) continue;
+        known.add(declaredName);
+        changed = true;
+      }
+
+      for (const { exportedName, localName, source } of info.reExports) {
+        if (exportedFactories.has(exportedName)) continue;
+        const isFactory = source
+          ? !!resolve(file, source) && exportedFactory.get(resolve(file, source)!)?.has(localName)
+          : factories.has(localName);
+        if (isFactory) {
+          exportedFactories.add(exportedName);
           changed = true;
         }
       }
