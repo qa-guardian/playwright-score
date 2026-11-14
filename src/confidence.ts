@@ -17,6 +17,9 @@ export const CONFIDENCE_BY_RULE: Record<string, Confidence> = {
   'playwright/no-wait-for-timeout': 'high',
   'playwright/no-focused-test': 'high',
   'playwright/no-page-pause': 'high',
+  'playwright-score/parse-error': 'high',
+
+  'playwright-score/assertion-unverified': 'needs-check',
 
   'playwright/no-force-option': 'medium',
   'playwright/no-wait-for-selector': 'medium',

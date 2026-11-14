@@ -637,18 +637,21 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
     // (a handful of exp-decay points on an otherwise large, clean batch)
     // would let a broken file hide inside a passing score. Hard-fail
     // instead, same as the no-matching-files case.
-    return hardFail(
-      profile,
-      threshold,
-      findings,
-      {
-        files: files.length,
-        sloc: Math.max(totalSloc, 1),
-        nativeLocators: native,
-        rawLocators: raw,
-      },
-      skippedFiles
-    );
+    return {
+      ...hardFail(
+        profile,
+        threshold,
+        findings,
+        {
+          files: files.length,
+          sloc: Math.max(totalSloc, 1),
+          nativeLocators: native,
+          rawLocators: raw,
+        },
+        skippedFiles
+      ),
+      baseDir: filesBase,
+    };
   }
 
   const result = computeScore({
@@ -665,6 +668,7 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
 
   return {
     ...result,
+    baseDir: filesBase,
     ...(skippedFiles.length > 0 ? { skippedFiles } : {}),
     ...(configWarnings.length > 0 ? { configWarnings } : {}),
   };

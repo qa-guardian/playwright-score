@@ -58,6 +58,8 @@ const DIMENSIONS: ReadonlyArray<{ key: DimensionName; label: string; meaning: st
   },
 ];
 
+const PARSE_ERROR_RULE = 'playwright-score/parse-error';
+
 export function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -118,7 +120,11 @@ export function compareGroups(a: RuleGroup, b: RuleGroup): number {
 /** Up to `max` rule groups for "Top findings". Never includes needs-check findings. */
 export function rankTopFindings(findings: readonly Finding[], max = 5): RuleGroup[] {
   const eligible = findings.filter((f) => !isNeedsCheck(f));
-  return groupByRule(eligible).sort(compareGroups).slice(0, max);
+  // A file that does not parse hard-fails the whole suite: it always leads.
+  const parseFirst = (g: RuleGroup): number => (g.rule === PARSE_ERROR_RULE ? 0 : 1);
+  return groupByRule(eligible)
+    .sort((a, b) => parseFirst(a) - parseFirst(b) || compareGroups(a, b))
+    .slice(0, max);
 }
 
 function excerpt(source: string, line: number): Array<{ n: number; text: string; hit: boolean }> {
@@ -171,7 +177,7 @@ function renderTop(groups: RuleGroup[], readSource?: SourceReader): string {
 <p class="where"><code>${escapeHtml(loc(g.example))}</code></p>
 ${renderExcerpt(g.example, readSource)}
 <p class="why">${escapeHtml(c.why)}</p>
-<p class="muted">${others > 0 ? `${plural(others, 'other occurrence')}; ${plural(g.testsAffected, 'test')} affected in total.` : 'No other occurrences.'}</p>
+<p class="muted">${others > 0 ? `${plural(g.findings.length, 'occurrence')} across ${plural(g.testsAffected, 'test')}.` : 'One occurrence.'}</p>
 </article>`;
     })
     .join('\n');
@@ -199,18 +205,33 @@ function renderFlake(findings: readonly Finding[]): string {
 <p class="sub">Worst files</p><ul class="plain">${worst}</ul>`;
 }
 
+function cleanCheckMessage(m: string): string {
+  return m
+    .replace(/^Needs a human check:\s*/, '')
+    .replace(/\s*Not counted against the score\.?\s*$/, '')
+    .replace(/^no expect\(\.\.\.\) in this test body, but it calls /, 'No expect() in the test; it calls ');
+}
+
 function renderNeedsCheck(findings: readonly Finding[]): string {
   const items = findings.filter(isNeedsCheck).sort(compareFindings);
   if (!items.length) return '<p class="muted">Nothing needed a human check.</p>';
-  const shown = items.slice(0, 8);
+  const byFile = new Map<string, Finding[]>();
+  for (const f of items) {
+    const list = byFile.get(f.file);
+    if (list) list.push(f);
+    else byFile.set(f.file, [f]);
+  }
+  const files = [...byFile.entries()];
+  const shown = files.slice(0, 6);
   const rows = shown
-    .map(
-      (f) =>
-        `<li><code>${escapeHtml(loc(f))}</code> ${escapeHtml(copyFor(f.rule).title)}<br><span class="muted">${escapeHtml(f.message)}</span></li>`
-    )
+    .map(([file, list]) => {
+      const lines = list.filter((f) => f.line).map((f) => f.line).join(', ');
+      return `<li><code>${escapeHtml(file)}</code> <span class="muted">${plural(list.length, 'test')}${lines ? `, line${list.length === 1 ? '' : 's'} ${escapeHtml(lines)}` : ''}</span><br><span class="muted">${escapeHtml(cleanCheckMessage(list[0]!.message))}</span></li>`;
+    })
     .join('');
-  const more = items.length > shown.length ? `<p class="muted">and ${items.length - shown.length} more.</p>` : '';
-  return `<p class="note">The scorer could not decide these on its own. They are <strong>not counted in the score</strong>: please look at them yourself.</p><ul class="plain">${rows}</ul>${more}`;
+  const hidden = items.length - shown.reduce((n, [, l]) => n + l.length, 0);
+  const more = hidden > 0 ? `<p class="muted">and ${plural(hidden, 'more test')} in ${plural(files.length - shown.length, 'other file')}.</p>` : '';
+  return `<p class="note">${plural(items.length, 'test')} may not check anything, or check it somewhere the scorer cannot see. They are <strong>not counted in the score</strong>: confirm that the helper behind each one really asserts.</p><ul class="plain">${rows}</ul>${more}`;
 }
 
 const GENERIC_STEPS = [
@@ -219,12 +240,13 @@ const GENERIC_STEPS = [
   'Review any items under "Needs a human check" by hand.',
 ];
 
-function nextSteps(groups: RuleGroup[]): string[] {
+function nextSteps(groups: RuleGroup[], extra: string[] = []): string[] {
   const steps: string[] = [];
-  for (const g of groups) {
-    const fix = copyFor(g.rule).fix;
-    if (!steps.includes(fix)) steps.push(fix);
-    if (steps.length === 3) break;
+  const fixes = groups.map((g) => copyFor(g.rule).fix).filter((f, i, a) => a.indexOf(f) === i);
+  const maxFromFindings = 3 - Math.min(extra.length, 1);
+  for (const fix of fixes.slice(0, maxFromFindings)) steps.push(fix);
+  for (const e of extra) {
+    if (steps.length < 3) steps.push(e);
   }
   for (const s of GENERIC_STEPS) {
     if (steps.length >= 3) break;
@@ -236,10 +258,15 @@ function nextSteps(groups: RuleGroup[]): string[] {
 export function formatReport(result: ScoreResult, opts: ReportOptions): string {
   const { summary } = result;
   const clean = summary.cleanTests;
+  const parseErrorFiles = new Set(
+    result.findings.filter((f) => f.rule === PARSE_ERROR_RULE).map((f) => f.file)
+  ).size;
   const meaning =
-    summary.tests === 0
-      ? 'No tests were found.'
-      : `${clean} of ${summary.tests} tests are clean.`;
+    parseErrorFiles > 0
+      ? `${plural(parseErrorFiles, 'file')} could not be parsed, so the suite was not scored.`
+      : summary.tests === 0
+        ? 'No tests were found.'
+        : `${clean} of ${summary.tests} tests are clean.`;
   const top = rankTopFindings(result.findings, 5);
   const weights = PROFILE_WEIGHTS[result.profile] ?? PROFILE_WEIGHTS.standard;
 
@@ -251,7 +278,13 @@ export function formatReport(result: ScoreResult, opts: ReportOptions): string {
 <p class="muted">${escapeHtml(d.meaning)}</p></div>`;
   }).join('\n');
 
-  const steps = nextSteps(top)
+  const extraSteps: string[] = [];
+  if (result.findings.some(isNeedsCheck)) {
+    extraSteps.push('Have someone confirm that the tests under "Needs a human check" really assert, since the score cannot tell.');
+  } else if ((result.dimensions.locators ?? 100) < 75) {
+    extraSteps.push('Move CSS and XPath selectors to role, label or test-id locators, starting with the busiest page objects.');
+  }
+  const steps = nextSteps(top, extraSteps)
     .map((s) => `<li>${escapeHtml(s)}</li>`)
     .join('');
 
@@ -270,7 +303,11 @@ export function formatReport(result: ScoreResult, opts: ReportOptions): string {
 <div class="score g-${result.grade}"><span class="big">${result.score}</span><span class="of">/100</span><span class="grade">${result.grade}</span></div>
 <div>
 <h1>${escapeHtml(meaning)}</h1>
-<p class="muted">${result.pass ? 'Passes' : 'Below'} the ${result.threshold} threshold.</p>
+<p class="muted">${result.pass ? 'Meets' : 'Below'} the pass mark of ${result.threshold}.</p>${
+  summary.unverifiedTests > 0
+    ? `\n<p class="muted">${plural(summary.unverifiedTests, 'test')} ${summary.unverifiedTests === 1 ? 'needs' : 'need'} a human check, not counted in the score.</p>`
+    : ''
+}
 <p class="meta"><code>${escapeHtml(opts.suiteName)}</code><br>${plural(summary.tests, 'test')} in ${plural(summary.files, 'file')} · ${escapeHtml(opts.date)} · scorer ${escapeHtml(opts.version)}</p>
 </div>
 </header>

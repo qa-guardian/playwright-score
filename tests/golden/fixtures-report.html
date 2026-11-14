@@ -64,9 +64,9 @@ section{break-inside:auto}
 <header>
 <div class="score g-F"><span class="big">0</span><span class="of">/100</span><span class="grade">F</span></div>
 <div>
-<h1>No tests were found.</h1>
-<p class="muted">Below the 80 threshold.</p>
-<p class="meta"><code>fixtures</code><br>0 tests in 19 files · 2026-11-14 · scorer 0.0.0-test</p>
+<h1>1 file could not be parsed, so the suite was not scored.</h1>
+<p class="muted">Below the pass mark of 80.</p>
+<p class="meta"><code>fixtures</code><br>0 tests in 49 files · 2026-11-14 · scorer 0.0.0-test</p>
 </div>
 </header>
 
@@ -87,53 +87,53 @@ section{break-inside:auto}
 
 <section><h2>Top findings</h2>
 <article class="finding sev-error">
-<h3><span class="rank">1</span>Waiting for the network to go quiet <span class="tag high">high confidence</span></h3>
-<p class="where"><code>bad-waits.spec.ts:8</code></p>
-<pre class="code" aria-label="Code excerpt"><span class="ln"><i>5</i>    await page.goto(&#39;/app&#39;);</span><span class="ln"><i>6</i>    await page.waitForTimeout(5000);</span><span class="ln"><i>7</i>    await page.locator(&#39;.btn-primary&#39;).click({ force: true });</span><span class="ln hit"><i>8</i>    await page.waitForLoadState(&#39;networkidle&#39;);</span><span class="ln"><i>9</i>    await expect(page.locator(&#39;.done&#39;)).toBeVisible();</span><span class="ln"><i>10</i>  });</span><span class="ln"><i>11</i>});</span></pre>
-<p class="why">Pages with polling, analytics or websockets never go idle, so this wait is slow and unreliable.</p>
-<p class="muted">No other occurrences.</p>
-</article>
-<article class="finding sev-error">
-<h3><span class="rank">2</span>Fixed pause before continuing <span class="tag high">high confidence</span></h3>
-<p class="where"><code>bad-waits.spec.ts:6</code></p>
-<pre class="code" aria-label="Code excerpt"><span class="ln"><i>3</i>test.describe(&#39;Flaky waits&#39;, () =&gt; {</span><span class="ln"><i>4</i>  test(&#39;uses hard waits&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>5</i>    await page.goto(&#39;/app&#39;);</span><span class="ln hit"><i>6</i>    await page.waitForTimeout(5000);</span><span class="ln"><i>7</i>    await page.locator(&#39;.btn-primary&#39;).click({ force: true });</span><span class="ln"><i>8</i>    await page.waitForLoadState(&#39;networkidle&#39;);</span><span class="ln"><i>9</i>    await expect(page.locator(&#39;.done&#39;)).toBeVisible();</span></pre>
-<p class="why">A fixed delay is either too short and the test flakes, or too long and every run wastes time.</p>
-<p class="muted">No other occurrences.</p>
-</article>
-<article class="finding sev-error">
-<h3><span class="rank">3</span>File that could not be parsed <span class="tag medium">medium confidence</span></h3>
+<h3><span class="rank">1</span>File that could not be parsed <span class="tag high">high confidence</span></h3>
 <p class="where"><code>bad-syntax-error.spec.ts:5</code></p>
 <pre class="code" aria-label="Code excerpt"><span class="ln"><i>2</i> </span><span class="ln"><i>3</i>test(&#39;broken&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>4</i>  await page.goto(&#39;/foo&#39;</span><span class="ln hit"><i>5</i>  await expect(page).toHaveTitle(&#39;x&#39;);</span><span class="ln"><i>6</i>});</span><span class="ln"><i>7</i> </span></pre>
-<p class="why">The file has a syntax error, so none of its tests could be checked or run.</p>
-<p class="muted">No other occurrences.</p>
+<p class="why">The file cannot run, so none of its tests protect the product until the syntax error is fixed.</p>
+<p class="muted">One occurrence.</p>
+</article>
+<article class="finding sev-error">
+<h3><span class="rank">2</span>Waiting for the network to go quiet <span class="tag high">high confidence</span></h3>
+<p class="where"><code>bad-waits.spec.ts:8</code></p>
+<pre class="code" aria-label="Code excerpt"><span class="ln"><i>5</i>    await page.goto(&#39;/app&#39;);</span><span class="ln"><i>6</i>    await page.waitForTimeout(5000);</span><span class="ln"><i>7</i>    await page.locator(&#39;.btn-primary&#39;).click({ force: true });</span><span class="ln hit"><i>8</i>    await page.waitForLoadState(&#39;networkidle&#39;);</span><span class="ln"><i>9</i>    await expect(page.locator(&#39;.done&#39;)).toBeVisible();</span><span class="ln"><i>10</i>  });</span><span class="ln"><i>11</i>});</span></pre>
+<p class="why">Pages that poll or stream never go quiet, so these tests time out at random and block releases for no real defect.</p>
+<p class="muted">One occurrence.</p>
+</article>
+<article class="finding sev-error">
+<h3><span class="rank">3</span>Fixed pause before continuing <span class="tag high">high confidence</span></h3>
+<p class="where"><code>bad-waits.spec.ts:6</code></p>
+<pre class="code" aria-label="Code excerpt"><span class="ln"><i>3</i>test.describe(&#39;Flaky waits&#39;, () =&gt; {</span><span class="ln"><i>4</i>  test(&#39;uses hard waits&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>5</i>    await page.goto(&#39;/app&#39;);</span><span class="ln hit"><i>6</i>    await page.waitForTimeout(5000);</span><span class="ln"><i>7</i>    await page.locator(&#39;.btn-primary&#39;).click({ force: true });</span><span class="ln"><i>8</i>    await page.waitForLoadState(&#39;networkidle&#39;);</span><span class="ln"><i>9</i>    await expect(page.locator(&#39;.done&#39;)).toBeVisible();</span></pre>
+<p class="why">Fixed delays make runs slower and cause random red builds, so engineers re-run pipelines and learn to ignore failures.</p>
+<p class="muted">One occurrence.</p>
 </article>
 <article class="finding sev-error">
 <h3><span class="rank">4</span>Test with no assertion <span class="tag medium">medium confidence</span></h3>
 <p class="where"><code>bad-no-expects.spec.ts:4</code></p>
 <pre class="code" aria-label="Code excerpt"><span class="ln"><i>1</i>import { test } from &#39;@playwright/test&#39;;</span><span class="ln"><i>2</i> </span><span class="ln"><i>3</i>test.describe(&#39;No assertions&#39;, () =&gt; {</span><span class="ln hit"><i>4</i>  test(&#39;clicks around&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>5</i>    await page.goto(&#39;/app&#39;);</span><span class="ln"><i>6</i>    await page.getByRole(&#39;button&#39;, { name: &#39;Go&#39; }).click();</span><span class="ln"><i>7</i>  });</span></pre>
-<p class="why">A test that checks nothing passes even when the feature is broken.</p>
-<p class="muted">No other occurrences.</p>
+<p class="why">A test with no check passes even when the feature is broken, so a green build can hide a real outage.</p>
+<p class="muted">19 occurrences across 19 tests.</p>
 </article>
 <article class="finding sev-error">
-<h3><span class="rank">5</span>Click forced past a blocking element <span class="tag medium">medium confidence</span></h3>
-<p class="where"><code>bad-waits.spec.ts:7</code></p>
-<pre class="code" aria-label="Code excerpt"><span class="ln"><i>4</i>  test(&#39;uses hard waits&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>5</i>    await page.goto(&#39;/app&#39;);</span><span class="ln"><i>6</i>    await page.waitForTimeout(5000);</span><span class="ln hit"><i>7</i>    await page.locator(&#39;.btn-primary&#39;).click({ force: true });</span><span class="ln"><i>8</i>    await page.waitForLoadState(&#39;networkidle&#39;);</span><span class="ln"><i>9</i>    await expect(page.locator(&#39;.done&#39;)).toBeVisible();</span><span class="ln"><i>10</i>  });</span></pre>
-<p class="why">force: true skips the checks a real user is subject to, so it can hide a genuinely broken page.</p>
-<p class="muted">No other occurrences.</p>
+<h3><span class="rank">5</span>Sleep written as a timer <span class="tag medium">medium confidence</span></h3>
+<p class="where"><code>bad-gameable.spec.ts:12</code></p>
+<pre class="code" aria-label="Code excerpt"><span class="ln"><i>9</i>test.describe(&#39;gameable patterns&#39;, () =&gt; {</span><span class="ln"><i>10</i>  test(&#39;sleeps instead of waiting for a condition&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>11</i>    await page.goto(&#39;/app&#39;);</span><span class="ln hit"><i>12</i>    await new Promise((resolve) =&gt; setTimeout(resolve, 5000));</span><span class="ln"><i>13</i>    await expect(page.getByRole(&#39;heading&#39;)).toBeVisible();</span><span class="ln"><i>14</i>  });</span><span class="ln"><i>15</i> </span></pre>
+<p class="why">A timer is a fixed delay in disguise: slower runs and random red builds that cost engineering time.</p>
+<p class="muted">9 occurrences across 8 tests.</p>
 </article>
 </section>
 
 <section><h2>Flake risk</h2>
-<table><thead><tr><th>Pattern</th><th class="num">Count</th></tr></thead><tbody><tr><td>Click forced past a blocking element</td><td class="num">1</td></tr><tr><td>Waiting for the network to go quiet</td><td class="num">1</td></tr><tr><td>Fixed pause before continuing</td><td class="num">1</td></tr><tr><td>Sleep written as a timer</td><td class="num">1</td></tr></tbody></table>
-<p class="sub">Worst files</p><ul class="plain"><li><code>bad-waits.spec.ts</code> <span class="muted">3 flake-prone calls</span></li><li><code>bad-gameable.spec.ts</code> <span class="muted">1 flake-prone call</span></li></ul>
+<table><thead><tr><th>Pattern</th><th class="num">Count</th></tr></thead><tbody><tr><td>Sleep written as a timer</td><td class="num">9</td></tr><tr><td>Click forced past a blocking element</td><td class="num">1</td></tr><tr><td>Waiting for the network to go quiet</td><td class="num">1</td></tr><tr><td>Fixed pause before continuing</td><td class="num">1</td></tr></tbody></table>
+<p class="sub">Worst files</p><ul class="plain"><li><code>bad-standard-sleep-in-test.spec.ts</code> <span class="muted">4 flake-prone calls</span></li><li><code>bad-standard-polling-sleep.spec.ts</code> <span class="muted">3 flake-prone calls</span></li><li><code>bad-waits.spec.ts</code> <span class="muted">3 flake-prone calls</span></li></ul>
 </section>
 
 <section><h2>Needs a human check</h2>
-<p class="muted">Nothing needed a human check.</p>
+<p class="note">5 tests may not check anything, or check it somewhere the scorer cannot see. They are <strong>not counted in the score</strong>: confirm that the helper behind each one really asserts.</p><ul class="plain"><li><code>good-standard-unresolved-fixture-call.spec.ts</code> <span class="muted">1 test, line 7</span><br><span class="muted">No expect() in the test; it calls toBeVisible() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li><li><code>round2/alias/specs/alias.spec.ts</code> <span class="muted">1 test, line 2</span><br><span class="muted">No expect() in the test; it calls a11y() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li><li><code>round2/good-assertion-like-names.spec.ts</code> <span class="muted">2 tests, lines 6, 9</span><br><span class="muted">No expect() in the test; it calls checkInvoiceTotals() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li><li><code>round2/good-destructure-assertion.spec.ts</code> <span class="muted">1 test, line 5</span><br><span class="muted">No expect() in the test; it calls toBeVisible(), toHaveTitle() on an object defined elsewhere (page object, injected fixture or imported helper) that this scan cannot read, so the assertion may live there.</span></li></ul>
 </section>
 
 <section><h2>What to do next</h2>
-<ol><li>Wait for the specific element or response the test needs instead of networkidle.</li><li>Replace waitForTimeout() with a web-first assertion such as expect(locator).toBeVisible().</li><li>Fix the syntax error and re-run the score.</li></ol>
+<ol><li>Fix the syntax error and re-run the score.</li><li>Wait for the specific element or response the test needs instead of networkidle.</li><li>Have someone confirm that the tests under &quot;Needs a human check&quot; really assert, since the score cannot tell.</li></ol>
 </section>
 
 <footer>Generated by @qaguardian/playwright-score 0.0.0-test. Deterministic: the same files always give the same score.</footer>

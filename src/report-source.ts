@@ -37,13 +37,19 @@ function findBySuffix(dir: string, rel: string, depth: number): string | undefin
 }
 
 /**
- * Finding.file is relative to the scored files' common ancestor, which the
- * result does not record. Resolve it against each input path (file inputs:
- * their directory; directory inputs: a bounded search below them). Reads are
- * confined to the input directories, and a finding path with `..` segments
- * is refused.
+ * Finding.file is relative to the scored files' common ancestor, recorded in
+ * the result as `baseDir`: when given, the file is read from exactly there.
+ * Without it (older results) fall back to resolving against each input path
+ * (file inputs: their directory; directory inputs: a bounded search below
+ * them), which can pick the wrong file when names repeat. Either way a
+ * finding path that is absolute or has `..` segments is refused, and the
+ * resolved file must stay inside `baseDir`.
  */
-export function makeSourceReader(inputs: readonly string[], cwd: string): SourceReader {
+export function makeSourceReader(
+  inputs: readonly string[],
+  cwd: string,
+  baseDir?: string
+): SourceReader {
   const bases = inputs
     .filter((p) => !/[*?{]/.test(p))
     .map((p) => path.resolve(cwd, p))
@@ -61,6 +67,18 @@ export function makeSourceReader(inputs: readonly string[], cwd: string): Source
     let text: string | undefined;
     const segments = file.split(/[/\\]/);
     if (!path.isAbsolute(file) && !segments.includes('..')) {
+      if (baseDir) {
+        const root = path.resolve(baseDir);
+        const abs = path.resolve(root, file);
+        try {
+          const real = fs.realpathSync(abs);
+          if (real.startsWith(fs.realpathSync(root) + path.sep)) text = readIfFile(real);
+        } catch {
+          text = undefined;
+        }
+        cache.set(file, text);
+        return text;
+      }
       for (const base of bases) {
         const hit = findBySuffix(base, file, 0);
         if (hit) {

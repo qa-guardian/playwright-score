@@ -23,6 +23,15 @@ Scoring is unchanged. Output only (QAG-288).
   needs-check) and every rule has a plain-English title. The text and
   markdown formats list findings by severity, then confidence, instead of
   file order.
+- The report states how many tests need a human check (the report-only
+  `playwright-score/assertion-unverified` findings, kept out of the score),
+  groups them by file, and reads "why it matters" in business terms. A suite
+  hard-failed by an unparseable file says so in the headline.
+- Results gain an optional `baseDir`: the absolute directory every
+  `Finding.file` is relative to. The report reads code excerpts from it
+  instead of searching input directories by path suffix (which could pick a
+  same-named file elsewhere), and never prints it. A rule without plain-English
+  copy renders with a generic title instead of failing.
 
 ## 2.2.0 — 2026-11-14
 

@@ -13,57 +13,57 @@ export interface RuleCopy {
 export const RULE_COPY: Record<string, RuleCopy> = {
   'playwright/no-wait-for-timeout': {
     title: 'Fixed pause before continuing',
-    why: 'A fixed delay is either too short and the test flakes, or too long and every run wastes time.',
+    why: 'Fixed delays make runs slower and cause random red builds, so engineers re-run pipelines and learn to ignore failures.',
     fix: 'Replace waitForTimeout() with a web-first assertion such as expect(locator).toBeVisible().',
   },
   'playwright/no-networkidle': {
     title: 'Waiting for the network to go quiet',
-    why: 'Pages with polling, analytics or websockets never go idle, so this wait is slow and unreliable.',
+    why: 'Pages that poll or stream never go quiet, so these tests time out at random and block releases for no real defect.',
     fix: 'Wait for the specific element or response the test needs instead of networkidle.',
   },
   'playwright/no-force-option': {
     title: 'Click forced past a blocking element',
-    why: 'force: true skips the checks a real user is subject to, so it can hide a genuinely broken page.',
+    why: 'Forcing a click bypasses what a real user is blocked by, so a broken or covered button can ship with a green build.',
     fix: 'Remove { force: true } and fix what is covering the element, or wait for it to be actionable.',
   },
   'playwright/no-wait-for-selector': {
     title: 'Legacy selector wait',
-    why: 'waitForSelector is a manual wait that locators and assertions already do automatically.',
+    why: 'Manual waits add delay and random failures that locators already handle, so CI is slower and less trusted.',
     fix: 'Use a locator with an expect(...).toBeVisible() assertion in place of waitForSelector.',
   },
   'playwright/no-wait-for-navigation': {
     title: 'Deprecated navigation wait',
-    why: 'waitForNavigation races with the action that triggers it and is deprecated by Playwright.',
+    why: 'This wait can miss the navigation it is waiting for, which causes random failures that block releases.',
     fix: 'Assert on the new URL or page content with expect(page).toHaveURL() instead.',
   },
   'playwright/missing-playwright-await': {
     title: 'Playwright call that is never awaited',
-    why: 'Without await the step runs in the background, so the test can pass before the check has happened or fail at random.',
+    why: 'The test can finish before the step runs, so it passes while the feature is broken or fails at random.',
     fix: 'Add await to every Playwright action and expect() call that returns a promise.',
   },
   'playwright/no-element-handle': {
     title: 'Element handle instead of a locator',
-    why: 'Handles go stale when the page re-renders and do not retry, which causes intermittent failures.',
+    why: 'Stale handles fail after the page re-renders, which shows up as random red builds nobody can reproduce.',
     fix: 'Replace $() and $$() handles with page.locator() or role-based locators.',
   },
   'playwright/no-eval': {
     title: 'Page code evaluated inside the test',
-    why: 'Reading the DOM with $eval skips auto-waiting and checks a snapshot that may already be out of date.',
+    why: 'It checks a snapshot that may be out of date, so a test can pass or fail for reasons unrelated to the product.',
     fix: 'Use locator assertions such as toHaveText() or toHaveValue() in place of $eval.',
   },
   'playwright/no-conditional-in-test': {
     title: 'Test logic that branches',
-    why: 'An if inside a test means different runs can check different things, so a pass does not mean the same thing twice.',
+    why: 'Different runs can check different things, so a green build does not reliably mean the feature works.',
     fix: 'Split the branches into separate tests or use test.skip(condition, reason).',
   },
   'playwright/no-conditional-expect': {
     title: 'Assertion that only sometimes runs',
-    why: 'An expect inside a condition can be skipped silently, so the test may pass without checking anything.',
+    why: 'The check can be skipped silently, so a broken feature can still go out under a green build.',
     fix: 'Move the expect out of the condition so it always runs.',
   },
   'playwright/no-page-pause': {
     title: 'Debugger pause left in a test',
-    why: 'page.pause() stops a run and hangs forever in CI.',
+    why: 'It halts the run until someone intervenes, so the CI job hangs and holds up the release pipeline.',
     fix: 'Delete page.pause() calls before committing.',
   },
   'playwright/no-useless-await': {
@@ -73,47 +73,47 @@ export const RULE_COPY: Record<string, RuleCopy> = {
   },
   'playwright/expect-expect': {
     title: 'Test with no assertion',
-    why: 'A test that checks nothing passes even when the feature is broken.',
+    why: 'A test with no check passes even when the feature is broken, so a green build can hide a real outage.',
     fix: 'Add at least one expect() that proves the outcome the test is named for.',
   },
   'playwright/prefer-web-first-assertions': {
     title: 'Assertion that does not retry',
-    why: 'Checking a value once, instead of with a retrying assertion, fails whenever the page is a moment slow.',
+    why: 'A one-shot check fails whenever the page is a moment slow, so the build goes red without a real defect.',
     fix: 'Use await expect(locator).toBeVisible() or toHaveText() in place of expect(await locator.isVisible()).',
   },
   'playwright/valid-expect': {
     title: 'Malformed expect() call',
-    why: 'An expect() with no matcher, or one that is never awaited, does not check anything.',
+    why: 'An incomplete check verifies nothing, so a broken feature can ship while the test reports success.',
     fix: 'Complete each expect() with a matcher and await it.',
   },
   'playwright/no-standalone-expect': {
     title: 'Assertion outside any test',
-    why: 'An expect outside a test or hook runs at load time and fails with a confusing error.',
+    why: 'It runs at load time and fails the whole run with a confusing error, which costs engineers time to diagnose.',
     fix: 'Move the expect inside a test() or a hook.',
   },
   'playwright/no-raw-locators': {
     title: 'CSS or XPath locator',
-    why: 'Selectors tied to markup break whenever the layout or class names change, and say nothing about what the user sees.',
+    why: 'Selectors tied to CSS or XPath break on every redesign, so each UI change means unplanned test maintenance.',
     fix: 'Use getByRole, getByLabel or getByTestId so locators follow what the user sees.',
   },
   'playwright/prefer-native-locators': {
     title: 'Generic locator where a built-in one exists',
-    why: 'Built-in locators read as user intent and survive markup changes better.',
+    why: 'Selectors tied to markup break on redesigns, so UI changes turn into test-maintenance work.',
     fix: 'Switch locator("text=...") style calls to getByText, getByRole or getByLabel.',
   },
   'playwright/prefer-locator': {
     title: 'Page method used where a locator is better',
-    why: 'Locators retry and are reusable; page-level helpers do neither.',
+    why: 'Page-level helpers do not retry, so tests fail on slow pages and need hand-fixing.',
     fix: 'Create a locator and call the action on it.',
   },
   'playwright/no-focused-test': {
     title: 'Focused test left in (test.only)',
-    why: 'test.only silently skips every other test in the run, so the suite looks green while most of it never ran.',
+    why: 'test.only silently skips every other test, so the build looks green while most of the suite never ran.',
     fix: 'Remove .only and set forbidOnly: !!process.env.CI in the Playwright config.',
   },
   'pwscore/no-skipped-test-declaration': {
     title: 'Test that is switched off',
-    why: 'A skipped test is a test nobody is checking, and it tends to stay skipped.',
+    why: 'A skipped test protects nothing, and skipped tests tend to stay skipped, so coverage quietly shrinks.',
     fix: 'Fix and re-enable each skipped test, or delete it.',
   },
   'playwright/max-nested-describe': {
@@ -128,37 +128,42 @@ export const RULE_COPY: Record<string, RuleCopy> = {
   },
   'metrics/oversized-file': {
     title: 'Very large spec file',
-    why: 'Huge files are slow to review, hard to shard and tend to hide shared state between tests.',
+    why: 'Huge files are slow to review and shard, and hide shared state, so failures are harder to trace and fix.',
     fix: 'Split the file by feature so each spec stays readable.',
   },
   'pwscore/no-timer-sleep': {
     title: 'Sleep written as a timer',
-    why: 'setTimeout or a sleep helper is a hard wait in disguise, with the same flakiness and cost.',
+    why: 'A timer is a fixed delay in disguise: slower runs and random red builds that cost engineering time.',
     fix: 'Replace the timer with an assertion on the state you are waiting for.',
   },
   'pwscore/no-coordinate-click': {
     title: 'Click at screen coordinates',
-    why: 'Pixel positions break at a different viewport, zoom or layout (unless the target is a canvas).',
+    why: 'Pixel positions break at another screen size or layout, so the test fails when nothing is wrong with the product.',
     fix: 'Click a locator instead of page.mouse.click(x, y), except on canvas surfaces.',
   },
   'pwscore/no-trivial-assertion': {
     title: 'Assertion that cannot fail',
-    why: 'Something like expect(true).toBe(true) raises the assertion count without checking the app.',
+    why: 'It inflates the number of checks without checking the product, so coverage looks better than it is.',
     fix: 'Assert on real page state, such as a heading, URL or row count.',
   },
   'pwscore/no-soft-assertion-only-test': {
     title: 'Test with only soft assertions',
-    why: 'Soft assertions record a failure but never stop the test, so a slip can go unnoticed if nothing hard follows.',
+    why: 'Failures are recorded but may not stop or fail the run as intended, so a regression can slip through.',
     fix: 'Keep soft assertions for extras and end the test with a hard expect().',
   },
   'pwscore/eslint-disable-comment': {
     title: 'Lint rule switched off with a comment',
-    why: 'A disable comment hides a problem from the scorer and the next reviewer.',
+    why: 'A disable comment hides a problem from reviewers and from this score, so known issues stay unfixed.',
     fix: 'Fix the code the comment is hiding, or justify the exception in review.',
+  },
+  'playwright-score/assertion-unverified': {
+    title: 'Test that may check nothing',
+    why: 'The test may check nothing of its own, so it could pass while the feature is broken. A human should confirm.',
+    fix: 'Confirm the helper really asserts, or add an expect() to the test itself.',
   },
   'playwright-score/parse-error': {
     title: 'File that could not be parsed',
-    why: 'The file has a syntax error, so none of its tests could be checked or run.',
+    why: 'The file cannot run, so none of its tests protect the product until the syntax error is fixed.',
     fix: 'Fix the syntax error and re-run the score.',
   },
 };

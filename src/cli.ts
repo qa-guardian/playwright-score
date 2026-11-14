@@ -169,7 +169,7 @@ async function main(): Promise<void> {
           date: new Date().toISOString().slice(0, 10),
           version: await packageVersion(),
           suiteName: suiteName(paths),
-          readSource: makeSourceReader(paths, process.cwd()),
+          readSource: makeSourceReader(paths, process.cwd(), result.baseDir),
         });
         break;
       default:

@@ -8,6 +8,8 @@ import { ESLINT_RULE_MAP } from '../src/profiles.js';
 import { RULE_COPY } from '../src/rule-copy.js';
 import { confidenceOf, sortFindings } from '../src/confidence.js';
 import { formatReport, rankTopFindings, escapeHtml } from '../src/formatters/report.js';
+import { makeSourceReader } from '../src/report-source.js';
+import os from 'node:os';
 import { formatText } from '../src/formatters/text.js';
 import type { Finding, ScoreResult } from '../src/types.js';
 
@@ -45,7 +47,7 @@ function fakeResult(findings: Finding[]): ScoreResult {
     threshold: 80,
     summary: {
       files: 2, tests: 10, sloc: 100, findings: findings.length, errors: 0, warnings: 0,
-      nativeLocators: 0, rawLocators: 0, unassertedTests: 0, cleanTests: 4,
+      nativeLocators: 0, rawLocators: 0, unassertedTests: 0, unverifiedTests: 0, cleanTests: 4,
     },
     dimensions: { playwrightHygiene: 50, assertions: 70, locators: 60, structure: 90 },
     findings,
@@ -155,17 +157,57 @@ describe('report golden (fixtures/)', () => {
       date: '2026-11-14',
       version: '0.0.0-test',
       suiteName: 'fixtures',
-      readSource: (f) => {
-        const p = path.join(fixtures, f);
-        return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : undefined;
-      },
+      readSource: makeSourceReader([fixtures], root, result.baseDir),
     });
     if (process.env.UPDATE_GOLDEN === '1') {
       fs.mkdirSync(path.dirname(goldenFile), { recursive: true });
       fs.writeFileSync(goldenFile, html, 'utf8');
     }
     assert.equal(html, fs.readFileSync(goldenFile, 'utf8'));
+    assert.ok(result.baseDir, 'scorePaths should record baseDir');
+    assert.ok(!html.includes(result.baseDir!), 'local absolute path leaked into the report');
     assert.ok(!html.includes('http://') && !html.includes('https://'), 'report must have no external links');
     assert.ok(!/<script|<link|@import|url\(/i.test(html), 'report must be self-contained');
+  });
+});
+
+describe('report robustness (QAG-288 slice 1b)', () => {
+  const opts = { date: '2026-01-01', version: '0.0.0', suiteName: 's' };
+
+  it('renders a rule with no copy entry using a generic title instead of throwing', () => {
+    const html = formatReport(fakeResult([finding({ rule: 'pwscore/not-written-yet' })]), opts);
+    assert.ok(html.includes('Other quality issue'));
+  });
+
+  it('shows the unverified count in the headline area', () => {
+    const r = fakeResult([]);
+    r.summary.unverifiedTests = 3;
+    assert.ok(formatReport(r, opts).includes('3 tests need a human check, not counted in the score.'));
+    r.summary.unverifiedTests = 0;
+    assert.ok(!formatReport(r, opts).includes('human check, not counted'));
+  });
+
+  it('tiers assertion-unverified as needs-check', () => {
+    const f = finding({ rule: 'playwright-score/assertion-unverified', dimension: 'assertions', severity: 'info', reportOnly: true });
+    assert.equal(confidenceOf(f), 'needs-check');
+  });
+
+  it('reads excerpts from baseDir, not the first suffix match, and refuses escapes', () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pwscore-src-'));
+    try {
+      fs.mkdirSync(path.join(tmp, 'a', 'e2e'), { recursive: true });
+      fs.mkdirSync(path.join(tmp, 'z', 'e2e'), { recursive: true });
+      fs.writeFileSync(path.join(tmp, 'a', 'e2e', 'x.spec.ts'), 'WRONG');
+      fs.writeFileSync(path.join(tmp, 'z', 'e2e', 'x.spec.ts'), 'RIGHT');
+      fs.writeFileSync(path.join(tmp, 'secret.txt'), 'SECRET');
+      const base = path.join(tmp, 'z');
+      const read = makeSourceReader([tmp], tmp, base);
+      assert.equal(read('e2e/x.spec.ts'), 'RIGHT');
+      assert.equal(read('../secret.txt'), undefined);
+      assert.equal(read(path.join(tmp, 'secret.txt')), undefined);
+      assert.equal(makeSourceReader([tmp], tmp)('e2e/x.spec.ts'), 'WRONG', 'fallback search still works without baseDir');
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });
