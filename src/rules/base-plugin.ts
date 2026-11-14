@@ -204,6 +204,44 @@ function callsResolve(fn: Node | undefined, resolveName: string): boolean {
   );
 }
 
+const LOOP_TYPES = new Set(['ForStatement', 'ForInStatement', 'ForOfStatement', 'WhileStatement', 'DoWhileStatement']);
+
+/**
+ * A retry/backoff pause inside a plain helper function (an API retry loop,
+ * `for (...) { try { ... } catch { await sleep(500) } }`) is not a test
+ * waiting on the UI: it paces calls to a service. Only that shape is
+ * exempt — the sleep must sit in a loop or catch clause inside a function
+ * that is *defined* (function declaration, `const f = () => ...`, class
+ * method) rather than passed to test()/describe()/a hook/test.step. A sleep
+ * directly in a test body or spec-file hook, or a bare `sleep()` helper with
+ * no loop around the pause, is still flagged. `from` is the ancestor index
+ * to start climbing from (the Promise executor's own parent).
+ */
+function isRetryBackoffInHelper(ancestors: Node[], from: number): boolean {
+  let inLoopOrCatch = false;
+  for (let i = from; i >= 0; i--) {
+    const anc = ancestors[i];
+    if (LOOP_TYPES.has(anc.type) || anc.type === 'CatchClause') inLoopOrCatch = true;
+    if (!FUNCTION_TYPES.has(anc.type) && anc.type !== 'FunctionDeclaration') continue;
+    const parent = ancestors[i - 1];
+    if (
+      anc.type === 'FunctionDeclaration' ||
+      parent?.type === 'MethodDefinition' ||
+      parent?.type === 'PropertyDefinition' ||
+      (parent?.type === 'VariableDeclarator' && (parent as { init?: Node }).init === anc)
+    ) {
+      return inLoopOrCatch;
+    }
+    if (parent?.type === 'CallExpression' || parent?.type === 'NewExpression') {
+      // Callback handed to a call (test body, hook, describe, .then, step):
+      // not a free-standing helper. Keep climbing only through promise
+      // glue so a loop around `await new Promise(...)` still counts.
+      return false;
+    }
+  }
+  return false;
+}
+
 /**
  * `await new Promise((resolve) => setTimeout(resolve, ms))` is the same
  * hard-coded sleep as `page.waitForTimeout(ms)` (already flagged, as an
@@ -335,7 +373,7 @@ const noTimerSleep: Rule.RuleModule = {
             const resolveName = resolveParam?.type === 'Identifier' ? resolveParam.name : undefined;
             const isWrappedResolve =
               typeof resolveName === 'string' && callsResolve(firstArg, resolveName);
-            if (isDirectResolve || isWrappedResolve) {
+            if ((isDirectResolve || isWrappedResolve) && !isRetryBackoffInHelper(ancestors, i - 1)) {
               context.report({ node: node as never, messageId: 'sleep' });
             }
           }
@@ -568,7 +606,48 @@ function collectConstBindings(root: Node | Node[] | null | undefined): Map<strin
       if (value.ok) bindings.set(d.id.name, value);
     }
   });
+  // A `const` array is still mutable: `const errors = []; page.on('pageerror',
+  // (e) => errors.push(e)); expect(errors).toEqual([])` is a real assertion
+  // (the listener fills the array), not `expect([]).toEqual([])`. Only keep
+  // an array binding when every reference to it is the plain subject of an
+  // expect(...) call; any other use (method call, passed along, spread,
+  // reassigned element) might mutate it, so it is not a constant.
+  for (const [name, value] of [...bindings]) {
+    if (value.ok && Array.isArray(value.value) && !isOnlyReadAsExpectSubject(root, name)) {
+      bindings.delete(name);
+    }
+  }
   return bindings;
+}
+
+function isOnlyReadAsExpectSubject(root: unknown, name: string): boolean {
+  let ok = true;
+  const visit = (node: unknown, parent: Node | undefined): void => {
+    if (!ok || !node || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      for (const item of node) visit(item, parent);
+      return;
+    }
+    const rec = node as Record<string, unknown>;
+    if (typeof rec.type !== 'string') return;
+    const n = node as Node & { id?: Node };
+    if (n.type === 'Identifier' && n.name === name) {
+      const isDeclId = parent?.type === 'VariableDeclarator' && (parent as { id?: Node }).id === n;
+      const isExpectSubject =
+        parent?.type === 'CallExpression' &&
+        (parent.arguments ?? [])[0] === n &&
+        isExpectCallNode(parent);
+      if (!isDeclId && !isExpectSubject) ok = false;
+      return;
+    }
+    for (const key of Object.keys(rec)) {
+      if (key === 'parent') continue;
+      const v = rec[key];
+      if (v && typeof v === 'object') visit(v, n);
+    }
+  };
+  visit(root, undefined);
+  return ok;
 }
 
 /**
