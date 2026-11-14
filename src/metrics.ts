@@ -1,6 +1,7 @@
 import { parseForESLint } from '@typescript-eslint/parser';
 import type { Finding, LocatorCounts } from './types.js';
 import { countSloc } from './sloc.js';
+import { PLAYWRIGHT_API_METHODS } from './playwright-api-names.js';
 
 // A positive "this IS a Playwright spec" check turned out to be unsafe:
 // Playwright's own custom-fixtures pattern (test/expect re-exported from a
@@ -302,7 +303,7 @@ export function findLocalAssertionHelperNames(source: string, file?: string): st
         body = node.value;
       }
     }
-    if (name && body) candidates.push({ name, body });
+    if (name && body && !PLAYWRIGHT_API_METHODS.has(name)) candidates.push({ name, body });
   });
 
   const names = new Set<string>();
