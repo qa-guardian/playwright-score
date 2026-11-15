@@ -89,13 +89,27 @@ test('seed', async ({ request }) => {
       await new Promise((r) => setTimeout(r, 2000));
     }
   }
-  while (true) {
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
     const res = await request.get('/ready');
     if (res.ok()) return;
     await new Promise((r) => setTimeout(r, 1000));
   }
 });`),
       0
+    );
+  });
+
+  it('TRUE: an unbounded fixed-interval poll of the UI still fires', async () => {
+    assert.equal(
+      await ruleHits(SLEEP, `
+test('wait for banner', async ({ page }) => {
+  while (true) {
+    if (await page.getByRole('banner').isVisible()) break;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+});`),
+      1
     );
   });
 

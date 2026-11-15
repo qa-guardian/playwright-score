@@ -269,10 +269,52 @@ function isRetryBackoffInHelper(ancestors: Node[], from: number): boolean {
  *  - inside a `.route()` handler, or a function assigned onto an object
  *    member (a monkey-patched stub): latency injection on purpose.
  *  - one arm of `Promise.race`: an observation window, not a sleep.
- *  - the pause of a loop that can end by break/return/throw: a bounded
- *    poll or retry that re-checks something between pauses.
+ *  - the pause of a loop that can end by break/return/throw AND is bounded
+ *    (iteration counter or deadline): a capped poll or retry that re-checks
+ *    something between pauses. An unbounded fixed-interval poll still fires.
  */
 const ROUTE_METHODS = new Set(['route', 'routeFromHAR', 'routeWebSocket']);
+
+/**
+ * A loop is bounded when real time cannot grow without limit: it iterates a
+ * finite collection (for...of / for...in), reads the clock (a deadline), or
+ * compares a counter that the loop itself updates (`i < 15`, `attempt === 3`).
+ * `while (true) { if (await el.isVisible()) break; sleep(500) }` has no
+ * such bound: it is a fixed-interval UI poll that can hang forever.
+ */
+const COMPARE_OPS = new Set(['<', '<=', '>', '>=', '===', '==']);
+function loopIsBounded(loop: Node): boolean {
+  if (loop.type === 'ForOfStatement' || loop.type === 'ForInStatement') return true;
+  let clock = false;
+  const updated = new Set<string>();
+  const compared: string[] = [];
+  const visit = (n: unknown): void => {
+    if (!n || typeof n !== 'object') return;
+    if (Array.isArray(n)) {
+      for (const x of n) visit(x);
+      return;
+    }
+    const node = n as Node & Record<string, any>;
+    if (typeof node.type !== 'string') return;
+    if (node.type === 'UpdateExpression' && node.argument?.type === 'Identifier') updated.add(String(node.argument.name));
+    if (node.type === 'AssignmentExpression' && node.left?.type === 'Identifier') updated.add(String(node.left.name));
+    if (node.type === 'BinaryExpression' && COMPARE_OPS.has(String(node.operator))) {
+      for (const side of [node.left, node.right]) if (side?.type === 'Identifier') compared.push(String(side.name));
+    }
+    if (
+      (node.type === 'CallExpression' &&
+        node.callee?.type === 'MemberExpression' &&
+        String(node.callee.property?.name) === 'now' &&
+        ['Date', 'performance'].includes(String(node.callee.object?.name))) ||
+      (node.type === 'NewExpression' && node.callee?.name === 'Date')
+    ) {
+      clock = true;
+    }
+    for (const [k, v] of Object.entries(node)) if (k !== 'parent') visit(v);
+  };
+  visit(loop);
+  return clock || compared.some((name) => updated.has(name));
+}
 
 function loopCanExit(loop: Node): boolean {
   let found = false;
@@ -318,7 +360,7 @@ function isNonWaitSleep(ancestors: Node[], delay: Node | undefined, exprIdx: num
   let crossedFunction = false;
   for (let i = start; i >= 0; i--) {
     const anc = ancestors[i];
-    if (!crossedFunction && LOOP_TYPES.has(anc.type) && loopCanExit(anc)) return true;
+    if (!crossedFunction && LOOP_TYPES.has(anc.type) && loopCanExit(anc) && loopIsBounded(anc)) return true;
     if (!FUNCTION_TYPES.has(anc.type) && anc.type !== 'FunctionDeclaration') continue;
     crossedFunction = true;
     const parent = ancestors[i - 1] as (Node & { left?: Node; right?: Node }) | undefined;
