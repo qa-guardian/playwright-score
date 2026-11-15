@@ -1461,11 +1461,8 @@ describe('2.1.0: spec discovery honors the target\'s own playwright.config testD
       );
       fs.writeFileSync(
         path.join(dir, 'core', 'fake.spec.ts'),
-        `describe('a jest unit test', () => {\n` +
-          `  it('does something unrelated', () => {\n` +
-          `    expect(1 + 1).toBe(2);\n` +
-          `  });\n` +
-          `});\n`
+        `// not a spec, and no framework evidence the denylist could see\n` +
+          `export const unrelated = 1 + 1;\n`
       );
 
       const result = await scorePaths({ paths: [path.join(dir, 'core')], profile: 'standard', cwd: dir });
@@ -1495,11 +1492,8 @@ describe('2.1.0: spec discovery honors the target\'s own playwright.config testD
       );
       fs.writeFileSync(
         path.join(dir, 'core', 'fake.spec.ts'),
-        `describe('a jest unit test', () => {\n` +
-          `  it('does something unrelated', () => {\n` +
-          `    expect(1 + 1).toBe(2);\n` +
-          `  });\n` +
-          `});\n`
+        `// not a spec, and no framework evidence the denylist could see\n` +
+          `export const unrelated = 1 + 1;\n`
       );
 
       const result = await scorePaths({ paths: [path.join(dir, 'core')], profile: 'standard', cwd: dir });
