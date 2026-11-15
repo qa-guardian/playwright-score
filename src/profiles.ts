@@ -132,7 +132,6 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
   // surface (name your test file "canvas-*" to suppress the rule).
   'pwscore/no-coordinate-click': { dimension: 'playwrightHygiene', severityOverride: 'warning' },
   'pwscore/no-trivial-assertion': { dimension: 'assertions' },
-  'pwscore/no-soft-assertion-only-test': { dimension: 'assertions', severityOverride: 'warning' },
   // QAG-287 slice 2b. no-brittle-selector is report-only: the locators ratio already counts every raw call.
   'pwscore/no-unawaited-action': { dimension: 'playwrightHygiene' },
   'pwscore/no-brittle-selector': { dimension: 'locators', severityOverride: 'warning', reportOnly: true },

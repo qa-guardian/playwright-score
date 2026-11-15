@@ -146,11 +146,6 @@ export const RULE_COPY: Record<string, RuleCopy> = {
     why: 'It inflates the number of checks without checking the product, so coverage looks better than it is.',
     fix: 'Assert on real page state, such as a heading, URL or row count.',
   },
-  'pwscore/no-soft-assertion-only-test': {
-    title: 'Test with only soft assertions',
-    why: 'Failures are recorded but may not stop or fail the run as intended, so a regression can slip through.',
-    fix: 'Keep soft assertions for extras and end the test with a hard expect().',
-  },
   'pwscore/eslint-disable-comment': {
     title: 'Lint rule switched off with a comment',
     why: 'A disable comment hides a problem from reviewers and from this score, so known issues stay unfixed.',

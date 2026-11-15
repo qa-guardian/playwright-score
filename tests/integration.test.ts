@@ -62,7 +62,7 @@ describe('scorePaths integration', () => {
     assert.ok(result.score < 100);
   });
 
-  it('catches all four QAG-196 gameability tricks as real, scored findings under standard (model v4 — owner direction: public scores reflect quality, not a report-only compromise)', async () => {
+  it('catches the three remaining QAG-196 gameability tricks as real, scored findings under standard (model v4 — owner direction: public scores reflect quality, not a report-only compromise)', async () => {
     const result = await scorePaths({
       paths: [path.join(fixtures, 'bad-gameable.spec.ts')],
       profile: 'standard',
@@ -73,13 +73,12 @@ describe('scorePaths integration', () => {
       'pwscore/no-timer-sleep',
       'pwscore/no-coordinate-click',
       'pwscore/no-trivial-assertion',
-      'pwscore/no-soft-assertion-only-test',
     ];
     const rules = result.findings.map((f) => f.rule);
     for (const expected of GAMEABILITY_RULES) {
       assert.ok(rules.includes(expected), `expected ${expected}, got: ${rules.join(', ')}`);
     }
-    // v4: none of the four is report-only any more — every one is a real
+    // v4: none of the three is report-only any more — every one is a real
     // demerit under the one remaining public profile (`standard`). See
     // profiles.ts and CHANGELOG.md's 2.0.0 entry.
     for (const rule of GAMEABILITY_RULES) {
@@ -88,7 +87,7 @@ describe('scorePaths integration', () => {
     }
     assert.ok(
       result.score < 100,
-      `expected a real score hit from all four gameability tricks, got ${result.score}`
+      `expected a real score hit from all three gameability tricks, got ${result.score}`
     );
   });
 
@@ -105,8 +104,7 @@ describe('scorePaths integration', () => {
           'pwscore/no-timer-sleep',
           'pwscore/no-coordinate-click',
           'pwscore/no-trivial-assertion',
-          'pwscore/no-soft-assertion-only-test',
-        ].includes(f.rule)
+            ].includes(f.rule)
       ),
       `expected none of the gameability rules to fire, got: ${result.findings.map((f) => f.rule).join(', ')}`
     );
@@ -133,7 +131,7 @@ describe('scorePaths integration', () => {
   it("standard-profile scores of the local fixture corpus reflect v4's scored gameability rules (regression guard — locks in the exact numbers so an accidental rule/severity change is caught)", async () => {
     const EXPECTED_STANDARD_SCORES: Record<string, number> = {
       'bad-conditional-logic.spec.ts': 73,
-      'bad-gameable.spec.ts': 77,
+      'bad-gameable.spec.ts': 73,
       'bad-legacy-selector-actions.spec.ts': 87,
       'bad-no-expects.spec.ts': 75,
       'bad-raw-locators.spec.ts': 67,
@@ -1131,45 +1129,18 @@ describe('pre-1.1.0 review fixes: no-coordinate-click respellings', () => {
   });
 });
 
-describe('pre-1.1.0 review fixes: no-soft-assertion-only-test counts expect.poll as a hard assertion', () => {
-  it('does not flag a test whose only assertion is expect.poll(...) (a failed poll still throws)', async () => {
+describe('QAG-287: the removed no-soft-assertion-only-test rule stays removed', () => {
+  it('a soft-only test is not flagged: a failed expect.soft still fails the test', async () => {
     const result = await scoreSource(
       `import { test, expect } from '@playwright/test';\n` +
-        `test('polls for a condition', async ({ page }) => {\n` +
-        `  await page.goto('/app');\n` +
-        `  await expect.poll(async () => page.title()).toBe('Ready');\n` +
-        `});\n`
-    );
-    assert.ok(
-      !result.findings.some((f) => f.rule === 'pwscore/no-soft-assertion-only-test'),
-      `expected expect.poll to count as a hard assertion: ${JSON.stringify(result.findings)}`
-    );
-  });
-
-  it('still flags a test mixing expect.soft(...) with expect.poll(...) as nothing (poll is hard) but flags soft-with-no-hard-and-no-poll', async () => {
-    const mixed = await scoreSource(
-      `import { test, expect } from '@playwright/test';\n` +
-        `test('soft plus poll', async ({ page }) => {\n` +
-        `  await page.goto('/app');\n` +
-        `  await expect.soft(page.getByRole('heading')).toBeVisible();\n` +
-        `  await expect.poll(async () => page.title()).toBe('Ready');\n` +
-        `});\n`
-    );
-    assert.ok(
-      !mixed.findings.some((f) => f.rule === 'pwscore/no-soft-assertion-only-test'),
-      `expected soft+poll not to be flagged as soft-only: ${JSON.stringify(mixed.findings)}`
-    );
-
-    const softOnly = await scoreSource(
-      `import { test, expect } from '@playwright/test';\n` +
-        `test('soft only, no poll', async ({ page }) => {\n` +
+        `test('soft only', async ({ page }) => {\n` +
         `  await page.goto('/app');\n` +
         `  await expect.soft(page.getByRole('heading')).toBeVisible();\n` +
         `});\n`
     );
     assert.ok(
-      softOnly.findings.some((f) => f.rule === 'pwscore/no-soft-assertion-only-test'),
-      `expected soft-only (no poll) to still be flagged: ${JSON.stringify(softOnly.findings)}`
+      !result.findings.some((f) => f.rule.includes('soft')),
+      `expected no soft-assertion finding: ${JSON.stringify(result.findings)}`
     );
   });
 });
@@ -1377,20 +1348,6 @@ describe('2.1.0: custom test.extend() fixture names are recognized as test decla
     assert.ok(
       result.findings.some((f) => f.rule === 'pwscore/no-skipped-test-declaration'),
       `expected the always-skipped loggedTest.skip(...) declaration to be flagged: ${JSON.stringify(result.findings)}`
-    );
-  });
-
-  it('an aliased fixture\'s soft-assertion-only test is still caught by pwscore/no-soft-assertion-only-test', async () => {
-    const result = await scoreSource(
-      `import { test, expect } from '@playwright/test';\n` +
-        `const loggedTest = test.extend<{}>({});\n\n` +
-        `loggedTest('checks things softly', async ({ page }) => {\n` +
-        `  expect.soft(await page.title()).toBe('x');\n` +
-        `});\n`
-    );
-    assert.ok(
-      result.findings.some((f) => f.rule === 'pwscore/no-soft-assertion-only-test'),
-      `expected the soft-only loggedTest(...) to be flagged: ${JSON.stringify(result.findings)}`
     );
   });
 

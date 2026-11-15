@@ -902,101 +902,11 @@ const noTrivialAssertion: Rule.RuleModule = {
   },
 };
 
-/** `testNames` — see isSkipCallee's doc comment above; same alias treatment. */
-function isTestDeclarationCallee(callee: Node | undefined, testNames: ReadonlySet<string>): boolean {
-  if (!callee) return false;
-  if (callee.type === 'Identifier' && callee.name && testNames.has(callee.name)) return true;
-  if (
-    callee.type === 'MemberExpression' &&
-    !callee.computed &&
-    callee.object?.type === 'Identifier' &&
-    callee.object.name &&
-    testNames.has(callee.object.name) &&
-    callee.property?.type === 'Identifier' &&
-    (callee.property.name === 'only' || callee.property.name === 'fixme')
-  ) {
-    return true;
-  }
-  return false;
-}
-
-/**
- * A test whose every assertion is `expect.soft(...)` never actually
- * fails: a soft assertion records a failure but lets the test keep
- * running and only fails it at the very end via `test.info().errors` —
- * fine for "gather every problem in one run" audit steps, poor default
- * for ordinary flow verification, where a failed precondition should
- * stop the test rather than cascade into confusing downstream failures.
- * A contentious, opinionated check (soft assertions are a legitimate,
- * deliberate choice, not always a defect) — scored as a warning-level
- * demerit as of 2.0.0/model v4, same as the rest of the QAG-196 rules
- * (see profiles.ts and CHANGELOG.md). `expect.poll(...)` counts as a hard
- * assertion, not soft: unlike `expect.soft`, a failed poll still throws
- * and fails the test — it just retries first.
- */
-const noSoftAssertionOnlyTest: Rule.RuleModule = {
-  meta: {
-    type: 'suggestion',
-    docs: {
-      description:
-        'Flag a test whose only assertions are expect.soft(...) — a failed check never fails the test run',
-    },
-    messages: {
-      softOnly:
-        'This test only uses expect.soft(...) assertions — a failed check is recorded but never fails the test. Use a hard expect() for anything that should stop the test.',
-    },
-    schema: [
-      {
-        additionalProperties: false,
-        properties: {
-          testAliasNames: { items: { type: 'string' }, type: 'array' },
-        },
-        type: 'object',
-      },
-    ],
-  },
-  create(context) {
-    const testAliasNames = (context.options[0] as { testAliasNames?: string[] } | undefined)
-      ?.testAliasNames ?? [];
-    const testNames = new Set<string>(['test', ...testAliasNames]);
-    return {
-      CallExpression(node: Node) {
-        if (!isTestDeclarationCallee(node.callee, testNames)) return;
-        const args = node.arguments ?? [];
-        const body = args[args.length - 1];
-        if (!body || !FUNCTION_TYPES.has(body.type)) return;
-        let hard = 0;
-        let soft = 0;
-        walkNode(body.body, (n) => {
-          if (n.type !== 'CallExpression') return;
-          const c = n.callee;
-          if (!c) return;
-          if (c.type === 'Identifier' && c.name === 'expect') hard += 1;
-          else if (
-            c.type === 'MemberExpression' &&
-            !c.computed &&
-            c.object?.type === 'Identifier' &&
-            c.object.name === 'expect' &&
-            c.property?.type === 'Identifier'
-          ) {
-            if (c.property.name === 'soft') soft += 1;
-            else if (c.property.name === 'poll') hard += 1;
-          }
-        });
-        if (soft > 0 && hard === 0) {
-          context.report({ node: node as never, messageId: 'softOnly' });
-        }
-      },
-    };
-  },
-};
-
 const rawRules: Record<string, Rule.RuleModule> = {
   'no-skipped-test-declaration': noSkippedTestDeclaration,
   'no-timer-sleep': noTimerSleep,
   'no-coordinate-click': noCoordinateClick,
   'no-trivial-assertion': noTrivialAssertion,
-  'no-soft-assertion-only-test': noSoftAssertionOnlyTest,
   'no-unawaited-action': noUnawaitedAction,
   'no-brittle-selector': noBrittleSelector,
   'no-shared-mutable-state': noSharedMutableState,

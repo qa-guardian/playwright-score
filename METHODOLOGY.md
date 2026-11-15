@@ -147,7 +147,7 @@ matches one exact syntactic shape and stays silent when unsure.
 v4 keeps v3's per-test ratio formula unchanged. What changed is which
 findings feed it:
 
-1. **Four gameability rules, planned as report-only under `standard`,
+1. **(Historical: `pwscore/no-soft-assertion-only-test` was removed in 2.4.0 because a failed `expect.soft` does fail the test; the other three below remain.) Four gameability rules, planned as report-only under `standard`,
    are real demerits there instead.** 1.1.0 (never published) planned
    `pwscore/no-timer-sleep`,
    `pwscore/no-coordinate-click`, `pwscore/no-trivial-assertion` and
