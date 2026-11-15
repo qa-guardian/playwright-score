@@ -29,7 +29,16 @@ import {
  * test); a reader that also writes the variable itself (its own setup);
  * variables declared inside a test.
  * Mutation = assignment, `++`/`--`, member assignment (`v.x = 1`), or a
- * call of `push/pop/shift/unshift/splice/set/add/delete/clear/sort/reverse`.
+ * call of `push/pop/shift/unshift/splice/set/add/delete/clear/sort/reverse`
+ * on a variable that is known to be a collection (initialised, or assigned
+ * anywhere, with an array/object/Map/Set literal or constructor). A method
+ * call on anything else (an SDK client `payload.delete(...)`) is a call, not
+ * a mutation of the variable.
+ *
+ * QAG-287 slice E2: a writer only counts for a reader when it runs BEFORE the
+ * reader in source order, writes the same property (`made.yearTeam = x` does
+ * not feed a reader of `made.team`), and the reader does not itself call a
+ * same-file helper that assigns the variable (its own setup).
  *
  * Companion `pwscore/serial-mode-dependency` is report-only information:
  * `test.describe.configure({ mode: 'serial' })` and `test.describe.serial()`
@@ -93,27 +102,79 @@ export const noSharedMutableState: Rule.RuleModule = {
           (i.type === 'NewExpression' && i.callee?.type === 'Identifier' && (i.callee.name === 'Map' || i.callee.name === 'Set')))
       );
     };
+    const isCollectionLike = (node: AnyNode): boolean => {
+      const i = unwrap(node);
+      return (
+        !!i &&
+        (i.type === 'ObjectExpression' ||
+          i.type === 'ArrayExpression' ||
+          (i.type === 'NewExpression' &&
+            i.callee?.type === 'Identifier' &&
+            ['Map', 'Set', 'Array', 'WeakMap', 'WeakSet'].includes(i.callee.name)))
+      );
+    };
+    /** First property key read or written through `id` (`v.a.b` -> 'a', `v[0]` -> '0'), if static. */
+    const firstKey = (id: AnyNode): string | undefined => {
+      const m = id.parent;
+      if (m?.type !== 'MemberExpression' || m.object !== id) return undefined;
+      if (!m.computed && m.property?.type === 'Identifier') return m.property.name;
+      if (m.computed && m.property?.type === 'Literal') return String(m.property.value);
+      return undefined;
+    };
+    const startOf = (call: AnyNode): number => (call.range ? call.range[0] : (call.start ?? 0));
+    /** Does the test callback call one of these same-file helpers? */
+    const callsAny = (testCall: AnyNode, names: Set<string>): boolean => {
+      if (names.size === 0) return false;
+      let found = false;
+      const visit = (n: AnyNode): void => {
+        if (found || !n || typeof n !== 'object') return;
+        if (Array.isArray(n)) {
+          for (const x of n) visit(x);
+          return;
+        }
+        if (typeof n.type !== 'string') return;
+        if (n.type === 'CallExpression' && n.callee?.type === 'Identifier' && names.has(n.callee.name)) {
+          found = true;
+          return;
+        }
+        for (const [k, v] of Object.entries(n)) if (k !== 'parent') visit(v);
+      };
+      visit(testCall.arguments);
+      return found;
+    };
+    /** Name of the same-file function (declaration or const arrow) that contains `node`, if any. */
+    const helperNameOf = (node: AnyNode): string | undefined => {
+      const fn = enclosingFunction(node);
+      if (!fn) return undefined;
+      if (fn.type === 'FunctionDeclaration' && fn.id) return fn.id.name;
+      if (fn.parent?.type === 'VariableDeclarator' && fn.parent.id?.type === 'Identifier') return fn.parent.id.name;
+      return undefined;
+    };
     const titleOf = (call: AnyNode): string => {
       const t = call.arguments?.[0];
       return t?.type === 'Literal' && typeof t.value === 'string' ? t.value : 'another test';
     };
-    /** Is this reference a write/mutation of the variable? */
-    const isMutation = (id: AnyNode, ref: AnyNode): boolean => {
-      if (ref.isWrite()) return true;
+    /**
+     * Is this reference a write/mutation of the variable? `path` is the first
+     * property written (`v.x = 1`), undefined for a whole-variable write or a
+     * collection mutation. `isCollection` gates the push/set/add/... calls.
+     */
+    const isMutation = (id: AnyNode, ref: AnyNode, isCollection: boolean): { path?: string } | undefined => {
+      if (ref.isWrite()) return {};
       let child = id;
       let parent = id.parent;
       while (parent?.type === 'MemberExpression' && parent.object === child) {
         const gp = parent.parent;
-        if (gp?.type === 'AssignmentExpression' && gp.left === parent) return true;
-        if (gp?.type === 'UpdateExpression') return true;
+        if (gp?.type === 'AssignmentExpression' && gp.left === parent) return { path: firstKey(id) };
+        if (gp?.type === 'UpdateExpression') return { path: firstKey(id) };
         if (gp?.type === 'CallExpression' && gp.callee === parent) {
           const name = propName(parent);
-          if (name && MUTATORS.has(name) && parent.object === id) return true;
+          if (isCollection && name && MUTATORS.has(name) && parent.object === id) return {};
         }
         child = parent;
         parent = gp;
       }
-      return false;
+      return undefined;
     };
 
     return {
@@ -126,20 +187,32 @@ export const noSharedMutableState: Rule.RuleModule = {
           // Serial mode is Playwright's documented way to share state in order.
           if (isInSerialScope(decl, testNames)) continue;
 
-          const writes = new Map<AnyNode, AnyNode>(); // test call -> write node
+          const refs = variable.references as AnyNode[];
+          const isCollection =
+            isCollectionLike(decl.init) || refs.some((r) => r.isWrite() && r.writeExpr && isCollectionLike(r.writeExpr));
+          type Write = { id: AnyNode; path?: string };
+          const writes = new Map<AnyNode, Write>(); // test call -> first write
           const reads = new Map<AnyNode, AnyNode>(); // test call -> first read identifier
+          const helperWriters = new Set<string>(); // same-file helpers that assign the variable
           let hookReset = false;
-          for (const ref of variable.references as AnyNode[]) {
+          for (const ref of refs) {
             const id = ref.identifier;
             if (id === decl.id) continue;
             const test = owningTest(id);
-            const mutation = isMutation(id, ref);
+            const mutation = isMutation(id, ref, isCollection);
             if (!test) {
-              if (mutation && owningHook(id) === 'beforeEach') hookReset = true;
+              if (mutation) {
+                const hook = owningHook(id);
+                if (hook === 'beforeEach') hookReset = true;
+                if (!hook) {
+                  const helper = helperNameOf(id);
+                  if (helper) helperWriters.add(helper);
+                }
+              }
               continue;
             }
             if (mutation) {
-              if (!writes.has(test)) writes.set(test, id);
+              if (!writes.has(test)) writes.set(test, { id, path: mutation.path });
             } else if (ref.isRead() && !reads.has(test)) {
               reads.set(test, id);
             }
@@ -147,10 +220,18 @@ export const noSharedMutableState: Rule.RuleModule = {
           if (hookReset || writes.size === 0) continue;
           for (const [test, id] of reads) {
             if (writes.has(test)) continue;
+            // A reader that calls a helper which assigns the variable sets it up itself.
+            if (callsAny(test, helperWriters)) continue;
             // Serial mode orders the tests that share state: skip a writer/reader
             // pair only when BOTH sit in a serial scope.
             const readerSerial = isInSerialScope(test, testNames);
-            const writer = [...writes.keys()].find((w) => !(readerSerial && isInSerialScope(w, testNames)));
+            const readKey = firstKey(id);
+            const writer = [...writes.entries()].find(
+              ([w, wr]) =>
+                startOf(w) < startOf(test) &&
+                !(readerSerial && isInSerialScope(w, testNames)) &&
+                !(wr.path !== undefined && readKey !== undefined && wr.path !== readKey)
+            )?.[0];
             if (!writer) continue;
             context.report({
               node: id as never,

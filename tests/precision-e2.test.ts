@@ -216,3 +216,79 @@ test.describe('receipts', () => {
     assert.ok(f.every((x) => x.severity === 'info' && /placeholder/.test(x.message)));
   });
 });
+
+const SHARED = 'pwscore/no-shared-mutable-state';
+
+describe('QAG-287 E2: no-shared-mutable-state needs a real collection, a real order and the same property', () => {
+  it('an SDK client assigned in a hook is not a Map/Set: payload.delete() is a call, not a mutation', async () => {
+    assert.equal(
+      await ruleHits(SHARED, `
+let payload: any;
+test.beforeAll(async () => { payload = await getClient(); });
+test('creates', async () => { await payload.create({ name: 'a' }); await payload.delete({ id: 1 }); });
+test('lists', async () => { const rows = await payload.find(); expect(rows.length).toBe(0); });`),
+      0
+    );
+  });
+
+  it('a reader that runs before the writer does not depend on it', async () => {
+    assert.equal(
+      await ruleHits(SHARED, `
+const emits: string[] = [];
+test('reads first', async () => { expect(emits.length).toBe(0); });
+test('writes later', async () => { emits.push('x'); });`),
+      0
+    );
+  });
+
+  it('a reader of another property than the writer touches', async () => {
+    assert.equal(
+      await ruleHits(SHARED, `
+const made: { team?: string; yearTeam?: string } = {};
+test.beforeAll(async () => { made.team = 'seeded'; });
+test('records for cleanup', async () => { made.yearTeam = 'y'; });
+test('uses the seeded team', async () => { expect(made.team).toBe('seeded'); });`),
+      0
+    );
+  });
+
+  it('a reader that calls a same-file helper which assigns the variable itself', async () => {
+    assert.equal(
+      await ruleHits(SHARED, `
+let masterdata: string | undefined;
+async function createMasterdata() { masterdata = 'm'; }
+test('a', async () => { masterdata = 'x'; });
+test('b', async () => { await createMasterdata(); expect(masterdata).toBe('m'); });`),
+      0
+    );
+  });
+
+  it('TRUE: an array pushed by earlier tests and read by a later one still fires', async () => {
+    assert.equal(
+      await ruleHits(SHARED, `
+const errorMessages: string[] = [];
+test('first error', async () => { errorMessages.push('boom'); });
+test('tracer inspect', async ({ page }) => {
+  for (const m of errorMessages) await expect(page.getByText(m)).toBeVisible();
+});`),
+      1
+    );
+  });
+
+  it('TRUE: an id assigned in a create test and used by a later test still fires; so does a same-property read', async () => {
+    assert.equal(
+      await ruleHits(SHARED, `
+let couponId: string;
+test('create', async ({ request }) => { couponId = (await (await request.post('/c')).json()).id; });
+test('retrieve', async ({ request }) => { expect((await request.get('/c/' + couponId)).ok()).toBe(true); });`),
+      1
+    );
+    assert.equal(
+      await ruleHits(SHARED, `
+const state: { token?: string } = {};
+test('login', async () => { state.token = 't'; });
+test('uses token', async () => { expect(state.token).toBe('t'); });`),
+      1
+    );
+  });
+});
