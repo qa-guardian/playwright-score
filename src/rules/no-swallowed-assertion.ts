@@ -8,9 +8,24 @@
  *     the failure to a later assertion). Skipped inside loops (retry idiom).
  *  2. `await expect(x).matcher().catch(<fn that does not throw>)` as a
  *     statement (result discarded).
+ *
+ * Not reported (QAG-287 slice E1): a timed probe followed by a real check.
+ * The expect is only a bounded wait, and something afterwards still fails
+ * the test when the state is wrong:
+ *  - a later hard assertion on the same subject (`expect(zone)` probed,
+ *    then `expect(zone)` again);
+ *  - a catch that performs an awaited action and then asserts / waits
+ *    (`click()` then `.waitFor()` or `expect(...)`);
+ *  - a variable assigned in the try and read afterwards (`cookieSet`);
+ *  - an `expect.poll(() => f())` probe whose callback expression is read
+ *    again afterwards (`ready = f()`);
+ *  - a try that returns on success (early exit) with a hard assertion
+ *    after it as the fallthrough.
+ * A catch that only logs or ignores, with no later check of the same
+ * thing, is still reported.
  */
 import type { Rule } from 'eslint';
-import { FN_TYPES, memberName, parseMatcherCall, walk, type N } from './ast-util.js';
+import { FN_TYPES, memberName, nearestFunction, parseMatcherCall, walk, type N } from './ast-util.js';
 
 const LOOPS = new Set(['ForStatement', 'ForInStatement', 'ForOfStatement', 'WhileStatement', 'DoWhileStatement']);
 const FAILISH = /fail|error|throw|assert|report|expect/i;
@@ -56,6 +71,113 @@ function propagates(body: N | undefined): boolean {
   return ok;
 }
 
+
+function isWaitForCall(n: N): boolean {
+  return n.type === 'CallExpression' && memberName(n.callee) === 'waitFor';
+}
+
+/** The text identifying what an expect probes: the subject, or a poll callback's expression body. */
+function probeKey(source: { getText(n: unknown): string }, chain: ReturnType<typeof parseMatcherCall>): string {
+  const arg = (chain?.expectCall.arguments ?? [])[0];
+  if (!arg) return '';
+  const isPoll = memberName(chain?.expectCall.callee) === 'poll';
+  if (isPoll && FN_TYPES.has(arg.type)) {
+    const b = arg.body as N | undefined;
+    if (b && b.type !== 'BlockStatement') return source.getText(b);
+    return '';
+  }
+  return source.getText(arg);
+}
+
+/** A later assertion that can fail the test: not itself inside a swallowing try block or `.catch`. */
+function isHardAssertionNode(n: N, stop: N | undefined): boolean {
+  if (!(parseMatcherCall(n) || isWaitForCall(n))) return false;
+  let child: N = n;
+  for (let p = n.parent; p && p !== stop; child = p, p = p.parent) {
+    if (p.type === 'TryStatement' && p.handler && p.block === child) return false;
+    if (p.type === 'CallExpression' && memberName(p.callee) === 'catch' && p.callee?.object === child) return false;
+  }
+  return true;
+}
+
+/**
+ * True when the swallowed probe is followed by something that still fails
+ * the test on a bad state: see the file header. `stmt` is the statement
+ * holding the probe (TryStatement or the `.catch` expression statement),
+ * `tryBlock`/`catchBody` the parts of a try/catch, if any.
+ */
+function probeIsRechecked(
+  source: { getText(n: unknown): string },
+  stmt: N,
+  probes: N[],
+  tryBlock: N | undefined,
+  catchBody: N | undefined
+): boolean {
+  const scope = nearestFunction(stmt) ?? (() => { let t: N = stmt; while (t.parent) t = t.parent; return t; })();
+  const after = stmt.range?.[1] ?? Infinity;
+  const later: N[] = [];
+  walk(scope.type === 'Program' ? scope : scope.body, (n) => { if ((n.range?.[0] ?? -1) >= after) later.push(n); }, true);
+  const hardLater = later.filter((n) => isHardAssertionNode(n, scope));
+
+  // 1. a later hard assertion on the same subject
+  const keys = probes.map((c) => probeKey(source, parseMatcherCall(c))).filter((k) => k.length > 0);
+  for (const n of hardLater) {
+    const chain = parseMatcherCall(n);
+    const subject = chain ? probeKey(source, chain) : isWaitForCall(n) && n.callee?.object ? source.getText(n.callee.object) : '';
+    if (subject && keys.includes(subject)) return true;
+  }
+
+  // 2. a catch that performs an awaited action and then asserts or waits
+  if (catchBody) {
+    let awaited = false;
+    let checks = false;
+    walk(catchBody, (n) => {
+      if (n.type === 'AwaitExpression' && unwrapCall(n.argument) && !isLoggerCall(unwrapCall(n.argument)?.callee)) awaited = true;
+      if (parseMatcherCall(n) || isWaitForCall(n)) checks = true;
+    }, true);
+    if (awaited && checks) return true;
+  }
+
+  // 3. a variable assigned in the try, read afterwards
+  if (tryBlock) {
+    const assigned = new Set<string>();
+    walk(tryBlock, (n) => {
+      if (n.type === 'AssignmentExpression' && n.left?.type === 'Identifier' && n.left.name) assigned.add(n.left.name);
+    });
+    if (assigned.size > 0) {
+      for (const n of later) {
+        if (n.type !== 'Identifier' || !n.name || !assigned.has(n.name)) continue;
+        const par = n.parent;
+        if (par?.type === 'AssignmentExpression' && par.left === n) continue; // a write, not a read
+        return true;
+      }
+    }
+  }
+
+  // 4. a poll callback expression read again afterwards (`ready = f()`)
+  for (const c of probes) {
+    const chain = parseMatcherCall(c);
+    if (memberName(chain?.expectCall.callee) !== 'poll') continue;
+    const key = probeKey(source, chain);
+    if (key.length < 6) continue;
+    for (const n of later) if (n.type === 'CallExpression' && source.getText(n) === key) return true;
+  }
+
+  // 5. success returns early; the fallthrough still asserts
+  if (tryBlock) {
+    let returns = false;
+    walk(tryBlock, (n) => { if (n.type === 'ReturnStatement') returns = true; });
+    if (returns && hardLater.length > 0) return true;
+  }
+  return false;
+}
+
+function unwrapCall(n: N | null | undefined): N | undefined {
+  let c: N | undefined = n ?? undefined;
+  while (c && (c.type === 'ChainExpression' || c.type === 'TSNonNullExpression')) c = (c.expression ?? c.argument) ?? undefined;
+  return c?.type === 'CallExpression' ? c : undefined;
+}
+
 export const noSwallowedAssertion: Rule.RuleModule = {
   meta: {
     type: 'problem',
@@ -73,16 +195,17 @@ export const noSwallowedAssertion: Rule.RuleModule = {
       TryStatement(raw) {
         const node = raw as unknown as N;
         if (!node.handler) return;
-        let hasExpect = false;
+        const probes: N[] = [];
         walk(node.block, (n) => {
-          if (n.type === 'CallExpression' && parseMatcherCall(n)) hasExpect = true;
+          if (n.type === 'CallExpression' && parseMatcherCall(n)) probes.push(n);
         });
-        if (!hasExpect) return;
+        if (probes.length === 0) return;
         if (propagates(node.handler.body)) return;
         for (let p = node.parent; p; p = p.parent) {
           if (LOOPS.has(p.type)) return;
           if (FN_TYPES.has(p.type)) break;
         }
+        if (probeIsRechecked(context.sourceCode, node, probes, node.block, node.handler.body)) return;
         context.report({ node: raw, messageId: 'swallowed' });
       },
       CallExpression(raw) {
@@ -103,6 +226,10 @@ export const noSwallowedAssertion: Rule.RuleModule = {
           const body = handler.body as N | undefined;
           if (body && body.type === 'BlockStatement' && propagates(body)) return;
         }
+        const chain = parseMatcherCall(inner);
+        const holder = (node.parent?.type === 'AwaitExpression' ? node.parent.parent : node.parent) as N;
+        const handlerBody = isFn ? (handler.body as N | undefined) : undefined;
+        if (chain && probeIsRechecked(context.sourceCode, holder, [inner], undefined, handlerBody)) return;
         context.report({ node: raw, messageId: 'swallowedCatch' });
       },
     };

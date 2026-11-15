@@ -12,6 +12,8 @@ case, and says so explicitly.
 
 ## Unreleased
 
+- `pwscore/no-swallowed-assertion` no longer fires on a timed probe that is followed by a real check (QAG-287 slice E1). Not reported: a try/catch or `.catch()` around an expect when a later hard assertion checks the same subject, when the catch performs an awaited action and then asserts or waits, when a flag set in the try is read afterwards, when an `expect.poll` callback is read again afterwards, or when the try returns on success and an assertion follows. A catch that only logs or ignores, with no later check of the same thing, is still reported. Hand check: 7 of 25 sampled findings were this shape. Severity unchanged.
+
 - `pwscore/no-coordinate-click` is much narrower (QAG-287 slice E1). It now fires only on `mouse.click`, `mouse.dblclick` and `touchscreen.tap` whose x and y are both numeric literals. `mouse.move`, `mouse.down`, `mouse.up` and `mouse.wheel` are no longer flagged (they park the cursor, end a drag or scroll, and `up()` takes no coordinates), and neither is a click at coordinates computed from `boundingBox()` or variables. In a hand check none of 12 findings was a real problem, all of them were moves, drags or wheel scrolls. Severity unchanged (warning).
 
 - Removed `pwscore/no-soft-assertion-only-test` (QAG-287 slice E1). It said a failed `expect.soft(...)` never fails the test, which is wrong: a soft failure still marks the test failed at the end, it just lets the test keep running. In a hand check of 20 findings none was a real problem. Tests that only use `expect.soft` are no longer flagged. No other rule weight or severity changed; scores can rise slightly for suites that had this warning.
