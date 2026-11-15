@@ -7,5 +7,5 @@ test('structure-coupled selectors', async ({ page }) => {
   await page.locator('.css-1a2b3c').click();
   await page.locator('.MuiBox-root-12').click();
   await page.locator('.row').first().click();
-  await expect(page.locator('.item').nth(2)).toBeVisible();
+  await expect(page.locator('.item').nth(2)).toHaveText('Third');
 });
