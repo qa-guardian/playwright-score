@@ -1,5 +1,5 @@
 import type { ScoreResult } from '../types.js';
-import { CONFIDENCE_LABEL, compareFindings, isNeedsCheck } from '../confidence.js';
+import { CONFIDENCE_LABEL, compareFindings, isNeedsCheck, needsCheckIntro } from '../confidence.js';
 import { copyFor } from '../rule-copy.js';
 import {
   DIMENSIONS,
@@ -83,7 +83,9 @@ export function formatText(result: ScoreResult, opts: TextOptions = {}): string 
     const files = [...new Set(human.map((f) => f.file))];
     lines.push('');
     lines.push(
-      `Needs a human check (not in the score): ${plural(human.length, 'test')} in ${plural(files.length, 'file')} ${human.length === 1 ? 'relies' : 'rely'} on helpers we could not read.`
+      needsCheckIntro(human).helpers
+        ? `Needs a human check (not in the score): ${plural(human.length, 'test')} in ${plural(files.length, 'file')} ${human.length === 1 ? 'relies' : 'rely'} on helpers we could not read.`
+        : `Needs a human check (not in the score): ${plural(human.length, 'finding')} in ${plural(files.length, 'file')}, information only.`
     );
     for (const f of files.slice(0, 5)) lines.push(`    ${shortPath(f)}`);
     if (files.length > 5) lines.push(`    + ${files.length - 5} more`);

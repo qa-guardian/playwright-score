@@ -1,6 +1,6 @@
 import type { Finding, ScoreResult } from '../types.js';
 import { PROFILE_WEIGHTS } from '../profiles.js';
-import { CONFIDENCE_LABEL, compareFindings, isNeedsCheck } from '../confidence.js';
+import { CONFIDENCE_LABEL, compareFindings, isNeedsCheck, needsCheckIntro } from '../confidence.js';
 import { copyFor } from '../rule-copy.js';
 import { REPORT_CSS } from './report-css.js';
 import {
@@ -176,16 +176,22 @@ function renderNeedsCheck(findings: readonly Finding[]): string {
     .map(([file, list]) => {
       const lines = list.filter((f) => f.line).map((f) => f.line).join(', ');
       const calls = cleanCheckCalls(list[0]!.message);
-      const what = calls
-        ? `Calls ${calls} from a helper we could not read.`
-        : 'Its checks could not be seen.';
+      const unverified = list.every((f) => f.rule === 'playwright-score/assertion-unverified');
+      const what = !unverified
+        ? [...new Set(list.map((f) => copyFor(f.rule).title))].join('; ') + '.'
+        : calls
+          ? `Calls ${calls} from a helper we could not read.`
+          : 'Its checks could not be seen.';
       return `<li><code>${escapeHtml(file)}</code> <span class="muted">${plural(list.length, 'test')}${lines ? `, line${list.length === 1 ? '' : 's'} ${escapeHtml(lines)}` : ''}</span><br><span class="muted">${escapeHtml(what)}</span></li>`;
     })
     .join('');
   const hidden = items.length - shown.reduce((n, [, l]) => n + l.length, 0);
   const more = hidden > 0 ? `<p class="muted">and ${plural(hidden, 'more test')} in ${plural(files.length - shown.length, 'other file')}.</p>` : '';
+  const intro = needsCheckIntro(items).helpers
+    ? `${plural(items.length, 'test')} ${items.length === 1 ? 'relies' : 'rely'} on helpers we could not read (page objects, fixtures or imported functions). The checks probably live there, but the score cannot see them, so ${items.length === 1 ? 'this test is' : 'these tests are'} left out of the score. Ask someone to confirm each helper really checks the page.`
+    : `${plural(items.length, 'finding')} ${items.length === 1 ? 'is' : 'are'} information only: ${items.length === 1 ? 'it points' : 'they point'} at something worth a look, but the score cannot tell whether ${items.length === 1 ? 'it is' : 'they are'} a real problem, so ${items.length === 1 ? 'it is' : 'they are'} left out of the score. Ask someone to review each one.`;
   return `<h3 id="human-check">Needs a human check</h3>
-<p class="note">${plural(items.length, 'test')} ${items.length === 1 ? 'relies' : 'rely'} on helpers we could not read (page objects, fixtures or imported functions). The checks probably live there, but the score cannot see them, so ${items.length === 1 ? 'this test is' : 'these tests are'} left out of the score. Ask someone to confirm each helper really checks the page.</p><ul class="plain">${rows}</ul>${more}`;
+<p class="note">${intro}</p><ul class="plain">${rows}</ul>${more}`;
 }
 
 const GENERIC_STEPS = [

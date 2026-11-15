@@ -12,6 +12,8 @@ case, and says so explicitly.
 
 ## Unreleased
 
+- The "Needs a human check" note in the report and the text output no longer says "tests rely on helpers we could not read" for every report-only rule (QAG-287 slice E3). That sentence is kept only when every item is an unverified-assertion finding; otherwise the note is neutral ("N findings are information only ...") and each report row shows the rule's own title.
+
 - `pwscore/no-self-fulfilling-fallback` is narrowed to the real pattern (QAG-287 slice E3). It now also requires that the assertion after the fallback compares against the value the fallback itself filled or selected. All 5 sampled hits were "create the data if it is missing" guards followed by an assertion on a different feature, and no longer fire. Kept (not removed): it still fires on the hand-written fixtures, but there is no real-suite true hit yet, so it stays report-only and info.
 
 - `pwscore/serial-mode-dependency` fires only on a real order dependency (QAG-287 slice E3). It used to report every serial scope; in the hand-check sample only 4 of 18 decided hits were true, because serial mode is mostly used for mutual exclusion, a shared expensive setup or a single test. It now reports a serial scope only when one test assigns a shared variable that a later test in the same scope reads, and the message names the variable and both tests. The writer-before-reader analysis moved to `src/rules/shared-state-analysis.ts` and is shared with `no-shared-mutable-state` (behaviour unchanged there). A variable with an unordered pair is reported by `no-shared-mutable-state` only, never by both. Report-only as before.

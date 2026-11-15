@@ -63,6 +63,15 @@ export function isNeedsCheck(f: Pick<Finding, 'reportOnly' | 'dimension'>): bool
   return f.reportOnly === true && f.dimension !== 'locators';
 }
 
+/**
+ * Intro sentence for the "needs a human check" block. The helper wording is
+ * true only for assertion-unverified findings; any other report-only rule gets
+ * a neutral sentence (QAG-287 E3).
+ */
+export function needsCheckIntro(findings: ReadonlyArray<Pick<Finding, 'rule'>>): { helpers: boolean } {
+  return { helpers: findings.every((f) => f.rule === 'playwright-score/assertion-unverified') };
+}
+
 export function confidenceOf(f: Pick<Finding, 'rule' | 'reportOnly' | 'dimension'>): Confidence {
   if (isNeedsCheck(f)) return 'needs-check';
   return CONFIDENCE_BY_RULE[f.rule] ?? DEFAULT_CONFIDENCE;
