@@ -226,6 +226,17 @@ function toSeverity(
  * Run ESLint once per scorePaths invocation with embedded config only.
  * Does not load host-repo eslint.config.js.
  */
+/**
+ * Per-message severity for rules whose messages differ in how serious the
+ * case is (QAG-287 slice E2): a fixme that already carries a reason, or an
+ * empty fixme placeholder, is listed as info; a fixme with no reason keeps the
+ * rule's severity.
+ */
+const MESSAGE_SEVERITY: Record<string, 'info'> = {
+  'pwscore/no-fixme-test#reasoned': 'info',
+  'pwscore/no-fixme-test#placeholder': 'info',
+};
+
 export async function runEslint(options: {
   files: string[];
   // Kept on the options shape for call-site/API stability even though
@@ -370,9 +381,10 @@ export async function runEslint(options: {
       if (msg.ruleId === 'playwright/no-standalone-expect' && insideCurriedTest(msg.line, msg.column)) continue;
       if (msg.ruleId === 'playwright/prefer-web-first-assertions' && unawaitedLines.has(msg.line)) continue;
       const mapping = mapRule(msg.ruleId);
+      const messageSeverity = msg.messageId ? MESSAGE_SEVERITY[`${msg.ruleId}#${msg.messageId}`] : undefined;
       findings.push({
         rule: msg.ruleId,
-        severity: toSeverity(msg.severity, mapping.severityOverride),
+        severity: messageSeverity ?? toSeverity(msg.severity, mapping.severityOverride),
         message: msg.message,
         file,
         line: msg.line,

@@ -143,3 +143,76 @@ test('sync', async ({ page }) => {
     );
   });
 });
+
+const FIXME = 'pwscore/no-fixme-test';
+
+describe('QAG-287 E2: no-fixme-test message matches what is on the page', () => {
+  it('TRUE: bare test.fixme() in a body and a bare declaration keep the warning and ask for a reason', async () => {
+    const body = await findingsFor(FIXME, `
+test('shot', async ({ page }) => {
+  test.fixme();
+  await expect(page).toHaveTitle('x');
+});
+test.fixme('no reason given', async ({ page }) => {
+  await expect(page).toHaveTitle('x');
+});`);
+    assert.equal(body.length, 2);
+    assert.ok(body.every((f) => f.severity === 'warning'));
+    assert.match(body[0].message, /no condition and no reason/);
+    assert.match(body[1].message, /nothing says why/);
+  });
+
+  it('TRUE: describe-level bare fixme with an unrelated comment still warns', async () => {
+    const f = await findingsFor(FIXME, `
+// Create a ticket for this for the team to fix
+test.describe('errors', () => {
+  test.fixme();
+  test('a', async ({ page }) => { await expect(page).toHaveTitle('x'); });
+});`);
+    assert.equal(f.length, 1);
+    assert.equal(f[0].severity, 'warning');
+  });
+
+  it('test.fixme(true, reason) names its reason, so the message does not ask for one', async () => {
+    const f = await findingsFor(FIXME, `
+test.describe('feedback', () => {
+  test.fixme(true, 'dialog is lost due to an IPC race at startup');
+  test('a', async ({ page }) => { await expect(page).toHaveTitle('x'); });
+});
+test('b', async ({ page }) => {
+  test.fixme(true, "return flow strands users on / (tracked)");
+  await expect(page).toHaveTitle('x');
+});`);
+    assert.equal(f.length, 2);
+    for (const x of f) {
+      assert.equal(x.severity, 'info');
+      assert.doesNotMatch(x.message, /inside a test|nothing says why|no reason/);
+      assert.match(x.message, /a reason is given/);
+    }
+  });
+
+  it('declaration with a tracker reference or re-enable note above it, or an annotation, is info', async () => {
+    const f = await findingsFor(FIXME, `
+// Host bug, see TESTOPS-49.
+test.fixme('events fire', async ({ page }) => { await expect(page).toHaveTitle('x'); });
+// Re-enable once the app is upgraded to v7.
+test.fixme('spans', async ({ page }) => { await expect(page).toHaveTitle('x'); });
+test('tracked', async ({ page }) => {
+  test.info().annotations.push({ type: 'issue', description: 'https://github.com/o/r/issues/30550' });
+  test.fixme();
+  await expect(page).toHaveTitle('x');
+});`);
+    assert.equal(f.length, 3);
+    assert.ok(f.every((x) => x.severity === 'info'));
+  });
+
+  it('empty-body fixme placeholders are info with a placeholder message', async () => {
+    const f = await findingsFor(FIXME, `
+test.describe('receipts', () => {
+  test.fixme('a threaded receipt does nothing', () => {});
+  test.fixme('a main receipt does nothing', async () => {});
+});`);
+    assert.equal(f.length, 2);
+    assert.ok(f.every((x) => x.severity === 'info' && /placeholder/.test(x.message)));
+  });
+});
