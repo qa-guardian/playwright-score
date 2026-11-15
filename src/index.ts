@@ -208,8 +208,18 @@ function literalPrefixDir(pattern: string, cwd: string): string {
 function expandPaths(
   inputs: string[],
   cwd: string
-): { explicit: string[]; expanded: string[]; scanRootDirs: string[]; configWarnings: string[] } {
+): {
+  explicit: string[];
+  expanded: string[];
+  scanRootDirs: string[];
+  inputDirs: string[];
+  configWarnings: string[];
+} {
   const explicit = new Set<string>();
+  // Directory each input names (file -> its dirname, directory -> itself,
+  // glob -> literal prefix). Finding paths are reported relative to the
+  // common ancestor of these, i.e. the place the user pointed at (QAG-287).
+  const inputDirs = new Set<string>();
   const expanded = new Set<string>();
   const scanRootDirs = new Set<string>();
   const configWarnings: string[] = [];
@@ -217,6 +227,7 @@ function expandPaths(
     const abs = path.isAbsolute(input) ? input : path.resolve(cwd, input);
     if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
       explicit.add(abs);
+      inputDirs.add(path.dirname(abs));
       continue;
     }
     if (fs.existsSync(abs) && fs.statSync(abs).isDirectory()) {
@@ -227,6 +238,7 @@ function expandPaths(
       // needs this wider boundary, not the narrower common ancestor of
       // only the matched spec files.
       scanRootDirs.add(abs);
+      inputDirs.add(abs);
       // Repo boundary for this scan's per-match realpath containment check
       // and glob-walk pruning below (see the containment check itself, and
       // RepoBoundaryIgnore, for why this must be the *repo root*, not the
@@ -427,6 +439,7 @@ function expandPaths(
     // that function's doc comment for why cwd's repo root is the wrong
     // boundary for a pattern that points somewhere else entirely.
     const prefixDir = literalPrefixDir(input, cwd);
+    inputDirs.add(prefixDir);
     const repoRootForPattern = safeRealpath(findRepoBoundary(prefixDir, prefixDir));
     for (const f of globSync(input, {
       cwd,
@@ -475,8 +488,18 @@ function expandPaths(
     explicit: [...explicit].sort(),
     expanded: [...expanded].sort(),
     scanRootDirs: [...scanRootDirs].sort(),
+    inputDirs: [...inputDirs].sort(),
     configWarnings,
   };
+}
+
+/**
+ * Base directory finding paths are relative to: common ancestor of the
+ * directories the caller named, widened just enough to contain every file.
+ */
+function reportBaseDir(inputDirs: string[], files: string[]): string {
+  const placeholders = inputDirs.map((d) => path.join(d, '_'));
+  return commonAncestorDir([...placeholders, ...files]);
 }
 
 function hardFail(
@@ -536,7 +559,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   const threshold =
     options.threshold ?? DEFAULT_THRESHOLDS[profile] ?? 80;
 
-  const { explicit, expanded, scanRootDirs, configWarnings } = expandPaths(options.paths, cwd);
+  const { explicit, expanded, scanRootDirs, inputDirs, configWarnings } = expandPaths(options.paths, cwd);
 
   if (explicit.length === 0 && expanded.length === 0) {
     // Hard-fail: empty match must never look like a healthy suite (was ~99 PASS).
@@ -563,7 +586,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   // the caller named explicitly are always scored regardless.
   const skippedFiles: string[] = [];
   const acceptedExpanded: string[] = [];
-  const skipBase = commonAncestorDir([...explicit, ...expanded]);
+  const skipBase = reportBaseDir(inputDirs, [...explicit, ...expanded]);
   for (const f of expanded) {
     const source = fs.readFileSync(f, 'utf8');
     if (looksLikeNonPlaywrightTest(source)) {
@@ -593,10 +616,13 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
     );
   }
 
-  // Relative to the files' own common ancestor (not the caller's cwd, which
-  // may be unrelated) so findings stay portable across machines/CI and
+  // Relative to the directory the caller scored (common ancestor of the
+  // path arguments; widened only if a config-discovered file lies outside
+  // it), not the specs' own common ancestor, so a printed path resolves
+  // from the scored directory. Not the caller's cwd, which may be
+  // unrelated: findings stay portable across machines/CI and
   // formatters/sarif.ts can emit repo-relative artifactLocation URIs.
-  const filesBase = commonAncestorDir(files);
+  const filesBase = reportBaseDir(inputDirs, files);
 
   // Wider than filesBase on purpose: a Page Object Model's classes
   // typically live in a directory *sibling* to the specs themselves
@@ -649,6 +675,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
       files,
       profile,
       cwd,
+      reportBase: filesBase,
       assertFunctionNames: [...assertFunctionNames],
       testAliasNames,
     }),

@@ -207,6 +207,8 @@ export async function runEslint(options: {
   // 2.0.0 — see profiles.ts and types.ts's ProfileName).
   profile: ProfileName;
   cwd?: string;
+  /** Directory finding `file` paths are made relative to (defaults to the lint basePath). */
+  reportBase?: string;
   /** See findLocalAssertionHelperNames in metrics.ts. */
   assertFunctionNames?: string[];
   /** See detectExtendedTestAliases in test-aliases.ts. */
@@ -287,7 +289,7 @@ export async function runEslint(options: {
           (line < r.end.line || (line === r.end.line && col <= r.end.column))
       );
     };
-    const file = path.relative(cwd, absFile) || path.basename(absFile);
+    const file = path.relative(options.reportBase ?? cwd, absFile) || path.basename(absFile);
     for (const msg of result.messages) {
       // A `// eslint-disable-next-line some/rule-we-dont-bundle` comment is
       // extremely common in real-world code (any host project that lints
