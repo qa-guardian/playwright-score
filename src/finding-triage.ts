@@ -390,6 +390,25 @@ function isThrowOnly(stmt: N): boolean {
   return stmt?.type === 'BlockStatement' && stmt.body?.length === 1 && stmt.body[0].type === 'ThrowStatement';
 }
 
+/**
+ * `test.skip('title', fn)` / `test.fixme('title', fn)`: a declaration whose
+ * first argument is a string and which has a body is skipped unconditionally
+ * (the conditional forms take a boolean/function first, or are called inside
+ * a test body with one argument). It never runs, so "no assertion" is noise;
+ * the structure rules already penalise the skipped test.
+ */
+function isUnconditionalSkipDeclaration(call: N): boolean {
+  const c = call.callee;
+  if (c?.type !== 'MemberExpression' || c.computed || c.object?.type !== 'Identifier') return false;
+  const prop = c.property?.name;
+  if (prop !== 'skip' && prop !== 'fixme') return false;
+  const args = call.arguments ?? [];
+  if (args.length < 2) return false;
+  const a0 = args[0];
+  const titled = (a0?.type === 'Literal' && typeof a0.value === 'string') || a0?.type === 'TemplateLiteral';
+  return titled && args.some(isFn);
+}
+
 export function triageFindings(findings: Finding[], ctx: TriageContext): Finding[] {
   const wants = findings.some(
     (f) =>
@@ -444,6 +463,7 @@ export function triageFindings(findings: Finding[], ctx: TriageContext): Finding
       out.push(f);
       continue;
     }
+    if (isUnconditionalSkipDeclaration(call)) continue; // never runs; structure rules already count it
     const fn = [...(call.arguments ?? [])].reverse().find(isFn);
     const reachable = reachableFiles(abs, ctx, know);
     const fixtureLocals = assertingFixtureLocals(fn, reachable, know);
