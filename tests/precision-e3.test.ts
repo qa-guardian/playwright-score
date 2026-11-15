@@ -104,3 +104,143 @@ test('xpath', async ({ page }) => {
   });
 });
 
+describe('QAG-287 E3: serial-mode-dependency needs a real order dependency', () => {
+  it('a serial scope with a single test is not reported', async () => {
+    assert.equal(
+      await hits(SERIAL, `
+test.describe.serial('only one', () => {
+  test('alone', async ({ page }) => {
+    await page.goto('/');
+    await expect(page).toHaveURL('/');
+  });
+});`),
+      0
+    );
+    assert.equal(
+      await hits(SERIAL, `
+test.describe.configure({ mode: 'serial' });
+test('only test in file', async ({ page }) => {
+  await page.goto('/');
+  await expect(page).toHaveURL('/');
+});`),
+      0
+    );
+  });
+
+  it('serial used for exclusion, with no shared variable, is not reported', async () => {
+    assert.equal(
+      await hits(SERIAL, `
+test.describe.serial('mock toggle', () => {
+  test('a', async ({ page }) => {
+    await page.goto('/a');
+    await expect(page).toHaveURL('/a');
+  });
+  test('b', async ({ page }) => {
+    await page.goto('/b');
+    await expect(page).toHaveURL('/b');
+  });
+});`),
+      0
+    );
+  });
+
+  it('a variable only read, or written by a LATER test, is not an order dependency', async () => {
+    assert.equal(
+      await hits(SERIAL, `
+test.describe.serial('flow', () => {
+  let token = 'fixed';
+  let late: string | undefined;
+  test('one', async ({ page }) => {
+    await page.goto('/?t=' + token + late);
+    await expect(page).toHaveURL(/t=/);
+  });
+  test('two', async ({ page }) => {
+    late = 'x';
+    await expect(page).toHaveURL(/t=/);
+  });
+});`),
+      0
+    );
+  });
+
+  it('describe.serial where a later test reads what an earlier one wrote is reported', async () => {
+    const f = (await findingsFor(`
+test.describe.serial('order flow', () => {
+  let orderId = '';
+  test('create order', async ({ page }) => {
+    await page.goto('/orders/new');
+    orderId = (await page.getByTestId('order-id').textContent()) ?? '';
+    expect(orderId).not.toBe('');
+  });
+  test('open order', async ({ page }) => {
+    await page.goto('/orders/' + orderId);
+    await expect(page.getByRole('heading')).toContainText(orderId);
+  });
+});`)).filter((x) => x.rule === SERIAL);
+    assert.equal(f.length, 1);
+    assert.match(f[0]!.message, /"open order" reads `orderId`.*"create order"/);
+  });
+
+  it('file-level serial configure with a module variable is reported once per scope', async () => {
+    assert.equal(
+      await hits(SERIAL, `
+test.describe.configure({ mode: 'serial' });
+let draft = '';
+test('write draft', async ({ page }) => {
+  await page.goto('/');
+  draft = 'hello';
+  await expect(page).toHaveURL('/');
+});
+test('read draft', async ({ page }) => {
+  await page.goto('/?d=' + draft);
+  await expect(page).toHaveURL(/d=hello/);
+});
+test('read draft again', async ({ page }) => {
+  await page.goto('/?d=' + draft);
+  await expect(page).toHaveURL(/d=hello/);
+});`),
+      1
+    );
+  });
+
+  it('no double report: an unordered pair is no-shared-mutable-state only', async () => {
+    const f = await findingsFor(`
+let shared = '';
+test.describe.serial('writer group', () => {
+  test('writer', async ({ page }) => {
+    await page.goto('/');
+    shared = 'x';
+    await expect(page).toHaveURL('/');
+  });
+  test('other', async ({ page }) => {
+    await page.goto('/o');
+    await expect(page).toHaveURL('/o');
+  });
+});
+test('reader outside serial', async ({ page }) => {
+  await page.goto('/?s=' + shared);
+  await expect(page).toHaveURL(/s=x/);
+});`);
+    assert.equal(f.filter((x) => x.rule === SHARED).length, 1);
+    assert.equal(f.filter((x) => x.rule === SERIAL).length, 0);
+  });
+
+  it('a pair inside serial scope is not reported by no-shared-mutable-state', async () => {
+    const f = await findingsFor(`
+test.describe.serial('flow', () => {
+  let id = '';
+  test('w', async ({ page }) => {
+    await page.goto('/');
+    id = 'a';
+    await expect(page).toHaveURL('/');
+  });
+  test('r', async ({ page }) => {
+    await page.goto('/' + id);
+    await expect(page).toHaveURL(/a/);
+  });
+});`);
+    assert.equal(f.filter((x) => x.rule === SHARED).length, 0);
+    assert.equal(f.filter((x) => x.rule === SERIAL).length, 1);
+  });
+});
+

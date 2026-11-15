@@ -237,21 +237,44 @@ function bodyHasSerialConfigure(body: AnyNode[] | undefined, testNames: Readonly
   });
 }
 
+/** Statement list's `test.describe.configure({ mode: 'serial' })` call node, if any. */
+function serialConfigureIn(body: AnyNode[] | undefined, testNames: ReadonlySet<string>): AnyNode {
+  for (const st of body ?? []) {
+    if (st?.type !== 'ExpressionStatement') continue;
+    const e = unwrap(st.expression);
+    const call = e?.type === 'AwaitExpression' ? unwrap(e.argument) : e;
+    if (isSerialConfigureCall(call, testNames)) return call;
+  }
+  return undefined;
+}
+
+/**
+ * The call that declares the serial scope `node` sits in, if any: the file's
+ * top-level `test.describe.configure({ mode: 'serial' })`, the nearest
+ * enclosing `test.describe.serial(...)`, or a describe's own serial configure.
+ */
+export function serialScopeOf(node: AnyNode, testNames: ReadonlySet<string>): AnyNode {
+  for (let p = node?.parent; p; p = p.parent) {
+    if (p.type === 'Program') return serialConfigureIn(p.body, testNames);
+    if ((p.type === 'ArrowFunctionExpression' || p.type === 'FunctionExpression') && p.parent?.type === 'CallExpression' && p.parent.arguments.includes(p)) {
+      const call = p.parent;
+      if (isSerialDescribeCall(call, testNames)) return call;
+      if (isDescribeCall(call, testNames) && p.body?.type === 'BlockStatement') {
+        const c = serialConfigureIn(p.body.body, testNames);
+        if (c) return c;
+      }
+    }
+  }
+  return undefined;
+}
+
 /**
  * Is `node` in a scope declared serial: the file has a top-level
  * `test.describe.configure({ mode: 'serial' })`, or any enclosing describe is
  * `test.describe.serial(...)` or configures serial mode in its own body.
  */
 export function isInSerialScope(node: AnyNode, testNames: ReadonlySet<string>): boolean {
-  for (let p = node?.parent; p; p = p.parent) {
-    if (p.type === 'Program') return bodyHasSerialConfigure(p.body, testNames);
-    if ((p.type === 'ArrowFunctionExpression' || p.type === 'FunctionExpression') && p.parent?.type === 'CallExpression' && p.parent.arguments.includes(p)) {
-      const call = p.parent;
-      if (isSerialDescribeCall(call, testNames)) return true;
-      if (isDescribeCall(call, testNames) && p.body?.type === 'BlockStatement' && bodyHasSerialConfigure(p.body.body, testNames)) return true;
-    }
-  }
-  return false;
+  return !!serialScopeOf(node, testNames);
 }
 
 export function testNamesFromOptions(options: unknown[]): Set<string> {
