@@ -849,6 +849,136 @@ function isExpectCallNode(node: Node | undefined): boolean {
 }
 
 /**
+ * Evaluates `expect(<constant>).matcher(<constant>)` (with `.not`): true when it
+ * can only pass, false when it can only fail, undefined when unknown. The
+ * subject and expected value may be literals or `const` bindings of literals
+ * within the enclosing function.
+ */
+function constAssertionOutcome(context: Rule.RuleContext, node: Node): boolean | undefined {
+  const callee = node.callee;
+  if (!callee || callee.type !== 'MemberExpression' || callee.computed) return undefined;
+  const matcherName = callee.property?.type === 'Identifier' ? callee.property.name : undefined;
+  if (!matcherName) return undefined;
+  let expectCall: Node | undefined;
+  let hasNot = false;
+  if (isExpectCallNode(callee.object)) {
+    expectCall = callee.object;
+  } else if (
+    callee.object?.type === 'MemberExpression' &&
+    !callee.object.computed &&
+    callee.object.property?.type === 'Identifier' &&
+    callee.object.property.name === 'not' &&
+    isExpectCallNode(callee.object.object)
+  ) {
+    expectCall = callee.object.object;
+    hasNot = true;
+  }
+  if (!expectCall) return undefined;
+  // Resolve a bare-identifier subject/expected-arg against any `const`
+  // bound to a constant within the nearest enclosing function (typically
+  // the test/hook callback) -- see collectConstBindings's docs for why
+  // only `const` qualifies.
+  const scopeBindings = collectConstBindings(nearestEnclosingFunctionBody(context, node));
+  const resolve: ConstResolver = (name) => scopeBindings.get(name);
+  const subject = evalConst((expectCall.arguments ?? [])[0], resolve);
+  if (!subject.ok) return undefined;
+  const expectedArg = (node.arguments ?? [])[0];
+  const passes = matcherAlwaysPasses(matcherName, subject.value, expectedArg, resolve);
+  if (passes === undefined) return undefined;
+  return hasNot ? !passes : passes;
+}
+
+const LISTENER_METHODS = new Set(['on', 'once', 'addListener', 'addEventListener', 'prependListener']);
+
+/**
+ * Constant assertions that are not a claim about the app (QAG-287 slice
+ * E1): the marker half of an if/else whose other arm fails on purpose
+ * (`expect(false)` or a throw), a dummy listener or local helper function
+ * nested inside a test, a type-level check on a value with a non-trivial
+ * type annotation, and anything inside a skipped test.
+ */
+function isIntentionalConstantShape(context: Rule.RuleContext, node: Node, expectCall: Node): boolean {
+  const ancestors = (
+    context.sourceCode?.getAncestors
+      ? context.sourceCode.getAncestors(node as never)
+      : (context as unknown as { getAncestors(): unknown[] }).getAncestors()
+  ) as Array<Node & Record<string, unknown>>;
+  const chain = [...ancestors, node as Node & Record<string, unknown>];
+  let fnIndex = -1;
+  for (let i = chain.length - 2; i >= 0; i--) {
+    const t = chain[i].type;
+    if (t === 'FunctionExpression' || t === 'ArrowFunctionExpression' || t === 'FunctionDeclaration') {
+      fnIndex = i;
+      break;
+    }
+  }
+  for (let i = chain.length - 2; i >= 0; i--) {
+    const a = chain[i];
+    // test.skip('x', () => { ... }) / test.fixme(...): never runs.
+    if (
+      a.type === 'CallExpression' &&
+      a.callee?.type === 'MemberExpression' &&
+      a.callee.property?.type === 'Identifier' &&
+      (a.callee.property.name === 'skip' || a.callee.property.name === 'fixme') &&
+      (a.arguments ?? []).some((x) => FUNCTION_TYPES.has(x.type))
+    ) {
+      return true;
+    }
+    if (i <= fnIndex) continue;
+    // The other arm of the enclosing if/else fails on purpose.
+    if (a.type === 'IfStatement') {
+      const child = chain[i + 1];
+      const other = a.consequent === child ? a.alternate : a.alternate === child ? a.consequent : undefined;
+      if (other && armFailsOnPurpose(context, other as Node)) return true;
+    }
+  }
+  // A function nested inside another function and used as a listener or
+  // bound to a local name: not the test body.
+  if (fnIndex > 0) {
+    const fn = chain[fnIndex];
+    const parent = chain[fnIndex - 1];
+    let nested = false;
+    for (let i = fnIndex - 1; i >= 0; i--) if (FUNCTION_TYPES.has(chain[i].type) || chain[i].type === 'FunctionDeclaration') nested = true;
+    if (nested || fn.type === 'FunctionDeclaration') {
+      if (parent.type === 'VariableDeclarator' && parent.init === fn) return true;
+      if (fn.type === 'FunctionDeclaration') return true;
+      if (
+        parent.type === 'CallExpression' &&
+        parent.callee?.type === 'MemberExpression' &&
+        parent.callee.property?.type === 'Identifier' &&
+        LISTENER_METHODS.has(parent.callee.property.name ?? '')
+      ) {
+        return true;
+      }
+    }
+  }
+  // Type-level check: `const name: keyof typeof x = 'a'; expect(name).toBe('a')`.
+  const subject = (expectCall.arguments ?? [])[0];
+  if (subject?.type === 'Identifier' && subject.name) {
+    let typed = false;
+    walkNode(nearestEnclosingFunctionBody(context, node), (n) => {
+      if (n.type !== 'VariableDeclarator') return;
+      const d = n as unknown as { id?: { type: string; name?: string; typeAnnotation?: { typeAnnotation?: { type: string } } } };
+      if (d.id?.type !== 'Identifier' || d.id.name !== subject.name) return;
+      const t = d.id.typeAnnotation?.typeAnnotation?.type;
+      if (t === 'TSTypeOperator' || t === 'TSIndexedAccessType' || t === 'TSTypeQuery') typed = true;
+    });
+    if (typed) return true;
+  }
+  return false;
+}
+
+/** A branch that throws or asserts a constant that can only fail (`expect(false).toBeTruthy()`). */
+function armFailsOnPurpose(context: Rule.RuleContext, arm: Node): boolean {
+  let fails = false;
+  walkNode(arm, (n) => {
+    if (n.type === 'ThrowStatement') fails = true;
+    else if (n.type === 'CallExpression' && constAssertionOutcome(context, n) === false) fails = true;
+  });
+  return fails;
+}
+
+/**
  * `expect(true).toBe(true)`, `` expect(`x`).toBe(`x`) ``, `expect(1 +
  * 1).toBe(2)`, `expect([]).toEqual([])` — any assertion whose subject and
  * matcher combination can only ever pass, regardless of anything the app
@@ -891,38 +1021,18 @@ const noTrivialAssertion: Rule.RuleModule = {
         const matcherName = callee.property?.type === 'Identifier' ? callee.property.name : undefined;
         if (!matcherName) return;
 
-        let expectCall: Node | undefined;
-        let hasNot = false;
-        if (isExpectCallNode(callee.object)) {
-          expectCall = callee.object;
-        } else if (
-          callee.object?.type === 'MemberExpression' &&
-          !callee.object.computed &&
-          callee.object.property?.type === 'Identifier' &&
-          callee.object.property.name === 'not' &&
-          isExpectCallNode(callee.object.object)
-        ) {
-          expectCall = callee.object.object;
-          hasNot = true;
-        }
+        const expectCall = isExpectCallNode(callee.object)
+          ? callee.object
+          : callee.object?.type === 'MemberExpression' && isExpectCallNode(callee.object.object)
+            ? callee.object.object
+            : undefined;
         if (!expectCall) return;
 
-        // Resolve a bare-identifier subject/expected-arg against any
-        // `const` bound to a constant within the nearest enclosing
-        // function (typically the test/hook callback) — see
-        // collectConstBindings's docs for why only `const` qualifies.
-        // Computed once per assertion call, not per identifier resolved.
-        const scopeBindings = collectConstBindings(nearestEnclosingFunctionBody(context, node));
-        const resolve: ConstResolver = (name) => scopeBindings.get(name);
-
-        const subject = evalConst((expectCall.arguments ?? [])[0], resolve);
-        if (!subject.ok) return;
-
-        const expectedArg = (node.arguments ?? [])[0];
-        const alwaysPasses = matcherAlwaysPasses(matcherName, subject.value, expectedArg, resolve);
+        const alwaysPasses = constAssertionOutcome(context, node);
         if (alwaysPasses === undefined) return;
 
-        if (hasNot ? !alwaysPasses : alwaysPasses) {
+        if (alwaysPasses) {
+          if (isIntentionalConstantShape(context, node, expectCall)) return;
           context.report({ node: node as never, messageId: 'trivial' });
         }
       },

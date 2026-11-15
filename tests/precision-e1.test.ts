@@ -175,3 +175,77 @@ test('flag unused', async ({ page }) => {
     );
   });
 });
+
+const TRIVIAL = 'pwscore/no-trivial-assertion';
+
+describe('QAG-287 E1: no-trivial-assertion exempts intentional constant shapes', () => {
+  it('marker expect(true) paired with expect(false) in the else arm, or an else that throws', async () => {
+    assert.equal(
+      await ruleHits(TRIVIAL, `
+test('gate', async ({ page }) => {
+  const n = await page.locator('#x').count();
+  if (n === 1) {
+    expect(true).toBeTruthy();
+  } else {
+    expect(false).toBeTruthy();
+  }
+  if (n === 1) {
+    expect(true).toBe(true);
+  } else {
+    throw new Error('missing');
+  }
+});`),
+      0
+    );
+  });
+
+  it('dummy listener, type-level check and skipped placeholder', async () => {
+    assert.equal(
+      await ruleHits(TRIVIAL, `
+test('listeners', () => {
+  const e: any = { on(_n: string, _f: () => void) {} };
+  const pass = () => expect(true).toBe(true);
+  e.on('foo', pass);
+  e.on('bar', () => expect(true).toBe(true));
+});
+test('types', () => {
+  const selectors = { changing: 'a' };
+  const name: keyof typeof selectors = 'changing';
+  expect(name).toBe('changing');
+});
+test.skip('placeholder', async () => {
+  expect(true).toBe(true);
+});`),
+      0
+    );
+  });
+
+  it('still reports expect(true) filler, an else that merely passes, and an if with no else', async () => {
+    assert.equal(
+      await ruleHits(TRIVIAL, `
+test('filler', async ({ page }) => {
+  await page.getByRole('button').click();
+  expect(true).toBe(true);
+});
+test('else passes', async ({ page }) => {
+  const n = await page.locator('.x').count();
+  if (n > 0) {
+    await expect(page.locator('.x').first()).toBeVisible();
+  } else {
+    expect(true).toBeTruthy();
+  }
+});
+test('no else', async ({ page }) => {
+  const n = await page.locator('.x').count();
+  if (n > 0) {
+    expect(true).toBeTruthy();
+  }
+});
+test('tautology', () => {
+  const digest = 'abc';
+  expect(digest).toBe('abc');
+});`),
+      4
+    );
+  });
+});
