@@ -284,9 +284,25 @@ function containsCallToAnyName(node: unknown, names: Set<string>): boolean {
  * function against each imported dependency file too).
  */
 export function findLocalAssertionHelperNames(source: string, file?: string): string[] {
+  return resolveAssertionHelperNames(extractHelperCandidates(source, file));
+}
+
+export interface HelperCandidate {
+  name: string;
+  body: unknown;
+}
+
+/**
+ * Every named function / method in one file, parsed once. Feed the candidates
+ * of ALL files (specs and imported helpers) to resolveAssertionHelperNames so
+ * the delegation fixed point also crosses file boundaries: a local
+ * `doSaveViewTest()` that calls an imported page object's `verifyViewOption()`
+ * (which asserts) is itself an assertion helper.
+ */
+export function extractHelperCandidates(source: string, file?: string): HelperCandidate[] {
   const ast = parseSource(source, file);
   if (!ast) return [];
-  const candidates: Array<{ name: string; body: unknown }> = [];
+  const candidates: HelperCandidate[] = [];
   // `test.extend({ login: async ({page}, use) => {...} })` entries are
   // fixtures, not callable helpers: an expect in their setup says nothing
   // about whoever uses the name, so they never register as helper names
@@ -345,7 +361,10 @@ export function findLocalAssertionHelperNames(source: string, file?: string): st
     }
     if (name && body && !PLAYWRIGHT_API_METHODS.has(name)) candidates.push({ name, body });
   });
+  return candidates;
+}
 
+export function resolveAssertionHelperNames(candidates: HelperCandidate[]): string[] {
   const names = new Set<string>();
   for (const c of candidates) {
     if (containsExpectCall(c.body) || containsWaitForCall(c.body)) names.add(c.name);

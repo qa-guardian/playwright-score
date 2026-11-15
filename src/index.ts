@@ -4,12 +4,14 @@ import path from 'node:path';
 import { globSync, hasMagic, Ignore, type IgnoreLike, type Path as GlobPath } from 'glob';
 import { runEslint } from './eslint-runner.js';
 import { commonAncestorDir } from './fs-util.js';
-import { collectLocallyImportedFiles } from './import-graph.js';
+import { collectLocallyImportedFiles, createModuleResolver } from './import-graph.js';
 import {
   analyzeSource,
   attributeFindingScopes,
   countLocators,
-  findLocalAssertionHelperNames,
+  extractHelperCandidates,
+  resolveAssertionHelperNames,
+  type HelperCandidate,
   getTestSpans,
   looksLikeNonPlaywrightTest,
 } from './metrics.js';
@@ -639,13 +641,11 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   // linting (see findLocalAssertionHelperNames) and (b) the metrics loop
   // below doesn't re-read the same files ESLint already read internally.
   const sources = new Map<string, string>();
-  const assertFunctionNames = new Set<string>();
+  const helperCandidates: HelperCandidate[] = [];
   for (const file of files) {
     const source = fs.readFileSync(file, 'utf8');
     sources.set(file, source);
-    for (const name of findLocalAssertionHelperNames(source, file)) {
-      assertFunctionNames.add(name);
-    }
+    helperCandidates.push(...extractHelperCandidates(source, file));
   }
 
   // Page Object Model suites route locator calls through imported classes
@@ -654,12 +654,14 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   // dependency files are never linted or counted toward sloc/tests/
   // findings; they only contribute locator counts (and, the same way,
   // any assertion-helper names) to the suite-level totals below.
-  const importedFiles = collectLocallyImportedFiles(sources, importBoundary);
+  const moduleResolver = createModuleResolver(importBoundary);
+  const importedFiles = collectLocallyImportedFiles(sources, importBoundary, moduleResolver);
   for (const [file, source] of importedFiles) {
-    for (const name of findLocalAssertionHelperNames(source, file)) {
-      assertFunctionNames.add(name);
-    }
+    helperCandidates.push(...extractHelperCandidates(source, file));
   }
+  // One fixed point over every readable file, so delegation chains may cross
+  // file boundaries (spec helper -> imported page object -> expect).
+  const assertFunctionNames = new Set(resolveAssertionHelperNames(helperCandidates));
 
   // Identifiers bound to a `test.extend(...)`-derived fixture under a
   // custom name (same-file, or imported from a local fixtures module —
@@ -679,7 +681,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
       assertFunctionNames: [...assertFunctionNames],
       testAliasNames,
     }),
-    { filesBase, sources, importedFiles, importBoundary }
+    { filesBase, sources, importedFiles, importBoundary, moduleResolver }
   );
 
   let totalSloc = 0;

@@ -21,7 +21,7 @@
  */
 import path from 'node:path';
 import { parseForESLint } from '@typescript-eslint/parser';
-import { resolveRelativeImport } from './import-graph.js';
+import { createModuleResolver, resolveImportSpecifier, type ImportResolver } from './import-graph.js';
 import { PLAYWRIGHT_API_METHODS } from './playwright-api-names.js';
 import type { Finding } from './types.js';
 import { sourceTypeFor } from './source-type.js';
@@ -132,6 +132,8 @@ export interface TriageContext {
   importedFiles: Map<string, string>;
   /** Directory relative imports may not climb out of (defaults to filesBase). */
   importBoundary?: string;
+  /** Alias / workspace-package resolver shared with the import-graph walk (built from importBoundary when absent). */
+  moduleResolver?: ImportResolver;
 }
 
 interface Knowledge {
@@ -306,8 +308,8 @@ function reachableFiles(spec: string, ctx: TriageContext, know: Knowledge): Set<
     const ast = source === undefined ? undefined : parse(know.cache, source, file);
     for (const stmt of ast?.body ?? []) {
       const spec2 = stmt.source?.value;
-      if (typeof spec2 !== 'string' || !spec2.startsWith('.')) continue;
-      const target = resolveRelativeImport(file, spec2, boundary);
+      if (typeof spec2 !== 'string') continue;
+      const target = resolveImportSpecifier(file, spec2, boundary, ctx.moduleResolver);
       if (target && !seen.has(target)) {
         seen.add(target);
         queue.push(target);
@@ -417,6 +419,7 @@ export function triageFindings(findings: Finding[], ctx: TriageContext): Finding
       f.rule === 'playwright/valid-expect'
   );
   if (!wants) return findings;
+  ctx = { ...ctx, moduleResolver: ctx.moduleResolver ?? createModuleResolver(ctx.importBoundary ?? ctx.filesBase) };
   const cache: AstCache = new Map(); // per call: nothing leaks between scorePaths runs
   const know = gather(ctx, cache);
   const out: Finding[] = [];

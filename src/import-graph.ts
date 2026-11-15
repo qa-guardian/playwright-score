@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseForESLint } from '@typescript-eslint/parser';
 import { sourceTypeFor } from './source-type.js';
+import { createModuleResolver, firstExistingFile, type ImportResolver } from './module-resolution.js';
 
-const RESOLVE_EXTENSIONS = ['', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.mts', '.cts'];
-const INDEX_FILES = ['index.ts', 'index.tsx', 'index.js', 'index.jsx'];
+export { createModuleResolver, type ImportResolver } from './module-resolution.js';
 
 // Bounds on the traversal so a large, deep, or circular import graph can't
 // blow up cost. Chosen generously relative to real page-object directory
@@ -13,7 +13,7 @@ const INDEX_FILES = ['index.ts', 'index.tsx', 'index.js', 'index.jsx'];
 const MAX_DEPTH = 6;
 const MAX_FILES = 300;
 
-function extractRelativeImportSpecifiers(source: string, file: string): string[] {
+function extractImportSpecifiers(source: string, file: string): string[] {
   let ast: { body?: Array<Record<string, unknown>> } | undefined;
   try {
     ast = parseForESLint(source, {
@@ -34,7 +34,7 @@ function extractRelativeImportSpecifiers(source: string, file: string): string[]
       continue;
     }
     const source_ = node.source as { value?: unknown } | undefined;
-    if (typeof source_?.value === 'string' && source_.value.startsWith('.')) {
+    if (typeof source_?.value === 'string') {
       specifiers.push(source_.value);
     }
   }
@@ -46,25 +46,11 @@ export function resolveRelativeImport(
   specifier: string,
   boundaryDir: string
 ): string | undefined {
-  const base = path.resolve(path.dirname(fromFile), specifier);
-  const candidates: string[] = [];
-  for (const ext of RESOLVE_EXTENSIONS) candidates.push(base + ext);
-  for (const idx of INDEX_FILES) candidates.push(path.join(base, idx));
-
-  for (const candidate of candidates) {
-    // Never resolve outside the scanned suite's own directory tree — keeps
-    // the traversal bounded to the code actually being scored, and refuses
-    // to follow a relative import that climbs out to a sibling package or
-    // node_modules via a longer `../../..` chain.
-    const rel = path.relative(boundaryDir, candidate);
-    if (rel.startsWith('..') || path.isAbsolute(rel)) continue;
-    try {
-      if (fs.statSync(candidate).isFile()) return candidate;
-    } catch {
-      // Candidate doesn't exist — try the next extension/index form.
-    }
-  }
-  return undefined;
+  // Never resolve outside the scanned suite's own directory tree — keeps
+  // the traversal bounded to the code actually being scored, and refuses
+  // to follow a relative import that climbs out to a sibling package or
+  // node_modules via a longer `../../..` chain.
+  return firstExistingFile(path.resolve(path.dirname(fromFile), specifier), boundaryDir);
 }
 
 /**
@@ -79,12 +65,12 @@ export function resolveRelativeImport(
  * locators almost exclusively (confirmed by hand in its page-object
  * files).
  *
- * This follows only *relative* import specifiers (`./`, `../`) — bare
- * specifiers (npm packages, workspace packages, tsconfig path aliases)
- * are always left alone, since resolving them correctly needs a real
- * module resolver and getting it wrong risks pulling in unrelated code.
- * Under-counting by skipping an alias is a safe failure mode; guessing
- * wrong isn't. Traversal is also confined to `boundaryDir` (the scored
+ * This follows relative import specifiers (`./`, `../`, including the
+ * TypeScript ESM `./x.js` -> `x.ts` convention) plus the bare specifiers
+ * module-resolution.ts can map to a file inside the boundary: tsconfig
+ * `paths`/`baseUrl` aliases and workspace packages. Other bare specifiers
+ * (npm packages) are left alone. Under-counting is a safe failure mode;
+ * guessing wrong isn't. Traversal is also confined to `boundaryDir` (the scored
  * files' own common ancestor) and depth/file-count capped — see MAX_DEPTH
  * / MAX_FILES above — so a large or adversarial import graph can't blow
  * up cost.
@@ -95,9 +81,25 @@ export function resolveRelativeImport(
  * suite-level totals without treating them as scored test files —
  * they contribute no SLOC/tests/findings of their own.
  */
+/**
+ * Relative specifiers always; bare ones only when `moduleResolver` maps them
+ * to a file inside the boundary (tsconfig paths/baseUrl alias, workspace
+ * package). Anything else stays unresolved, as before.
+ */
+export function resolveImportSpecifier(
+  fromFile: string,
+  specifier: string,
+  boundaryDir: string,
+  moduleResolver?: ImportResolver
+): string | undefined {
+  if (specifier.startsWith('.')) return resolveRelativeImport(fromFile, specifier, boundaryDir);
+  return moduleResolver?.(fromFile, specifier);
+}
+
 export function collectLocallyImportedFiles(
   specSources: Map<string, string>,
-  boundaryDir: string
+  boundaryDir: string,
+  moduleResolver: ImportResolver = createModuleResolver(boundaryDir)
 ): Map<string, string> {
   const collected = new Map<string, string>();
   const visited = new Set<string>(specSources.keys());
@@ -111,9 +113,9 @@ export function collectLocallyImportedFiles(
     if (!next) break;
     const { file, source, depth } = next;
     if (depth >= MAX_DEPTH) continue;
-    for (const specifier of extractRelativeImportSpecifiers(source, file)) {
+    for (const specifier of extractImportSpecifiers(source, file)) {
       if (collected.size >= MAX_FILES) break;
-      const resolved = resolveRelativeImport(file, specifier, boundaryDir);
+      const resolved = resolveImportSpecifier(file, specifier, boundaryDir, moduleResolver);
       if (!resolved || visited.has(resolved)) continue;
       visited.add(resolved);
       let depSource: string;
