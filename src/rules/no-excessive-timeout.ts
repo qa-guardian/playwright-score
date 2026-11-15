@@ -23,7 +23,14 @@ import {
  *  - `test.setTimeout(N)` / `testInfo.setTimeout(N)` with N >= 300_000
  *  - `test.slow()` with no arguments written directly at file or describe
  *    level (a conditional `test.slow(cond, why)` or one inside a test is fine)
- * Not matched: config-file timeouts, non-literal values, `timeout: 0`.
+ * Not matched: config-file timeouts, non-literal values, `timeout: 0`, and
+ * `setTimeout(N)` written inside a `beforeAll/beforeEach/afterAll/afterEach`
+ * hook (seeding or teardown waiting on a slow backend is setup, not a test
+ * with a stretched budget; QAG-287 slice E2).
+ *
+ * Info severity (no score effect), set in profiles.ts: in the corpus hand-check
+ * only 4 of 20 hits were clearly wrong; 14 were slow external steps (VM boot,
+ * ingestion pipelines, downloads) that a human has to judge.
  */
 const WAIT_METHODS = new Set([
   'goto', 'reload', 'goBack', 'goForward', 'click', 'dblclick', 'fill', 'clear', 'press',
@@ -36,8 +43,8 @@ export const noExcessiveTimeout: Rule.RuleModule = {
     type: 'suggestion',
     docs: { description: 'Disallow very long literal timeouts' },
     messages: {
-      long: 'A {{seconds}}s timeout means a failure takes that long to report and slowness is hidden. Fix the wait condition or the app instead of stretching the limit.',
-      longTest: '`setTimeout({{seconds}}s)` gives one test an extreme budget; split the test or fix the slow step.',
+      long: 'A {{seconds}}s timeout means a failure takes that long to report and slowness is hidden. Check this is a genuinely slow external step; otherwise fix the wait condition or the app instead of stretching the limit.',
+      longTest: '`setTimeout({{seconds}}s)` gives this test an extreme budget. Check it covers a genuinely slow external step; otherwise split the test or fix the slow step.',
       slow: 'Unconditional `test.slow()` triples every timeout in scope, hiding slowness. Apply it to the specific slow test with a reason, or fix the slowness.',
     },
     schema: TEST_ALIAS_SCHEMA,
@@ -45,6 +52,18 @@ export const noExcessiveTimeout: Rule.RuleModule = {
   create(context) {
     const testNames = testNamesFromOptions(context.options);
     const owners = new Set<string>([...testNames, 'testInfo']);
+    const inHook = (node: AnyNode): boolean => {
+      let fn = enclosingFunction(node);
+      while (fn) {
+        const call = fn.parent;
+        if (call?.type === 'CallExpression' && call.arguments.includes(fn)) {
+          if (hookName(call, testNames)) return true;
+          if (isTestDeclaration(call, testNames)) return false;
+        }
+        fn = enclosingFunction(fn);
+      }
+      return false;
+    };
     return {
       CallExpression(node: AnyNode) {
         const callee = unwrap(node.callee);
@@ -55,7 +74,7 @@ export const noExcessiveTimeout: Rule.RuleModule = {
         // test.setTimeout(N) / testInfo.setTimeout(N)
         if (name === 'setTimeout' && callee.object?.type === 'Identifier' && owners.has(callee.object.name)) {
           const ms = evalNumber(node.arguments?.[0]);
-          if (ms !== undefined && ms >= 300_000) {
+          if (ms !== undefined && ms >= 300_000 && !inHook(node)) {
             context.report({ node: node as never, messageId: 'longTest', data: { seconds: String(ms / 1000) } });
           }
           return;

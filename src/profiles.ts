@@ -137,7 +137,10 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
   'pwscore/no-brittle-selector': { dimension: 'locators', severityOverride: 'warning', reportOnly: true },
   'pwscore/no-shared-mutable-state': { dimension: 'structure', severityOverride: 'warning' },
   'pwscore/serial-mode-dependency': { dimension: 'structure', severityOverride: 'info', reportOnly: true },
-  'pwscore/no-excessive-timeout': { dimension: 'playwrightHygiene', severityOverride: 'warning' },
+  // QAG-287 slice E2: info, so no score effect. Most hits are judgement calls on slow
+  // external steps. Not reportOnly: that files a finding under "needs a human check",
+  // whose copy says the test relies on helpers the scorer could not read.
+  'pwscore/no-excessive-timeout': { dimension: 'playwrightHygiene', severityOverride: 'info' },
   // QAG-287 slice 2a: tests that would miss a real bug.
   'pwscore/no-fixme-test': { dimension: 'structure' },
   'pwscore/no-swallowed-assertion': { dimension: 'assertions', severityOverride: 'warning' },

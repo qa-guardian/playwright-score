@@ -292,3 +292,29 @@ test('uses token', async () => { expect(state.token).toBe('t'); });`),
     );
   });
 });
+
+const TIMEOUT = 'pwscore/no-excessive-timeout';
+
+describe('QAG-287 E2: no-excessive-timeout skips hook budgets and has no score effect', () => {
+  it('setTimeout inside beforeAll/afterAll is setup, not a test budget', async () => {
+    assert.equal(
+      await ruleHits(TIMEOUT, `
+test.beforeAll(async () => { test.setTimeout(600_000); });
+test.afterAll(async ({}, testInfo) => { testInfo.setTimeout(300_000); });
+test('x', async ({ page }) => { await expect(page).toHaveTitle('x'); });`),
+      0
+    );
+  });
+
+  it('TRUE: a long setTimeout in a test and a long action timeout still fire, as info findings (no score effect)', async () => {
+    const f = await findingsFor(TIMEOUT, `
+test('big', async ({ page }) => {
+  test.setTimeout(300_000);
+  await page.waitForResponse('**/products', { timeout: 90_000 });
+  await expect(page.getByRole('heading')).toBeHidden({ timeout: 1_000_000 });
+});`);
+    assert.equal(f.length, 3);
+    assert.ok(f.every((x) => x.severity === 'info'));
+    assert.ok(f.every((x) => !/one test/.test(x.message)));
+  });
+});
