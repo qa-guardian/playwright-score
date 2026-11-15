@@ -244,3 +244,102 @@ test.describe.serial('flow', () => {
   });
 });
 
+describe('QAG-287 E3: no-self-fulfilling-fallback only when the fallback supplies the asserted value', () => {
+  it('create-the-data-if-missing guard with an assertion on something else is setup', async () => {
+    assert.equal(
+      await hits(FALLBACK, `
+test('colour resets', async ({ page }) => {
+  const label = page.getByRole('link', { name: 'To Reply' });
+  if ((await label.count()) === 0) {
+    await page.getByRole('button', { name: 'Create label' }).click();
+    await page.getByRole('textbox', { name: 'New label name' }).fill('To Reply');
+    await page.getByRole('button', { name: 'Add' }).click();
+  }
+  await expect(label).toBeVisible();
+  await label.click();
+  await expect(page.getByRole('dialog')).toBeHidden();
+});`),
+      0
+    );
+  });
+
+  it('conditional fill whose later assertion is "the card renders" is setup', async () => {
+    assert.equal(
+      await hits(FALLBACK, `
+test('cards render', async ({ page }) => {
+  const field = page.getByRole('textbox').first();
+  if (!(await field.isEditable())) {
+    await field.fill('Ada');
+  }
+  await page.getByRole('button', { name: 'Submit' }).click();
+  await expect(field).toBeVisible();
+});`),
+      0
+    );
+  });
+
+  it('filter added as setup, then a layout check, is setup', async () => {
+    assert.equal(
+      await hits(FALLBACK, `
+test('pill width', async ({ page }) => {
+  const drawer = page.getByRole('dialog');
+  const filter = drawer.getByTestId('filter');
+  if (!(await filter.count())) {
+    await drawer.getByRole('button', { name: 'Add Filter' }).click();
+    await drawer.getByPlaceholder('Search...').fill('created');
+  }
+  await expect(filter).toBeVisible();
+  await expect(drawer.getByPlaceholder('Search...')).toHaveCSS('width', '200px');
+});`),
+      0
+    );
+  });
+
+  it('missing-product guard followed by a boolean check is setup', async () => {
+    assert.equal(
+      await hits(FALLBACK, `
+test('completeness', async ({ page }) => {
+  const edit = page.getByTitle('Edit').first();
+  const has = await edit.isVisible().catch(() => false);
+  if (!has) {
+    await page.getByRole('button', { name: 'Create Product' }).click();
+    await page.getByLabel('SKU').fill('sku-1');
+  }
+  expect(await edit.isVisible()).toBeTruthy();
+});`),
+      0
+    );
+  });
+
+  it('fallback fills a value and the test asserts that same value: fires', async () => {
+    assert.equal(
+      await hits(FALLBACK, `
+test('automation name', async ({ page }) => {
+  const nameInput = page.getByLabel('Automation name');
+  if (!(await nameInput.isVisible())) {
+    await page.getByRole('button', { name: 'New automation' }).click();
+    await nameInput.fill('nightly');
+  }
+  await expect(nameInput).toHaveValue('nightly');
+});`),
+      1
+    );
+  });
+
+  it('catch block that selects the expected option and re-asserts it: fires', async () => {
+    assert.equal(
+      await hits(FALLBACK, `
+const WANTED = 'daily';
+test('preset applied', async ({ page }) => {
+  const preset = page.getByLabel('Preset');
+  try {
+    await expect(preset).toHaveValue(WANTED);
+  } catch {
+    await preset.selectOption(WANTED);
+  }
+  await expect(preset).toHaveValue('daily');
+});`),
+      1
+    );
+  });
+});

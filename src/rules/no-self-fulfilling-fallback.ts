@@ -12,7 +12,11 @@
  *      are the common "ensure the menu/toggle is open" setup idiom and are
  *      not flagged);
  *  (b) a later statement in the same block contains an expect(...);
- *  (c) the later expect's text shares a locator/selector expression with the
+ *  (c) (QAG-287 E3) the later expect compares against the very value the
+ *      fallback supplied (`fill('x')` then `toHaveValue('x')`, same literal or
+ *      same const); an assertion on anything else (a card renders, a column
+ *      shows) means the fallback only sets up test data and is not flagged;
+ *  (d) the later expect's text shares a locator/selector expression with the
  *      state check (or try block), or with the action targets. "Locator
  *      expression" = the receiver text of a member call, e.g.
  *      `page.getByRole('textbox')` or the variable `input`; the bare `page`
@@ -149,16 +153,57 @@ export const noSelfFulfillingFallback: Rule.RuleModule = {
       return false;
     }
 
-    function hasAction(branch: N | undefined): { has: boolean; targets: Set<string> } {
+    /** Comparable key for a value expression: its literal text, resolving one const. */
+    function valueKey(e: N | undefined, depth = 0): string | undefined {
+      const n = unwrap(e);
+      if (!n) return undefined;
+      if (n.type === 'Literal') return n.value === null || n.value === undefined ? undefined : `v:${String(n.value)}`;
+      if (n.type === 'TemplateLiteral') {
+        const t = n as unknown as { expressions?: unknown[]; quasis?: Array<{ value?: { cooked?: string } }> };
+        if ((t.expressions ?? []).length === 0) return `v:${t.quasis?.[0]?.value?.cooked ?? ''}`;
+      }
+      if (n.type === 'Identifier' && depth < 2) {
+        const init = resolveConstInit(context, n);
+        const resolved = init ? valueKey(init, depth + 1) : undefined;
+        if (resolved) return resolved;
+      }
+      return n.type === 'Identifier' || n.type === 'MemberExpression' ? `t:${text(n)}` : undefined;
+    }
+    function addValueKeys(out: Set<string>, arg: N | undefined): void {
+      const n = unwrap(arg);
+      if (!n) return;
+      if (n.type === 'ArrayExpression') {
+        for (const el of (n as unknown as { elements?: unknown[] }).elements ?? []) addValueKeys(out, el as N);
+        return;
+      }
+      const k = valueKey(n);
+      if (k) out.add(k);
+    }
+    function hasAction(branch: N | undefined): { has: boolean; targets: Set<string>; values: Set<string> } {
       let has = false;
       const targets = new Set<string>();
+      const values = new Set<string>();
       walk(branch, (n) => {
         if (n.type === 'CallExpression' && ACTIONS.has(memberName(n.callee) ?? '')) {
           has = true;
           addKey(targets, n.callee?.object, 0);
+          addValueKeys(values, (n.arguments ?? [])[0]);
         }
       });
-      return { has, targets };
+      return { has, targets, values };
+    }
+    /** Values the matcher of an expect(...) is compared against (`.toHaveValue('x')`). */
+    function matcherValues(e: N): Set<string> {
+      const out = new Set<string>();
+      let cur: N = e;
+      while (cur.parent?.type === 'MemberExpression' && cur.parent.object === cur) {
+        cur = cur.parent;
+        if (cur.parent?.type === 'CallExpression' && cur.parent.callee === cur) {
+          for (const a of cur.parent.arguments ?? []) addValueKeys(out, a as N);
+          break;
+        }
+      }
+      return out;
     }
     function expectsAfter(siblings: N[], from: number): N[] {
       const found: N[] = [];
@@ -202,7 +247,14 @@ export const noSelfFulfillingFallback: Rule.RuleModule = {
       if (expects.length === 0) return;
       const later = new Set<string>();
       for (const e of expects) for (const k of keys(e)) later.add(k);
-      if (overlap(condKeys, later) || overlap(act.targets, later)) {
+      if (!(overlap(condKeys, later) || overlap(act.targets, later))) return;
+      // The assertion must check the very value the fallback supplied
+      // (`fill('x')` ... `toHaveValue('x')`). An assertion on something else
+      // (a card renders, a column shows) means the fallback is only test-data
+      // setup, the commonest false alarm in real suites.
+      const asserted = new Set<string>();
+      for (const e of expects) for (const v of matcherValues(e)) asserted.add(v);
+      if (overlap(act.values, asserted)) {
         context.report({ node: stmt as never, messageId: 'fallback' });
       }
     }
