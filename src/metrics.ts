@@ -364,6 +364,41 @@ export function extractHelperCandidates(source: string, file?: string): HelperCa
   return candidates;
 }
 
+/** Everything the scoped resolver (helper-scope.ts) needs about one helper, computed with a single walk of its body. */
+export interface HelperFacts {
+  name: string;
+  file: string;
+  /** Body holds an expect(...)-shaped call. */
+  expect: boolean;
+  /** Body holds a `.waitFor(...)` call. */
+  waitFor: boolean;
+  /** Names called (callee identifier or member property name). */
+  calls: Set<string>;
+}
+
+export function extractHelperFacts(source: string, file: string): HelperFacts[] {
+  return extractHelperCandidates(source, file).map((c) => {
+    const calls = new Set<string>();
+    let expectFound = false;
+    let waitFor = false;
+    walk(c.body, (n) => {
+      if (n.type !== 'CallExpression') return;
+      const callee = (n as { callee?: Record<string, unknown> }).callee;
+      if (!expectFound && isExpectCallee(callee)) expectFound = true;
+      if (callee?.type === 'Identifier') {
+        calls.add((callee as { name: string }).name);
+      } else if (callee?.type === 'MemberExpression' && !callee.computed) {
+        const property = callee.property as { type?: string; name?: string } | undefined;
+        if (property?.type === 'Identifier' && property.name) {
+          calls.add(property.name);
+          if (property.name === 'waitFor') waitFor = true;
+        }
+      }
+    });
+    return { name: c.name, file, expect: expectFound, waitFor, calls };
+  });
+}
+
 export function resolveAssertionHelperNames(candidates: HelperCandidate[]): string[] {
   const names = new Set<string>();
   for (const c of candidates) {

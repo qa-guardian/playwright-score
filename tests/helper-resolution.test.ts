@@ -165,3 +165,71 @@ test('saves', async ({ page }) => {
     assert.equal(parseLenientJson('{ nope'), undefined);
   });
 });
+
+// QAG-287 D2: helper names are bound to the import graph, and waitFor / setup
+// evidence does not travel across files.
+describe('QAG-287 D2: scoped helper resolution', () => {
+  const specCalling = (name: string, from: string) => `import { test } from '@playwright/test';
+import { ${name} } from '${from}';
+test('does a thing', async ({ page }) => {
+  await page.goto('/x');
+  await ${name}(page);
+  await page.getByRole('button', { name: 'Go' }).click();
+});
+`;
+  const hasEE = async (files: Record<string, string>) => (await rules(repo(files))).includes('playwright/expect-expect');
+
+  it('a same-named asserting helper in an unrelated file does not clear the test', async () => {
+    assert.ok(
+      await hasEE({
+        'e2e/a.spec.ts': specCalling('submitForm', './helper'),
+        'e2e/helper.ts': IDLE_HELPER,
+        'e2e/unrelated.ts': ASSERTING_HELPER,
+      })
+    );
+  });
+
+  it('twin: the same asserting helper, imported, clears it (also through a re-export)', async () => {
+    assert.ok(
+      !(await hasEE({
+        'e2e/a.spec.ts': specCalling('submitForm', './utils'),
+        'e2e/utils/index.ts': `export * from './form';\n`,
+        'e2e/utils/form.ts': ASSERTING_HELPER,
+      }))
+    );
+  });
+
+  it('a bootstrap-style wait helper still fires: waitFor in another file is not an assertion for its caller', async () => {
+    const ready = `import type { Page } from '@playwright/test';
+export async function waitForReady(page: Page) { await page.getByTestId('ready').waitFor(); }
+`;
+    const boot = `import type { Page } from '@playwright/test';
+import { waitForReady } from './ready';
+export async function prepareThing(page: Page) { await waitForReady(page); }
+`;
+    assert.ok(await hasEE({ 'e2e/a.spec.ts': specCalling('prepareThing', './boot'), 'e2e/boot.ts': boot, 'e2e/ready.ts': ready }));
+  });
+
+  it('a setup-shaped wrapper still fires even though a helper it calls elsewhere has a real expect', async () => {
+    const seed = `import { expect, type Page } from '@playwright/test';
+export async function seedData(page: Page) { await expect(page.getByTestId('seeded')).toBeVisible(); }
+`;
+    const boot = `import type { Page } from '@playwright/test';
+import { seedData } from './seed';
+export async function awaitBootstrap(page: Page) { await page.goto('/'); await seedData(page); }
+`;
+    assert.ok(await hasEE({ 'e2e/a.spec.ts': specCalling('awaitBootstrap', './boot'), 'e2e/boot.ts': boot, 'e2e/seed.ts': seed }));
+    // twin: the same chain under a non-setup name is a real delegated assertion
+    const saveAndCheck = boot.replace('awaitBootstrap', 'saveAndCheck');
+    assert.ok(
+      !(await hasEE({ 'e2e/a.spec.ts': specCalling('saveAndCheck', './boot'), 'e2e/boot.ts': saveAndCheck, 'e2e/seed.ts': seed }))
+    );
+  });
+
+  it('an imported helper whose own body waits (waitFor) keeps clearing the test, as before', async () => {
+    const ready = `import type { Page } from '@playwright/test';
+export async function waitForReady(page: Page) { await page.getByTestId('ready').waitFor(); }
+`;
+    assert.ok(!(await hasEE({ 'e2e/a.spec.ts': specCalling('waitForReady', './ready'), 'e2e/ready.ts': ready })));
+  });
+});

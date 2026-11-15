@@ -10,6 +10,38 @@ import { getCurriedTestCallbackRanges } from './metrics.js';
 import { plainAliasNames } from './test-aliases.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
+const ASSERT_FUNCTION_PATTERNS = [
+  '^(assert|verify|validate|audit|expect)([A-Z]|$)',
+  '^checkA11y$',
+  '^checkAccessibility$',
+  '(ToBe|ToHave|ToContain|ToMatch|ToEqual)[A-Z]',
+];
+
+const escapeGlob = (p: string): string => p.replace(/[\\*?[\]{}()!+@|]/g, '\\$&');
+
+/** One override per distinct helper-name list: `files` are escaped literal paths relative to `cwd`. */
+function perFileHelperOverrides(
+  byFile: ReadonlyMap<string, string[]>,
+  cwd: string
+): Linter.Config[] {
+  const groups = new Map<string, { names: string[]; files: string[] }>();
+  for (const [file, names] of byFile) {
+    const key = names.join('\u0000');
+    const g = groups.get(key) ?? { names, files: [] };
+    g.files.push(escapeGlob(path.relative(cwd, file).split(path.sep).join('/')));
+    groups.set(key, g);
+  }
+  return [...groups.values()].map((g) => ({
+    files: g.files,
+    rules: {
+      'playwright/expect-expect': [
+        'error',
+        { assertFunctionNames: g.names, assertFunctionPatterns: ASSERT_FUNCTION_PATTERNS },
+      ],
+    },
+  })) as Linter.Config[];
+}
+
 function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): Linter.Config[] {
   const base: Linter.Config[] = [
     {
@@ -90,12 +122,7 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
           'error',
           {
             assertFunctionNames,
-            assertFunctionPatterns: [
-              '^(assert|verify|validate|audit|expect)([A-Z]|$)',
-              '^checkA11y$',
-              '^checkAccessibility$',
-              '(ToBe|ToHave|ToContain|ToMatch|ToEqual)[A-Z]',
-            ],
+            assertFunctionPatterns: ASSERT_FUNCTION_PATTERNS,
           },
         ],
         'playwright/no-focused-test': 'error',
@@ -209,8 +236,10 @@ export async function runEslint(options: {
   cwd?: string;
   /** Directory finding `file` paths are made relative to (defaults to the lint basePath). */
   reportBase?: string;
-  /** See findLocalAssertionHelperNames in metrics.ts. */
+  /** Helper names that clear expect-expect everywhere (see helper-scope.ts for the per-file form). */
   assertFunctionNames?: string[];
+  /** Per spec file: helper names reachable from that file (helper-scope.ts). Overrides assertFunctionNames. */
+  assertFunctionNamesByFile?: ReadonlyMap<string, string[]>;
   /** See detectExtendedTestAliases in test-aliases.ts. */
   testAliasNames?: string[];
 }): Promise<Finding[]> {
@@ -245,6 +274,11 @@ export async function runEslint(options: {
     }
   } catch {
     // parser optional for pure JS
+  }
+
+  // Added after the parser wiring above so it never touches languageOptions.
+  if (options.assertFunctionNamesByFile) {
+    overrideConfig.push(...perFileHelperOverrides(options.assertFunctionNamesByFile, cwd));
   }
 
   const eslint = new ESLint({

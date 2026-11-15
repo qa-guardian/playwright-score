@@ -99,7 +99,9 @@ export function resolveImportSpecifier(
 export function collectLocallyImportedFiles(
   specSources: Map<string, string>,
   boundaryDir: string,
-  moduleResolver: ImportResolver = createModuleResolver(boundaryDir)
+  moduleResolver: ImportResolver = createModuleResolver(boundaryDir),
+  /** Optional out-param: file -> files it imports/re-exports (resolved), for scoping helper names. */
+  edges?: Map<string, string[]>
 ): Map<string, string> {
   const collected = new Map<string, string>();
   const visited = new Set<string>(specSources.keys());
@@ -116,6 +118,11 @@ export function collectLocallyImportedFiles(
     for (const specifier of extractImportSpecifiers(source, file)) {
       if (collected.size >= MAX_FILES) break;
       const resolved = resolveImportSpecifier(file, specifier, boundaryDir, moduleResolver);
+      if (resolved && edges) {
+        const list = edges.get(file);
+        if (list) list.push(resolved);
+        else edges.set(file, [resolved]);
+      }
       if (!resolved || visited.has(resolved)) continue;
       visited.add(resolved);
       let depSource: string;

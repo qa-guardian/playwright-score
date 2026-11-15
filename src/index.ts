@@ -2,6 +2,7 @@ import { triageFindings } from './finding-triage.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { globSync, hasMagic, Ignore, type IgnoreLike, type Path as GlobPath } from 'glob';
+import { createHelperScope } from './helper-scope.js';
 import { runEslint } from './eslint-runner.js';
 import { commonAncestorDir } from './fs-util.js';
 import { collectLocallyImportedFiles, createModuleResolver } from './import-graph.js';
@@ -9,9 +10,8 @@ import {
   analyzeSource,
   attributeFindingScopes,
   countLocators,
-  extractHelperCandidates,
-  resolveAssertionHelperNames,
-  type HelperCandidate,
+  extractHelperFacts,
+  type HelperFacts,
   getTestSpans,
   looksLikeNonPlaywrightTest,
 } from './metrics.js';
@@ -641,11 +641,11 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   // linting (see findLocalAssertionHelperNames) and (b) the metrics loop
   // below doesn't re-read the same files ESLint already read internally.
   const sources = new Map<string, string>();
-  const helperCandidates: HelperCandidate[] = [];
+  const helperFacts: HelperFacts[] = [];
   for (const file of files) {
     const source = fs.readFileSync(file, 'utf8');
     sources.set(file, source);
-    helperCandidates.push(...extractHelperCandidates(source, file));
+    helperFacts.push(...extractHelperFacts(source, file));
   }
 
   // Page Object Model suites route locator calls through imported classes
@@ -655,13 +655,17 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   // findings; they only contribute locator counts (and, the same way,
   // any assertion-helper names) to the suite-level totals below.
   const moduleResolver = createModuleResolver(importBoundary);
-  const importedFiles = collectLocallyImportedFiles(sources, importBoundary, moduleResolver);
+  const importEdges = new Map<string, string[]>();
+  const importedFiles = collectLocallyImportedFiles(sources, importBoundary, moduleResolver, importEdges);
   for (const [file, source] of importedFiles) {
-    helperCandidates.push(...extractHelperCandidates(source, file));
+    helperFacts.push(...extractHelperFacts(source, file));
   }
   // One fixed point over every readable file, so delegation chains may cross
   // file boundaries (spec helper -> imported page object -> expect).
-  const assertFunctionNames = new Set(resolveAssertionHelperNames(helperCandidates));
+  // Names are scoped per spec file: own helpers plus helpers of files the spec
+  // reaches through imports (see helper-scope.ts).
+  const helperNamesFor = createHelperScope(helperFacts, importEdges);
+  const assertFunctionNamesByFile = new Map(files.map((f) => [f, helperNamesFor(f)] as const));
 
   // Identifiers bound to a `test.extend(...)`-derived fixture under a
   // custom name (same-file, or imported from a local fixtures module —
@@ -678,7 +682,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
       profile,
       cwd,
       reportBase: filesBase,
-      assertFunctionNames: [...assertFunctionNames],
+      assertFunctionNamesByFile,
       testAliasNames,
     }),
     { filesBase, sources, importedFiles, importBoundary, moduleResolver }

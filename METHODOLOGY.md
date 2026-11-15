@@ -226,6 +226,21 @@ native/raw ratio that already counts every raw `.locator()` and legacy
 selector call, so scoring the same call again would charge it twice. The
 finding is named evidence for why that raw call is fragile.
 
+**Helper and page-object resolution.** Imports are followed through relative
+paths (including the TypeScript `./x.js` to `x.ts` convention), tsconfig
+`paths`/`baseUrl` aliases and workspace packages, never outside the scored
+directory or the repository. A helper (function, arrow function, class method)
+clears `expect-expect` in a spec only if it is defined in that spec or in a file
+the spec reaches through imports and re-exports; a same-named helper in an
+unrelated file never counts. Evidence: an `expect`, or a `.waitFor()` call, in
+the helper's own file (same-file chains included) counts as before. Across files
+only real `expect` evidence is passed on, so a wrapper that merely calls a
+`.waitFor()` helper in another file does not become an assertion helper; and a
+setup-shaped wrapper (`await*`, `setup*`, `bootstrap*`, `init*`, `prepare*`,
+`seed*`, `goto*`, `navigate*`, `login*`, `signIn*`, `ensure*`) does not become
+one through helpers in other files, because the expects in a setup chain check
+preconditions rather than the behaviour under test.
+
 **Test factories.** A function whose `return` is `<test>.extend(...)`, a known
 test alias, or a call of another such function (same file or imported through
 relative paths) is a test factory; `const t = factory(...)` makes `t` a test
