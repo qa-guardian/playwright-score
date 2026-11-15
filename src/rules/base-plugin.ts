@@ -259,6 +259,86 @@ function isRetryBackoffInHelper(ancestors: Node[], from: number): boolean {
   return helperFound;
 }
 
+/**
+ * QAG-287 slice E2: sleeps that are not a test waiting for the page. Used by
+ * no-timer-sleep. `ancestors` run root-first up to the sleep's parent; `delay`
+ * is the millisecond argument; `exprIdx` is the ancestor index of the
+ * `new Promise(...)` expression (or -1 for the node:timers/promises form).
+ *
+ *  - 0 ms: a macrotask drain, not a wait.
+ *  - inside a `.route()` handler, or a function assigned onto an object
+ *    member (a monkey-patched stub): latency injection on purpose.
+ *  - one arm of `Promise.race`: an observation window, not a sleep.
+ *  - the pause of a loop that can end by break/return/throw: a bounded
+ *    poll or retry that re-checks something between pauses.
+ */
+const ROUTE_METHODS = new Set(['route', 'routeFromHAR', 'routeWebSocket']);
+
+function loopCanExit(loop: Node): boolean {
+  let found = false;
+  const visit = (n: unknown, top: boolean): void => {
+    if (found || !n || typeof n !== 'object') return;
+    if (Array.isArray(n)) {
+      for (const x of n) visit(x, top);
+      return;
+    }
+    const node = n as Node;
+    if (typeof node.type !== 'string') return;
+    if (!top && (FUNCTION_TYPES.has(node.type) || node.type === 'FunctionDeclaration')) return;
+    if (node.type === 'BreakStatement' || node.type === 'ReturnStatement' || node.type === 'ThrowStatement') {
+      found = true;
+      return;
+    }
+    for (const [k, v] of Object.entries(node as unknown as Record<string, unknown>)) {
+      if (k === 'parent') continue;
+      visit(v, false);
+    }
+  };
+  visit((loop as unknown as { body?: unknown }).body, true);
+  return found;
+}
+
+function isNonWaitSleep(ancestors: Node[], delay: Node | undefined, exprIdx: number): boolean {
+  if (delay?.type === 'Literal' && (delay as unknown as { value?: unknown }).value === 0) return true;
+  if (exprIdx >= 2) {
+    const arr = ancestors[exprIdx - 1];
+    const call = ancestors[exprIdx - 2];
+    if (
+      arr?.type === 'ArrayExpression' &&
+      call?.type === 'CallExpression' &&
+      call.callee?.type === 'MemberExpression' &&
+      call.callee.object?.type === 'Identifier' &&
+      call.callee.object.name === 'Promise' &&
+      call.callee.property?.name === 'race'
+    ) {
+      return true;
+    }
+  }
+  const start = exprIdx >= 0 ? exprIdx - 1 : ancestors.length - 1;
+  let crossedFunction = false;
+  for (let i = start; i >= 0; i--) {
+    const anc = ancestors[i];
+    if (!crossedFunction && LOOP_TYPES.has(anc.type) && loopCanExit(anc)) return true;
+    if (!FUNCTION_TYPES.has(anc.type) && anc.type !== 'FunctionDeclaration') continue;
+    crossedFunction = true;
+    const parent = ancestors[i - 1] as (Node & { left?: Node; right?: Node }) | undefined;
+    if (!parent) continue;
+    if (
+      parent.type === 'CallExpression' &&
+      parent.callee?.type === 'MemberExpression' &&
+      !parent.callee.computed &&
+      ROUTE_METHODS.has(parent.callee.property?.name ?? '') &&
+      (parent.arguments ?? []).includes(anc)
+    ) {
+      return true;
+    }
+    if (parent.type === 'AssignmentExpression' && parent.right === anc && parent.left?.type === 'MemberExpression') {
+      return true;
+    }
+  }
+  return false;
+}
+
 function containsTryCatch(root: Node | undefined): boolean {
   let found = false;
   walkNode(root, (n) => {
@@ -354,12 +434,18 @@ const noTimerSleep: Rule.RuleModule = {
         }
       },
       CallExpression(node: Node) {
+        const ancestorsOf = (): Node[] =>
+          (context.sourceCode?.getAncestors
+            ? context.sourceCode.getAncestors(node as never)
+            : (context as unknown as { getAncestors(): unknown[] }).getAncestors()) as Node[];
         if (
           node.callee?.type === 'Identifier' &&
           typeof node.callee.name === 'string' &&
           timersPromisesLocalNames.has(node.callee.name)
         ) {
-          context.report({ node: node as never, messageId: 'timersPromisesSleep' });
+          if (!isNonWaitSleep(ancestorsOf(), (node.arguments ?? [])[0], -1)) {
+            context.report({ node: node as never, messageId: 'timersPromisesSleep' });
+          }
           return;
         }
         if (
@@ -371,7 +457,9 @@ const noTimerSleep: Rule.RuleModule = {
           node.callee.property?.type === 'Identifier' &&
           node.callee.property.name === 'setTimeout'
         ) {
-          context.report({ node: node as never, messageId: 'timersPromisesSleep' });
+          if (!isNonWaitSleep(ancestorsOf(), (node.arguments ?? [])[0], -1)) {
+            context.report({ node: node as never, messageId: 'timersPromisesSleep' });
+          }
           return;
         }
         if (!isSetTimeoutCallee(node.callee)) return;
@@ -400,7 +488,11 @@ const noTimerSleep: Rule.RuleModule = {
             const resolveName = resolveParam?.type === 'Identifier' ? resolveParam.name : undefined;
             const isWrappedResolve =
               typeof resolveName === 'string' && callsResolve(firstArg, resolveName);
-            if ((isDirectResolve || isWrappedResolve) && !isRetryBackoffInHelper(ancestors, i - 1)) {
+            if (
+              (isDirectResolve || isWrappedResolve) &&
+              !isRetryBackoffInHelper(ancestors, i - 1) &&
+              !isNonWaitSleep(ancestors, (node.arguments ?? [])[1], i - 1)
+            ) {
               context.report({ node: node as never, messageId: 'sleep' });
             }
           }

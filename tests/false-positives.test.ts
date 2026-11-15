@@ -153,9 +153,9 @@ describe('QAG-287 fix round 1: holes that let a test with no assertion escape', 
     assert.equal(rules(r).filter((x) => x === 'playwright/expect-expect').length, 1, JSON.stringify(r.findings));
   });
 
-  it('twin: polling loops and helpers nested in a test callback are still flagged as sleeps', async () => {
+  it('twin: polling loops with no exit are still flagged as sleeps; a bounded retry loop (E2) is not', async () => {
     const r = await score('bad-standard-polling-sleep.spec.ts');
-    assert.equal(rules(r).filter((x) => x === 'pwscore/no-timer-sleep').length, 3, JSON.stringify(r.findings));
+    assert.equal(rules(r).filter((x) => x === 'pwscore/no-timer-sleep').length, 2, JSON.stringify(r.findings));
   });
 
   it('twin: a .length read or a same-named property is not a mutation of the asserted array', async () => {

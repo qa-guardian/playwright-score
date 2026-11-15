@@ -22,8 +22,9 @@ test('polls through a helper declared in the test', async ({ page }) => {
   await expect(page.locator('h1')).toBeVisible();
 });
 
-// A retry loop with try/catch inside a helper that is itself declared in a
-// test callback is still not free-standing.
+// A bounded retry loop (it can break/return/throw when it succeeds or runs out)
+// is pacing, not a wait, wherever the helper is declared (QAG-287 slice E2):
+// not flagged.
 test('retry helper nested in the test', async ({ page }) => {
   async function retry() {
     for (let i = 0; i < 3; i++) {
