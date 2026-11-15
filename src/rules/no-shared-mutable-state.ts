@@ -1,5 +1,5 @@
 import type { Rule } from 'eslint';
-import { TEST_ALIAS_SCHEMA, serialScopeOf, testNamesFromOptions, type AnyNode } from './rule-util.js';
+import { TEST_ALIAS_SCHEMA, isSerialConfigureCall, isSerialDescribeCall, serialScopeOf, testNamesFromOptions, type AnyNode } from './rule-util.js';
 import { analyzeSharedVariable, titleOf } from './shared-state-analysis.js';
 
 /**
@@ -59,6 +59,16 @@ export const noSharedMutableState: Rule.RuleModule = {
 };
 
 /**
+ * The author says in a comment, right next to the serial declaration, that
+ * later tests use what earlier tests did ("Later tests use the revisions that
+ * earlier tests save"). That is a stated order dependency through state the
+ * variable analysis cannot see (a server, a database, the file system).
+ * "in order to" is plain English, not a claim about test order.
+ */
+const DECLARED_ORDER_RE =
+  /\b(later|earlier|previous|prior|subsequent|preceding)\s+(tests?|steps?|specs?)\b|\bin order\b(?!\s+to\b)|\border[- ]dependent\b|\b(tests?|steps?)\s+(depend|rely|relies|build)\b[^.\n]{0,40}\b(on|upon)\s+(the\s+)?(previous|earlier|prior|order|sequence)\b|\bmust run (sequentially|one after)\b/i;
+
+/**
  * Report-only companion (QAG-287 E3). A serial scope is reported only when it
  * holds tests that really depend on order: one test assigns a shared
  * variable and a LATER test in the same serial scope reads it (the same
@@ -74,6 +84,8 @@ export const serialModeDependency: Rule.RuleModule = {
     type: 'suggestion',
     docs: { description: 'Report serial scopes where a later test reads state an earlier test wrote' },
     messages: {
+      declared:
+        'Serial mode: the comment next to it says later tests use what earlier tests did, so these tests depend on running in order. One failure skips the rest and retries rerun the whole group. Information only.',
       serial:
         'Serial mode: test "{{reader}}" reads `{{name}}`, which test "{{writer}}" sets earlier, so these tests depend on running in order. One failure skips the rest and retries rerun the whole group. Information only.',
     },
@@ -83,6 +95,18 @@ export const serialModeDependency: Rule.RuleModule = {
     const testNames = testNamesFromOptions(context.options);
     const reported = new Set<AnyNode>();
     return {
+      CallExpression(node: AnyNode) {
+        if (!isSerialDescribeCall(node, testNames) && !isSerialConfigureCall(node, testNames)) return;
+        let stmt: AnyNode = node;
+        while (stmt && stmt.type !== 'ExpressionStatement') stmt = stmt.parent;
+        if (!stmt || reported.has(node)) return;
+        const comments = [...context.sourceCode.getCommentsBefore(stmt), ...context.sourceCode.getCommentsAfter(stmt)].filter(
+          (c: AnyNode) => c.loc.end.line >= stmt.loc.start.line - 3 && c.loc.start.line <= stmt.loc.end.line
+        );
+        if (!comments.some((c: AnyNode) => DECLARED_ORDER_RE.test(c.value))) return;
+        reported.add(node);
+        context.report({ node: node as never, messageId: 'declared' });
+      },
       VariableDeclarator(node: AnyNode) {
         const shared = analyzeSharedVariable(context.sourceCode, node, testNames);
         if (!shared || shared.pairs.some((p) => !p.serial)) return;

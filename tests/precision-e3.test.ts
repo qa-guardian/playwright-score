@@ -343,3 +343,45 @@ test('preset applied', async ({ page }) => {
     );
   });
 });
+
+describe('QAG-287 E3b: serial scope whose author states the order dependency', () => {
+  const tests = `
+  test('saves a revision', async ({ page }) => { await page.goto('/'); await expect(page).toHaveURL('/'); });
+  test('lists the revision', async ({ page }) => { await page.goto('/'); await expect(page).toHaveURL('/'); });`;
+
+  it('a comment next to describe.configure saying later tests use earlier ones is reported', async () => {
+    assert.equal(
+      await hits(SERIAL, `
+test.describe('Revisions', () => {
+  // Later tests use the revisions that earlier tests save.
+  test.describe.configure({ mode: 'serial' });
+${tests}
+});`),
+      1
+    );
+  });
+
+  it('a comment above describe.serial saying the tests must run in order is reported', async () => {
+    assert.equal(
+      await hits(SERIAL, `
+// These tests must run in order (deactivate then activate)
+test.describe.serial('Plugin', () => {
+${tests}
+});`),
+      1
+    );
+  });
+
+  it('"in order to" is not an order claim, and no comment means no report without a variable flow', async () => {
+    assert.equal(
+      await hits(SERIAL, `
+test.describe('Locked', () => {
+  // Serial in order to share one expensive login.
+  test.describe.configure({ mode: 'serial' });
+${tests}
+});`),
+      0
+    );
+    assert.equal(await hits(SERIAL, `test.describe.serial('Plain', () => {\n${tests}\n});`), 0);
+  });
+});
