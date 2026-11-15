@@ -421,22 +421,35 @@ const noTimerSleep: Rule.RuleModule = {
  * through the same `Mouse` API: `const { mouse } = page; mouse.click(...)`
  * (destructuring hides the `.mouse.` member access this rule originally
  * looked for), `mouse.dblclick(x, y)` (same brittleness, different
- * method), and the manual `move(x, y)` + `down()` + `up()` sequence that
- * reimplements a click one step at a time — still landing at a fixed
- * pixel position, just spread across three calls instead of one.
+ * method), and `touchscreen.tap(x, y)`.
+ *
+ * Fires only on a click, double click or tap whose x and y are both
+ * numeric literals (QAG-287 slice E1). `mouse.move/down/up/wheel` are not
+ * flagged (they park the cursor, end a drag, or scroll; `up()` takes no
+ * coordinates), and neither is a click at values computed from
+ * `boundingBox()` or variables, which is how drag and pointer-event tests
+ * must be written.
  */
-const MOUSE_COORDINATE_METHODS = new Set(['click', 'dblclick', 'move', 'down', 'up']);
+const MOUSE_COORDINATE_METHODS = new Set(['click', 'dblclick']);
+
+/** A numeric literal, optionally negated: `120`, `-5`. Nothing computed. */
+function isNumericLiteral(node: Node | undefined): boolean {
+  if (!node) return false;
+  if (node.type === 'Literal') return typeof (node as unknown as { value?: unknown }).value === 'number';
+  const un = node as unknown as { operator?: string; argument?: Node };
+  return node.type === 'UnaryExpression' && (un.operator === '-' || un.operator === '+') && isNumericLiteral(un.argument);
+}
 
 const noCoordinateClick: Rule.RuleModule = {
   meta: {
     type: 'suggestion',
     docs: {
       description:
-        'Disallow page.mouse.click/dblclick/move/down/up(...) coordinate-based interaction — click a locator instead',
+        'Disallow page.mouse.click/dblclick(x, y) and touchscreen.tap(x, y) at fixed numeric coordinates — click a locator instead',
     },
     messages: {
       coordinateClick:
-        'Unexpected coordinate-based interaction via *.mouse.{{method}}(...). Interact through a locator (locator.click()/locator.hover()) so the action targets an element, not a fixed pixel position.',
+        'Click at fixed pixel coordinates via {{method}}(x, y). Interact through a locator (locator.click()) so the action targets an element, not a fixed pixel position, which breaks on any layout or viewport change.',
     },
     schema: [],
   },
@@ -490,9 +503,24 @@ const noCoordinateClick: Rule.RuleModule = {
           const callee = n.callee;
           if (!callee || callee.type !== 'MemberExpression' || callee.computed) return;
           const methodName = callee.property?.type === 'Identifier' ? callee.property.name : undefined;
-          if (!methodName || !MOUSE_COORDINATE_METHODS.has(methodName)) return;
+          const isTap = methodName === 'tap';
+          if (!methodName || !(MOUSE_COORDINATE_METHODS.has(methodName) || isTap)) return;
           const obj = callee.object;
           if (!obj) return;
+          // Only fixed literal positions: `click(120, 240)`. Anything
+          // computed (boundingBox maths, variables) is deliberate.
+          const callArgs = n.arguments ?? [];
+          if (!isNumericLiteral(callArgs[0]) || !isNumericLiteral(callArgs[1])) return;
+          if (isTap) {
+            const isTouchscreen =
+              obj.type === 'MemberExpression' &&
+              !obj.computed &&
+              obj.property?.type === 'Identifier' &&
+              obj.property.name === 'touchscreen';
+            if (!isTouchscreen) return;
+            context.report({ node: n as never, messageId: 'coordinateClick', data: { method: 'touchscreen.tap' } });
+            return;
+          }
           // `page.mouse.click(...)` / `this.page.mouse.click(...)` — any
           // expression ending in `.mouse`.
           const isDotMouse =
@@ -510,7 +538,7 @@ const noCoordinateClick: Rule.RuleModule = {
           context.report({
             node: n as never,
             messageId: 'coordinateClick',
-            data: { method: methodName },
+            data: { method: `mouse.${methodName}` },
           });
         });
       },

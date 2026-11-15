@@ -1077,23 +1077,43 @@ describe('pre-1.1.0 review fixes: no-coordinate-click respellings', () => {
     );
   });
 
-  it('flags a manual move+down+up sequence at fixed coordinates', async () => {
+  it('QAG-287: does not flag mouse.move/down/up/wheel, or clicks at computed coordinates', async () => {
     const result = await scoreSource(
       `import { test, expect } from '@playwright/test';\n` +
-        `test('manual click via move/down/up', async ({ page }) => {\n` +
+        `test('drag, hover-end and wheel', async ({ page }) => {\n` +
         `  await page.goto('/app');\n` +
-        `  await page.mouse.move(120, 240);\n` +
+        `  await page.mouse.move(1, 1);\n` +
+        `  await page.mouse.move(1000, 1000);\n` +
         `  await page.mouse.down();\n` +
         `  await page.mouse.up();\n` +
+        `  await page.mouse.wheel(0, 300);\n` +
+        `  const box = await page.getByRole('heading').boundingBox();\n` +
+        `  await page.mouse.move(box!.x + box!.width / 2, box!.y + 4);\n` +
+        `  await page.mouse.click(box!.x + 5, box!.y + 5, { button: 'right' });\n` +
+        `  const px = 120;\n` +
+        `  await page.mouse.click(px, 240);\n` +
+        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
+        `});\n`
+    );
+    assert.ok(
+      !result.findings.some((f) => f.rule === 'pwscore/no-coordinate-click'),
+      `expected no coordinate-click finding: ${JSON.stringify(result.findings)}`
+    );
+  });
+
+  it('QAG-287: flags literal-coordinate click, negative literals and touchscreen.tap', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `test('literals', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await page.mouse.click(120, 240);\n` +
+        `  await page.mouse.click(10, -5, { button: 'right' });\n` +
+        `  await page.touchscreen.tap(50, 60);\n` +
         `  await expect(page.getByRole('heading')).toBeVisible();\n` +
         `});\n`
     );
     const hits = result.findings.filter((f) => f.rule === 'pwscore/no-coordinate-click');
-    assert.equal(
-      hits.length,
-      3,
-      `expected move+down+up to each trip no-coordinate-click, got: ${JSON.stringify(result.findings)}`
-    );
+    assert.equal(hits.length, 3, JSON.stringify(result.findings));
   });
 
   it('2.0.0: flags an arbitrarily-named alias of page.mouse (const m = page.mouse; m.click(x, y))', async () => {
