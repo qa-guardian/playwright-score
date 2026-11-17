@@ -332,6 +332,95 @@ function conditionIsLive(t: Tree, cond: N, awaited: () => Set<string>): boolean 
   });
 }
 
+// ---- prefer-web-first-assertions ---------------------------------------
+
+/**
+ * Inside `expect(async () => {...}).toPass()` or `expect.poll(fn)` the block is
+ * retried as a whole, so reading a value and asserting on it is the retrying
+ * form already.
+ */
+function insideRetryingBlock(t: Tree, node: N): boolean {
+  let cur: N | undefined = t.parent(node);
+  let child: N = node;
+  while (cur) {
+    if (cur.type === 'CallExpression' && (cur.arguments as N[]).includes(child) && isFunction(child)) {
+      const callee = cur.callee as N;
+      if (callee.type === 'MemberExpression' && callee.object?.name === 'expect' && callee.property?.name === 'poll') {
+        return true;
+      }
+      if (callee.type === 'Identifier' && callee.name === 'expect') {
+        const outer = t.parent(cur);
+        if (outer?.type === 'MemberExpression' && outer.object === cur && outer.property?.name === 'toPass') return true;
+      }
+    }
+    child = cur;
+    cur = t.parent(cur);
+  }
+  return false;
+}
+
+// ---- missing-playwright-await ------------------------------------------
+
+const PROMISE_COMBINATORS = new Set(['all', 'allSettled', 'race', 'any']);
+
+function isAwaitedPosition(t: Tree, n: N): boolean {
+  const p = t.parent(n);
+  return !!p && (p.type === 'AwaitExpression' || p.type === 'ReturnStatement' || (p.type === 'ArrowFunctionExpression' && p.body === n));
+}
+
+/** Is the array bound to `name` awaited after `afterLine`: `await Promise.all(name)`, `await name[i]`, or `for (p of name) await p`? */
+function arrayAwaitedLater(t: Tree, scope: N, name: string, afterLine: number): boolean {
+  const mentions = (e: N | undefined): boolean =>
+    !!e && ((e.type === 'Identifier' && e.name === name) || (e.type === 'SpreadElement' && e.argument?.name === name));
+  return t.some(scope, (n) => {
+    const line = (n.loc as { start: { line: number } }).start.line;
+    if (line <= afterLine) return false;
+    if (n.type === 'CallExpression' && n.callee?.type === 'MemberExpression' && n.callee.object?.name === 'Promise' &&
+        PROMISE_COMBINATORS.has(n.callee.property?.name) && (n.arguments as N[]).some(mentions)) {
+      return isAwaitedPosition(t, n);
+    }
+    if (n.type === 'AwaitExpression') {
+      const a = n.argument as N;
+      return mentions(a) || (a.type === 'MemberExpression' && a.object?.name === name);
+    }
+    if (n.type === 'ForOfStatement' && mentions(n.right)) {
+      return t.some(n.body, (x) => x.type === 'AwaitExpression');
+    }
+    return false;
+  });
+}
+
+/**
+ * A promise collected in an array that is awaited later is awaited. Narrow on
+ * purpose: only an array literal bound to a variable, or `arr.push(promise)`,
+ * and only a later `await`, `Promise.all`-style call or awaiting loop on that
+ * same name.
+ */
+function collectedAndAwaited(t: Tree, node: N): boolean {
+  const top = t.chainTop(node);
+  const p = t.parent(top);
+  if (!p) return false;
+  const line = (top.loc as { end: { line: number } }).end.line;
+  let name: string | undefined;
+  let scopeFrom: N = top;
+  if (p.type === 'ArrayExpression') {
+    const decl = t.parent(p);
+    if (decl?.type === 'VariableDeclarator' && decl.init === p && decl.id?.type === 'Identifier') name = decl.id.name;
+    scopeFrom = p;
+  } else if (
+    p.type === 'CallExpression' &&
+    p.callee?.type === 'MemberExpression' &&
+    p.callee.property?.name === 'push' &&
+    p.callee.object?.type === 'Identifier' &&
+    (p.arguments as N[]).includes(top)
+  ) {
+    name = p.callee.object.name;
+  }
+  if (!name) return false;
+  const scope = t.enclosingFunction(scopeFrom) ?? t.root;
+  return arrayAwaitedLater(t, scope, name, line);
+}
+
 // ---- entry point --------------------------------------------------------
 
 export type PostFilter = (msg: PostFilterMessage) => Decision | undefined;
@@ -383,6 +472,10 @@ export function createPostFilter(source: () => string, file: string): PostFilter
         if (conditionIsLive(t, subject, () => (awaited ??= awaitedNames(t)))) return undefined;
         return { severity: 'info', reportOnly: true };
       }
+      case 'playwright/prefer-web-first-assertions':
+        return insideRetryingBlock(tree, node) ? { drop: true } : undefined;
+      case 'playwright/missing-playwright-await':
+        return collectedAndAwaited(tree, node) ? { drop: true } : undefined;
       case 'playwright/no-conditional-expect':
         return conditionalExpectExempt(tree, node) ? { drop: true } : undefined;
       default:

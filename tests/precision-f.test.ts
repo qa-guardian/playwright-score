@@ -190,3 +190,62 @@ test('report only', async ({ page }) => {
     assert.ok([...ua, ...ev].every((x) => x.reportOnly === true && x.severity === 'info'));
   });
 });
+
+describe('QAG-287 F5: prefer-web-first-assertions, missing-playwright-await', () => {
+  const PWFA = 'playwright/prefer-web-first-assertions';
+  const MPA = 'playwright/missing-playwright-await';
+
+  it('prefer-web-first-assertions: skipped inside toPass and expect.poll blocks, kept outside', async () => {
+    const f = await found(PWFA, `
+test('retrying blocks', async ({ page }) => {
+  await expect(async () => {
+    expect(await page.locator('.x').textContent()).toBe('done');
+  }).toPass();
+  await expect.poll(async () => {
+    expect(await page.locator('.y').isVisible()).toBe(true);
+    return 1;
+  }).toBe(1);
+});
+test('plain', async ({ page }) => {
+  expect(await page.locator('.z').textContent()).toBe('done');
+  expect(await page.locator('.w').isVisible()).toBe(true);
+});`);
+    assert.equal(f.length, 2);
+    assert.ok(f.every((x) => (x.line ?? 0) > 12));
+  });
+
+  it('missing-playwright-await: promises collected in an array that is awaited later are not flagged', async () => {
+    assert.equal(
+      await hits(MPA, `
+test('collected', async ({ page }) => {
+  const waits = [page.waitForRequest('**/a'), page.waitForRequest('**/b')];
+  await page.goto('/');
+  for (const w of waits) {
+    await w;
+  }
+  const pending: Promise<unknown>[] = [];
+  pending.push(page.waitForResponse('**/c'));
+  await page.goto('/next');
+  await Promise.all(pending);
+});`),
+      0
+    );
+  });
+
+  it('missing-playwright-await: an array that is never awaited, and a bare unawaited call, still fire', async () => {
+    const n = await hits(MPA, `
+test('never awaited', async ({ page }) => {
+  const waits = [page.waitForRequest('**/a')];
+  await page.goto('/');
+  expect(waits.length).toBe(1);
+});
+test('bare', async ({ page }) => {
+  page.waitForRequest('**/b');
+  await page.goto('/');
+});
+test('unawaited expect', async ({ page }) => {
+  expect(page.locator('h1')).toBeVisible();
+});`);
+    assert.equal(n, 3);
+  });
+});
