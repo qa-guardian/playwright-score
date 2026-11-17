@@ -8,6 +8,7 @@ import { basePlugin } from './rules/base-plugin.js';
 import { mapRule } from './profiles.js';
 import { getCurriedTestCallbackRanges } from './metrics.js';
 import { plainAliasNames } from './test-aliases.js';
+import { createPostFilter } from './eslint-postfilter.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
 const ASSERT_FUNCTION_PATTERNS = [
@@ -334,6 +335,7 @@ export async function runEslint(options: {
       );
     };
     const file = path.relative(options.reportBase ?? cwd, absFile) || path.basename(absFile);
+    const postFilter = createPostFilter(() => result.source ?? fs.readFileSync(absFile, 'utf8'), absFile);
     for (const msg of result.messages) {
       // A `// eslint-disable-next-line some/rule-we-dont-bundle` comment is
       // extremely common in real-world code (any host project that lints
@@ -380,17 +382,19 @@ export async function runEslint(options: {
       if (!msg.ruleId) continue;
       if (msg.ruleId === 'playwright/no-standalone-expect' && insideCurriedTest(msg.line, msg.column)) continue;
       if (msg.ruleId === 'playwright/prefer-web-first-assertions' && unawaitedLines.has(msg.line)) continue;
+      const decision = postFilter({ ruleId: msg.ruleId, messageId: msg.messageId, line: msg.line, column: msg.column });
+      if (decision?.drop) continue;
       const mapping = mapRule(msg.ruleId);
       const messageSeverity = msg.messageId ? MESSAGE_SEVERITY[`${msg.ruleId}#${msg.messageId}`] : undefined;
       findings.push({
         rule: msg.ruleId,
-        severity: messageSeverity ?? toSeverity(msg.severity, mapping.severityOverride),
+        severity: decision?.severity ?? messageSeverity ?? toSeverity(msg.severity, mapping.severityOverride),
         message: msg.message,
         file,
         line: msg.line,
         column: msg.column,
         dimension: mapping.dimension,
-        reportOnly: mapping.reportOnly,
+        reportOnly: decision?.reportOnly ?? mapping.reportOnly,
       });
     }
   }
