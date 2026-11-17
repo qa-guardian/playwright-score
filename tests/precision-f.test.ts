@@ -249,3 +249,22 @@ test('unawaited expect', async ({ page }) => {
     assert.equal(n, 3);
   });
 });
+
+describe('QAG-287 F6: no-wait-for-selector', () => {
+  const WFS = 'playwright/no-wait-for-selector';
+  it('a plain waitForSelector is a warning; a swallowed one stays an error', async () => {
+    const f = await found(WFS, `
+test('waits', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForSelector('.ready');
+  try {
+    await page.waitForSelector('.maybe');
+  } catch {
+    // ignore
+  }
+  await page.waitForSelector('.other').catch(() => {});
+});`);
+    assert.equal(f.length, 3);
+    assert.deepEqual(f.map((x) => x.severity), ['warning', 'error', 'error']);
+  });
+});

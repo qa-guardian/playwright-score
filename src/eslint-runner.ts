@@ -99,7 +99,11 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
         'playwright/no-wait-for-timeout': 'error',
         'playwright/no-networkidle': 'error',
         'playwright/no-force-option': 'error',
-        'playwright/no-wait-for-selector': 'error',
+        // A warning (QAG-287 slice F): page.waitForSelector(sel) is almost
+        // always a visibility check or sync point before an auto-waiting
+        // action, equivalent to the locator form. It stays an error only when
+        // the wait is swallowed (eslint-postfilter.ts).
+        'playwright/no-wait-for-selector': 'warn',
         'playwright/no-wait-for-navigation': 'error',
         'playwright/missing-playwright-await': 'error',
         // expect-expect can only see expect(...) calls written directly in

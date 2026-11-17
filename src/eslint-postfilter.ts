@@ -421,6 +421,25 @@ function collectedAndAwaited(t: Tree, node: N): boolean {
   return arrayAwaitedLater(t, scope, name, line);
 }
 
+// ---- no-wait-for-selector ----------------------------------------------
+
+/** A wait inside a try block or before `.catch(...)` is swallowed: the wait can silently do nothing. */
+function waitIsSwallowed(t: Tree, node: N): boolean {
+  const top = t.chainTop(node);
+  for (let c: N | undefined = node; c && c !== top; c = t.parent(c)) {
+    const p = t.parent(c);
+    if (p?.type === 'MemberExpression' && p.object === c && p.property?.name === 'catch') return true;
+  }
+  let child: N = top;
+  let cur = t.parent(top);
+  while (cur && !isFunction(cur)) {
+    if (cur.type === 'TryStatement' && cur.block === child) return true;
+    child = cur;
+    cur = t.parent(cur);
+  }
+  return false;
+}
+
 // ---- entry point --------------------------------------------------------
 
 export type PostFilter = (msg: PostFilterMessage) => Decision | undefined;
@@ -472,6 +491,8 @@ export function createPostFilter(source: () => string, file: string): PostFilter
         if (conditionIsLive(t, subject, () => (awaited ??= awaitedNames(t)))) return undefined;
         return { severity: 'info', reportOnly: true };
       }
+      case 'playwright/no-wait-for-selector':
+        return waitIsSwallowed(tree, node) ? { severity: 'error' } : undefined;
       case 'playwright/prefer-web-first-assertions':
         return insideRetryingBlock(tree, node) ? { drop: true } : undefined;
       case 'playwright/missing-playwright-await':
