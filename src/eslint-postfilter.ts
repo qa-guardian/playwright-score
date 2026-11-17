@@ -280,6 +280,58 @@ function conditionalExpectExempt(t: Tree, node: N): boolean {
   return sawIf;
 }
 
+// ---- no-conditional-in-test --------------------------------------------
+
+const LIVE_QUERY_METHODS = new Set([
+  'isVisible', 'isHidden', 'isChecked', 'isEnabled', 'isDisabled', 'isEditable', 'count', 'getAttribute',
+  'textContent', 'innerText', 'innerHTML', 'inputValue', 'boundingBox', 'allTextContents', 'allInnerTexts',
+  'url', 'title', 'viewportSize', 'evaluate', 'evaluateAll',
+]);
+
+/** The conditional node upstream reported (a ternary or `&&` starts where its first operand starts). */
+function reportedConditional(t: Tree, node: N): N | undefined {
+  const start = node.loc as { start: { line: number; column: number } };
+  let cur: N | undefined = node;
+  while (cur) {
+    if (['IfStatement', 'ConditionalExpression', 'LogicalExpression', 'SwitchStatement'].includes(cur.type)) return cur;
+    const p = t.parent(cur);
+    const ps = p?.loc as { start: { line: number; column: number } } | undefined;
+    if (!p || !ps || ps.start.line !== start.start.line || ps.start.column !== start.start.column) return undefined;
+    cur = p;
+  }
+  return undefined;
+}
+
+/** Names bound to an awaited value (`const shown = await x.isVisible()`): branching on them is live UI state. */
+function awaitedNames(t: Tree): Set<string> {
+  const names = new Set<string>();
+  const hasAwait = (e: N | null | undefined): boolean => !!e && t.some(e, (n) => n.type === 'AwaitExpression');
+  t.some(t.root, (n) => {
+    if (n.type === 'VariableDeclarator' && n.id?.type === 'Identifier' && hasAwait(n.init)) names.add(n.id.name);
+    if (n.type === 'AssignmentExpression' && n.left?.type === 'Identifier' && hasAwait(n.right)) names.add(n.left.name);
+    return false;
+  });
+  return names;
+}
+
+/**
+ * A branch on live UI state (an awaited call, a Playwright query, a value read
+ * from one) is a real risk: the test takes a different path per run. A branch on
+ * static data, a fixture flag or a computed value is not; those findings stay in
+ * the report as information only.
+ */
+function conditionIsLive(t: Tree, cond: N, awaited: () => Set<string>): boolean {
+  return t.some(cond, (n) => {
+    if (n.type === 'AwaitExpression') return true;
+    if (n.type === 'CallExpression' && n.callee?.type === 'MemberExpression') {
+      const name = n.callee.property?.name ?? n.callee.property?.value;
+      if (LIVE_QUERY_METHODS.has(name)) return true;
+    }
+    if (n.type === 'Identifier' && awaited().has(n.name)) return true;
+    return false;
+  });
+}
+
 // ---- entry point --------------------------------------------------------
 
 export type PostFilter = (msg: PostFilterMessage) => Decision | undefined;
@@ -304,6 +356,7 @@ function parse(source: string, file: string): Tree | undefined {
 export function createPostFilter(source: () => string, file: string): PostFilter {
   let tree: Tree | undefined;
   let tried = false;
+  let awaited: Set<string> | undefined;
   return (msg) => {
     if (!tried) {
       tried = true;
@@ -322,6 +375,14 @@ export function createPostFilter(source: () => string, file: string): PostFilter
           return { drop: true };
         }
         return undefined;
+      case 'playwright/no-conditional-in-test': {
+        const cond = reportedConditional(tree, node);
+        if (!cond) return undefined;
+        const subject = cond.type === 'LogicalExpression' ? cond : cond.type === 'SwitchStatement' ? cond.discriminant : cond.test;
+        const t = tree;
+        if (conditionIsLive(t, subject, () => (awaited ??= awaitedNames(t)))) return undefined;
+        return { severity: 'info', reportOnly: true };
+      }
       case 'playwright/no-conditional-expect':
         return conditionalExpectExempt(tree, node) ? { drop: true } : undefined;
       default:

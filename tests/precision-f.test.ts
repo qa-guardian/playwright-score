@@ -133,3 +133,60 @@ test('catch', async ({ page }) => {
     );
   });
 });
+
+const COND_IN_TEST = 'playwright/no-conditional-in-test';
+
+describe('QAG-287 F3/F4: no-conditional-in-test, no-useless-await, no-eval', () => {
+  it('a branch on live UI state stays a scored warning', async () => {
+    const f = await found(COND_IN_TEST, `
+test('live state', async ({ page }) => {
+  await page.goto('/');
+  if (await page.locator('.banner').isVisible()) {
+    await page.locator('.banner button').click();
+  }
+  const open = await page.locator('.menu').getAttribute('aria-expanded');
+  if (open === 'true') {
+    await page.locator('.menu').click();
+  }
+  const label = (await page.locator('h1').count()) > 0 ? 'x' : 'y';
+  await expect(page.locator('h1')).toHaveText(label);
+});`);
+    assert.equal(f.length, 3);
+    assert.ok(f.every((x) => !x.reportOnly && x.severity === 'warning'));
+  });
+
+  it('a branch on static data or a fixture flag is information only', async () => {
+    const f = await found(COND_IN_TEST, `
+const timeout = process.env.CI ? 30000 : 10000;
+test('static', async ({ page, isMobile }) => {
+  await page.goto('/');
+  const name = isMobile ? 'mobile' : 'desktop';
+  for (const kind of ['a', 'b']) {
+    if (kind === 'b') continue;
+    await page.getByRole('button', { name }).click({ timeout });
+  }
+  const pick = name || 'fallback';
+  await expect(page.locator('h1')).toBeVisible();
+  if (isMobile) {
+    await page.goto('/m');
+  }
+});`);
+    assert.ok(f.length >= 3);
+    assert.ok(f.every((x) => x.reportOnly === true && x.severity === 'info'));
+  });
+
+  it('no-useless-await and no-eval are report-only', async () => {
+    const fs_ = await findingsFor(`
+test('report only', async ({ page }) => {
+  await page.goto('/');
+  const h = await page.locator('h1').first();
+  await expect(h).toBeVisible();
+  const n = await page.$eval('h1', (e) => e.textContent);
+  expect(n).toBe('x');
+});`);
+    const ua = fs_.filter((x) => x.rule === 'playwright/no-useless-await');
+    const ev = fs_.filter((x) => x.rule === 'playwright/no-eval');
+    assert.ok(ua.length >= 1 && ev.length >= 1);
+    assert.ok([...ua, ...ev].every((x) => x.reportOnly === true && x.severity === 'info'));
+  });
+});

@@ -51,7 +51,9 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
   'playwright/no-wait-for-navigation': { dimension: 'playwrightHygiene' },
   'playwright/missing-playwright-await': { dimension: 'playwrightHygiene' },
   'playwright/no-element-handle': { dimension: 'playwrightHygiene' },
-  'playwright/no-eval': { dimension: 'playwrightHygiene' },
+  // Report-only (QAG-287 slice F): a hand-check found $eval/evaluate used for
+  // bulk DOM reads with no gain in trust from the locator form.
+  'playwright/no-eval': { dimension: 'playwrightHygiene', severityOverride: 'info', reportOnly: true },
   'playwright/no-conditional-in-test': {
     dimension: 'playwrightHygiene',
     severityOverride: 'warning',
@@ -61,9 +63,13 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
     severityOverride: 'warning',
   },
   'playwright/no-page-pause': { dimension: 'playwrightHygiene' },
+  // Report-only (QAG-287 slice F): every hit is technically right, but removing
+  // the await never makes a test more trustworthy, and thenable builders
+  // (a database client's `.or(...)`) make the advice wrong.
   'playwright/no-useless-await': {
     dimension: 'playwrightHygiene',
-    severityOverride: 'warning',
+    severityOverride: 'info',
+    reportOnly: true,
   },
 
   // Assertions

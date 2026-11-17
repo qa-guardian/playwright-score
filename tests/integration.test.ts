@@ -134,7 +134,7 @@ describe('scorePaths integration', () => {
       'bad-gameable.spec.ts': 73,
       'bad-legacy-selector-actions.spec.ts': 87,
       'bad-no-expects.spec.ts': 75,
-      'bad-raw-locators.spec.ts': 67,
+      'bad-raw-locators.spec.ts': 83,
       'bad-standard-blanket-skip.spec.ts': 94,
       'bad-syntax-error.spec.ts': 0, // hard-fail (parse error), not a real score
       'bad-waits.spec.ts': 40,
