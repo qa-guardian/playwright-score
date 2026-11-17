@@ -440,6 +440,40 @@ function waitIsSwallowed(t: Tree, node: N): boolean {
   return false;
 }
 
+// ---- prefer-locator ------------------------------------------------------
+
+const PAGE_OR_FRAME_NAME = /^(page|frame)$|(Page|Frame)$/;
+
+/**
+ * Upstream treats any receiver whose name starts with `page`/`frame` as a Page
+ * (`pageCount.textContent()`, `pagerButton(page, 'Next').click()`). Keep the
+ * finding for a receiver that is plausibly a Page or Frame: an identifier named
+ * `page`/`frame` or ending in Page/Frame, a member such as `this.page`, or a
+ * call on one (`page.frame('x')`). Drop it for an identifier that merely starts
+ * with `page` and for a call to a plain function.
+ */
+function receiverIsNotPage(t: Tree, node: N): boolean {
+  const start = node.loc as { start: { line: number; column: number } };
+  let call: N | undefined;
+  for (let c: N | undefined = node; c; c = t.parent(c)) {
+    const cs = c.loc as { start: { line: number; column: number } };
+    if (cs.start.line !== start.start.line || cs.start.column !== start.start.column) break;
+    if (c.type === 'CallExpression' && c.callee?.type === 'MemberExpression') call = c;
+  }
+  if (!call) return false;
+  const obj = call.callee.object as N;
+  switch (obj.type) {
+    case 'Identifier':
+      return !PAGE_OR_FRAME_NAME.test(obj.name);
+    case 'MemberExpression':
+      return false;
+    case 'CallExpression':
+      return obj.callee?.type === 'Identifier';
+    default:
+      return false;
+  }
+}
+
 // ---- entry point --------------------------------------------------------
 
 export type PostFilter = (msg: PostFilterMessage) => Decision | undefined;
@@ -491,6 +525,8 @@ export function createPostFilter(source: () => string, file: string): PostFilter
         if (conditionIsLive(t, subject, () => (awaited ??= awaitedNames(t)))) return undefined;
         return { severity: 'info', reportOnly: true };
       }
+      case 'playwright/prefer-locator':
+        return receiverIsNotPage(tree, node) ? { drop: true } : undefined;
       case 'playwright/no-wait-for-selector':
         return waitIsSwallowed(tree, node) ? { severity: 'error' } : undefined;
       case 'playwright/prefer-web-first-assertions':

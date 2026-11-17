@@ -268,3 +268,41 @@ test('waits', async ({ page }) => {
     assert.deepEqual(f.map((x) => x.severity), ['warning', 'error', 'error']);
   });
 });
+
+describe('QAG-287 F7: prefer-locator receivers', () => {
+  const PL = 'playwright/prefer-locator';
+  it('a variable that only starts with "page" and a helper call are not pages', async () => {
+    assert.equal(
+      await hits(PL, `
+const pagerButton = (p: any, name: string) => p.getByRole('button', { name });
+test('not a page', async ({ page }) => {
+  const pageCount = page.locator('.count');
+  const pageHeading = page.getByRole('heading');
+  await pageCount.textContent();
+  await pageHeading.isVisible();
+  await pagerButton(page, 'Next').click();
+});`),
+      0
+    );
+  });
+
+  it('page, frame, this.page and *Page receivers still fire', async () => {
+    assert.equal(
+      await hits(PL, `
+test('real pages', async ({ page, context }) => {
+  await page.click('#a');
+  const popupPage = await context.newPage();
+  await popupPage.fill('#b', 'x');
+  const frame = page.mainFrame();
+  await frame.click('#c');
+});
+class Po {
+  constructor(private page: any) {}
+  async go() {
+    await this.page.hover('#d');
+  }
+}`),
+      4
+    );
+  });
+});
