@@ -68,6 +68,20 @@ export class Tree {
     return list?.[list.length - 1];
   }
 
+  children(n: N): N[] {
+    const out: N[] = [];
+    for (const key of Object.keys(n)) {
+      if (SKIP_KEYS.has(key)) continue;
+      const value = n[key];
+      if (Array.isArray(value)) {
+        for (const item of value) if (item && typeof item.type === 'string') out.push(item);
+      } else if (value && typeof value === 'object' && typeof value.type === 'string') {
+        out.push(value);
+      }
+    }
+    return out;
+  }
+
   /** Walk every node below `n` (inclusive); return true from `visit` to stop. */
   some(n: N, visit: (node: N) => boolean): boolean {
     if (visit(n)) return true;
@@ -105,7 +119,7 @@ export class Tree {
   }
 }
 
-export function isFunction(n: N | undefined): n is N {
+export function isFunction(n: N | undefined): boolean {
   return (
     !!n &&
     (n.type === 'FunctionDeclaration' ||
@@ -186,6 +200,86 @@ function validExpectExempt(t: Tree, node: N): boolean {
   return false;
 }
 
+// ---- no-conditional-expect ---------------------------------------------
+
+/** The arms of an if / else-if / else chain; undefined when there is no final `else`. */
+function ifArms(node: N): N[] | undefined {
+  const arms: N[] = [node.consequent];
+  let alt: N | null = node.alternate;
+  while (alt) {
+    if (alt.type === 'IfStatement') {
+      arms.push(alt.consequent);
+      alt = alt.alternate;
+    } else {
+      arms.push(alt);
+      return arms;
+    }
+  }
+  return undefined;
+}
+
+/** Does running this node always run an expect? Functions, loops and other conditionals do not count. */
+function alwaysAsserts(t: Tree, n: N): boolean {
+  if (isExpectCall(n)) return true;
+  if (isFunction(n)) return false;
+  switch (n.type) {
+    case 'IfStatement': {
+      const arms = ifArms(n);
+      return !!arms && arms.every((a) => alwaysAsserts(t, a));
+    }
+    case 'ConditionalExpression':
+    case 'LogicalExpression':
+    case 'SwitchStatement':
+    case 'CatchClause':
+    case 'ForStatement':
+    case 'ForOfStatement':
+    case 'ForInStatement':
+    case 'WhileStatement':
+    case 'DoWhileStatement':
+      return false;
+    case 'TryStatement':
+      return alwaysAsserts(t, n.block);
+    default:
+      return t.children(n).some((c) => alwaysAsserts(t, c));
+  }
+}
+
+/**
+ * An expect whose only conditional ancestors are if/else chains where every arm
+ * (including a final `else`) asserts is not skippable: some assertion always
+ * runs. Any other conditional on the way (ternary, `&&`, switch, catch, an if
+ * without `else`, an expect inside the condition) keeps the finding.
+ */
+function conditionalExpectExempt(t: Tree, node: N): boolean {
+  let child = t.chainTop(node);
+  let cur = t.parent(child);
+  let sawIf = false;
+  while (cur) {
+    if (isFunction(cur) && isStringTitledCallback(t, cur)) break;
+    switch (cur.type) {
+      case 'IfStatement': {
+        if (cur.test === child) return false;
+        const arms = ifArms(cur);
+        if (!arms || !arms.every((a) => alwaysAsserts(t, a))) return false;
+        sawIf = true;
+        break;
+      }
+      case 'ConditionalExpression':
+      case 'LogicalExpression':
+      case 'SwitchStatement':
+      case 'CatchClause':
+        return false;
+      case 'CallExpression':
+        if (cur.callee?.type === 'MemberExpression' && cur.callee.property?.name === 'catch') return false;
+        break;
+      default:
+    }
+    child = cur;
+    cur = t.parent(cur);
+  }
+  return sawIf;
+}
+
 // ---- entry point --------------------------------------------------------
 
 export type PostFilter = (msg: PostFilterMessage) => Decision | undefined;
@@ -228,6 +322,8 @@ export function createPostFilter(source: () => string, file: string): PostFilter
           return { drop: true };
         }
         return undefined;
+      case 'playwright/no-conditional-expect':
+        return conditionalExpectExempt(tree, node) ? { drop: true } : undefined;
       default:
         return undefined;
     }

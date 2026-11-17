@@ -81,3 +81,55 @@ test('await without matcher', async ({ page }) => {
     );
   });
 });
+
+const COND_EXPECT = 'playwright/no-conditional-expect';
+
+describe('QAG-287 F2: no-conditional-expect', () => {
+  it('an if/else (or else-if chain with a final else) where every arm asserts is not flagged', async () => {
+    assert.equal(
+      await hits(COND_EXPECT, `
+test('every arm asserts', async ({ page, isMobile }) => {
+  await page.goto('/');
+  if (isMobile) {
+    await expect(page.locator('.menu-toggle')).toBeVisible();
+  } else if (page.viewportSize()) {
+    await expect(page.locator('.sidebar')).toBeVisible();
+  } else {
+    await expect(page.locator('.nav')).toBeVisible();
+  }
+});`),
+      0
+    );
+  });
+
+  it('an if without else, an arm with no assertion, a ternary or a catch still fire', async () => {
+    assert.equal(
+      await hits(COND_EXPECT, `
+test('no else', async ({ page }) => {
+  const count = await page.locator('.badge').count();
+  if (count > 0) {
+    await expect(page.locator('.badge')).toHaveText('1');
+  }
+});
+test('silent arm', async ({ page }) => {
+  if (await page.locator('.a').isVisible()) {
+    await expect(page.locator('.a')).toHaveText('x');
+  } else {
+    await page.goto('/other');
+  }
+});
+test('ternary', async ({ page }) => {
+  const ok = (await page.locator('.a').count()) > 0;
+  ok ? await expect(page.locator('.a')).toBeVisible() : null;
+});
+test('catch', async ({ page }) => {
+  try {
+    await page.goto('/');
+  } catch {
+    await expect(page.locator('.err')).toBeVisible();
+  }
+});`),
+      4
+    );
+  });
+});
