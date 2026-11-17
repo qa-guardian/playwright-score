@@ -474,6 +474,86 @@ function receiverIsNotPage(t: Tree, node: N): boolean {
   }
 }
 
+// ---- no-standalone-expect ----------------------------------------------
+
+const mentionsTest = (t: Tree, n: N): boolean =>
+  t.some(n, (x) => x.type === 'Identifier' && (x.name === 'test' || x.name === 'it'));
+
+/**
+ * Does this call declare a test through something that provably leads back to
+ * `test` in this file: a conditional (`cond ? test.skip : test`), a name bound
+ * to such an expression, or a local function whose body calls `test(...)`? A
+ * function that merely has a test-like shape does not count.
+ */
+function calleeLeadsToTest(t: Tree, call: N): boolean {
+  let callee = call.callee as N;
+  if (callee.type === 'ConditionalExpression' || callee.type === 'LogicalExpression') return mentionsTest(t, callee);
+  while (callee.type === 'MemberExpression') callee = callee.object as N;
+  if (callee.type !== 'Identifier') return false;
+  const name = callee.name as string;
+  return t.some(t.root, (n) => {
+    if (n.type === 'VariableDeclarator' && n.id?.type === 'Identifier' && n.id.name === name && n.init) {
+      if (isFunction(n.init)) return t.some(n.init.body, (c) => c.type === 'CallExpression' && rootIdentifierName(c.callee) === 'test');
+      return mentionsTest(t, n.init);
+    }
+    if (n.type === 'FunctionDeclaration' && n.id?.name === name) {
+      return t.some(n.body, (c) => c.type === 'CallExpression' && rootIdentifierName(c.callee) === 'test');
+    }
+    return false;
+  });
+}
+
+const STANDALONE_RULE = 'playwright/no-standalone-expect';
+
+/**
+ * Honour an inline disable comment for this one rule only, and only when it
+ * names the rule explicitly (never a bare `eslint-disable`). Upstream's
+ * standalone check cannot see custom test callees, so a host project that lints
+ * with the same plugin often disables it by name. noInlineConfig stays on for
+ * every other rule, and the comment itself is still reported by
+ * pwscore/eslint-disable-comment.
+ */
+function disabledByComment(t: Tree, line: number): boolean {
+  const events: Array<{ line: number; on: boolean }> = [];
+  for (const c of t.comments) {
+    const m = /^\s*eslint-(disable-next-line|disable-line|disable|enable)\b([^]*)$/.exec(String(c.value));
+    if (!m) continue;
+    const names = m[2].split(/\s--\s/)[0].split(',').map((x) => x.trim());
+    if (!names.includes(STANDALONE_RULE)) continue;
+    const loc = c.loc as { start: { line: number }; end: { line: number } };
+    if (m[1] === 'disable-next-line' && loc.end.line + 1 === line) return true;
+    if (m[1] === 'disable-line' && loc.start.line === line) return true;
+    if (c.type === 'Block' && m[1] === 'disable') events.push({ line: loc.end.line, on: true });
+    if (c.type === 'Block' && m[1] === 'enable') events.push({ line: loc.start.line, on: false });
+  }
+  events.sort((a, b) => a.line - b.line);
+  let disabled = false;
+  for (const e of events) {
+    if (e.line > line) break;
+    disabled = e.on;
+  }
+  return disabled;
+}
+
+/**
+ * Upstream matches tests by the literal callee name, so an expect in a test
+ * declared through an alias, a conditional alias or a factory looks standalone:
+ * exempt an expect inside a `name('title', fn)` callback whose callee leads back
+ * to `test` in this file (calleeLeadsToTest), and inside a named helper function (declared, or stored in a variable,
+ * property or class member) that tests call.
+ */
+function standaloneExpectExempt(t: Tree, node: N, line: number): boolean {
+  if (disabledByComment(t, line)) return true;
+  const nearest = t.enclosingFunction(node);
+  if (nearest && isHelperFunction(t, nearest) && !isStringTitledCallback(t, nearest)) return true;
+  for (let fn = t.enclosingFunction(node); fn; fn = t.enclosingFunction(fn)) {
+    if (isStringTitledCallback(t, fn)) {
+      if (calleeLeadsToTest(t, t.parent(fn) as N)) return true;
+    }
+  }
+  return false;
+}
+
 // ---- entry point --------------------------------------------------------
 
 export type PostFilter = (msg: PostFilterMessage) => Decision | undefined;
@@ -525,6 +605,8 @@ export function createPostFilter(source: () => string, file: string): PostFilter
         if (conditionIsLive(t, subject, () => (awaited ??= awaitedNames(t)))) return undefined;
         return { severity: 'info', reportOnly: true };
       }
+      case 'playwright/no-standalone-expect':
+        return standaloneExpectExempt(tree, node, msg.line) ? { drop: true } : undefined;
       case 'playwright/prefer-locator':
         return receiverIsNotPage(tree, node) ? { drop: true } : undefined;
       case 'playwright/no-wait-for-selector':
