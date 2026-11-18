@@ -12,6 +12,8 @@ case, and says so explicitly.
 
 ## Unreleased
 
+- `no-conditional-in-test` treats destructured awaited values as live state (QAG-287 fix round 1). `const [rows] = await Promise.all([loc.count()])` and `const { a } = await ...` (also nested, renamed, defaulted and rest bindings, and destructuring assignments) now mark every bound name as read from the page, so a branch on it is scored again instead of dropping to information only.
+
 - `no-standalone-expect` no longer exempts an expect in a describe body (QAG-287 fix round 1). The alias exemption (slice F) accepted any name bound to an expression that mentions `test`, including `const describe = test.describe`, so an expect running at collection time was dropped. An alias, conditional alias or callee whose member chain passes through `describe`, `step`, a `before*`/`after*` hook, `use`, `configure`, `serial` or `parallel` is no longer an exemption; aliases of `test`, `test.only`, `test.skip`, `test.fixme`, a conditional between them, `test.extend(..)` and test factories are unchanged.
 
 - `valid-expect` no longer hides a helper that returns a matcher-less `expect` (QAG-287 fix round 1). The slice F exemption for `return expect(x)` from a named helper now applies only when a caller of that helper in the file chains a matcher on the result (`helper(x).toBeVisible()`, `(await helper(x)).not.toBe(..)`, or a stored result whose matcher is called later), or when the file exports the helper and nothing in the file calls it (callers are elsewhere). A helper whose callers never add a matcher is reported again, and its `expect` no longer makes it an assertion helper that clears `expect-expect` for its callers.

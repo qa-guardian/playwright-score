@@ -259,3 +259,40 @@ later('d', async ({ page }) => { await expect(page.locator('#d')).toBeVisible();
     assert.equal(f.length, 0, JSON.stringify(f));
   });
 });
+
+const COND_IN_TEST = 'playwright/no-conditional-in-test';
+
+describe('fix1 item 6: a destructured awaited value is live state', () => {
+  it('branching on a name destructured from an await stays scored', async () => {
+    const f = await findingsFor(COND_IN_TEST, spec(`
+test('array', async ({ page }) => {
+  const [rows] = await Promise.all([page.locator('tr').count()]);
+  if (rows > 0) {
+    await page.locator('#delete').click();
+  }
+  await expect(page.locator('#x')).toBeVisible();
+});
+test('object', async ({ page }) => {
+  const { visible, hidden: gone } = await page.evaluate(() => ({ visible: true, hidden: false }));
+  if (gone) {
+    await page.locator('#a').click();
+  }
+  await expect(page.locator('#x')).toBeVisible();
+});`));
+    assert.equal(f.length, 2);
+    assert.ok(f.every((x) => !x.reportOnly && x.severity === 'warning'), JSON.stringify(f));
+  });
+
+  it('GOOD: a branch on a destructured static value stays report-only', async () => {
+    const f = await findingsFor(COND_IN_TEST, spec(`
+test('static', async ({ page }) => {
+  const [a] = [1, 2];
+  if (a > 0) {
+    await page.locator('#a').click();
+  }
+  await expect(page.locator('#x')).toBeVisible();
+});`));
+    assert.equal(f.length, 1);
+    assert.ok(f.every((x) => x.reportOnly === true), JSON.stringify(f));
+  });
+});

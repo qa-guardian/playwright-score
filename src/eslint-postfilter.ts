@@ -379,7 +379,30 @@ function reportedConditional(t: Tree, node: N): N | undefined {
   return undefined;
 }
 
-/** Names bound to an awaited value (`const shown = await x.isVisible()`): branching on them is live UI state. */
+/** Every name a binding pattern introduces (`x`, `[a, b]`, `{ a, b: c, ...rest }`, defaults). */
+function patternNames(p: N | null | undefined, out: string[] = []): string[] {
+  if (!p) return out;
+  switch (p.type) {
+    case 'Identifier':
+      out.push(p.name as string);
+      break;
+    case 'ArrayPattern':
+      for (const e of p.elements as Array<N | null>) patternNames(e, out);
+      break;
+    case 'ObjectPattern':
+      for (const prop of p.properties as N[]) patternNames(prop.type === 'RestElement' ? prop.argument : prop.value, out);
+      break;
+    case 'AssignmentPattern':
+      patternNames(p.left, out);
+      break;
+    case 'RestElement':
+      patternNames(p.argument, out);
+      break;
+  }
+  return out;
+}
+
+/** Names bound to an awaited value (`const shown = await x.isVisible()`, `const [rows] = await ...`): branching on them is live UI state. */
 function awaitedNames(t: Tree): Set<string> {
   const names = new Set<string>();
   const live = (e: N | null | undefined): boolean =>
@@ -389,13 +412,21 @@ function awaitedNames(t: Tree): Set<string> {
   for (let grew = true; grew; ) {
     grew = false;
     t.some(t.root, (n) => {
-      if (n.type === 'VariableDeclarator' && n.id?.type === 'Identifier' && !names.has(n.id.name) && live(n.init)) {
-        names.add(n.id.name);
-        grew = true;
+      if (n.type === 'VariableDeclarator' && live(n.init)) {
+        for (const name of patternNames(n.id)) {
+          if (!names.has(name)) {
+            names.add(name);
+            grew = true;
+          }
+        }
       }
-      if (n.type === 'AssignmentExpression' && n.left?.type === 'Identifier' && !names.has(n.left.name) && live(n.right)) {
-        names.add(n.left.name);
-        grew = true;
+      if (n.type === 'AssignmentExpression' && live(n.right)) {
+        for (const name of patternNames(n.left)) {
+          if (!names.has(name)) {
+            names.add(name);
+            grew = true;
+          }
+        }
       }
       return false;
     });
