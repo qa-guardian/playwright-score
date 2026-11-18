@@ -632,6 +632,24 @@ function chainHasNonTestMember(expr: N | undefined): boolean {
   }
 }
 
+/**
+ * A wrapper function is a test alias when its body registers a test through
+ * `test(...)`. A body that also calls through a describe, hook or other
+ * non-test member (`test.describe(name, fn)`, `test.beforeAll(fn)`) is a group
+ * or hook wrapper: the callback it receives is not a test body.
+ */
+function wrapperDefinesTest(t: Tree, body: N): boolean {
+  let defines = false;
+  let nonTest = false;
+  t.some(body, (c) => {
+    if (c.type !== 'CallExpression' || rootIdentifierName(c.callee) !== 'test') return false;
+    if (chainHasNonTestMember(c.callee)) nonTest = true;
+    else defines = true;
+    return false;
+  });
+  return defines && !nonTest;
+}
+
 function calleeLeadsToTest(t: Tree, call: N): boolean {
   let callee = call.callee as N;
   if (callee.type === 'ConditionalExpression' || callee.type === 'LogicalExpression') {
@@ -644,11 +662,11 @@ function calleeLeadsToTest(t: Tree, call: N): boolean {
   const name = callee.name as string;
   return t.some(t.root, (n) => {
     if (n.type === 'VariableDeclarator' && n.id?.type === 'Identifier' && n.id.name === name && n.init) {
-      if (isFunction(n.init)) return t.some(n.init.body, (c) => c.type === 'CallExpression' && rootIdentifierName(c.callee) === 'test');
+      if (isFunction(n.init)) return wrapperDefinesTest(t, n.init.body);
       return mentionsTest(t, n.init) && !chainHasNonTestMember(n.init);
     }
     if (n.type === 'FunctionDeclaration' && n.id?.name === name) {
-      return t.some(n.body, (c) => c.type === 'CallExpression' && rootIdentifierName(c.callee) === 'test');
+      return wrapperDefinesTest(t, n.body);
     }
     return false;
   });

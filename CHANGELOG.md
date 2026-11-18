@@ -12,6 +12,8 @@ case, and says so explicitly.
 
 ## Unreleased
 
+- `no-standalone-expect` no longer exempts an expect in the body of a wrapper around `describe` (QAG-287 fix round 2). A helper such as `const group = (name, fn) => test.describe(name, fn)` or `function suite(name, fn) { test.describe(name, fn); }` was accepted as a test alias because its body calls through `test`, so an expect running at collection time in `group('x', () => { expect(..) })` was dropped again. A wrapper whose body calls through a describe or hook member is no longer an alias; wrappers around `test(...)`, `test.only(...)` and plain `const it = test` are unchanged.
+
 - `no-conditional-in-test` treats destructured awaited values as live state (QAG-287 fix round 1). `const [rows] = await Promise.all([loc.count()])` and `const { a } = await ...` (also nested, renamed, defaulted and rest bindings, and destructuring assignments) now mark every bound name as read from the page, so a branch on it is scored again instead of dropping to information only.
 
 - `no-standalone-expect` no longer exempts an expect in a describe body (QAG-287 fix round 1). The alias exemption (slice F) accepted any name bound to an expression that mentions `test`, including `const describe = test.describe`, so an expect running at collection time was dropped. An alias, conditional alias or callee whose member chain passes through `describe`, `step`, a `before*`/`after*` hook, `use`, `configure`, `serial` or `parallel` is no longer an exemption; aliases of `test`, `test.only`, `test.skip`, `test.fixme`, a conditional between them, `test.extend(..)` and test factories are unchanged.
