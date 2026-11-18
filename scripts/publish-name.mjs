@@ -19,23 +19,29 @@ if (!name) {
 }
 const run = (cmd, args, opts = {}) => execFileSync(cmd, args, { stdio: 'inherit', ...opts });
 
-const original = readFileSync('package.json', 'utf8');
-const version = JSON.parse(original).version;
-try {
-  run('node', ['scripts/set-package-name.mjs', name]);
-  if (!dry) {
-    let published = 'none';
-    try {
-      published = execFileSync('npm', ['view', `${name}@${version}`, 'version'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || 'none';
-    } catch {
-      /* 404 = not published yet */
+function publish() {
+  const original = readFileSync('package.json', 'utf8');
+  const version = JSON.parse(original).version;
+  try {
+    run('node', ['scripts/set-package-name.mjs', name]);
+    if (!dry) {
+      let published = 'none';
+      try {
+        published = execFileSync('npm', ['view', `${name}@${version}`, 'version'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || 'none';
+      } catch {
+        /* 404 = not published yet */
+      }
+      if (published === version) {
+        // Never process.exit() inside try: it skips `finally` and leaves package.json renamed.
+        console.log(`${name}@${version} is already published, skipping`);
+        process.exitCode = 0;
+        return;
+      }
     }
-    if (published === version) {
-      console.log(`${name}@${version} is already published, skipping`);
-      process.exit(0);
-    }
+    run('npm', ['publish', ...(dry ? ['--dry-run'] : [])]);
+  } finally {
+    writeFileSync('package.json', original);
   }
-  run('npm', ['publish', ...(dry ? ['--dry-run'] : [])]);
-} finally {
-  writeFileSync('package.json', original);
 }
+
+publish();
