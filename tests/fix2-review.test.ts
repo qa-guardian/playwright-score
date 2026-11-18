@@ -139,3 +139,38 @@ describe('fix2 item P: helper facts do not walk the whole file once per helper',
     assert.ok(ms < 5000, `extractHelperFacts took ${ms} ms`);
   });
 });
+
+describe('fix2 item S: publish-name restores package.json when interrupted', () => {
+  // Stub `npm` on PATH: `view` finds nothing, `publish` announces itself and hangs.
+  for (const [signal, code] of [['SIGINT', 130], ['SIGTERM', 143]] as const) {
+    it(`${signal} during npm publish restores package.json and exits ${code}`, async (t) => {
+      if (process.platform === 'win32') return t.skip('POSIX stub');
+      const { spawn } = await import('node:child_process');
+      const root = path.resolve(import.meta.dirname ?? '.', '..', '..');
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-pub-'));
+      try {
+        fs.mkdirSync(path.join(dir, 'scripts'));
+        for (const f of ['publish-name.mjs', 'set-package-name.mjs']) fs.copyFileSync(path.join(root, 'scripts', f), path.join(dir, 'scripts', f));
+        const original = JSON.stringify({ name: '@qaguardian/playwright-score', version: '9.9.9' }, null, 2) + '\n';
+        fs.writeFileSync(path.join(dir, 'package.json'), original);
+        fs.mkdirSync(path.join(dir, 'bin'));
+        const stub = path.join(dir, 'bin', 'npm');
+        fs.writeFileSync(stub, `#!/bin/sh\nif [ "$1" = view ]; then exit 1; fi\ntouch "${dir}/publishing"\nexec sleep 30\n`, { mode: 0o755 });
+        const child = spawn(process.execPath, ['scripts/publish-name.mjs', 'pwscore'], {
+          cwd: dir,
+          env: { ...process.env, PATH: `${path.join(dir, 'bin')}${path.delimiter}${process.env.PATH}` },
+          stdio: 'ignore',
+        });
+        const exited = new Promise<number | null>((resolve) => child.on('close', (c, s) => resolve(c ?? (s ? 128 : null))));
+        for (let i = 0; i < 100 && !fs.existsSync(path.join(dir, 'publishing')); i++) await new Promise((r) => setTimeout(r, 100));
+        assert.ok(fs.existsSync(path.join(dir, 'publishing')), 'npm publish stub never started');
+        assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')).name, 'pwscore');
+        child.kill(signal);
+        assert.equal(await exited, code);
+        assert.equal(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'), original);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  }
+});
