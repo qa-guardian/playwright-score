@@ -305,12 +305,24 @@ function reportedConditional(t: Tree, node: N): N | undefined {
 /** Names bound to an awaited value (`const shown = await x.isVisible()`): branching on them is live UI state. */
 function awaitedNames(t: Tree): Set<string> {
   const names = new Set<string>();
-  const hasAwait = (e: N | null | undefined): boolean => !!e && t.some(e, (n) => n.type === 'AwaitExpression');
-  t.some(t.root, (n) => {
-    if (n.type === 'VariableDeclarator' && n.id?.type === 'Identifier' && hasAwait(n.init)) names.add(n.id.name);
-    if (n.type === 'AssignmentExpression' && n.left?.type === 'Identifier' && hasAwait(n.right)) names.add(n.left.name);
-    return false;
-  });
+  const live = (e: N | null | undefined): boolean =>
+    !!e && t.some(e, (n) => n.type === 'AwaitExpression' || (n.type === 'Identifier' && names.has(n.name)));
+  // Fixed point: a name derived from an awaited one (`const has = !!tx.spans?.find(...)`
+  // after `const tx = await p`) is live too (corpus C1-065, Sentry middleware.test.ts:116).
+  for (let grew = true; grew; ) {
+    grew = false;
+    t.some(t.root, (n) => {
+      if (n.type === 'VariableDeclarator' && n.id?.type === 'Identifier' && !names.has(n.id.name) && live(n.init)) {
+        names.add(n.id.name);
+        grew = true;
+      }
+      if (n.type === 'AssignmentExpression' && n.left?.type === 'Identifier' && !names.has(n.left.name) && live(n.right)) {
+        names.add(n.left.name);
+        grew = true;
+      }
+      return false;
+    });
+  }
   return names;
 }
 

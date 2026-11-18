@@ -155,6 +155,21 @@ test('live state', async ({ page }) => {
     assert.ok(f.every((x) => !x.reportOnly && x.severity === 'warning'));
   });
 
+  it('a branch on a flag derived from an awaited value stays a scored warning (corpus C1-065)', async () => {
+    const f = await found(COND_IN_TEST, `
+test('derived flag', async ({ page }) => {
+  const tx = await page.evaluate(() => ({ spans: [] as { op: string }[] }));
+  const hasSpan = !!tx.spans?.find((s) => s.op === 'http.client');
+  if (hasSpan) {
+    expect(tx.spans).toContainEqual({ op: 'http.client' });
+  } else {
+    expect(tx.spans).toHaveLength(0);
+  }
+});`);
+    assert.equal(f.length, 1);
+    assert.ok(f.every((x) => !x.reportOnly && x.severity === 'warning'));
+  });
+
   it('a branch on static data or a fixture flag is information only', async () => {
     const f = await found(COND_IN_TEST, `
 const timeout = process.env.CI ? 30000 : 10000;
