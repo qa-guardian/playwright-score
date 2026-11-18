@@ -4,6 +4,7 @@ import { countSloc } from './sloc.js';
 import { factoryNamesOf, plainAliasNames } from './test-aliases.js';
 import { PLAYWRIGHT_API_METHODS } from './playwright-api-names.js';
 import { sourceTypeFor } from './source-type.js';
+import { Tree, isFunction, returnedExpectIsMatched, returnedMatcherlessExpects, type N } from './eslint-postfilter.js';
 
 // A positive "this IS a Playwright spec" check turned out to be unsafe:
 // Playwright's own custom-fixtures pattern (test/expect re-exported from a
@@ -452,7 +453,14 @@ export function extractHelperFacts(source: string, file: string): HelperFacts[] 
   const ast = parseSource(source, file);
   if (!ast) return [];
   const imported = importedBindingNames(ast);
+  const tree = new Tree(ast as N);
   return candidatesFromAst(ast).map((c) => {
+    // A matcher-less `return expect(x)` is evidence only when a caller chains
+    // the matcher (same rule as the valid-expect post-filter).
+    const fnNode = c.body as N;
+    const ignored = new Set<unknown>(
+      isFunction(fnNode) && !returnedExpectIsMatched(tree, fnNode) ? returnedMatcherlessExpects(tree, fnNode) : []
+    );
     const calls = new Set<string>();
     const crossCalls = new Set<string>();
     let expectFound = false;
@@ -460,7 +468,7 @@ export function extractHelperFacts(source: string, file: string): HelperFacts[] 
     walk(c.body, (n) => {
       if (n.type !== 'CallExpression') return;
       const callee = (n as { callee?: Record<string, unknown> }).callee;
-      if (!expectFound && isExpectCallee(callee)) expectFound = true;
+      if (!expectFound && !ignored.has(n) && isExpectCallee(callee)) expectFound = true;
       if (callee?.type === 'Identifier') {
         const name = (callee as { name: string }).name;
         calls.add(name);

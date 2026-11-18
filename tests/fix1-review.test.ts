@@ -177,3 +177,49 @@ async function runPick(panel: Panel) { await panel.open(); }
     assert.equal(f.length, 0, JSON.stringify(f));
   });
 });
+
+const VALID = 'playwright/valid-expect';
+
+describe('fix1 item 3: a returned matcher-less expect is exempt only when a caller chains a matcher', () => {
+  it('a helper that returns expect(x) with no matcher, called without one, is reported and is not an assertion helper', async () => {
+    const files = spec(`
+async function assertSaved(page) {
+  return expect(page.getByText('Saved'));
+}
+test('save', async ({ page }) => {
+  await page.locator('#save').click();
+  await assertSaved(page);
+});`);
+    assert.equal((await findingsFor(VALID, files)).length, 1);
+    // Names starting with assert/verify/... are in the default assertFunctionNames
+    // pattern, so the expect-expect half uses a neutral name.
+    const neutral = spec(`
+async function savedBanner(page) {
+  return expect(page.getByText('Saved'));
+}
+test('save', async ({ page }) => {
+  await page.locator('#save').click();
+  await savedBanner(page);
+});`);
+    assert.equal((await findingsFor(EXPECT_EXPECT, neutral)).length, 1);
+  });
+
+  it('GOOD: a caller that chains the matcher keeps the helper exempt and a real assertion helper', async () => {
+    const files = spec(`
+async function saved(page) {
+  return expect(page.getByText('Saved'));
+}
+function polled(page) {
+  return expect.poll(() => page.locator('li').count());
+}
+test('save', async ({ page }) => {
+  await (await saved(page)).toBeVisible();
+  await polled(page).toBe(3);
+});
+async function banner(page) { return expect(page.getByText('Saved')); }
+async function viaVar(page) { const e = await banner(page); await e.toBeVisible(); }
+test('save2', async ({ page }) => { await viaVar(page); });`);
+    assert.equal((await findingsFor(VALID, files)).length, 0);
+    assert.equal((await findingsFor(EXPECT_EXPECT, files)).length, 0);
+  });
+});

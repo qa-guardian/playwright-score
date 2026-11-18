@@ -167,6 +167,83 @@ export function isHelperFunction(t: Tree, fn: N): boolean {
 
 // ---- valid-expect -------------------------------------------------------
 
+function helperName(t: Tree, fn: N): string | undefined {
+  if (fn.type === 'FunctionDeclaration') return fn.id?.name as string | undefined;
+  const p = t.parent(fn);
+  if (!p) return undefined;
+  if (p.type === 'VariableDeclarator' && p.id?.type === 'Identifier') return p.id.name as string;
+  if ((p.type === 'Property' || p.type === 'MethodDefinition' || p.type === 'PropertyDefinition') && !p.computed && p.key?.type === 'Identifier') {
+    return p.key.name as string;
+  }
+  return undefined;
+}
+
+function calleeName(callee: N | undefined): string | undefined {
+  if (callee?.type === 'Identifier') return callee.name as string;
+  if (callee?.type === 'MemberExpression' && !callee.computed && callee.property?.type === 'Identifier') return callee.property.name as string;
+  return undefined;
+}
+
+/**
+ * A helper that returns a matcher-less `expect(x)` only does its job when a
+ * caller chains the matcher on the result (`helper(x).toBeVisible()`,
+ * `(await helper(x)).not.toBe(..)`, or `const e = helper(x); e.toBe(..)`).
+ * Exported helpers with no call in this file are given the benefit of the
+ * doubt (their callers are in other files); a helper whose in-file callers
+ * never chain a matcher is a defect.
+ */
+export function returnedExpectIsMatched(t: Tree, fn: N): boolean {
+  const name = helperName(t, fn);
+  if (!name) return true;
+  let called = false;
+  let chained = false;
+  t.some(t.root, (n) => {
+    if (n.type !== 'CallExpression' || calleeName(n.callee) !== name) return false;
+    called = true;
+    let cur = n;
+    for (;;) {
+      const p = t.parent(cur);
+      if (p && (p.type === 'AwaitExpression' || p.type === 'TSNonNullExpression' || p.type === 'ChainExpression')) cur = p;
+      else break;
+    }
+    const p = t.parent(cur);
+    if (p?.type === 'MemberExpression' && p.object === cur) {
+      chained = true;
+    } else if (p?.type === 'VariableDeclarator' && p.init === cur && p.id?.type === 'Identifier') {
+      const stored = p.id.name as string;
+      const scope = t.enclosingFunction(cur) ?? t.root;
+      chained = t.some(scope, (m) => m.type === 'MemberExpression' && m.object?.type === 'Identifier' && m.object.name === stored);
+    }
+    return chained;
+  });
+  if (chained) return true;
+  if (called) return false;
+  return t.some(t.root, (n) => n.type === 'ExportNamedDeclaration' || n.type === 'ExportDefaultDeclaration' || n.type === 'ExportAllDeclaration');
+}
+
+/** Matcher-less `expect(...)` / `expect.poll(...)` calls that `fn` hands back to its caller. */
+export function returnedMatcherlessExpects(t: Tree, fn: N): N[] {
+  const out: N[] = [];
+  const unwrap = (e: N | undefined): N | undefined => {
+    let cur = e;
+    while (cur && (cur.type === 'AwaitExpression' || cur.type === 'TSNonNullExpression')) cur = cur.argument ?? cur.expression;
+    return cur;
+  };
+  const consider = (e: N | undefined): void => {
+    const u = unwrap(e);
+    if (u && u.type === 'CallExpression' && isExpectCall(u) && rootIdentifierName(u.callee) === 'expect') {
+      // matcher-less: the call itself is the chain's top (no `.toBe` on it)
+      if (t.chainTop(u) === u) out.push(u);
+    }
+  };
+  if (fn.body?.type !== 'BlockStatement') consider(fn.body);
+  t.some(fn, (n) => {
+    if (n.type === 'ReturnStatement' && t.enclosingFunction(n) === fn) consider(n.argument);
+    return false;
+  });
+  return out;
+}
+
 /**
  * `expect(...)` / `expect.poll(...)` with no matcher is a defect, except when
  * the expectation object is handed on: returned from a named helper (the caller
@@ -183,10 +260,10 @@ function validExpectExempt(t: Tree, node: N): boolean {
   if (!p) return false;
   if (p.type === 'ReturnStatement') {
     const fn = t.enclosingFunction(top);
-    return !!fn && isHelperFunction(t, fn) && !isStringTitledCallback(t, fn);
+    return !!fn && isHelperFunction(t, fn) && !isStringTitledCallback(t, fn) && returnedExpectIsMatched(t, fn);
   }
   if (p.type === 'ArrowFunctionExpression' && p.body === top) {
-    return isHelperFunction(t, p) && !isStringTitledCallback(t, p);
+    return isHelperFunction(t, p) && !isStringTitledCallback(t, p) && returnedExpectIsMatched(t, p);
   }
   if (p.type === 'VariableDeclarator' && p.init === top && p.id.type === 'Identifier') {
     const name = p.id.name as string;
