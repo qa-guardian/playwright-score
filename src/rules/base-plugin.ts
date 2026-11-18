@@ -276,44 +276,99 @@ function isRetryBackoffInHelper(ancestors: Node[], from: number): boolean {
 const ROUTE_METHODS = new Set(['route', 'routeFromHAR', 'routeWebSocket']);
 
 /**
- * A loop is bounded when real time cannot grow without limit: it iterates a
- * finite collection (for...of / for...in), reads the clock (a deadline), or
- * compares a counter that the loop itself updates (`i < 15`, `attempt === 3`).
- * `while (true) { if (await el.isVisible()) break; sleep(500) }` has no
- * such bound: it is a fixed-interval UI poll that can hang forever.
+ * A loop is bounded when its own exit condition caps real time: the loop's
+ * `test`, or the test of an `if` that guards a break/return/throw, compares
+ * a counter the loop steps (`i < 15`, `attempt === 3`, `retries-- > 0`) or
+ * the clock against something (`Date.now() < deadline`). Merely reading the
+ * clock (a log timestamp), assigning a counter from an awaited value, a
+ * `throw` in the body, or iterating a collection with `for...of` is not a
+ * bound: `for (;;) { n = await loc.count(); if (n > 0) break; sleep }` is a
+ * fixed-interval UI poll that can hang forever.
  */
-const COMPARE_OPS = new Set(['<', '<=', '>', '>=', '===', '==']);
+const COMPARE_OPS = new Set(['<', '<=', '>', '>=', '===', '==', '!==', '!=']);
+const STEP_ASSIGN_OPS = new Set(['+=', '-=', '*=', '**=', '<<=', '>>=']);
+
+function isClockRead(node: any): boolean {
+  return (
+    (node?.type === 'CallExpression' &&
+      node.callee?.type === 'MemberExpression' &&
+      String(node.callee.property?.name) === 'now' &&
+      ['Date', 'performance'].includes(String(node.callee.object?.name))) ||
+    (node?.type === 'NewExpression' && node.callee?.name === 'Date')
+  );
+}
+
+function walkNodes(n: unknown, cb: (node: any) => boolean | void): void {
+  if (!n || typeof n !== 'object') return;
+  if (Array.isArray(n)) {
+    for (const x of n) walkNodes(x, cb);
+    return;
+  }
+  const node = n as Record<string, any>;
+  if (typeof node.type !== 'string') return;
+  if (cb(node) === false) return;
+  for (const [k, v] of Object.entries(node)) if (k !== 'parent') walkNodes(v, cb);
+}
+
+function containsNode(n: unknown, pred: (node: any) => boolean): boolean {
+  let found = false;
+  walkNodes(n, (node) => {
+    if (found) return false;
+    if (pred(node)) found = true;
+    return !found;
+  });
+  return found;
+}
+
 function loopIsBounded(loop: Node): boolean {
-  if (loop.type === 'ForOfStatement' || loop.type === 'ForInStatement') return true;
-  let clock = false;
-  const updated = new Set<string>();
-  const compared: string[] = [];
-  const visit = (n: unknown): void => {
-    if (!n || typeof n !== 'object') return;
-    if (Array.isArray(n)) {
-      for (const x of n) visit(x);
-      return;
+  const l = loop as unknown as Record<string, any>;
+  // Names the loop steps as a counter, and names derived from a clock read.
+  const stepped = new Set<string>();
+  const clockNames = new Set<string>();
+  walkNodes(loop, (node) => {
+    if (node.type === 'UpdateExpression' && node.argument?.type === 'Identifier') stepped.add(String(node.argument.name));
+    if (node.type === 'AssignmentExpression' && node.left?.type === 'Identifier') {
+      const name = String(node.left.name);
+      if (STEP_ASSIGN_OPS.has(String(node.operator))) stepped.add(name);
+      else if (
+        node.operator === '=' &&
+        node.right?.type === 'BinaryExpression' &&
+        ['+', '-', '*'].includes(String(node.right.operator)) &&
+        [node.right.left, node.right.right].some((x) => x?.type === 'Identifier' && x.name === name)
+      ) {
+        stepped.add(name);
+      }
+      if (containsNode(node.right, isClockRead)) clockNames.add(name);
     }
-    const node = n as Node & Record<string, any>;
-    if (typeof node.type !== 'string') return;
-    if (node.type === 'UpdateExpression' && node.argument?.type === 'Identifier') updated.add(String(node.argument.name));
-    if (node.type === 'AssignmentExpression' && node.left?.type === 'Identifier') updated.add(String(node.left.name));
-    if (node.type === 'BinaryExpression' && COMPARE_OPS.has(String(node.operator))) {
-      for (const side of [node.left, node.right]) if (side?.type === 'Identifier') compared.push(String(side.name));
+    if (node.type === 'VariableDeclarator' && node.id?.type === 'Identifier' && containsNode(node.init, isClockRead)) {
+      clockNames.add(String(node.id.name));
     }
-    if (
-      (node.type === 'CallExpression' &&
-        node.callee?.type === 'MemberExpression' &&
-        String(node.callee.property?.name) === 'now' &&
-        ['Date', 'performance'].includes(String(node.callee.object?.name))) ||
-      (node.type === 'NewExpression' && node.callee?.name === 'Date')
-    ) {
-      clock = true;
+  });
+  const isBoundSide = (side: any): boolean =>
+    !!side &&
+    (containsNode(side, isClockRead) ||
+      containsNode(side, (x) => x.type === 'UpdateExpression' && x.argument?.type === 'Identifier') ||
+      containsNode(side, (x) => x.type === 'Identifier' && (stepped.has(String(x.name)) || clockNames.has(String(x.name)))));
+  const hasBound = (expr: unknown): boolean =>
+    containsNode(expr, (x) => {
+      if (x.type === 'UpdateExpression') return true; // while (retries--) / while (--n)
+      return x.type === 'BinaryExpression' && COMPARE_OPS.has(String(x.operator)) && (isBoundSide(x.left) || isBoundSide(x.right));
+    });
+  // The loop's own test, then the test of every `if` in the body (not inside a
+  // nested function) whose branch leaves the loop.
+  if (l.test && hasBound(l.test)) return true;
+  let guarded = false;
+  walkNodes(l.body, (node) => {
+    if (guarded) return false;
+    if (FUNCTION_TYPES.has(node.type) || node.type === 'FunctionDeclaration') return false;
+    if (node.type === 'IfStatement' && hasBound(node.test)) {
+      const leaves = (b: unknown) =>
+        containsNode(b, (x) => x.type === 'BreakStatement' || x.type === 'ReturnStatement' || x.type === 'ThrowStatement');
+      if (leaves(node.consequent) || leaves(node.alternate)) guarded = true;
     }
-    for (const [k, v] of Object.entries(node)) if (k !== 'parent') visit(v);
-  };
-  visit(loop);
-  return clock || compared.some((name) => updated.has(name));
+    return !guarded;
+  });
+  return guarded;
 }
 
 function loopCanExit(loop: Node): boolean {
