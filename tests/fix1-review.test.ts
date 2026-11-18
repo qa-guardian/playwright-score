@@ -99,3 +99,81 @@ test('bounded', async ({ request }) => {
     assert.equal(f.length, 0, JSON.stringify(f));
   });
 });
+
+const EXPECT_EXPECT = 'playwright/expect-expect';
+const CART = `import { expect } from '@playwright/test';
+export class CartPage {
+  constructor(private page: any) {}
+  async open() { await this.page.goto('/cart'); await expect(this.page.getByRole('heading')).toBeVisible(); }
+}
+`;
+
+describe('fix1 item 2: cross-file helper evidence needs an imported binding or traceable receiver', () => {
+  it('a spec helper calling api.open() on a parameter does not inherit an imported open() that asserts', async () => {
+    const f = await findingsFor(
+      EXPECT_EXPECT,
+      {
+        'pages/cart.ts': CART,
+        'collide.spec.ts': `import { test, expect } from '@playwright/test';
+import { CartPage } from './pages/cart';
+async function addItem(page, api) { await api.open(); await page.locator('#add').click(); }
+test('adds item asserts nothing', async ({ page, request }) => { await addItem(page, request); });
+`,
+      },
+      'collide.spec.ts'
+    );
+    assert.equal(f.length, 1, JSON.stringify(f));
+  });
+
+  it('GOOD: a spec helper that builds the imported page object and calls its asserting method is an assertion helper', async () => {
+    const f = await findingsFor(
+      EXPECT_EXPECT,
+      {
+        'pages/cart.ts': CART,
+        'ok.spec.ts': `import { test } from '@playwright/test';
+import { CartPage } from './pages/cart';
+async function addItem(page) { const cart = new CartPage(page); await cart.open(); await page.locator('#add').click(); }
+test('adds item', async ({ page }) => { await addItem(page); });
+`,
+      },
+      'ok.spec.ts'
+    );
+    assert.equal(f.length, 0, JSON.stringify(f));
+  });
+
+  it('GOOD: a spec helper calling an imported asserting function is an assertion helper', async () => {
+    const f = await findingsFor(
+      EXPECT_EXPECT,
+      {
+        'pages/check.ts': `import { expect } from '@playwright/test';
+export async function checkCart(page) { await expect(page.getByRole('heading')).toBeVisible(); }
+`,
+        'ok.spec.ts': `import { test } from '@playwright/test';
+import { checkCart } from './pages/check';
+async function addItem(page) { await page.locator('#add').click(); await checkCart(page); }
+test('adds item', async ({ page }) => { await addItem(page); });
+`,
+      },
+      'ok.spec.ts'
+    );
+    assert.equal(f.length, 0, JSON.stringify(f));
+  });
+});
+
+describe('fix1 item 2b: a parameter typed with an imported class is a traceable receiver', () => {
+  it('GOOD: runPick(panel: Panel) delegating to an asserting imported method is an assertion helper', async () => {
+    const f = await findingsFor(
+      EXPECT_EXPECT,
+      {
+        'panel.ts': CART.replace('CartPage', 'Panel'),
+        'ok.spec.ts': `import { test } from '@playwright/test';
+import { Panel } from './panel';
+test('picks', async ({ page }) => { await runPick(new Panel(page)); });
+async function runPick(panel: Panel) { await panel.open(); }
+`,
+      },
+      'ok.spec.ts'
+    );
+    assert.equal(f.length, 0, JSON.stringify(f));
+  });
+});

@@ -10,6 +10,10 @@ import type { HelperFacts } from './metrics.js';
  * Evidence rules:
  * - Same-file behaviour is unchanged: a helper whose body holds an expect, a
  *   `.waitFor()` or a call to such a helper of the same file counts (`local`).
+ * - Cross-file delegation carries expect evidence only, and only through
+ *   calls of imported bindings or methods on `this`, on imported bindings or
+ *   on values built with `new <imported class>` (`HelperFacts.crossCalls`);
+ *   `api.open()` on a parameter never inherits an imported `open()`.
  * - Cross-file delegation carries expect evidence only (`strong`): a wrapper
  *   gains assertion status from a helper in another file only if that helper
  *   really holds an expect, not a bare `.waitFor()`.
@@ -88,7 +92,13 @@ export function createHelperScope(facts: HelperFacts[], edges: ImportEdges) {
         let hit = false;
         for (const c of f.calls) {
           if (mine.has(c)) { hit = true; break; }
-          if (!isSetupShapedName(f.name) && sees(file, c)) { hit = true; break; }
+        }
+        if (!hit && !isSetupShapedName(f.name)) {
+          // Cross-file evidence only through imported bindings or receivers
+          // traceable to an import (never a bare property name on a parameter).
+          for (const c of f.crossCalls) {
+            if (sees(file, c)) { hit = true; break; }
+          }
         }
         if (hit) {
           mine.add(f.name);

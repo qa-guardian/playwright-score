@@ -302,6 +302,10 @@ export interface HelperCandidate {
 export function extractHelperCandidates(source: string, file?: string): HelperCandidate[] {
   const ast = parseSource(source, file);
   if (!ast) return [];
+  return candidatesFromAst(ast);
+}
+
+function candidatesFromAst(ast: unknown): HelperCandidate[] {
   const candidates: HelperCandidate[] = [];
   // `test.extend({ login: async ({page}, use) => {...} })` entries are
   // fixtures, not callable helpers: an expect in their setup says nothing
@@ -372,13 +376,85 @@ export interface HelperFacts {
   expect: boolean;
   /** Body holds a `.waitFor(...)` call. */
   waitFor: boolean;
-  /** Names called (callee identifier or member property name). */
+  /** Names called (callee identifier or member property name). Same-file evidence only. */
   calls: Set<string>;
+  /**
+   * The subset of `calls` that may carry assertion evidence across a file
+   * boundary: a call of an imported binding, or a method called on `this`,
+   * on an imported binding or on a value constructed from an imported class.
+   * A method called on a parameter or any other receiver is not here, so an
+   * unrelated `api.open()` never inherits an imported `open()` that asserts.
+   */
+  crossCalls: Set<string>;
+}
+
+/** Local names bound by import / require in one file, plus locals typed with or built from an imported class. */
+function importedBindingNames(ast: unknown): Set<string> {
+  const names = new Set<string>();
+  const addPattern = (p: any): void => {
+    if (!p) return;
+    if (p.type === 'Identifier') names.add(p.name);
+    else if (p.type === 'ObjectPattern') for (const x of p.properties ?? []) addPattern(x.value ?? x.argument);
+    else if (p.type === 'ArrayPattern') for (const x of p.elements ?? []) addPattern(x);
+    else if (p.type === 'AssignmentPattern') addPattern(p.left);
+    else if (p.type === 'RestElement') addPattern(p.argument);
+  };
+  const isRequire = (init: any): boolean => {
+    let e = init;
+    while (e && (e.type === 'AwaitExpression' || e.type === 'TSNonNullExpression')) e = e.argument ?? e.expression;
+    return (
+      e?.type === 'ImportExpression' ||
+      (e?.type === 'CallExpression' && e.callee?.type === 'Identifier' && e.callee.name === 'require')
+    );
+  };
+  walk(ast, (n) => {
+    if (n.type === 'ImportDeclaration') {
+      for (const sp of (n as any).specifiers ?? []) if (sp.local?.name) names.add(sp.local.name);
+    } else if (n.type === 'VariableDeclarator' && isRequire((n as any).init)) {
+      addPattern((n as any).id);
+    }
+  });
+  // Parameters and variables typed with an imported class (`panel: Panel`).
+  walk(ast, (n) => {
+    const ref = (n as any).typeAnnotation?.typeAnnotation;
+    if (n.type === 'Identifier' && ref?.type === 'TSTypeReference' && ref.typeName?.type === 'Identifier' && names.has(ref.typeName.name)) {
+      names.add(String((n as any).name));
+    }
+  });
+  // Locals constructed from an imported class (`const cart = new CartPage(page)`).
+  walk(ast, (n) => {
+    if (n.type !== 'VariableDeclarator') return;
+    const init = (n as any).init;
+    if (init?.type === 'NewExpression' && init.callee?.type === 'Identifier' && names.has(init.callee.name)) {
+      if ((n as any).id?.type === 'Identifier') names.add((n as any).id.name);
+    }
+  });
+  return names;
+}
+
+function receiverIsTraceable(callee: any, imported: Set<string>): boolean {
+  let o = callee.object;
+  for (;;) {
+    if (!o) return false;
+    if (o.type === 'MemberExpression') o = o.object;
+    else if (o.type === 'CallExpression') o = o.callee?.type === 'MemberExpression' ? o.callee.object : o.callee;
+    else if (o.type === 'AwaitExpression' || o.type === 'TSNonNullExpression') o = o.argument ?? o.expression;
+    else if (o.type === 'ChainExpression') o = o.expression;
+    else break;
+  }
+  if (o.type === 'ThisExpression') return true;
+  if (o.type === 'Identifier') return imported.has(o.name);
+  if (o.type === 'NewExpression') return o.callee?.type === 'Identifier' && imported.has(o.callee.name);
+  return false;
 }
 
 export function extractHelperFacts(source: string, file: string): HelperFacts[] {
-  return extractHelperCandidates(source, file).map((c) => {
+  const ast = parseSource(source, file);
+  if (!ast) return [];
+  const imported = importedBindingNames(ast);
+  return candidatesFromAst(ast).map((c) => {
     const calls = new Set<string>();
+    const crossCalls = new Set<string>();
     let expectFound = false;
     let waitFor = false;
     walk(c.body, (n) => {
@@ -386,16 +462,19 @@ export function extractHelperFacts(source: string, file: string): HelperFacts[] 
       const callee = (n as { callee?: Record<string, unknown> }).callee;
       if (!expectFound && isExpectCallee(callee)) expectFound = true;
       if (callee?.type === 'Identifier') {
-        calls.add((callee as { name: string }).name);
+        const name = (callee as { name: string }).name;
+        calls.add(name);
+        if (imported.has(name)) crossCalls.add(name);
       } else if (callee?.type === 'MemberExpression' && !callee.computed) {
         const property = callee.property as { type?: string; name?: string } | undefined;
         if (property?.type === 'Identifier' && property.name) {
           calls.add(property.name);
+          if (receiverIsTraceable(callee, imported)) crossCalls.add(property.name);
           if (property.name === 'waitFor') waitFor = true;
         }
       }
     });
-    return { name: c.name, file, expect: expectFound, waitFor, calls };
+    return { name: c.name, file, expect: expectFound, waitFor, calls, crossCalls };
   });
 }
 
