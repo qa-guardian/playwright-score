@@ -12,6 +12,8 @@ case, and says so explicitly.
 
 ## Unreleased
 
+- `valid-expect` exempts a returned matcher-less `expect` only when every caller in the file chains a matcher (QAG-287 fix round 2). One test that does `await banner(page).toBeVisible()` used to exempt the helper for a second test that calls `await banner(page)` and asserts nothing, so neither `valid-expect` nor `expect-expect` reported it. The helper is now reported as soon as one in-file caller drops the matcher. The helper's `expect` still counts as assertion evidence while at least one caller chains a matcher (callers are matched by helper name, so a sibling that drops the matcher is not reported by `expect-expect`, only through `valid-expect` on the helper); with no chaining caller it is no evidence at all, as before.
+
 - `no-standalone-expect` no longer exempts an expect in the body of a wrapper around `describe` (QAG-287 fix round 2). A helper such as `const group = (name, fn) => test.describe(name, fn)` or `function suite(name, fn) { test.describe(name, fn); }` was accepted as a test alias because its body calls through `test`, so an expect running at collection time in `group('x', () => { expect(..) })` was dropped again. A wrapper whose body calls through a describe or hook member is no longer an alias; wrappers around `test(...)`, `test.only(...)` and plain `const it = test` are unchanged.
 
 - `no-conditional-in-test` treats destructured awaited values as live state (QAG-287 fix round 1). `const [rows] = await Promise.all([loc.count()])` and `const { a } = await ...` (also nested, renamed, defaulted and rest bindings, and destructuring assignments) now mark every bound name as read from the page, so a branch on it is scored again instead of dropping to information only.

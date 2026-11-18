@@ -71,3 +71,53 @@ it3('c', async ({ page }) => { expect(1 + 1).toBe(2); await expect(page.getByTex
     assert.equal(f.length, 0);
   });
 });
+
+describe('fix2 item B: a returned expect is exempt only when EVERY in-file caller chains a matcher', () => {
+  const mixed = spec(`
+function banner(page) {
+  return expect(page.getByText('Saved'));
+}
+test('chains', async ({ page }) => {
+  await banner(page).toBeVisible();
+});
+test('second caller forgets the matcher', async ({ page }) => {
+  await page.getByRole('button', { name: 'Save' }).click();
+  await banner(page);
+});`);
+
+  it('one chaining caller does not exempt the helper for a caller that does not', async () => {
+    const f = await findingsFor(VALID, mixed);
+    assert.equal(f.length, 1);
+    assert.equal(f[0].line, 4);
+  });
+
+  it('a helper that no caller ever chains reports expect-expect on its callers again', async () => {
+    const f = await findingsFor(EXPECT_EXPECT, spec(`
+function banner(page) {
+  return expect(page.getByText('Saved'));
+}
+test('never chains', async ({ page }) => {
+  await page.getByRole('button', { name: 'Save' }).click();
+  await banner(page);
+});`));
+    assert.equal(f.length, 1);
+    assert.equal(f[0].line, 6);
+  });
+
+  it('the chaining sibling of a non-chaining caller is not flagged (no false expect-expect)', async () => {
+    const f = await findingsFor(EXPECT_EXPECT, mixed);
+    assert.equal(f.filter((x) => x.line === 6).length, 0);
+  });
+
+  it('every caller chaining (direct, awaited, stored) stays exempt', async () => {
+    const body = spec(`
+function banner(page) {
+  return expect(page.getByText('Saved'));
+}
+test('a', async ({ page }) => { await banner(page).toBeVisible(); });
+test('b', async ({ page }) => { await (await banner(page)).not.toBeHidden(); });
+test('c', async ({ page }) => { const e = banner(page); await e.toBeVisible(); });`);
+    assert.equal((await findingsFor(VALID, body)).length, 0);
+    assert.equal((await findingsFor(EXPECT_EXPECT, body)).length, 0);
+  });
+});

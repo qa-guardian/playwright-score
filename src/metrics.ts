@@ -4,7 +4,7 @@ import { countSloc } from './sloc.js';
 import { factoryNamesOf, plainAliasNames } from './test-aliases.js';
 import { PLAYWRIGHT_API_METHODS } from './playwright-api-names.js';
 import { sourceTypeFor } from './source-type.js';
-import { Tree, isFunction, returnedExpectIsMatched, returnedMatcherlessExpects, type N } from './eslint-postfilter.js';
+import { Tree, isFunction, returnedExpectIsEverMatched, returnedMatcherlessExpects, type N } from './eslint-postfilter.js';
 
 // A positive "this IS a Playwright spec" check turned out to be unsafe:
 // Playwright's own custom-fixtures pattern (test/expect re-exported from a
@@ -459,7 +459,7 @@ export function extractHelperFacts(source: string, file: string): HelperFacts[] 
     // the matcher (same rule as the valid-expect post-filter).
     const fnNode = c.body as N;
     const ignored = new Set<unknown>(
-      isFunction(fnNode) && !returnedExpectIsMatched(tree, fnNode) ? returnedMatcherlessExpects(tree, fnNode) : []
+      isFunction(fnNode) && !returnedExpectIsEverMatched(tree, fnNode) ? returnedMatcherlessExpects(tree, fnNode) : []
     );
     const calls = new Set<string>();
     const crossCalls = new Set<string>();

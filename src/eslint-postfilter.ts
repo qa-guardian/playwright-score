@@ -189,14 +189,33 @@ function calleeName(callee: N | undefined): string | undefined {
  * caller chains the matcher on the result (`helper(x).toBeVisible()`,
  * `(await helper(x)).not.toBe(..)`, or `const e = helper(x); e.toBe(..)`).
  * Exported helpers with no call in this file are given the benefit of the
- * doubt (their callers are in other files); a helper whose in-file callers
- * never chain a matcher is a defect.
+ * doubt (their callers are in other files); a helper with even one in-file
+ * caller that does not chain a matcher is a defect.
  */
 export function returnedExpectIsMatched(t: Tree, fn: N): boolean {
+  const c = returnedExpectCallers(t, fn);
+  return c === 'exempt' || c === 'all';
+}
+
+/**
+ * Evidence side of the same rule: does ANY caller chain a matcher? The
+ * helper's `expect` counts as assertion evidence for its callers (so
+ * `expect-expect` is not flagged on a test that calls `helper(x).toBe(..)`)
+ * unless no caller anywhere in the file ever chains one. Callers are matched
+ * by helper name, not per call site, so a test that drops the matcher while a
+ * sibling chains it keeps the benefit; `valid-expect` still reports the helper.
+ */
+export function returnedExpectIsEverMatched(t: Tree, fn: N): boolean {
+  const c = returnedExpectCallers(t, fn);
+  return c === 'exempt' || c === 'all' || c === 'some';
+}
+
+function returnedExpectCallers(t: Tree, fn: N): 'exempt' | 'all' | 'some' | 'none' {
   const name = helperName(t, fn);
-  if (!name) return true;
+  if (!name) return 'exempt';
   let called = false;
-  let chained = false;
+  let chainedAny = false;
+  let unchained = false;
   t.some(t.root, (n) => {
     if (n.type !== 'CallExpression' || calleeName(n.callee) !== name) return false;
     called = true;
@@ -207,6 +226,7 @@ export function returnedExpectIsMatched(t: Tree, fn: N): boolean {
       else break;
     }
     const p = t.parent(cur);
+    let chained = false;
     if (p?.type === 'MemberExpression' && p.object === cur) {
       chained = true;
     } else if (p?.type === 'VariableDeclarator' && p.init === cur && p.id?.type === 'Identifier') {
@@ -214,11 +234,16 @@ export function returnedExpectIsMatched(t: Tree, fn: N): boolean {
       const scope = t.enclosingFunction(cur) ?? t.root;
       chained = t.some(scope, (m) => m.type === 'MemberExpression' && m.object?.type === 'Identifier' && m.object.name === stored);
     }
-    return chained;
+    if (chained) chainedAny = true;
+    else unchained = true;
+    return false;
   });
-  if (chained) return true;
-  if (called) return false;
-  return t.some(t.root, (n) => n.type === 'ExportNamedDeclaration' || n.type === 'ExportDefaultDeclaration' || n.type === 'ExportAllDeclaration');
+  if (!called) {
+    const exported = t.some(t.root, (n) => n.type === 'ExportNamedDeclaration' || n.type === 'ExportDefaultDeclaration' || n.type === 'ExportAllDeclaration');
+    return exported ? 'exempt' : 'none';
+  }
+  if (!unchained) return 'all';
+  return chainedAny ? 'some' : 'none';
 }
 
 /** Matcher-less `expect(...)` / `expect.poll(...)` calls that `fn` hands back to its caller. */
