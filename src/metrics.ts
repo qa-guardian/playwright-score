@@ -458,9 +458,10 @@ export function extractHelperFacts(source: string, file: string): HelperFacts[] 
     // A matcher-less `return expect(x)` is evidence only when a caller chains
     // the matcher (same rule as the valid-expect post-filter).
     const fnNode = c.body as N;
-    const ignored = new Set<unknown>(
-      isFunction(fnNode) && !returnedExpectIsEverMatched(tree, fnNode) ? returnedMatcherlessExpects(tree, fnNode) : []
-    );
+    // Cheap check first: most candidates return no matcher-less expect, and the
+    // caller check walks the whole file (O(methods x file size) otherwise).
+    const matcherless = isFunction(fnNode) ? returnedMatcherlessExpects(tree, fnNode) : [];
+    const ignored = new Set<unknown>(matcherless.length > 0 && !returnedExpectIsEverMatched(tree, fnNode) ? matcherless : []);
     const calls = new Set<string>();
     const crossCalls = new Set<string>();
     let expectFound = false;

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { scorePaths } from '../src/index.js';
+import { extractHelperFacts } from '../src/metrics.js';
 
 // QAG-287 fix round 2: the 2.4.0 round-2 review found two more variants where
 // an exemption hid a defect that published 2.3.0 reports. Every snippet is the
@@ -119,5 +120,22 @@ test('b', async ({ page }) => { await (await banner(page)).not.toBeHidden(); });
 test('c', async ({ page }) => { const e = banner(page); await e.toBeVisible(); });`);
     assert.equal((await findingsFor(VALID, body)).length, 0);
     assert.equal((await findingsFor(EXPECT_EXPECT, body)).length, 0);
+  });
+});
+
+describe('fix2 item P: helper facts do not walk the whole file once per helper', () => {
+  it('a page object with 1500 asserting methods yields its facts quickly', () => {
+    const methods = Array.from(
+      { length: 1500 },
+      (_, i) =>
+        `  async m${i}(x: string) { await this.page.getByRole('button', { name: x + '${i}' }).click(); await expect(this.page.getByText('ok${i}')).toBeVisible(); }`
+    );
+    const source = `import { expect, type Page } from '@playwright/test';\nexport class Big {\n  constructor(private page: Page) {}\n${methods.join('\n')}\n}\n`;
+    const t0 = Date.now();
+    const facts = extractHelperFacts(source, 'big.ts');
+    const ms = Date.now() - t0;
+    assert.ok(facts.length >= 1500, `expected a fact per method, got ${facts.length}`);
+    // Was ~20 s with the per-helper caller walk; a few hundred ms now.
+    assert.ok(ms < 5000, `extractHelperFacts took ${ms} ms`);
   });
 });
