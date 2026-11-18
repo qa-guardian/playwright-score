@@ -574,16 +574,47 @@ const mentionsTest = (t: Tree, n: N): boolean =>
  * to such an expression, or a local function whose body calls `test(...)`? A
  * function that merely has a test-like shape does not count.
  */
+/** Members of `test` that are not test declarations: an expect under them runs at collection time or is a step/hook. */
+const NON_TEST_MEMBERS = new Set([
+  'describe', 'step', 'beforeAll', 'beforeEach', 'afterAll', 'afterEach', 'use', 'configure', 'serial', 'parallel', 'info', 'setTimeout', 'slow',
+]);
+
+/** Does the member chain (through conditionals, `||`, `??` and calls) of `expr` pass through `test.describe` and the like? */
+function chainHasNonTestMember(expr: N | undefined): boolean {
+  if (!expr) return false;
+  switch (expr.type) {
+    case 'ConditionalExpression':
+      return chainHasNonTestMember(expr.consequent) || chainHasNonTestMember(expr.alternate);
+    case 'LogicalExpression':
+      return chainHasNonTestMember(expr.left) || chainHasNonTestMember(expr.right);
+    case 'CallExpression':
+      return chainHasNonTestMember(expr.callee);
+    case 'MemberExpression':
+      if (!expr.computed && expr.property?.type === 'Identifier' && NON_TEST_MEMBERS.has(expr.property.name as string)) return true;
+      return chainHasNonTestMember(expr.object);
+    case 'TSNonNullExpression':
+    case 'TSAsExpression':
+    case 'ChainExpression':
+      return chainHasNonTestMember(expr.expression);
+    default:
+      return false;
+  }
+}
+
 function calleeLeadsToTest(t: Tree, call: N): boolean {
   let callee = call.callee as N;
-  if (callee.type === 'ConditionalExpression' || callee.type === 'LogicalExpression') return mentionsTest(t, callee);
+  if (callee.type === 'ConditionalExpression' || callee.type === 'LogicalExpression') {
+    return mentionsTest(t, callee) && !chainHasNonTestMember(callee);
+  }
+  // `describe('x', () => { expect(..) })` (or `test.describe(...)` itself) is not a test body.
+  if (chainHasNonTestMember(callee)) return false;
   while (callee.type === 'MemberExpression') callee = callee.object as N;
   if (callee.type !== 'Identifier') return false;
   const name = callee.name as string;
   return t.some(t.root, (n) => {
     if (n.type === 'VariableDeclarator' && n.id?.type === 'Identifier' && n.id.name === name && n.init) {
       if (isFunction(n.init)) return t.some(n.init.body, (c) => c.type === 'CallExpression' && rootIdentifierName(c.callee) === 'test');
-      return mentionsTest(t, n.init);
+      return mentionsTest(t, n.init) && !chainHasNonTestMember(n.init);
     }
     if (n.type === 'FunctionDeclaration' && n.id?.name === name) {
       return t.some(n.body, (c) => c.type === 'CallExpression' && rootIdentifierName(c.callee) === 'test');

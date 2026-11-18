@@ -223,3 +223,39 @@ test('save2', async ({ page }) => { await viaVar(page); });`);
     assert.equal((await findingsFor(EXPECT_EXPECT, files)).length, 0);
   });
 });
+
+const STANDALONE = 'playwright/no-standalone-expect';
+
+describe('fix1 item 4: a test.describe alias does not exempt an expect in a describe body', () => {
+  it('an expect in the body of an aliased describe is still standalone', async () => {
+    const f = await findingsFor(STANDALONE, spec(`
+const describe = test.describe;
+describe('suite', () => {
+  expect(1 + 1).toBe(2);
+  test('inner', async ({ page }) => { await expect(page.locator('#a')).toBeVisible(); });
+});`));
+    assert.equal(f.length, 1);
+  });
+
+  it('a conditional describe alias is still standalone', async () => {
+    const f = await findingsFor(STANDALONE, spec(`
+const suite = process.env.CI ? test.describe.skip : test.describe;
+suite('suite', () => {
+  expect(1 + 1).toBe(2);
+});`));
+    assert.equal(f.length, 1);
+  });
+
+  it('GOOD: aliases of test, test.only, test.skip, test.fixme and a conditional between them stay exempt', async () => {
+    const f = await findingsFor(STANDALONE, spec(`
+const it2 = test;
+const only = test.only;
+const maybe = process.env.CI ? test.skip : test;
+const later = test.fixme;
+it2('a', async ({ page }) => { await expect(page.locator('#a')).toBeVisible(); });
+only('b', async ({ page }) => { await expect(page.locator('#b')).toBeVisible(); });
+maybe('c', async ({ page }) => { await expect(page.locator('#c')).toBeVisible(); });
+later('d', async ({ page }) => { await expect(page.locator('#d')).toBeVisible(); });`));
+    assert.equal(f.length, 0, JSON.stringify(f));
+  });
+});
