@@ -43,7 +43,7 @@ export const CONFIDENCE_BY_RULE: Record<string, Confidence> = {
 export const CONFIDENCE_LABEL: Record<Confidence, string> = {
   high: 'Definite',
   medium: 'Likely',
-  'needs-check': 'Needs a human check',
+  'needs-check': 'Not decided automatically',
 };
 
 /** Rules not listed above (and not needs-check) are medium. */
@@ -57,14 +57,14 @@ const SEVERITY_RANK: Record<Severity, number> = { error: 0, warning: 1, info: 2 
  * they feed the locators dimension through native/raw counts, not penalty
  * units) and is an ordinary finding. Any OTHER report-only finding is one
  * the scorer deliberately left out of the score (e.g. an assertion helper it
- * could not resolve), so it is a "needs a human check".
+ * could not resolve), so it is a "not decided automatically" item.
  */
 export function isNeedsCheck(f: Pick<Finding, 'reportOnly' | 'dimension'>): boolean {
   return f.reportOnly === true && f.dimension !== 'locators';
 }
 
 /**
- * Intro sentence for the "needs a human check" block. The helper wording is
+ * Intro sentence for the "not decided automatically" block. The helper wording is
  * true only for assertion-unverified findings; any other report-only rule gets
  * a neutral sentence (QAG-287 E3).
  */

@@ -60,7 +60,7 @@ describe('QAG-287: expect-expect resolution', () => {
     assert.ok(f, JSON.stringify(r.findings));
     assert.equal(f.reportOnly, true);
     assert.equal(f.severity, 'info');
-    assert.match(f.message, /Needs a human check/);
+    assert.match(f.message, /cannot decide this one automatically/);
     assert.equal(r.summary.unassertedTests, 0);
     assert.equal(r.summary.unverifiedTests, 1);
   });

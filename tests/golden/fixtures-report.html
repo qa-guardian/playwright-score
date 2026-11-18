@@ -106,7 +106,7 @@ pre.code{overflow:visible;white-space:pre-wrap}
 <p class="why">Pages that keep polling or streaming never go quiet, so tests that wait for it can time out at random and hold up releases without a real defect.</p></div></li>
 </ol>
 <h2>What to do next</h2>
-<ol><li>Fix the syntax error and re-run the score.</li><li>Have someone confirm that the tests under &quot;Needs a human check&quot; really assert, since the score cannot tell.</li><li>Move CSS and XPath selectors to role, label or test-id locators, starting with the busiest page objects.</li></ol>
+<ol><li>Fix the syntax error and re-run the score.</li><li>Have someone confirm that the tests under &quot;Not decided automatically&quot; really assert, since the score cannot tell.</li><li>Move CSS and XPath selectors to role, label or test-id locators, starting with the busiest page objects.</li></ol>
 </section>
 <section class="details">
 <h2>Details</h2>
@@ -147,10 +147,10 @@ pre.code{overflow:visible;white-space:pre-wrap}
 <p class="muted">3 occurrences across 1 test.</p>
 </article>
 <p class="muted">23 more issue types not shown. Use --format json for every occurrence.</p>
-<h3 id="human-check">Needs a human check</h3>
+<h3 id="human-check">Not decided automatically</h3>
 <p class="note">13 findings are information only: they point at something worth a look, but the score cannot tell whether they are a real problem, so they are left out of the score. Ask someone to review each one.</p><ul class="plain"><li><code>bad-raw-locators.spec.ts</code> <span class="muted">1 test, line 10</span><br><span class="muted">await on something that is not a promise.</span></li><li><code>flake-risk/bad-shared-state-beside-serial.spec.ts</code> <span class="muted">1 test, line 3</span><br><span class="muted">Tests that must run in order.</span></li><li><code>flake-risk/good-serial-configure-describe.spec.ts</code> <span class="muted">1 test, line 4</span><br><span class="muted">Tests that must run in order.</span></li><li><code>flake-risk/good-serial-configure-file.spec.ts</code> <span class="muted">1 test, line 5</span><br><span class="muted">Tests that must run in order.</span></li><li><code>flake-risk/good-serial-describe.spec.ts</code> <span class="muted">1 test, line 3</span><br><span class="muted">Tests that must run in order.</span></li><li><code>flake-risk/good-serial-module-var-configure.spec.ts</code> <span class="muted">1 test, line 6</span><br><span class="muted">Tests that must run in order.</span></li></ul><p class="muted">and 7 more tests in 5 other files.</p>
 </section>
-<footer>Scored by QA Guardian playwright-score 0.0.0-test (rules v4) on 2026-11-14. Static analysis of the test code: the same files always give the same score. Nothing was run against your product.</footer>
+<footer>Scored by QA Guardian playwright-score 0.0.0-test (rules v4) on 2026-11-14. Static analysis of the test code: the same files always give the same score. Nothing was run against your product. Run it yourself: <code>npx pwscore &lt;dir&gt;</code> (also published as @qaguardian/playwright-score).</footer>
 </main>
 </body>
 </html>

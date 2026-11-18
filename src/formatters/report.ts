@@ -190,14 +190,14 @@ function renderNeedsCheck(findings: readonly Finding[]): string {
   const intro = needsCheckIntro(items).helpers
     ? `${plural(items.length, 'test')} ${items.length === 1 ? 'relies' : 'rely'} on helpers we could not read (page objects, fixtures or imported functions). The checks probably live there, but the score cannot see them, so ${items.length === 1 ? 'this test is' : 'these tests are'} left out of the score. Ask someone to confirm each helper really checks the page.`
     : `${plural(items.length, 'finding')} ${items.length === 1 ? 'is' : 'are'} information only: ${items.length === 1 ? 'it points' : 'they point'} at something worth a look, but the score cannot tell whether ${items.length === 1 ? 'it is' : 'they are'} a real problem, so ${items.length === 1 ? 'it is' : 'they are'} left out of the score. Ask someone to review each one.`;
-  return `<h3 id="human-check">Needs a human check</h3>
+  return `<h3 id="human-check">Not decided automatically</h3>
 <p class="note">${intro}</p><ul class="plain">${rows}</ul>${more}`;
 }
 
 const GENERIC_STEPS = [
   'Re-run the score in CI with --threshold so the number cannot slip back unnoticed.',
   'Keep new specs on role, label and test-id locators with web-first assertions.',
-  'Review any items under "Needs a human check" by hand.',
+  'Look at any items under "Not decided automatically" by hand.',
 ];
 
 function nextSteps(groups: RuleGroup[], extra: string[] = []): string[] {
@@ -255,7 +255,7 @@ export function formatReport(result: ScoreResult, opts: ReportOptions): string {
   const humanCount = summary.unverifiedTests;
   const humanLine =
     humanCount > 0 && !state
-      ? `\n<p class="check">${humanItems.length ? '<a href="#human-check">' : ''}${plural(humanCount, 'test')} ${humanCount === 1 ? 'needs' : 'need'} a human check and ${humanCount === 1 ? 'is' : 'are'} left out of the score.${humanItems.length ? '</a>' : ''}</p>`
+      ? `\n<p class="check">${humanItems.length ? '<a href="#human-check">' : ''}${plural(humanCount, 'test')} ${humanCount === 1 ? 'is' : 'are'} not decided automatically and ${humanCount === 1 ? 'is' : 'are'} left out of the score: a person should look.${humanItems.length ? '</a>' : ''}</p>`
       : '';
   const crashLine = result.ruleCrashes?.length ? `\n<p class="check">${escapeHtml(INCOMPLETE_NOTE)}</p>` : '';
   const meta = state
@@ -275,7 +275,7 @@ ${scoreBox}
 </div>
 </header>`;
 
-  const footer = `<footer>Scored by QA Guardian playwright-score ${escapeHtml(opts.version)} (rules ${escapeHtml(result.scoreVersion)}) on ${escapeHtml(opts.date)}. Static analysis of the test code: the same files always give the same score. Nothing was run against your product.</footer>`;
+  const footer = `<footer>Scored by QA Guardian playwright-score ${escapeHtml(opts.version)} (rules ${escapeHtml(result.scoreVersion)}) on ${escapeHtml(opts.date)}. Static analysis of the test code: the same files always give the same score. Nothing was run against your product. Run it yourself: <code>npx pwscore &lt;dir&gt;</code> (also published as @qaguardian/playwright-score).</footer>`;
 
   const head = `<!DOCTYPE html>
 <html lang="en">
@@ -300,7 +300,7 @@ ${scoreBox}
 
   const extraSteps: string[] = [];
   if (humanItems.length) {
-    extraSteps.push('Have someone confirm that the tests under "Needs a human check" really assert, since the score cannot tell.');
+    extraSteps.push('Have someone confirm that the tests under "Not decided automatically" really assert, since the score cannot tell.');
   }
   if ((result.dimensions.locators ?? 100) < 75 && !top.some((g) => g.dimension === 'locators')) {
     extraSteps.push('Move CSS and XPath selectors to role, label or test-id locators, starting with the busiest page objects.');

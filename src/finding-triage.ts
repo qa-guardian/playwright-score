@@ -7,7 +7,7 @@
  *   fixture or an imported helper was reported as "no assertion" at error
  *   severity even though the assertion runs. Each such finding is resolved
  *   here: dropped when a fixture the test uses is known to assert, turned
- *   into a report-only "needs a human check" finding when the test calls
+ *   into a report-only "not decided automatically" finding when the test calls
  *   something this static scan cannot read, and kept as the error it is
  *   when every call resolves to code we could read (or is plain Playwright
  *   API on `page`, `request`, ...).
@@ -482,7 +482,7 @@ export function triageFindings(findings: Finding[], ctx: TriageContext): Finding
       severity: 'info',
       reportOnly: true,
       message:
-        `Needs a human check: no expect(...) in this test body, but it calls ${calls
+        `The scorer cannot decide this one automatically, so a person should look: no expect(...) in this test body, but it calls ${calls
           .slice(0, 3)
           .map((c) => `${c}()`)
           .join(', ')}${calls.length > 3 ? ', ...' : ''} on an object defined elsewhere (page object, injected fixture or ` +

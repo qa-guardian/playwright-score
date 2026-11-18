@@ -73,7 +73,7 @@ export function formatText(result: ScoreResult, opts: TextOptions = {}): string 
     });
     if (groups.length > MAX_GROUPS) {
       lines.push(
-        ` + ${plural(groups.length - MAX_GROUPS, 'more issue type')}. Full list: playwright-score <path> --format report --out report.html`
+        ` + ${plural(groups.length - MAX_GROUPS, 'more issue type')}. Full list: npx pwscore <path> --format report --out report.html`
       );
     }
   }
@@ -84,8 +84,8 @@ export function formatText(result: ScoreResult, opts: TextOptions = {}): string 
     lines.push('');
     lines.push(
       needsCheckIntro(human).helpers
-        ? `Needs a human check (not in the score): ${plural(human.length, 'test')} in ${plural(files.length, 'file')} ${human.length === 1 ? 'relies' : 'rely'} on helpers we could not read.`
-        : `Needs a human check (not in the score): ${plural(human.length, 'finding')} in ${plural(files.length, 'file')}, information only.`
+        ? `Not decided automatically (not in the score): ${plural(human.length, 'test')} in ${plural(files.length, 'file')} ${human.length === 1 ? 'relies' : 'rely'} on helpers we could not read. A person should look.`
+        : `Not decided automatically (not in the score): ${plural(human.length, 'finding')} in ${plural(files.length, 'file')}, information only. A person should look.`
     );
     for (const f of files.slice(0, 5)) lines.push(`    ${shortPath(f)}`);
     if (files.length > 5) lines.push(`    + ${files.length - 5} more`);

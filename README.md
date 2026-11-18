@@ -1,4 +1,4 @@
-# @qaguardian/playwright-score
+# pwscore (@qaguardian/playwright-score)
 
 [![CI](https://github.com/qa-guardian/playwright-score/actions/workflows/ci.yml/badge.svg)](https://github.com/qa-guardian/playwright-score/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@qaguardian/playwright-score.svg)](https://www.npmjs.com/package/@qaguardian/playwright-score)
@@ -80,19 +80,27 @@ See [METHODOLOGY.md](https://github.com/qa-guardian/playwright-score/blob/main/M
 ## Install
 
 ```bash
-npm install -D @qaguardian/playwright-score
+npm install -D pwscore
 ```
 
-Package: [@qaguardian/playwright-score](https://www.npmjs.com/package/@qaguardian/playwright-score) on npm.
+Packages on npm: [pwscore](https://www.npmjs.com/package/pwscore) (primary) and
+[@qaguardian/playwright-score](https://www.npmjs.com/package/@qaguardian/playwright-score)
+(alias). Both are published from the same source on every release and contain
+identical code. Both install a `pwscore` command and a `playwright-score` command.
+
+This project is not affiliated with Microsoft or the Playwright project.
 
 ## CLI
 
 ```bash
-# One-shot (scoped package — use -p so the playwright-score binary is resolved)
-npx -p @qaguardian/playwright-score playwright-score ./tests --profile standard --threshold 80
+# One-shot
+npx pwscore ./tests --profile standard --threshold 80
 
 # After local install
-npx playwright-score ./flow.spec.ts --format json --out report.json
+npx pwscore ./flow.spec.ts --format json --out report.json
+
+# Same tool under the scoped name (use -p so the pwscore command is resolved)
+npx -p @qaguardian/playwright-score pwscore ./tests
 ```
 
 | Flag | Description |
@@ -150,7 +158,7 @@ section above — same score, same exit codes:
 
 ```yaml
 - name: Playwright Spec Score
-  run: npx -p @qaguardian/playwright-score playwright-score ./tests --profile standard --threshold 80 --format text
+  run: npx pwscore ./tests --profile standard --threshold 80 --format text
 ```
 
 ## QA Guardian integration

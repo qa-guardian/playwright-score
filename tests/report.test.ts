@@ -146,7 +146,7 @@ describe('confidence and ranking', () => {
   it('caps terminal groups at 10 and says how to see the rest', () => {
     const rules = Object.keys(RULE_COPY).filter((x) => x !== 'playwright-score/assertion-unverified').slice(0, 14);
     const text = formatText(fakeResult(rules.map((rule) => finding({ rule }))));
-    assert.ok(text.includes('+ 4 more issue types. Full list: playwright-score <path> --format report --out report.html'));
+    assert.ok(text.includes('+ 4 more issue types. Full list: npx pwscore <path> --format report --out report.html'));
     assert.equal(text.split('\n').filter((l) => /^ {1,2}\d+\. /.test(l)).length, 10);
   });
 });
@@ -206,7 +206,7 @@ describe('report robustness (QAG-288 slice 1b)', () => {
   it('shows the unverified count in the headline area', () => {
     const r = fakeResult([]);
     r.summary.unverifiedTests = 3;
-    assert.ok(formatReport(r, opts).includes('3 tests need a human check and are left out of the score.'));
+    assert.ok(formatReport(r, opts).includes('3 tests are not decided automatically and are left out of the score: a person should look.'));
     r.summary.unverifiedTests = 0;
     assert.ok(!formatReport(r, opts).includes('left out of the score.'));
   });
@@ -312,8 +312,8 @@ describe('report polish (QAG-288 slice 3b)', () => {
     assert.match(formatReport(fakeResult([]), { ...opts, customThreshold: true }), /Below your bar of 80\./);
   });
 
-  it('labels confidence Definite / Likely / Needs a human check with neutral tags', () => {
-    assert.deepEqual(CONFIDENCE_LABEL, { high: 'Definite', medium: 'Likely', 'needs-check': 'Needs a human check' });
+  it('labels confidence Definite / Likely / Not decided automatically with neutral tags', () => {
+    assert.deepEqual(CONFIDENCE_LABEL, { high: 'Definite', medium: 'Likely', 'needs-check': 'Not decided automatically' });
     assert.ok(summary.includes('<span class="tag">Definite</span>'));
     assert.ok(!/high confidence|medium confidence/.test(html));
     assert.ok(!/\.tag\.(high|medium)/.test(html), 'no green/amber tag colours');

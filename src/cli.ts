@@ -15,12 +15,16 @@ import { suiteLabel } from './suite-name.js';
 import type { ProfileName } from './types.js';
 
 function printHelp(): void {
-  console.log(`@qaguardian/playwright-score — deterministic Playwright spec quality score
+  console.log(`pwscore — deterministic Playwright spec quality score
 
 Usage:
-  npx -p @qaguardian/playwright-score playwright-score <paths...> [options]
-  # after npm install -D @qaguardian/playwright-score:
-  npx playwright-score <paths...> [options]
+  npx pwscore <dir> [options]
+  # the same tool is also published as @qaguardian/playwright-score:
+  npx -p @qaguardian/playwright-score pwscore <dir> [options]
+  # after npm install -D pwscore (the playwright-score command also works):
+  npx pwscore <paths...> [options]
+
+Not affiliated with Microsoft or the Playwright project.
 
 Options:
   --profile <standard>             Scoring profile (default, and only

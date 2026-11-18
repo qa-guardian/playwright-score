@@ -4,7 +4,7 @@ import { helpers } from '@acme/qa-utils';
 // Fixture: calls on objects this scan cannot read, but none of the method
 // names reads like an assertion (waitForLoad, waitForNetworkIdle, list), so
 // nothing says an assertion could be hiding there. Each test is an
-// expect-expect error, not a "needs a human check".
+// expect-expect error, not a "not decided automatically".
 test('fixture call only', async ({ page, app }) => {
   await app.waitForLoad();
   await page.click('#go');

@@ -144,7 +144,7 @@ export const ESLINT_RULE_MAP: Record<string, RuleMapping> = {
   'pwscore/no-shared-mutable-state': { dimension: 'structure', severityOverride: 'warning' },
   'pwscore/serial-mode-dependency': { dimension: 'structure', severityOverride: 'info', reportOnly: true },
   // QAG-287 slice E2: info, so no score effect. Most hits are judgement calls on slow
-  // external steps. Not reportOnly: that files a finding under "needs a human check",
+  // external steps. Not reportOnly: that files a finding under "not decided automatically",
   // whose copy says the test relies on helpers the scorer could not read.
   'pwscore/no-excessive-timeout': { dimension: 'playwrightHygiene', severityOverride: 'info' },
   // QAG-287 slice 2a: tests that would miss a real bug.
