@@ -6,6 +6,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
+    "pwscore": "bin/playwright-score.js",
     "playwright-score": "bin/playwright-score.js"
   },
   "exports": {

@@ -35,25 +35,20 @@ jobs:
 
       - run: npm test
 
-      # npm versions are immutable — publish only fires when package.json's
-      # version isn't already on the registry, so ordinary pushes to main
-      # (docs, fixtures, non-release commits) are always safe no-ops here.
-      - name: Check if this version is already published
-        id: check
-        run: |
-          LOCAL_VERSION=$(node -p "require('./package.json').version")
-          PUBLISHED_VERSION=$(npm view "$(node -p "require('./package.json').name")" version 2>/dev/null || echo "none")
-          echo "local=$LOCAL_VERSION published=$PUBLISHED_VERSION"
-          if [ "$LOCAL_VERSION" = "$PUBLISHED_VERSION" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
+      # The package is published under two names from this one source tree:
+      # @qaguardian/playwright-score (scoped) and pwscore (unscoped, the name
+      # the docs and emails tell people to run). Each name is checked and
+      # published on its own, so a re-run (workflow_dispatch) after a partial
+      # failure only publishes the name that is still missing. npm versions are
+      # immutable, and ordinary pushes to main that do not change the version
+      # are no-ops for both names.
+      #
+      # Both names use the same trusted-publisher OIDC flow: no token. Each
+      # package must have this repo + publish.yml configured as its trusted
+      # publisher on npmjs.com (Settings > Trusted Publisher), one setting per
+      # package.
+      - name: Publish @qaguardian/playwright-score
+        run: node scripts/publish-name.mjs @qaguardian/playwright-score
 
-      # No token/secret here — npm CLI >=11.5.1 auto-detects the OIDC token
-      # this job's id-token: write permission makes available, and exchanges
-      # it for a short-lived publish credential once the trusted publisher
-      # is configured on npmjs.com for this repo + workflow file.
-      - name: Publish
-        if: steps.check.outputs.skip == 'false'
-        run: npm publish
+      - name: Publish pwscore
+        run: node scripts/publish-name.mjs pwscore
