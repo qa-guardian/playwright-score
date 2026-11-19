@@ -40,8 +40,6 @@ export interface RuleRow {
   bcEligible: boolean;
   /** For BC-eligible cells: the statement in the docs that the shape is wrong in every use. */
   docsSentence?: string;
-  /** BC-eligible cells need docs-written fixtures; this marks that they are not written yet. */
-  fixturesDue?: 'S3';
   /** The form is part of the table but no finding carries it yet. */
   planned?: 'S3b' | 'S7c';
   title: string;

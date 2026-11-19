@@ -1,0 +1,2073 @@
+{
+ "version": 1,
+ "note": "S3 per-rule fixture gate. Fixtures are written from the Playwright docs, never copied from a corpus repository. `pending` names the slice that makes the fixture behave as labelled; the test asserts it still does not.",
+ "cells": [
+  {
+   "rule": "playwright/missing-playwright-await",
+   "form": "assertion",
+   "class": "C1",
+   "certain": true
+  },
+  {
+   "rule": "playwright/missing-playwright-await",
+   "form": "action",
+   "class": "C6",
+   "certain": true
+  },
+  {
+   "rule": "pwscore/no-unawaited-action",
+   "form": "-",
+   "class": "C6",
+   "certain": true
+  },
+  {
+   "rule": "playwright/valid-expect",
+   "form": "matcherless",
+   "class": "C2",
+   "certain": true
+  },
+  {
+   "rule": "playwright/valid-expect",
+   "form": "other"
+  },
+  {
+   "rule": "pwscore/no-unawaited-expect-value",
+   "form": "-",
+   "class": "C3",
+   "certain": true
+  },
+  {
+   "rule": "pwscore/no-weak-assertion",
+   "form": "-",
+   "class": "C4",
+   "certain": true
+  },
+  {
+   "rule": "pwscore/no-floating-callback-assertion",
+   "form": "-",
+   "class": "C5",
+   "certain": true,
+   "builtBy": "S7a"
+  },
+  {
+   "rule": "playwright/prefer-web-first-assertions",
+   "form": "read-direct",
+   "class": "C7",
+   "certain": true
+  },
+  {
+   "rule": "playwright/prefer-web-first-assertions",
+   "form": "read-url-count",
+   "class": "C7",
+   "certain": true,
+   "builtBy": "S7c"
+  },
+  {
+   "rule": "playwright/no-networkidle",
+   "form": "-",
+   "class": "C8",
+   "certain": true
+  },
+  {
+   "rule": "playwright/no-wait-for-selector",
+   "form": "-",
+   "class": "C9",
+   "certain": true
+  },
+  {
+   "rule": "playwright/no-wait-for-navigation",
+   "form": "-",
+   "class": "C10",
+   "certain": true
+  },
+  {
+   "rule": "playwright/no-element-handle",
+   "form": "-",
+   "class": "C11",
+   "certain": true
+  },
+  {
+   "rule": "playwright/no-page-pause",
+   "form": "-",
+   "class": "C12",
+   "certain": true
+  },
+  {
+   "rule": "playwright/no-focused-test",
+   "form": "-",
+   "class": "C13",
+   "certain": true
+  },
+  {
+   "rule": "playwright/expect-expect",
+   "form": "-"
+  },
+  {
+   "rule": "playwright/max-nested-describe",
+   "form": "-"
+  },
+  {
+   "rule": "playwright/no-conditional-expect",
+   "form": "-"
+  },
+  {
+   "rule": "playwright/no-conditional-in-test",
+   "form": "-"
+  },
+  {
+   "rule": "playwright/no-eval",
+   "form": "-"
+  },
+  {
+   "rule": "playwright/no-force-option",
+   "form": "-"
+  },
+  {
+   "rule": "playwright/no-raw-locators",
+   "form": "-"
+  },
+  {
+   "rule": "playwright/no-standalone-expect",
+   "form": "-"
+  },
+  {
+   "rule": "playwright/no-useless-await",
+   "form": "-"
+  },
+  {
+   "rule": "playwright/no-wait-for-timeout",
+   "form": "-"
+  },
+  {
+   "rule": "playwright/prefer-locator",
+   "form": "-"
+  },
+  {
+   "rule": "playwright/prefer-native-locators",
+   "form": "-"
+  },
+  {
+   "rule": "pwscore/eslint-disable-comment",
+   "form": "-"
+  },
+  {
+   "rule": "pwscore/no-brittle-selector",
+   "form": "-"
+  },
+  {
+   "rule": "pwscore/no-coordinate-click",
+   "form": "-"
+  },
+  {
+   "rule": "pwscore/no-excessive-timeout",
+   "form": "-"
+  },
+  {
+   "rule": "pwscore/no-fixme-test",
+   "form": "-"
+  },
+  {
+   "rule": "pwscore/no-self-fulfilling-fallback",
+   "form": "-"
+  },
+  {
+   "rule": "pwscore/no-shared-mutable-state",
+   "form": "-"
+  },
+  {
+   "rule": "pwscore/no-skipped-test-declaration",
+   "form": "-"
+  },
+  {
+   "rule": "pwscore/no-swallowed-assertion",
+   "form": "-"
+  },
+  {
+   "rule": "pwscore/no-timer-sleep",
+   "form": "-"
+  },
+  {
+   "rule": "pwscore/serial-mode-dependency",
+   "form": "-"
+  },
+  {
+   "rule": "metrics/oversized-file",
+   "form": "-"
+  },
+  {
+   "rule": "playwright-score/assertion-unverified",
+   "form": "-"
+  },
+  {
+   "rule": "playwright-score/parse-error",
+   "form": "-"
+  },
+  {
+   "rule": "playwright-score/no-files",
+   "form": "-"
+  },
+  {
+   "rule": "pwscore/no-trivial-assertion",
+   "form": "literal"
+  }
+ ],
+ "fixtures": [
+  {
+   "id": "missing-playwright-await/true-unawaited-web-first",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "missing-playwright-await/true-unawaited-web-first.ts",
+   "form": "assertion"
+  },
+  {
+   "id": "missing-playwright-await/true-unawaited-negated",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "missing-playwright-await/true-unawaited-negated.ts",
+   "form": "assertion"
+  },
+  {
+   "id": "missing-playwright-await/true-unawaited-step",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "missing-playwright-await/true-unawaited-step.ts",
+   "form": "assertion"
+  },
+  {
+   "id": "missing-playwright-await/true-unawaited-poll",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "missing-playwright-await/true-unawaited-poll.ts",
+   "form": "assertion"
+  },
+  {
+   "id": "missing-playwright-await/true-aliased-test",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "missing-playwright-await/true-aliased-test.ts",
+   "form": "assertion",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/true-js-unawaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "missing-playwright-await/true-js-unawaited.js",
+   "form": "assertion",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/true-js-cjs-unawaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "missing-playwright-await/true-js-cjs-unawaited.js",
+   "form": "assertion",
+   "tags": [
+    "js",
+    "cjs"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "missing-playwright-await/false-awaited.ts",
+   "form": "assertion"
+  },
+  {
+   "id": "missing-playwright-await/false-promise-all",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "missing-playwright-await/false-promise-all.ts",
+   "form": "assertion",
+   "tags": [
+    "g10:promise-all"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-stored-then-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "missing-playwright-await/false-stored-then-awaited.ts",
+   "form": "assertion",
+   "tags": [
+    "g10:stored-awaited"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-step-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "missing-playwright-await/false-step-awaited.ts",
+   "form": "assertion"
+  },
+  {
+   "id": "missing-playwright-await/false-returned-from-helper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "missing-playwright-await/false-returned-from-helper.ts",
+   "form": "assertion",
+   "tags": [
+    "g10:return-position"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-js-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "missing-playwright-await/false-js-awaited.js",
+   "form": "assertion",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-void-expect",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "missing-playwright-await/false-void-expect.ts",
+   "form": "assertion",
+   "tags": [
+    "g10:void"
+   ],
+   "pending": "unassigned",
+   "note": "the ADR calls a void-ed call likely, not certain; the rule reports it today and no slice is named for it"
+  },
+  {
+   "id": "missing-playwright-await/true-helper-unawaited-assert",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "missing-playwright-await/true-helper-unawaited-assert/cart.spec.ts",
+   "dir": "missing-playwright-await/true-helper-unawaited-assert",
+   "form": "assertion",
+   "tags": [
+    "shared"
+   ],
+   "pending": "S6b"
+  },
+  {
+   "id": "missing-playwright-await/true-action-unawaited-wait-for-response",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "missing-playwright-await/true-action-unawaited-wait-for-response.ts",
+   "form": "action"
+  },
+  {
+   "id": "missing-playwright-await/true-action-unawaited-wait-for-request",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "missing-playwright-await/true-action-unawaited-wait-for-request.ts",
+   "form": "action"
+  },
+  {
+   "id": "missing-playwright-await/true-action-unawaited-wait-for-event",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "missing-playwright-await/true-action-unawaited-wait-for-event.ts",
+   "form": "action"
+  },
+  {
+   "id": "missing-playwright-await/true-action-aliased-test",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "missing-playwright-await/true-action-aliased-test.ts",
+   "form": "action",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/true-action-js-unawaited-wait",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "missing-playwright-await/true-action-js-unawaited-wait.js",
+   "form": "action",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-action-awaited-wait",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "missing-playwright-await/false-action-awaited-wait.ts",
+   "form": "action"
+  },
+  {
+   "id": "missing-playwright-await/false-action-stored-then-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "missing-playwright-await/false-action-stored-then-awaited.ts",
+   "form": "action",
+   "tags": [
+    "g10:stored-awaited"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-action-promise-all",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "missing-playwright-await/false-action-promise-all.ts",
+   "form": "action",
+   "tags": [
+    "g10:promise-all"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-action-returned-wait",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "missing-playwright-await/false-action-returned-wait.ts",
+   "form": "action",
+   "tags": [
+    "g10:return-position"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-action-js-awaited-wait",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "missing-playwright-await/false-action-js-awaited-wait.js",
+   "form": "action",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-unawaited-action/true-goto",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "true",
+   "entry": "no-unawaited-action/true-goto.ts"
+  },
+  {
+   "id": "no-unawaited-action/true-role-click",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "true",
+   "entry": "no-unawaited-action/true-role-click.ts"
+  },
+  {
+   "id": "no-unawaited-action/true-stored-locator-fill",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "true",
+   "entry": "no-unawaited-action/true-stored-locator-fill.ts"
+  },
+  {
+   "id": "no-unawaited-action/true-aliased-test",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "true",
+   "entry": "no-unawaited-action/true-aliased-test.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-unawaited-action/true-js-unawaited-click",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "true",
+   "entry": "no-unawaited-action/true-js-unawaited-click.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-unawaited-action/true-const-page-alias",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "true",
+   "entry": "no-unawaited-action/true-const-page-alias.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-unawaited-action/true-aliased-page-renamed-fixture",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "true",
+   "entry": "no-unawaited-action/true-aliased-page-renamed-fixture.ts",
+   "tags": [
+    "alias"
+   ],
+   "pending": "S4a"
+  },
+  {
+   "id": "no-unawaited-action/true-helper-unawaited-click",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "true",
+   "entry": "no-unawaited-action/true-helper-unawaited-click/cart.spec.ts",
+   "dir": "no-unawaited-action/true-helper-unawaited-click",
+   "tags": [
+    "shared"
+   ],
+   "pending": "S6b"
+  },
+  {
+   "id": "no-unawaited-action/false-awaited",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "false",
+   "entry": "no-unawaited-action/false-awaited.ts"
+  },
+  {
+   "id": "no-unawaited-action/false-promise-all",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "false",
+   "entry": "no-unawaited-action/false-promise-all.ts",
+   "tags": [
+    "g10:promise-all"
+   ]
+  },
+  {
+   "id": "no-unawaited-action/false-returned-from-helper",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "false",
+   "entry": "no-unawaited-action/false-returned-from-helper.ts",
+   "tags": [
+    "g10:return-position"
+   ]
+  },
+  {
+   "id": "no-unawaited-action/false-stored-then-awaited",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "false",
+   "entry": "no-unawaited-action/false-stored-then-awaited.ts",
+   "tags": [
+    "g10:stored-awaited"
+   ]
+  },
+  {
+   "id": "no-unawaited-action/false-void-click",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "false",
+   "entry": "no-unawaited-action/false-void-click.ts",
+   "tags": [
+    "g10:void"
+   ]
+  },
+  {
+   "id": "no-unawaited-action/false-route-handler-calls",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "false",
+   "entry": "no-unawaited-action/false-route-handler-calls.ts",
+   "tags": [
+    "g10:route-handler"
+   ]
+  },
+  {
+   "id": "no-unawaited-action/false-websocket-route-handler",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "false",
+   "entry": "no-unawaited-action/false-websocket-route-handler.ts",
+   "tags": [
+    "g10:route-handler"
+   ]
+  },
+  {
+   "id": "no-unawaited-action/false-non-async-callback",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "false",
+   "entry": "no-unawaited-action/false-non-async-callback.ts"
+  },
+  {
+   "id": "no-unawaited-action/false-js-awaited",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "false",
+   "entry": "no-unawaited-action/false-js-awaited.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "valid-expect/true-bare-expect",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "valid-expect/true-bare-expect.ts",
+   "form": "matcherless"
+  },
+  {
+   "id": "valid-expect/true-bare-negated",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "valid-expect/true-bare-negated.ts",
+   "form": "matcherless"
+  },
+  {
+   "id": "valid-expect/true-matcher-not-called",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "valid-expect/true-matcher-not-called.ts",
+   "form": "matcherless"
+  },
+  {
+   "id": "valid-expect/true-aliased-test",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "valid-expect/true-aliased-test.ts",
+   "form": "matcherless",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "valid-expect/true-js-bare-expect",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "valid-expect/true-js-bare-expect.js",
+   "form": "matcherless",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "valid-expect/true-renamed-expect-const",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "valid-expect/true-renamed-expect-const.ts",
+   "form": "matcherless",
+   "tags": [
+    "alias"
+   ],
+   "pending": "S4b"
+  },
+  {
+   "id": "valid-expect/false-matcher-called",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "valid-expect/false-matcher-called.ts",
+   "form": "matcherless"
+  },
+  {
+   "id": "valid-expect/false-soft-matcher",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "valid-expect/false-soft-matcher.ts",
+   "form": "matcherless"
+  },
+  {
+   "id": "valid-expect/false-returned-matcher-chain",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "valid-expect/false-returned-matcher-chain.ts",
+   "form": "matcherless",
+   "tags": [
+    "g10:return-position"
+   ]
+  },
+  {
+   "id": "valid-expect/false-js-matcher-called",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "valid-expect/false-js-matcher-called.js",
+   "form": "matcherless",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "valid-expect/false-chai-expect",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "valid-expect/false-chai-expect.ts",
+   "form": "matcherless",
+   "tags": [
+    "g10:foreign-expect"
+   ],
+   "pending": "S4b"
+  },
+  {
+   "id": "valid-expect/false-vitest-expect",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "valid-expect/false-vitest-expect.ts",
+   "form": "matcherless",
+   "tags": [
+    "g10:foreign-expect"
+   ]
+  },
+  {
+   "id": "valid-expect/true-other-not-enough-args",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "valid-expect/true-other-not-enough-args.ts",
+   "form": "other"
+  },
+  {
+   "id": "valid-expect/true-other-too-many-args",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "valid-expect/true-other-too-many-args.ts",
+   "form": "other"
+  },
+  {
+   "id": "valid-expect/false-other-known-modifiers",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "valid-expect/false-other-known-modifiers.ts",
+   "form": "other"
+  },
+  {
+   "id": "no-unawaited-expect-value/true-is-visible-subject",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "true",
+   "entry": "no-unawaited-expect-value/true-is-visible-subject.ts"
+  },
+  {
+   "id": "no-unawaited-expect-value/true-stored-promise-subject",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "true",
+   "entry": "no-unawaited-expect-value/true-stored-promise-subject.ts"
+  },
+  {
+   "id": "no-unawaited-expect-value/true-text-content-subject",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "true",
+   "entry": "no-unawaited-expect-value/true-text-content-subject.ts"
+  },
+  {
+   "id": "no-unawaited-expect-value/true-aliased-test",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "true",
+   "entry": "no-unawaited-expect-value/true-aliased-test.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-unawaited-expect-value/true-js-is-visible-subject",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "true",
+   "entry": "no-unawaited-expect-value/true-js-is-visible-subject.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-unawaited-expect-value/false-awaited-inside",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "false",
+   "entry": "no-unawaited-expect-value/false-awaited-inside.ts"
+  },
+  {
+   "id": "no-unawaited-expect-value/false-stored-then-awaited",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "false",
+   "entry": "no-unawaited-expect-value/false-stored-then-awaited.ts",
+   "tags": [
+    "g10:stored-awaited"
+   ]
+  },
+  {
+   "id": "no-unawaited-expect-value/false-poll-callback",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "false",
+   "entry": "no-unawaited-expect-value/false-poll-callback.ts",
+   "tags": [
+    "g10:topass-poll"
+   ]
+  },
+  {
+   "id": "no-unawaited-expect-value/false-web-first",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "false",
+   "entry": "no-unawaited-expect-value/false-web-first.ts"
+  },
+  {
+   "id": "no-unawaited-expect-value/false-js-awaited-inside",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "false",
+   "entry": "no-unawaited-expect-value/false-js-awaited-inside.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-weak-assertion/true-count-at-least-zero",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "true",
+   "entry": "no-weak-assertion/true-count-at-least-zero.ts"
+  },
+  {
+   "id": "no-weak-assertion/true-locator-truthy",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "true",
+   "entry": "no-weak-assertion/true-locator-truthy.ts"
+  },
+  {
+   "id": "no-weak-assertion/true-always-value-defined",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "true",
+   "entry": "no-weak-assertion/true-always-value-defined.ts"
+  },
+  {
+   "id": "no-weak-assertion/true-count-greater-than-minus-one",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "true",
+   "entry": "no-weak-assertion/true-count-greater-than-minus-one.ts"
+  },
+  {
+   "id": "no-weak-assertion/true-aliased-test",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "true",
+   "entry": "no-weak-assertion/true-aliased-test.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-weak-assertion/true-js-count-at-least-zero",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "true",
+   "entry": "no-weak-assertion/true-js-count-at-least-zero.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-weak-assertion/false-count-at-least-one",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "false",
+   "entry": "no-weak-assertion/false-count-at-least-one.ts"
+  },
+  {
+   "id": "no-weak-assertion/false-to-have-count",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "false",
+   "entry": "no-weak-assertion/false-to-have-count.ts"
+  },
+  {
+   "id": "no-weak-assertion/false-truthy-on-plain-string",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "false",
+   "entry": "no-weak-assertion/false-truthy-on-plain-string.ts"
+  },
+  {
+   "id": "no-weak-assertion/false-literal-tautology",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "false",
+   "entry": "no-weak-assertion/false-literal-tautology.ts",
+   "tags": [
+    "g10:literal-tautology"
+   ]
+  },
+  {
+   "id": "no-weak-assertion/false-js-to-have-count",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "false",
+   "entry": "no-weak-assertion/false-js-to-have-count.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-floating-callback-assertion/true-foreach-async",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "no-floating-callback-assertion/true-foreach-async.ts",
+   "pending": "S7a"
+  },
+  {
+   "id": "no-floating-callback-assertion/true-map-async-statement",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "no-floating-callback-assertion/true-map-async-statement.ts",
+   "pending": "S7a"
+  },
+  {
+   "id": "no-floating-callback-assertion/true-locator-all-foreach",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "no-floating-callback-assertion/true-locator-all-foreach.ts",
+   "pending": "S7a"
+  },
+  {
+   "id": "no-floating-callback-assertion/true-js-foreach-async",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "no-floating-callback-assertion/true-js-foreach-async.js",
+   "tags": [
+    "js"
+   ],
+   "pending": "S7a"
+  },
+  {
+   "id": "no-floating-callback-assertion/true-aliased-test",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "no-floating-callback-assertion/true-aliased-test.ts",
+   "tags": [
+    "alias"
+   ],
+   "pending": "S7a"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-for-of-awaited",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "no-floating-callback-assertion/false-for-of-awaited.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-promise-all-map",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "no-floating-callback-assertion/false-promise-all-map.ts",
+   "tags": [
+    "g10:promise-all"
+   ]
+  },
+  {
+   "id": "no-floating-callback-assertion/false-sync-foreach-on-values",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "no-floating-callback-assertion/false-sync-foreach-on-values.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-js-for-of",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "no-floating-callback-assertion/false-js-for-of.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/true-awaited-is-visible",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "prefer-web-first-assertions/true-awaited-is-visible.ts",
+   "form": "read-direct"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-stored-const-text",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "prefer-web-first-assertions/true-stored-const-text.ts",
+   "form": "read-direct"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-text-content-direct",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "prefer-web-first-assertions/true-text-content-direct.ts",
+   "form": "read-direct"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-aliased-test",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "prefer-web-first-assertions/true-aliased-test.ts",
+   "form": "read-direct",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/true-js-awaited-is-visible",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "prefer-web-first-assertions/true-js-awaited-is-visible.js",
+   "form": "read-direct",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/false-web-first",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "prefer-web-first-assertions/false-web-first.ts",
+   "form": "read-direct"
+  },
+  {
+   "id": "prefer-web-first-assertions/false-to-pass-callback",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "prefer-web-first-assertions/false-to-pass-callback.ts",
+   "form": "read-direct",
+   "tags": [
+    "g10:topass-poll"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/false-poll-callback",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "prefer-web-first-assertions/false-poll-callback.ts",
+   "form": "read-direct",
+   "tags": [
+    "g10:topass-poll"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/false-js-web-first",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "prefer-web-first-assertions/false-js-web-first.js",
+   "form": "read-direct",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/false-read-reused-guard",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "prefer-web-first-assertions/false-read-reused-guard.ts",
+   "form": "read-direct",
+   "tags": [
+    "g10:read-reused"
+   ],
+   "pending": "S3b"
+  },
+  {
+   "id": "prefer-web-first-assertions/false-read-reused-two-uses",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "prefer-web-first-assertions/false-read-reused-two-uses.ts",
+   "form": "read-direct",
+   "tags": [
+    "g10:read-reused"
+   ],
+   "pending": "S3b"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-read-url",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "prefer-web-first-assertions/true-read-url.ts",
+   "form": "read-url-count",
+   "pending": "S7c"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-read-url-contains",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "prefer-web-first-assertions/true-read-url-contains.ts",
+   "form": "read-url-count",
+   "pending": "S7c"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-read-count",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "prefer-web-first-assertions/true-read-count.ts",
+   "form": "read-url-count",
+   "pending": "S7c"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-read-count-stored",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "prefer-web-first-assertions/true-read-count-stored.ts",
+   "form": "read-url-count",
+   "pending": "S7c"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-aliased-test-read-url",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "prefer-web-first-assertions/true-aliased-test-read-url.ts",
+   "form": "read-url-count",
+   "tags": [
+    "alias"
+   ],
+   "pending": "S7c"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-js-read-url",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "prefer-web-first-assertions/true-js-read-url.js",
+   "form": "read-url-count",
+   "tags": [
+    "js"
+   ],
+   "pending": "S7c"
+  },
+  {
+   "id": "prefer-web-first-assertions/false-js-to-have-url",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "prefer-web-first-assertions/false-js-to-have-url.js",
+   "form": "read-url-count",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/false-to-have-url",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "prefer-web-first-assertions/false-to-have-url.ts",
+   "form": "read-url-count"
+  },
+  {
+   "id": "prefer-web-first-assertions/false-to-have-count",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "prefer-web-first-assertions/false-to-have-count.ts",
+   "form": "read-url-count"
+  },
+  {
+   "id": "prefer-web-first-assertions/false-poll-url",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "prefer-web-first-assertions/false-poll-url.ts",
+   "form": "read-url-count",
+   "tags": [
+    "g10:topass-poll"
+   ]
+  },
+  {
+   "id": "no-networkidle/true-wait-for-load-state",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "no-networkidle/true-wait-for-load-state.ts"
+  },
+  {
+   "id": "no-networkidle/true-goto-wait-until",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "no-networkidle/true-goto-wait-until.ts"
+  },
+  {
+   "id": "no-networkidle/true-const-resolved",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "no-networkidle/true-const-resolved.ts",
+   "pending": "unassigned",
+   "note": "the ADR says a const-resolved value counts; the rule reads only the literal today and no slice is named for it"
+  },
+  {
+   "id": "no-networkidle/true-with-timeout-option",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "no-networkidle/true-with-timeout-option.ts"
+  },
+  {
+   "id": "no-networkidle/true-aliased-test",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "no-networkidle/true-aliased-test.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-networkidle/true-js-wait-for-load-state",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "no-networkidle/true-js-wait-for-load-state.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-networkidle/false-load-state-load",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "no-networkidle/false-load-state-load.ts"
+  },
+  {
+   "id": "no-networkidle/false-goto-domcontentloaded",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "no-networkidle/false-goto-domcontentloaded.ts"
+  },
+  {
+   "id": "no-networkidle/false-word-in-text",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "no-networkidle/false-word-in-text.ts"
+  },
+  {
+   "id": "no-networkidle/false-js-load-state-load",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "no-networkidle/false-js-load-state-load.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-networkidle/true-helper-network-idle",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "no-networkidle/true-helper-network-idle/cart.spec.ts",
+   "dir": "no-networkidle/true-helper-network-idle",
+   "tags": [
+    "shared"
+   ],
+   "pending": "S6b"
+  },
+  {
+   "id": "no-wait-for-selector/true-page-wait-for-selector",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "no-wait-for-selector/true-page-wait-for-selector.ts"
+  },
+  {
+   "id": "no-wait-for-selector/true-with-state",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "no-wait-for-selector/true-with-state.ts"
+  },
+  {
+   "id": "no-wait-for-selector/true-frame-wait-for-selector",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "no-wait-for-selector/true-frame-wait-for-selector.ts"
+  },
+  {
+   "id": "no-wait-for-selector/true-aliased-test",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "no-wait-for-selector/true-aliased-test.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-wait-for-selector/true-js-wait-for-selector",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "no-wait-for-selector/true-js-wait-for-selector.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-wait-for-selector/false-locator-wait-for",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "false",
+   "entry": "no-wait-for-selector/false-locator-wait-for.ts"
+  },
+  {
+   "id": "no-wait-for-selector/false-web-first-assertion",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "false",
+   "entry": "no-wait-for-selector/false-web-first-assertion.ts"
+  },
+  {
+   "id": "no-wait-for-selector/false-word-in-text",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "false",
+   "entry": "no-wait-for-selector/false-word-in-text.ts"
+  },
+  {
+   "id": "no-wait-for-selector/false-js-locator-wait-for",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "false",
+   "entry": "no-wait-for-selector/false-js-locator-wait-for.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-wait-for-navigation/true-promise-all-click",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "no-wait-for-navigation/true-promise-all-click.ts"
+  },
+  {
+   "id": "no-wait-for-navigation/true-with-url",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "no-wait-for-navigation/true-with-url.ts"
+  },
+  {
+   "id": "no-wait-for-navigation/true-stored-promise",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "no-wait-for-navigation/true-stored-promise.ts"
+  },
+  {
+   "id": "no-wait-for-navigation/true-aliased-test",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "no-wait-for-navigation/true-aliased-test.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-wait-for-navigation/true-js-promise-all-click",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "no-wait-for-navigation/true-js-promise-all-click.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-wait-for-navigation/false-wait-for-url",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "false",
+   "entry": "no-wait-for-navigation/false-wait-for-url.ts"
+  },
+  {
+   "id": "no-wait-for-navigation/false-to-have-url",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "false",
+   "entry": "no-wait-for-navigation/false-to-have-url.ts"
+  },
+  {
+   "id": "no-wait-for-navigation/false-word-in-text",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "false",
+   "entry": "no-wait-for-navigation/false-word-in-text.ts"
+  },
+  {
+   "id": "no-wait-for-navigation/false-js-wait-for-url",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "false",
+   "entry": "no-wait-for-navigation/false-js-wait-for-url.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-element-handle/true-page-dollar",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "no-element-handle/true-page-dollar.ts"
+  },
+  {
+   "id": "no-element-handle/true-page-dollar-dollar",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "no-element-handle/true-page-dollar-dollar.ts"
+  },
+  {
+   "id": "no-element-handle/true-element-handle-call",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "no-element-handle/true-element-handle-call.ts",
+   "pending": "unassigned",
+   "note": "the ADR lists elementHandle(); the rule reports $ and $$ only today and no slice is named for it"
+  },
+  {
+   "id": "no-element-handle/true-aliased-test",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "no-element-handle/true-aliased-test.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-element-handle/true-js-page-dollar",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "no-element-handle/true-js-page-dollar.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-element-handle/false-locator-click",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "no-element-handle/false-locator-click.ts"
+  },
+  {
+   "id": "no-element-handle/false-locator-evaluate",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "no-element-handle/false-locator-evaluate.ts"
+  },
+  {
+   "id": "no-element-handle/false-own-dollar-function",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "no-element-handle/false-own-dollar-function.ts"
+  },
+  {
+   "id": "no-element-handle/false-js-locator-click",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "no-element-handle/false-js-locator-click.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-page-pause/true-pause-in-test",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "no-page-pause/true-pause-in-test.ts"
+  },
+  {
+   "id": "no-page-pause/true-pause-in-helper",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "no-page-pause/true-pause-in-helper.ts"
+  },
+  {
+   "id": "no-page-pause/true-pause-in-hook",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "no-page-pause/true-pause-in-hook.ts"
+  },
+  {
+   "id": "no-page-pause/true-aliased-test",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "no-page-pause/true-aliased-test.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-page-pause/true-js-pause-in-test",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "no-page-pause/true-js-pause-in-test.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-page-pause/false-no-pause",
+   "rule": "playwright/no-page-pause",
+   "verdict": "false",
+   "entry": "no-page-pause/false-no-pause.ts"
+  },
+  {
+   "id": "no-page-pause/false-video-pause",
+   "rule": "playwright/no-page-pause",
+   "verdict": "false",
+   "entry": "no-page-pause/false-video-pause.ts"
+  },
+  {
+   "id": "no-page-pause/false-player-pause",
+   "rule": "playwright/no-page-pause",
+   "verdict": "false",
+   "entry": "no-page-pause/false-player-pause.ts"
+  },
+  {
+   "id": "no-page-pause/false-js-no-pause",
+   "rule": "playwright/no-page-pause",
+   "verdict": "false",
+   "entry": "no-page-pause/false-js-no-pause.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-focused-test/true-test-only",
+   "rule": "playwright/no-focused-test",
+   "verdict": "true",
+   "entry": "no-focused-test/true-test-only.ts"
+  },
+  {
+   "id": "no-focused-test/true-describe-only",
+   "rule": "playwright/no-focused-test",
+   "verdict": "true",
+   "entry": "no-focused-test/true-describe-only.ts"
+  },
+  {
+   "id": "no-focused-test/true-nested-only",
+   "rule": "playwright/no-focused-test",
+   "verdict": "true",
+   "entry": "no-focused-test/true-nested-only.ts"
+  },
+  {
+   "id": "no-focused-test/true-aliased-test-only",
+   "rule": "playwright/no-focused-test",
+   "verdict": "true",
+   "entry": "no-focused-test/true-aliased-test-only.ts",
+   "tags": [
+    "alias"
+   ],
+   "pending": "S4a"
+  },
+  {
+   "id": "no-focused-test/true-js-test-only",
+   "rule": "playwright/no-focused-test",
+   "verdict": "true",
+   "entry": "no-focused-test/true-js-test-only.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-focused-test/false-plain-test",
+   "rule": "playwright/no-focused-test",
+   "verdict": "false",
+   "entry": "no-focused-test/false-plain-test.ts"
+  },
+  {
+   "id": "no-focused-test/false-custom-only-method",
+   "rule": "playwright/no-focused-test",
+   "verdict": "false",
+   "entry": "no-focused-test/false-custom-only-method.ts"
+  },
+  {
+   "id": "no-focused-test/false-only-in-title",
+   "rule": "playwright/no-focused-test",
+   "verdict": "false",
+   "entry": "no-focused-test/false-only-in-title.ts"
+  },
+  {
+   "id": "no-focused-test/false-js-plain-test",
+   "rule": "playwright/no-focused-test",
+   "verdict": "false",
+   "entry": "no-focused-test/false-js-plain-test.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-networkidle/false-api-under-test-engine-named-package",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "_projects/engine-named-package/tests",
+   "dir": "_projects/engine-named-package",
+   "project": true,
+   "tags": [
+    "g10:api-under-test"
+   ],
+   "pending": "S3c"
+  },
+  {
+   "id": "no-wait-for-selector/false-api-under-test-engine-named-package",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "false",
+   "entry": "_projects/engine-named-package/tests",
+   "dir": "_projects/engine-named-package",
+   "project": true,
+   "tags": [
+    "g10:api-under-test"
+   ],
+   "pending": "S3c"
+  },
+  {
+   "id": "no-wait-for-navigation/false-api-under-test-engine-named-package",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "false",
+   "entry": "_projects/engine-named-package/tests",
+   "dir": "_projects/engine-named-package",
+   "project": true,
+   "tags": [
+    "g10:api-under-test"
+   ],
+   "pending": "S3c"
+  },
+  {
+   "id": "no-element-handle/false-api-under-test-engine-named-package",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "_projects/engine-named-package/tests",
+   "dir": "_projects/engine-named-package",
+   "project": true,
+   "tags": [
+    "g10:api-under-test"
+   ],
+   "pending": "S3c"
+  },
+  {
+   "id": "no-page-pause/false-api-under-test-engine-named-package",
+   "rule": "playwright/no-page-pause",
+   "verdict": "false",
+   "entry": "_projects/engine-named-package/tests",
+   "dir": "_projects/engine-named-package",
+   "project": true,
+   "tags": [
+    "g10:api-under-test"
+   ],
+   "pending": "S3c"
+  },
+  {
+   "id": "no-networkidle/false-api-under-test-lockfile-link-only",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "_projects/lockfile-link-only/tests",
+   "dir": "_projects/lockfile-link-only",
+   "project": true,
+   "tags": [
+    "g10:api-under-test"
+   ],
+   "pending": "S3c"
+  },
+  {
+   "id": "no-wait-for-selector/false-api-under-test-lockfile-link-only",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "false",
+   "entry": "_projects/lockfile-link-only/tests",
+   "dir": "_projects/lockfile-link-only",
+   "project": true,
+   "tags": [
+    "g10:api-under-test"
+   ],
+   "pending": "S3c"
+  },
+  {
+   "id": "no-wait-for-navigation/false-api-under-test-lockfile-link-only",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "false",
+   "entry": "_projects/lockfile-link-only/tests",
+   "dir": "_projects/lockfile-link-only",
+   "project": true,
+   "tags": [
+    "g10:api-under-test"
+   ],
+   "pending": "S3c"
+  },
+  {
+   "id": "no-element-handle/false-api-under-test-lockfile-link-only",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "_projects/lockfile-link-only/tests",
+   "dir": "_projects/lockfile-link-only",
+   "project": true,
+   "tags": [
+    "g10:api-under-test"
+   ],
+   "pending": "S3c"
+  },
+  {
+   "id": "no-page-pause/false-api-under-test-lockfile-link-only",
+   "rule": "playwright/no-page-pause",
+   "verdict": "false",
+   "entry": "_projects/lockfile-link-only/tests",
+   "dir": "_projects/lockfile-link-only",
+   "project": true,
+   "tags": [
+    "g10:api-under-test"
+   ],
+   "pending": "S3c"
+  },
+  {
+   "id": "no-networkidle/true-customer-calls-customer-registry-deps",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "_projects/customer-registry-deps/tests",
+   "dir": "_projects/customer-registry-deps",
+   "project": true,
+   "tags": [
+    "project"
+   ]
+  },
+  {
+   "id": "no-wait-for-selector/true-customer-calls-customer-registry-deps",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "_projects/customer-registry-deps/tests",
+   "dir": "_projects/customer-registry-deps",
+   "project": true,
+   "tags": [
+    "project"
+   ]
+  },
+  {
+   "id": "no-wait-for-navigation/true-customer-calls-customer-registry-deps",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "_projects/customer-registry-deps/tests",
+   "dir": "_projects/customer-registry-deps",
+   "project": true,
+   "tags": [
+    "project"
+   ]
+  },
+  {
+   "id": "no-element-handle/true-customer-calls-customer-registry-deps",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "_projects/customer-registry-deps/tests",
+   "dir": "_projects/customer-registry-deps",
+   "project": true,
+   "tags": [
+    "project"
+   ]
+  },
+  {
+   "id": "no-page-pause/true-customer-calls-customer-registry-deps",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "_projects/customer-registry-deps/tests",
+   "dir": "_projects/customer-registry-deps",
+   "project": true,
+   "tags": [
+    "project"
+   ]
+  },
+  {
+   "id": "expect-expect/true-click-only",
+   "rule": "playwright/expect-expect",
+   "verdict": "true",
+   "entry": "expect-expect/true-click-only.ts"
+  },
+  {
+   "id": "expect-expect/false-has-assertion",
+   "rule": "playwright/expect-expect",
+   "verdict": "false",
+   "entry": "expect-expect/false-has-assertion.ts"
+  },
+  {
+   "id": "max-nested-describe/true-six-levels",
+   "rule": "playwright/max-nested-describe",
+   "verdict": "true",
+   "entry": "max-nested-describe/true-six-levels.ts"
+  },
+  {
+   "id": "max-nested-describe/false-two-levels",
+   "rule": "playwright/max-nested-describe",
+   "verdict": "false",
+   "entry": "max-nested-describe/false-two-levels.ts"
+  },
+  {
+   "id": "no-conditional-expect/true-expect-in-if",
+   "rule": "playwright/no-conditional-expect",
+   "verdict": "true",
+   "entry": "no-conditional-expect/true-expect-in-if.ts"
+  },
+  {
+   "id": "no-conditional-expect/false-unconditional",
+   "rule": "playwright/no-conditional-expect",
+   "verdict": "false",
+   "entry": "no-conditional-expect/false-unconditional.ts"
+  },
+  {
+   "id": "no-conditional-in-test/true-branch-on-visibility",
+   "rule": "playwright/no-conditional-in-test",
+   "verdict": "true",
+   "entry": "no-conditional-in-test/true-branch-on-visibility.ts"
+  },
+  {
+   "id": "no-conditional-in-test/false-no-branch",
+   "rule": "playwright/no-conditional-in-test",
+   "verdict": "false",
+   "entry": "no-conditional-in-test/false-no-branch.ts"
+  },
+  {
+   "id": "no-eval/true-page-eval",
+   "rule": "playwright/no-eval",
+   "verdict": "true",
+   "entry": "no-eval/true-page-eval.ts"
+  },
+  {
+   "id": "no-eval/false-locator-evaluate",
+   "rule": "playwright/no-eval",
+   "verdict": "false",
+   "entry": "no-eval/false-locator-evaluate.ts"
+  },
+  {
+   "id": "no-force-option/true-force-click",
+   "rule": "playwright/no-force-option",
+   "verdict": "true",
+   "entry": "no-force-option/true-force-click.ts"
+  },
+  {
+   "id": "no-force-option/false-plain-click",
+   "rule": "playwright/no-force-option",
+   "verdict": "false",
+   "entry": "no-force-option/false-plain-click.ts"
+  },
+  {
+   "id": "no-raw-locators/true-css-locator",
+   "rule": "playwright/no-raw-locators",
+   "verdict": "true",
+   "entry": "no-raw-locators/true-css-locator.ts"
+  },
+  {
+   "id": "no-raw-locators/false-role-locator",
+   "rule": "playwright/no-raw-locators",
+   "verdict": "false",
+   "entry": "no-raw-locators/false-role-locator.ts"
+  },
+  {
+   "id": "no-standalone-expect/true-expect-in-describe-body",
+   "rule": "playwright/no-standalone-expect",
+   "verdict": "true",
+   "entry": "no-standalone-expect/true-expect-in-describe-body.ts"
+  },
+  {
+   "id": "no-standalone-expect/true-expect-at-module-level",
+   "rule": "playwright/no-standalone-expect",
+   "verdict": "true",
+   "entry": "no-standalone-expect/true-expect-at-module-level.ts"
+  },
+  {
+   "id": "no-standalone-expect/false-expect-in-test",
+   "rule": "playwright/no-standalone-expect",
+   "verdict": "false",
+   "entry": "no-standalone-expect/false-expect-in-test.ts"
+  },
+  {
+   "id": "no-standalone-expect/false-expect-in-test-step",
+   "rule": "playwright/no-standalone-expect",
+   "verdict": "false",
+   "entry": "no-standalone-expect/false-expect-in-test-step.ts"
+  },
+  {
+   "id": "no-standalone-expect/false-foreign-expect-in-helper",
+   "rule": "playwright/no-standalone-expect",
+   "verdict": "false",
+   "entry": "no-standalone-expect/false-foreign-expect-in-helper.ts",
+   "tags": [
+    "g10:foreign-expect"
+   ]
+  },
+  {
+   "id": "no-useless-await/true-await-locator",
+   "rule": "playwright/no-useless-await",
+   "verdict": "true",
+   "entry": "no-useless-await/true-await-locator.ts"
+  },
+  {
+   "id": "no-useless-await/false-await-action",
+   "rule": "playwright/no-useless-await",
+   "verdict": "false",
+   "entry": "no-useless-await/false-await-action.ts"
+  },
+  {
+   "id": "no-wait-for-timeout/true-fixed-wait",
+   "rule": "playwright/no-wait-for-timeout",
+   "verdict": "true",
+   "entry": "no-wait-for-timeout/true-fixed-wait.ts"
+  },
+  {
+   "id": "no-wait-for-timeout/false-custom-seed-clock-object",
+   "rule": "playwright/no-wait-for-timeout",
+   "verdict": "false",
+   "entry": "no-wait-for-timeout/false-custom-seed-clock-object.ts",
+   "tags": [
+    "g10:custom-object"
+   ]
+  },
+  {
+   "id": "no-wait-for-timeout/false-web-first-wait",
+   "rule": "playwright/no-wait-for-timeout",
+   "verdict": "false",
+   "entry": "no-wait-for-timeout/false-web-first-wait.ts"
+  },
+  {
+   "id": "prefer-locator/true-page-click-selector",
+   "rule": "playwright/prefer-locator",
+   "verdict": "true",
+   "entry": "prefer-locator/true-page-click-selector.ts"
+  },
+  {
+   "id": "prefer-locator/false-locator-click",
+   "rule": "playwright/prefer-locator",
+   "verdict": "false",
+   "entry": "prefer-locator/false-locator-click.ts"
+  },
+  {
+   "id": "prefer-native-locators/true-placeholder-css",
+   "rule": "playwright/prefer-native-locators",
+   "verdict": "true",
+   "entry": "prefer-native-locators/true-placeholder-css.ts"
+  },
+  {
+   "id": "prefer-native-locators/false-get-by-placeholder",
+   "rule": "playwright/prefer-native-locators",
+   "verdict": "false",
+   "entry": "prefer-native-locators/false-get-by-placeholder.ts"
+  },
+  {
+   "id": "eslint-disable-comment/true-disable-next-line",
+   "rule": "pwscore/eslint-disable-comment",
+   "verdict": "true",
+   "entry": "eslint-disable-comment/true-disable-next-line.ts"
+  },
+  {
+   "id": "eslint-disable-comment/false-no-comment",
+   "rule": "pwscore/eslint-disable-comment",
+   "verdict": "false",
+   "entry": "eslint-disable-comment/false-no-comment.ts"
+  },
+  {
+   "id": "no-brittle-selector/true-xpath",
+   "rule": "pwscore/no-brittle-selector",
+   "verdict": "true",
+   "entry": "no-brittle-selector/true-xpath.ts"
+  },
+  {
+   "id": "no-brittle-selector/false-role-and-test-id",
+   "rule": "pwscore/no-brittle-selector",
+   "verdict": "false",
+   "entry": "no-brittle-selector/false-role-and-test-id.ts"
+  },
+  {
+   "id": "no-coordinate-click/true-fixed-coordinates",
+   "rule": "pwscore/no-coordinate-click",
+   "verdict": "true",
+   "entry": "no-coordinate-click/true-fixed-coordinates.ts"
+  },
+  {
+   "id": "no-coordinate-click/false-locator-click",
+   "rule": "pwscore/no-coordinate-click",
+   "verdict": "false",
+   "entry": "no-coordinate-click/false-locator-click.ts"
+  },
+  {
+   "id": "no-excessive-timeout/true-two-minute-timeout",
+   "rule": "pwscore/no-excessive-timeout",
+   "verdict": "true",
+   "entry": "no-excessive-timeout/true-two-minute-timeout.ts"
+  },
+  {
+   "id": "no-excessive-timeout/false-five-second-timeout",
+   "rule": "pwscore/no-excessive-timeout",
+   "verdict": "false",
+   "entry": "no-excessive-timeout/false-five-second-timeout.ts"
+  },
+  {
+   "id": "no-fixme-test/true-fixme-declaration",
+   "rule": "pwscore/no-fixme-test",
+   "verdict": "true",
+   "entry": "no-fixme-test/true-fixme-declaration.ts"
+  },
+  {
+   "id": "no-fixme-test/false-conditional-fixme",
+   "rule": "pwscore/no-fixme-test",
+   "verdict": "false",
+   "entry": "no-fixme-test/false-conditional-fixme.ts"
+  },
+  {
+   "id": "no-self-fulfilling-fallback/true-fill-then-assert",
+   "rule": "pwscore/no-self-fulfilling-fallback",
+   "verdict": "true",
+   "entry": "no-self-fulfilling-fallback/true-fill-then-assert.ts"
+  },
+  {
+   "id": "no-self-fulfilling-fallback/false-click-only-fallback",
+   "rule": "pwscore/no-self-fulfilling-fallback",
+   "verdict": "false",
+   "entry": "no-self-fulfilling-fallback/false-click-only-fallback.ts"
+  },
+  {
+   "id": "no-shared-mutable-state/true-order-dependent-let",
+   "rule": "pwscore/no-shared-mutable-state",
+   "verdict": "true",
+   "entry": "no-shared-mutable-state/true-order-dependent-let.ts"
+  },
+  {
+   "id": "no-shared-mutable-state/false-serial-describe",
+   "rule": "pwscore/no-shared-mutable-state",
+   "verdict": "false",
+   "entry": "no-shared-mutable-state/false-serial-describe.ts"
+  },
+  {
+   "id": "no-skipped-test-declaration/true-skip-declaration",
+   "rule": "pwscore/no-skipped-test-declaration",
+   "verdict": "true",
+   "entry": "no-skipped-test-declaration/true-skip-declaration.ts"
+  },
+  {
+   "id": "no-skipped-test-declaration/false-conditional-skip-in-body",
+   "rule": "pwscore/no-skipped-test-declaration",
+   "verdict": "false",
+   "entry": "no-skipped-test-declaration/false-conditional-skip-in-body.ts"
+  },
+  {
+   "id": "no-swallowed-assertion/true-try-catch-log",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "no-swallowed-assertion/true-try-catch-log.ts"
+  },
+  {
+   "id": "no-swallowed-assertion/true-catch-on-matcher",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "no-swallowed-assertion/true-catch-on-matcher.ts"
+  },
+  {
+   "id": "no-swallowed-assertion/false-rethrown",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "false",
+   "entry": "no-swallowed-assertion/false-rethrown.ts"
+  },
+  {
+   "id": "no-timer-sleep/true-set-timeout-sleep",
+   "rule": "pwscore/no-timer-sleep",
+   "verdict": "true",
+   "entry": "no-timer-sleep/true-set-timeout-sleep.ts"
+  },
+  {
+   "id": "no-timer-sleep/false-web-first-wait",
+   "rule": "pwscore/no-timer-sleep",
+   "verdict": "false",
+   "entry": "no-timer-sleep/false-web-first-wait.ts"
+  },
+  {
+   "id": "no-trivial-assertion/true-literal-vs-literal",
+   "rule": "pwscore/no-trivial-assertion",
+   "verdict": "true",
+   "entry": "no-trivial-assertion/true-literal-vs-literal.ts",
+   "form": "literal"
+  },
+  {
+   "id": "no-trivial-assertion/false-real-value",
+   "rule": "pwscore/no-trivial-assertion",
+   "verdict": "false",
+   "entry": "no-trivial-assertion/false-real-value.ts",
+   "form": "literal"
+  },
+  {
+   "id": "serial-mode-dependency/true-serial-shared-state",
+   "rule": "pwscore/serial-mode-dependency",
+   "verdict": "true",
+   "entry": "serial-mode-dependency/true-serial-shared-state.ts"
+  },
+  {
+   "id": "serial-mode-dependency/false-parallel-independent",
+   "rule": "pwscore/serial-mode-dependency",
+   "verdict": "false",
+   "entry": "serial-mode-dependency/false-parallel-independent.ts"
+  },
+  {
+   "id": "oversized-file/true-four-hundred-plus-lines",
+   "rule": "metrics/oversized-file",
+   "verdict": "true",
+   "entry": "oversized-file/true-four-hundred-plus-lines.ts"
+  },
+  {
+   "id": "oversized-file/false-small-file",
+   "rule": "metrics/oversized-file",
+   "verdict": "false",
+   "entry": "oversized-file/false-small-file.ts"
+  },
+  {
+   "id": "assertion-unverified/true-unresolved-fixture-call",
+   "rule": "playwright-score/assertion-unverified",
+   "verdict": "true",
+   "entry": "assertion-unverified/true-unresolved-fixture-call.ts"
+  },
+  {
+   "id": "assertion-unverified/false-direct-assertion",
+   "rule": "playwright-score/assertion-unverified",
+   "verdict": "false",
+   "entry": "assertion-unverified/false-direct-assertion.ts"
+  },
+  {
+   "id": "parse-error/true-unbalanced-braces",
+   "rule": "playwright-score/parse-error",
+   "verdict": "true",
+   "entry": "parse-error/true-unbalanced-braces.ts"
+  },
+  {
+   "id": "parse-error/false-valid-file",
+   "rule": "playwright-score/parse-error",
+   "verdict": "false",
+   "entry": "parse-error/false-valid-file.ts"
+  },
+  {
+   "id": "no-files/true-directory-without-specs",
+   "rule": "playwright-score/no-files",
+   "verdict": "true",
+   "entry": "no-files/true-directory-without-specs/.",
+   "dir": "no-files/true-directory-without-specs"
+  },
+  {
+   "id": "no-files/false-directory-with-spec",
+   "rule": "playwright-score/no-files",
+   "verdict": "false",
+   "entry": "no-files/false-directory-with-spec/.",
+   "dir": "no-files/false-directory-with-spec"
+  }
+ ]
+}

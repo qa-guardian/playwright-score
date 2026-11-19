@@ -127,10 +127,9 @@ describe('QAG-287 S2: certain-candidate rows and the by-construction path', () =
     assert.ok(eligible.length >= 11);
     for (const r of eligible) {
       assert.ok(r.docsSentence && r.docsSentence.length > 20, `${r.rule} ${r.form}: no docs sentence`);
-      if (r.fixturesDue === 'S3') continue; // R2 fixtures land in slice S3, which removes this marker
-      const dir = path.join(root, 'tests', 'fixtures', 'rules', r.rule.replaceAll('/', '__'), r.form);
-      const names = fs.existsSync(dir) ? fs.readdirSync(dir) : [];
-      assert.ok(names.some((n) => n.startsWith('true-')) && names.some((n) => n.startsWith('false-')), `${r.rule} ${r.form}: no docs-written fixtures in ${dir}`);
+      const fx = (readJson('tests/rule-fixtures.json') as { fixtures: Array<{ rule: string; form?: string; verdict: string; pending?: string }> }).fixtures;
+      const mine = fx.filter((f) => f.rule === r.rule && (f.form ?? '-') === r.form && f.pending === undefined);
+      assert.ok(mine.some((f) => f.verdict === 'true') && mine.some((f) => f.verdict === 'false'), `${r.rule} ${r.form}: no docs-written fixtures in tests/rule-fixtures.json`);
     }
   });
 
