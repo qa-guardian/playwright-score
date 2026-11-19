@@ -2194,12 +2194,12 @@
    "entry": "pwscore__no-swallowed-assertion/-/true-negated-catch-alone.ts"
   },
   {
-   "id": "no-swallowed-assertion/true-not-catch-chain-later-same-subject",
+   "id": "no-swallowed-assertion/true-not-catch-chain-status-after-click",
    "rule": "pwscore/no-swallowed-assertion",
    "verdict": "true",
-   "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-later-same-subject.ts",
+   "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-status-after-click.ts",
    "pending": "S7b",
-   "note": "the shape the sealed-recall benchmark labels a defect: a negated matcher with a discarded catch, then a later assertion on the same subject. Today the later-assertion exemption hides it (the same happens without .not); a bare .not chain with no later assertion is already reported, see true-negated-catch-alone"
+   "note": "a negated matcher with a discarded catch, a click in between, then a later assertion on the same subject. The later-assertion exemption hides the swallowed first assertion today. A bare .not chain with no later assertion is already reported, see true-negated-catch-alone"
   },
   {
    "id": "prefer-web-first-assertions/false-jest-expect-page-is-visible",
@@ -2234,6 +2234,26 @@
    "tags": [
     "g10:void"
    ]
+  },
+  {
+   "id": "missing-playwright-await/false-void-expect",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-void-expect.ts",
+   "form": "assertion",
+   "tags": [
+    "g10:void"
+   ],
+   "pending": "S4b",
+   "note": "a void-ed expect is a deliberate, still unchecked assertion: it stays likely (ADR 5.3), so the certain tier must not report it. Reported as certain today"
+  },
+  {
+   "id": "no-networkidle/true-const-options-wait-until",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/-/true-const-options-wait-until.ts",
+   "pending": "S4a",
+   "note": "C8 with the options object held in a const; needs scope resolution"
   }
  ]
 }

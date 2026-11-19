@@ -55,7 +55,9 @@ function packageRoot(): string {
 const root = packageRoot();
 const fixtureRoot = path.join(root, 'tests', 'fixtures', 'cells');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'tests', 'rule-fixtures.json'), 'utf8')) as Manifest;
-const guard = (JSON.parse(fs.readFileSync(path.join(root, 'tests', 'rule-fixtures.ids.json'), 'utf8')) as { ids: string[] }).ids;
+type Pair = { id: string; pending: string | null };
+const guard = (JSON.parse(fs.readFileSync(path.join(root, 'tests', 'rule-fixtures.ids.json'), 'utf8')) as { fixtures: Pair[] }).fixtures;
+const pairsOf = (fixtures: Fixture[]): Pair[] => fixtures.map((f) => ({ id: f.id, pending: f.pending ?? null }));
 
 /** The old and the current prefix of the scorer's own rules name the same rule. */
 const norm = (rule: string): string => rule.replace(/^playwright-score\//, 'pwscore/');
@@ -82,6 +84,8 @@ const MIN_OTHER = 1;
 
 /** Catalogue rules the runner keeps switched off on purpose; the test below checks that it still does. */
 const NOT_ENABLED = ['playwright/require-top-level-describe'];
+/** Slices already closed: a fixture cannot wait for them (ADR 0.E E-3). Add a slice here when it lands. */
+const LANDED = ['S1', 'S2', 'S3'];
 const isPending = (f: Fixture): boolean => f.pending !== undefined;
 
 function allFiles(dir: string, base = dir): string[] {
@@ -105,6 +109,7 @@ export function manifestProblems(m: Manifest, enabled: string[]): string[] {
     ids.add(f.id);
     if (!cellKeys.has(cellOf(f))) problems.push(`${f.id}: cell ${cellOf(f)} is not in the cell table`);
     if (f.pending !== undefined && !/^S\d+[a-z]?$/.test(f.pending)) problems.push(`${f.id}: pending must name a slice, got ${f.pending}`);
+    if (f.pending !== undefined && LANDED.includes(f.pending)) problems.push(`${f.id}: pending ${f.pending} names a slice that has already landed; remove the mark or name a later slice`);
     const base = path.posix.basename(f.dir ?? f.entry);
     if (!f.project && !base.startsWith(`${f.verdict}-`)) problems.push(`${f.id}: file name must start with ${f.verdict}-`);
     if (!f.project) {
@@ -158,17 +163,27 @@ export function diskProblems(fixtures: Fixture[], onDisk: string[]): string[] {
 }
 
 /**
- * The frozen guard: tests/rule-fixtures.ids.json holds the sorted id of every fixture. The manifest and the
- * disk checks above cannot see a fixture that is removed together with its row and its file, so the ids are
- * pinned here. Adding or removing a fixture means changing the guard in the same commit, where a reviewer sees it.
+ * The frozen guard: tests/rule-fixtures.ids.json holds the sorted (id, pending) pair of every fixture. The manifest
+ * and the disk checks above cannot see a fixture that is removed together with its row and its file, or a pending
+ * mark that is added to make a failing fixture pass, so the pairs are pinned here. Adding, removing or re-marking a
+ * fixture means changing the guard in the same commit, where a reviewer sees it.
  */
-export function guardProblems(ids: string[], guard: string[]): string[] {
-  const have = new Set(ids);
-  const frozen = new Set(guard);
+export function guardProblems(pairs: Pair[], guard: Pair[]): string[] {
+  const have = new Map(pairs.map((p) => [p.id, p.pending]));
+  const frozen = new Map(guard.map((p) => [p.id, p.pending]));
   const problems: string[] = [];
-  for (const id of guard) if (!have.has(id)) problems.push(`${id}: frozen in tests/rule-fixtures.ids.json but missing from the manifest`);
-  for (const id of ids) if (!frozen.has(id)) problems.push(`${id}: in the manifest but not frozen in tests/rule-fixtures.ids.json`);
+  for (const [id, pending] of frozen) {
+    if (!have.has(id)) problems.push(`${id}: frozen in tests/rule-fixtures.ids.json but missing from the manifest`);
+    else if (have.get(id) !== pending) problems.push(`${id}: pending mark is ${have.get(id) ?? 'none'} in the manifest but ${pending ?? 'none'} in tests/rule-fixtures.ids.json`);
+  }
+  for (const id of have.keys()) if (!frozen.has(id)) problems.push(`${id}: in the manifest but not frozen in tests/rule-fixtures.ids.json`);
   return problems;
+}
+
+/** R2 counts: only fixtures that run against current behaviour are live; pending ones are reported separately. */
+export function r2Counts(fixtures: Fixture[]): { live: { true: number; false: number }; pending: { true: number; false: number } } {
+  const n = (pending: boolean, verdict: string) => fixtures.filter((f) => isPending(f) === pending && f.verdict === verdict).length;
+  return { live: { true: n(false, 'true'), false: n(false, 'false') }, pending: { true: n(true, 'true'), false: n(true, 'false') } };
 }
 
 type Probe = { fires: boolean; formSeen: string[] };
@@ -199,7 +214,10 @@ async function probeFixture(f: Fixture): Promise<Probe & { parseError: boolean; 
     threshold: 0,
     cwd,
   });
-  const mine = result.findings.filter((x) => norm(x.rule) === target);
+  // A FALSE fixture in a named form is judged on that form only: a finding of another form of the same rule
+  // does not make it fire, so a pending fixture can flip when a later slice re-forms the finding.
+  const formScoped = f.verdict === 'false' && f.form !== undefined && f.form !== '-';
+  const mine = result.findings.filter((x) => norm(x.rule) === target && (!formScoped || x.form === f.form || x.form === undefined));
   return {
     fires: mine.length > 0,
     formSeen: mine.map((x) => x.form).filter((x): x is string => typeof x === 'string'),
@@ -228,8 +246,24 @@ describe('QAG-287 S3: fixture manifest', () => {
   });
 
   it('matches the frozen list of fixture ids', () => {
-    assert.deepEqual(guardProblems(manifest.fixtures.map((f) => f.id), guard), []);
-    assert.deepEqual([...guard].sort(), guard, 'the frozen list is sorted');
+    assert.deepEqual(guardProblems(pairsOf(manifest.fixtures), guard), []);
+    assert.deepEqual([...guard].sort((a, b) => (a.id < b.id ? -1 : 1)), guard, 'the frozen list is sorted');
+  });
+
+  it('counts R2 on live fixtures and reports pending ones separately', () => {
+    const c = r2Counts(manifest.fixtures);
+    console.log(`R2 fixtures: live ${c.live.true} TRUE / ${c.live.false} FALSE, pending ${c.pending.true} TRUE / ${c.pending.false} FALSE`);
+    assert.equal(c.live.true + c.live.false + c.pending.true + c.pending.false, manifest.fixtures.length);
+    assert.equal(c.pending.true + c.pending.false, manifest.fixtures.filter(isPending).length);
+  });
+
+  it('a pending mark that names a landed slice, or a changed mark, is rejected', () => {
+    const live = manifest.fixtures.find((f) => !isPending(f))!;
+    const marked = manifest.fixtures.map((f) => (f === live ? { ...f, pending: 'S3' } : f));
+    assert.ok(manifestProblems({ ...manifest, fixtures: marked }, []).some((p) => p.includes('already landed')));
+    assert.ok(guardProblems(pairsOf(marked), guard).some((p) => p.startsWith(live.id) && p.includes('pending mark')));
+    const cleared = manifest.fixtures.map((f) => (isPending(f) ? { ...f, pending: undefined } : f));
+    assert.ok(guardProblems(pairsOf(cleared), guard).length > 0, 'clearing a mark without updating the guard is reported');
   });
 
   it('pending marks only name slices of the plan', () => {
@@ -283,7 +317,7 @@ describe('QAG-287 S3: the gate fails when a fixture goes missing or flips', () =
     const rest = manifest.fixtures.filter((x) => x !== t && x !== f);
     const files = allFiles(fixtureRoot).filter((p) => p !== t.entry && p !== f.entry);
     assert.deepEqual(diskProblems(rest, files), [], 'row and file together leave the disk check clean');
-    const problems = guardProblems(rest.map((x) => x.id), guard);
+    const problems = guardProblems(pairsOf(rest), guard);
     assert.ok(problems.some((p) => p.startsWith(t.id)), 'the TRUE removal is reported');
     assert.ok(problems.some((p) => p.startsWith(f.id)), 'the FALSE removal is reported');
   });
@@ -307,6 +341,13 @@ describe('QAG-287 S3: the gate fails when a fixture goes missing or flips', () =
     assert.match(judge({ ...f, pending: 'S4a' }, { fires: true, formSeen: [], parseError: false }) ?? '', /remove the pending mark/);
     assert.equal(judge({ ...f, pending: 'S4a' }, { fires: false, formSeen: [], parseError: false }), null);
     assert.match(judge(f, { fires: true, formSeen: [], parseError: true }) ?? '', /does not parse/);
+  });
+
+  it('a FALSE fixture in a named form ignores findings of another form', async () => {
+    const t = manifest.fixtures.find((x) => x.id === 'valid-expect/true-bare-expect')!;
+    assert.equal((await probeFixture({ ...t, verdict: 'false' })).fires, true, 'same form: counted');
+    assert.equal((await probeFixture({ ...t, verdict: 'false', form: 'other' })).fires, false, 'other form: not counted');
+    assert.equal((await probeFixture({ ...t, verdict: 'false', form: '-' })).fires, true, 'form - counts every finding');
   });
 });
 
