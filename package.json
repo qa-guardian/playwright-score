@@ -56,13 +56,20 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@typescript-eslint/parser": "^8.18.0",
-    "eslint": "^9.17.0",
-    "eslint-plugin-playwright": "^2.1.0",
-    "glob": "^11.0.0"
+    "@typescript-eslint/parser": "8.65.0",
+    "eslint": "9.39.5",
+    "eslint-plugin-playwright": "2.11.0",
+    "glob": "11.1.0",
+    "typescript": "5.9.3"
   },
+  "bundleDependencies": [
+    "@typescript-eslint/parser",
+    "eslint",
+    "eslint-plugin-playwright",
+    "glob",
+    "typescript"
+  ],
   "devDependencies": {
-    "@types/node": "^22.10.0",
-    "typescript": "^5.7.2"
+    "@types/node": "^22.10.0"
   }
 }

@@ -30,6 +30,7 @@ import {
 import { SPEC_EXTENSION_RE } from './source-type.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
 import { computeScore } from './score-engine.js';
+import { getEngineVersions } from './engine-versions.js';
 import { resetRuleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
 import type { Finding, ProfileName, ScoreOptions, ScoreResult } from './types.js';
 
@@ -552,7 +553,8 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   resetRuleCrashes();
   const result = await scorePathsInner(options);
   const crashes = summarizeRuleCrashes();
-  return crashes.length > 0 ? { ...result, ruleCrashes: crashes } : result;
+  const withCrashes = crashes.length > 0 ? { ...result, ruleCrashes: crashes } : result;
+  return { ...withCrashes, engine: getEngineVersions() };
 }
 
 async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {

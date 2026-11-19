@@ -1,3 +1,5 @@
+import type { EngineVersions } from './engine-versions.js';
+
 export type ScoreVersion = 'v3' | 'v4';
 /**
  * `standard` is the only public profile, first published as of 2.0.0
@@ -102,6 +104,8 @@ export interface ScoreResult {
    * but their findings may be missing). Present only when non-empty.
    */
   ruleCrashes?: Array<{ rule: string; count: number }>;
+  /** Versions of the lint engine that produced this result (additive). */
+  engine?: EngineVersions;
 }
 
 export interface ScoreOptions {
