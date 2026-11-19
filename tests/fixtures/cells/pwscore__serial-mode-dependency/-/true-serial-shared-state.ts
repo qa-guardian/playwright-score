@@ -2,15 +2,15 @@ import { test, expect } from '@playwright/test';
 
 test.describe.configure({ mode: 'serial' });
 
-let orderId = '';
+let ticketRef = '';
 
-test('creates the order', async ({ page }) => {
-  await page.goto('/cart');
-  orderId = 'A-1';
-  await expect(page.getByRole('heading')).toBeVisible();
+test('files the ticket', async ({ page }) => {
+  await page.goto('/support/new');
+  ticketRef = 'T-42';
+  await expect(page.getByRole('heading', { name: 'New ticket' })).toBeVisible();
 });
 
-test('opens the order', async ({ page }) => {
-  await page.goto('/orders/' + orderId);
-  await expect(page.getByRole('heading')).toBeVisible();
+test('views the ticket', async ({ page }) => {
+  await page.goto('/support/tickets/' + ticketRef);
+  await expect(page.getByRole('heading', { name: 'Ticket' })).toBeVisible();
 });

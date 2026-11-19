@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-test('cart page', async ({ page }) => {
-  await page.goto('/cart');
-  const rows = await page.getByRole('row').all();
-  rows.forEach(async (row) => {
-    await expect(row).toBeVisible();
+test('inbox list', async ({ page }) => {
+  await page.goto('/inbox');
+  const items = await page.getByRole('listitem').all();
+  items.forEach(async (item) => {
+    await expect(item).toBeEnabled();
   });
 });

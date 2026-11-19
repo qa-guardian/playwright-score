@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-const it = test;
+const scenario = test;
 
-it('cart page', async ({ page }) => {
-  await page.goto('/cart');
+scenario('team directory', async ({ page }) => {
+  await page.goto('/team');
   await Promise.all([
-    page.waitForNavigation(),
-    page.getByRole('link', { name: 'Checkout' }).click(),
+    page.getByRole('link', { name: 'Open positions' }).click(),
+    page.waitForNavigation({ timeout: 15000 }),
   ]);
-  await expect(page.getByRole('heading')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Careers' })).toBeVisible();
 });

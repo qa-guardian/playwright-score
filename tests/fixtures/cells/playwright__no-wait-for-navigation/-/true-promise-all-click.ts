@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 
-test('cart page', async ({ page }) => {
-  await page.goto('/cart');
+test('pricing page', async ({ page }) => {
+  await page.goto('/pricing');
   await Promise.all([
+    page.getByRole('button', { name: 'Start trial' }).click(),
     page.waitForNavigation(),
-    page.getByRole('link', { name: 'Checkout' }).click(),
   ]);
-  await expect(page.getByRole('heading')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Create account' })).toBeVisible();
 });

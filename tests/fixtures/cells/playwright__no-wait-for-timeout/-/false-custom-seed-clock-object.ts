@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-const seedClock = { waitForTimeout: (ms: number) => ms };
+const fakeTimer = { waitForTimeout: (delay: number) => delay * 2 };
 
-test('cart page', async ({ page }) => {
-  seedClock.waitForTimeout(500);
-  await page.goto('/cart');
-  await expect(page.getByRole('heading')).toBeVisible();
+test('news feed', async ({ page }) => {
+  fakeTimer.waitForTimeout(250);
+  await page.goto('/news');
+  await expect(page.getByRole('heading', { name: 'Latest' })).toBeVisible();
 });

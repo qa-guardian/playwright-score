@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test.describe.only('cart', () => {
-  test('heading', async ({ page }) => {
-    await page.goto('/cart');
-    await expect(page.getByRole('heading')).toBeVisible();
+test.describe.only('profile settings', () => {
+  test('page title', async ({ page }) => {
+    await page.goto('/settings/profile');
+    await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible();
   });
 });

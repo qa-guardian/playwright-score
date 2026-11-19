@@ -1,8 +1,8 @@
 import { type Page } from '@playwright/test';
 
-export async function openCheckout(page: Page) {
+export async function goToInvoices(page: Page) {
   await Promise.all([
-    page.waitForNavigation(),
-    page.getByRole('link', { name: 'Checkout' }).click(),
+    page.getByRole('button', { name: 'Billing' }).click(),
+    page.waitForNavigation({ waitUntil: 'load' }),
   ]);
 }

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('cart page', async ({ page }) => {
-  await page.goto('/cart');
-  await expect(page.getByRole('table')).toBeVisible();
+test('reports page', async ({ page }) => {
+  await page.goto('/reports');
+  await expect(page.getByRole('grid', { name: 'Monthly totals' })).toBeVisible();
 });
