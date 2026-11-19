@@ -29,6 +29,7 @@ import {
 } from './playwright-config.js';
 import { SPEC_EXTENSION_RE } from './source-type.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
+import { decorateFindings } from './catalogue/decorate.js';
 import { computeScore } from './score-engine.js';
 import { getEngineVersions } from './engine-versions.js';
 import { resetRuleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
@@ -552,6 +553,7 @@ function hardFail(
 export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   resetRuleCrashes();
   const result = await scorePathsInner(options);
+  decorateFindings(result.findings, result.baseDir);
   const crashes = summarizeRuleCrashes();
   const withCrashes = crashes.length > 0 ? { ...result, ruleCrashes: crashes } : result;
   return { ...withCrashes, engine: getEngineVersions() };

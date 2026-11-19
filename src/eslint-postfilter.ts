@@ -748,9 +748,43 @@ function standaloneExpectExempt(t: Tree, node: N, line: number): boolean {
   return false;
 }
 
+/**
+ * Form of a missing-playwright-await finding. The plugin reports an assertion
+ * or test.step at the `expect` / `test` identifier and an action at the start
+ * of the call, so both begin at the root of a member/call chain. It is an
+ * assertion when the chain starts at `expect`, goes through `.step`, or ends
+ * in a `to...` matcher or `.poll`; any other chain is an action.
+ */
+function missingAwaitForm(t: Tree, node: N): 'assertion' | 'action' {
+  const names: string[] = [];
+  let cur: N | undefined = t.chainTop(node);
+  let last: string | undefined;
+  while (cur) {
+    if (cur.type === 'CallExpression') cur = cur.callee;
+    else if (cur.type === 'MemberExpression') {
+      const prop = cur.property as N;
+      const name = !cur.computed && prop.type === 'Identifier' ? (prop.name as string) : undefined;
+      if (name !== undefined) names.unshift(name);
+      if (last === undefined) last = name;
+      cur = cur.object;
+    } else if (cur.type === 'TSNonNullExpression' || cur.type === 'ChainExpression') cur = cur.expression;
+    else break;
+  }
+  const root = cur && cur.type === 'Identifier' ? (cur.name as string) : undefined;
+  if (root === 'expect' || names[0] === 'step' || names.includes('poll')) return 'assertion';
+  return last !== undefined && /^to[A-Z]/.test(last) ? 'assertion' : 'action';
+}
+
 // ---- entry point --------------------------------------------------------
 
-export type PostFilter = (msg: PostFilterMessage) => Decision | undefined;
+export type PostFilter = ((msg: PostFilterMessage) => Decision | undefined) & {
+  /**
+   * Form of the finding within its rule (src/catalogue), decided from the
+   * reported syntax node. Undefined for a rule with one shape, or when the
+   * node cannot be found.
+   */
+  formOf: (msg: PostFilterMessage) => string | undefined;
+};
 
 function parse(source: string, file: string): Tree | undefined {
   try {
@@ -773,7 +807,7 @@ export function createPostFilter(source: () => string, file: string): PostFilter
   let tree: Tree | undefined;
   let tried = false;
   let awaited: Set<string> | undefined;
-  return (msg) => {
+  const ensureTree = (): Tree | undefined => {
     if (!tried) {
       tried = true;
       try {
@@ -782,6 +816,10 @@ export function createPostFilter(source: () => string, file: string): PostFilter
         tree = undefined;
       }
     }
+    return tree;
+  };
+  const decide = (msg: PostFilterMessage): Decision | undefined => {
+    ensureTree();
     if (!tree) return undefined;
     const node = tree.nodeAt(msg.line, msg.column);
     if (!node) return undefined;
@@ -815,4 +853,18 @@ export function createPostFilter(source: () => string, file: string): PostFilter
         return undefined;
     }
   };
+  const formOf = (msg: PostFilterMessage): string | undefined => {
+    switch (msg.ruleId) {
+      case 'playwright/valid-expect':
+        return msg.messageId === 'matcherNotFound' || msg.messageId === 'matcherNotCalled' ? 'matcherless' : 'other';
+      case 'playwright/missing-playwright-await': {
+        const t = ensureTree();
+        const node = t?.nodeAt(msg.line, msg.column);
+        return t && node ? missingAwaitForm(t, node) : undefined;
+      }
+      default:
+        return undefined;
+    }
+  };
+  return Object.assign(decide, { formOf });
 }

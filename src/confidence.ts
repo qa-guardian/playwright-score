@@ -1,4 +1,5 @@
 import type { Finding, Severity } from './types.js';
+import { catalogueRules, defaultRow } from './catalogue/table.js';
 
 /**
  * How sure we are that a finding is a real problem a reader would agree
@@ -11,33 +12,13 @@ import type { Finding, Severity } from './types.js';
  */
 export type Confidence = 'high' | 'medium' | 'needs-check';
 
-export const CONFIDENCE_BY_RULE: Record<string, Confidence> = {
-  'playwright/missing-playwright-await': 'high',
-  'playwright/no-networkidle': 'high',
-  'playwright/no-wait-for-timeout': 'high',
-  'playwright/no-focused-test': 'high',
-  'playwright/no-page-pause': 'high',
-  'playwright-score/parse-error': 'high',
-  'pwscore/no-unawaited-action': 'high',
-  'pwscore/no-unawaited-expect-value': 'high',
-  'pwscore/no-weak-assertion': 'high',
-  'pwscore/no-fixme-test': 'high',
-  'pwscore/no-excessive-timeout': 'high',
-  'pwscore/no-swallowed-assertion': 'medium',
-  'pwscore/no-shared-mutable-state': 'medium',
-  'pwscore/no-self-fulfilling-fallback': 'needs-check',
-  'pwscore/no-brittle-selector': 'needs-check',
-  'pwscore/serial-mode-dependency': 'needs-check',
-
-  'playwright-score/assertion-unverified': 'needs-check',
-
-  'playwright/no-force-option': 'medium',
-  'playwright/no-wait-for-selector': 'medium',
-  'pwscore/no-timer-sleep': 'medium',
-  'pwscore/no-trivial-assertion': 'medium',
-  'playwright/no-conditional-in-test': 'medium',
-  'playwright/no-conditional-expect': 'medium',
-};
+/**
+ * Display label per rule, read from the catalogue (src/catalogue). Rules a
+ * row does not cover fall back to DEFAULT_CONFIDENCE.
+ */
+export const CONFIDENCE_BY_RULE: Record<string, Confidence> = Object.fromEntries(
+  catalogueRules().map((rule) => [rule, defaultRow(rule)!.label])
+);
 
 /** Display names (the Confidence values themselves never change). */
 export const CONFIDENCE_LABEL: Record<Confidence, string> = {

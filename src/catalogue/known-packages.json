@@ -1,0 +1,23 @@
+{
+  "assertion": [
+    "assert",
+    "assert/strict",
+    "node:assert",
+    "node:assert/strict",
+    "chai",
+    "@jest/globals",
+    "vitest",
+    "power-assert",
+    "uvu/assert"
+  ],
+  "nonAsserting": [
+    "@faker-js/faker",
+    "axios",
+    "date-fns",
+    "dayjs",
+    "dotenv",
+    "lodash",
+    "nanoid",
+    "uuid"
+  ]
+}

@@ -1,4 +1,5 @@
 import type { EngineVersions } from './engine-versions.js';
+import type { Basis, Evidence, Family, Tier } from './catalogue/types.js';
 
 export type ScoreVersion = 'v3' | 'v4';
 /**
@@ -36,6 +37,31 @@ export interface Finding {
   scope?: 'test' | 'hook' | 'module';
   /** `${file}#${testIndex}` when scope === 'test'. */
   testKey?: string;
+  /**
+   * Catalogue fields, added after scoring and never read by it (src/catalogue).
+   * `form` is the shape of the finding within its rule, decided from the
+   * reported syntax node. `tier` says how far to trust it, `family` what it
+   * means for the test, `basis` whether the Playwright docs or a convention
+   * stand behind it. `title`, `what`, `why` and `fix` are the plain-English
+   * copy; `excerpt` is the source line. `evidence` is how the scorer decided
+   * what the code refers to. `confidence` is the lower end of the 95% Wilson
+   * interval of the cell's decided precision on hand-checked rows, or null
+   * when fewer than five rows were decided. `quotable` is true only for a
+   * certain finding in a cell that passed the full release bar.
+   */
+  form?: string;
+  tier?: Tier;
+  family?: Family;
+  basis?: Basis;
+  docs?: string;
+  title?: string;
+  what?: string;
+  why?: string;
+  fix?: string;
+  excerpt?: string;
+  evidence?: Evidence;
+  confidence?: number | null;
+  quotable?: boolean;
 }
 
 export interface ScoreDimensions {

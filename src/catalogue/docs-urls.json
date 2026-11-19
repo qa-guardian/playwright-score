@@ -1,0 +1,23 @@
+[
+  "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/expect-expect.md",
+  "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/max-nested-describe.md",
+  "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/no-conditional-expect.md",
+  "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/no-conditional-in-test.md",
+  "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/no-eval.md",
+  "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/no-force-option.md",
+  "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/no-standalone-expect.md",
+  "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/no-useless-await.md",
+  "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/require-top-level-describe.md",
+  "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/valid-expect.md",
+  "https://playwright.dev/docs/api/class-elementhandle",
+  "https://playwright.dev/docs/api/class-locator",
+  "https://playwright.dev/docs/api/class-page#page-goto",
+  "https://playwright.dev/docs/api/class-page#page-pause",
+  "https://playwright.dev/docs/api/class-page#page-wait-for-navigation",
+  "https://playwright.dev/docs/api/class-page#page-wait-for-selector",
+  "https://playwright.dev/docs/api/class-page#page-wait-for-timeout",
+  "https://playwright.dev/docs/api/class-test",
+  "https://playwright.dev/docs/best-practices",
+  "https://playwright.dev/docs/locators",
+  "https://playwright.dev/docs/test-assertions"
+]

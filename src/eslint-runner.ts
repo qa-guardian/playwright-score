@@ -390,6 +390,7 @@ export async function runEslint(options: {
       if (decision?.drop) continue;
       const mapping = mapRule(msg.ruleId);
       const messageSeverity = msg.messageId ? MESSAGE_SEVERITY[`${msg.ruleId}#${msg.messageId}`] : undefined;
+      const form = postFilter.formOf({ ruleId: msg.ruleId, messageId: msg.messageId, line: msg.line, column: msg.column });
       findings.push({
         rule: msg.ruleId,
         severity: decision?.severity ?? messageSeverity ?? toSeverity(msg.severity, mapping.severityOverride),
@@ -399,6 +400,7 @@ export async function runEslint(options: {
         column: msg.column,
         dimension: mapping.dimension,
         reportOnly: decision?.reportOnly ?? mapping.reportOnly,
+        ...(form !== undefined ? { form } : {}),
       });
     }
   }
