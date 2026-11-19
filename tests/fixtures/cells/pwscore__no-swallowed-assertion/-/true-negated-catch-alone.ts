@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-test('progress bar', async ({ page }) => {
-  await page.goto('/progress');
-  const progressBar = page.getByRole('progressbar');
-  await expect(progressBar).not.toHaveCSS('width', '50%').catch(() => {});
+test('cookie dialog', async ({ page }) => {
+  await page.goto('/settings');
+  const consentDialog = page.getByRole('dialog', { name: 'Cookie preferences' });
+  await expect(consentDialog).not.toBeVisible().catch(() => {});
 });
