@@ -9,7 +9,9 @@ import type { ProfileName } from '../src/types.js';
 
 // QAG-287 S3: the per-rule fixture gate (ADR section 6.0 R2).
 //
-// tests/rule-fixtures.json lists every fixture under tests/fixtures/rules. A TRUE fixture is a
+// tests/rule-fixtures.json lists every fixture under tests/fixtures/cells, laid out as
+// <rule id with / as __>/<form>/[shared/]{true,false}-<name>.<ext> (the layout the evaluator's R2 gate reads;
+// a form-less rule uses `-`). A TRUE fixture is a
 // shape the rule must report, a FALSE fixture a shape it must leave alone. Fixtures are written
 // from the Playwright docs, never copied from a corpus repository. A fixture marked `pending`
 // names the slice that will make it behave as labelled; until then the test asserts that it
@@ -51,8 +53,9 @@ function packageRoot(): string {
 }
 
 const root = packageRoot();
-const fixtureRoot = path.join(root, 'tests', 'fixtures', 'rules');
+const fixtureRoot = path.join(root, 'tests', 'fixtures', 'cells');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'tests', 'rule-fixtures.json'), 'utf8')) as Manifest;
+const guard = (JSON.parse(fs.readFileSync(path.join(root, 'tests', 'rule-fixtures.ids.json'), 'utf8')) as { ids: string[] }).ids;
 
 /** The old and the current prefix of the scorer's own rules name the same rule. */
 const norm = (rule: string): string => rule.replace(/^playwright-score\//, 'pwscore/');
@@ -101,9 +104,16 @@ export function manifestProblems(m: Manifest, enabled: string[]): string[] {
     if (ids.has(f.id)) problems.push(`duplicate fixture id ${f.id}`);
     ids.add(f.id);
     if (!cellKeys.has(cellOf(f))) problems.push(`${f.id}: cell ${cellOf(f)} is not in the cell table`);
-    if (f.pending !== undefined && !/^(S\d+[a-z]?|unassigned)$/.test(f.pending)) problems.push(`${f.id}: pending must name a slice, got ${f.pending}`);
+    if (f.pending !== undefined && !/^S\d+[a-z]?$/.test(f.pending)) problems.push(`${f.id}: pending must name a slice, got ${f.pending}`);
     const base = path.posix.basename(f.dir ?? f.entry);
     if (!f.project && !base.startsWith(`${f.verdict}-`)) problems.push(`${f.id}: file name must start with ${f.verdict}-`);
+    if (!f.project) {
+      // The evaluator's R2 gate reads <rule with / as __>/<form>/[shared/]<true|false>-<name>
+      const lead = `${f.rule.replace('/', '__')}/${f.form ?? '-'}/`;
+      const rest = f.entry.startsWith(lead) ? f.entry.slice(lead.length) : null;
+      if (rest === null) problems.push(`${f.id}: entry must live under ${lead}`);
+      else if ((f.tags ?? []).includes('shared') !== rest.startsWith('shared/')) problems.push(`${f.id}: a shared fixture lives under ${lead}shared/ and no other fixture does`);
+    }
   }
   for (const c of m.cells) {
     const key = cellOf(c);
@@ -118,8 +128,9 @@ export function manifestProblems(m: Manifest, enabled: string[]): string[] {
     if (c.certain) {
       const tagged = (tag: string) => here.some((f) => f.verdict === 'true' && (f.tags ?? []).includes(tag) && countable(f));
       if (!tagged('js')) problems.push(`${key}: no JS TRUE fixture`);
-      // An alias TRUE fixture may be pending (aliased page, S4a); it must exist so the slice has something to flip.
-      if (!here.some((f) => f.verdict === 'true' && (f.tags ?? []).includes('alias'))) problems.push(`${key}: no alias TRUE fixture`);
+      // R2 holds for current behaviour: an alias form must be reported today. A pending alias fixture (S4a, a const alias)
+      // is extra, it never stands in for it.
+      if (!here.some((f) => f.verdict === 'true' && (f.tags ?? []).includes('alias') && countable(f))) problems.push(`${key}: no alias TRUE fixture that is reported today`);
       if (!here.some((f) => f.verdict === 'false' && (f.tags ?? []).includes('js') && countable(f))) problems.push(`${key}: no JS FALSE fixture`);
     }
   }
@@ -143,6 +154,20 @@ export function diskProblems(fixtures: Fixture[], onDisk: string[]): string[] {
     for (const p of mine) owned.add(p);
   }
   for (const p of onDisk) if (!owned.has(p)) problems.push(`${p}: file on disk is not listed in rule-fixtures.json`);
+  return problems;
+}
+
+/**
+ * The frozen guard: tests/rule-fixtures.ids.json holds the sorted id of every fixture. The manifest and the
+ * disk checks above cannot see a fixture that is removed together with its row and its file, so the ids are
+ * pinned here. Adding or removing a fixture means changing the guard in the same commit, where a reviewer sees it.
+ */
+export function guardProblems(ids: string[], guard: string[]): string[] {
+  const have = new Set(ids);
+  const frozen = new Set(guard);
+  const problems: string[] = [];
+  for (const id of guard) if (!have.has(id)) problems.push(`${id}: frozen in tests/rule-fixtures.ids.json but missing from the manifest`);
+  for (const id of ids) if (!frozen.has(id)) problems.push(`${id}: in the manifest but not frozen in tests/rule-fixtures.ids.json`);
   return problems;
 }
 
@@ -202,9 +227,14 @@ describe('QAG-287 S3: fixture manifest', () => {
     assert.deepEqual(diskProblems(manifest.fixtures, allFiles(fixtureRoot)), []);
   });
 
+  it('matches the frozen list of fixture ids', () => {
+    assert.deepEqual(guardProblems(manifest.fixtures.map((f) => f.id), guard), []);
+    assert.deepEqual([...guard].sort(), guard, 'the frozen list is sorted');
+  });
+
   it('pending marks only name slices of the plan', () => {
     const pending = new Set(manifest.fixtures.filter(isPending).map((f) => f.pending));
-    const known = new Set(['S3b', 'S3c', 'S4a', 'S4b', 'S6b', 'S7a', 'S7b', 'S7c', 'unassigned']);
+    const known = new Set(['S3b', 'S3c', 'S4a', 'S4b', 'S6b', 'S7a', 'S7b', 'S7c']);
     for (const p of pending) assert.ok(known.has(p as string), `unknown pending slice ${p}`);
   });
 
@@ -217,6 +247,9 @@ describe('QAG-287 S3: fixture manifest', () => {
       ['true-foreach-async', 'S7a'],
       ['true-read-url', 'S7c'],
       ['true-read-count', 'S7c'],
+      ['true-not-catch-chain', 'S7b'],
+      ['false-vitest-expect', 'S4b'],
+      ['false-jest-expect', 'S4b'],
       ['false-read-reused-guard', 'S3b'],
       ['false-api-under-test', 'S3c'],
     ];
@@ -242,6 +275,17 @@ describe('QAG-287 S3: the gate fails when a fixture goes missing or flips', () =
     const gone = rows('false')[0];
     const files = allFiles(fixtureRoot).filter((p) => p !== gone.entry);
     assert.ok(diskProblems(manifest.fixtures, files).some((p) => p.startsWith(gone.id)));
+  });
+
+  it('removing one TRUE and one FALSE fixture completely, row and file, still fails', () => {
+    const t = rows('true')[0];
+    const f = rows('false')[0];
+    const rest = manifest.fixtures.filter((x) => x !== t && x !== f);
+    const files = allFiles(fixtureRoot).filter((p) => p !== t.entry && p !== f.entry);
+    assert.deepEqual(diskProblems(rest, files), [], 'row and file together leave the disk check clean');
+    const problems = guardProblems(rest.map((x) => x.id), guard);
+    assert.ok(problems.some((p) => p.startsWith(t.id)), 'the TRUE removal is reported');
+    assert.ok(problems.some((p) => p.startsWith(f.id)), 'the FALSE removal is reported');
   });
 
   it('removing fixtures from a cell until it is below the bar is reported', () => {
