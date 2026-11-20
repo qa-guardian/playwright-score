@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { scorePaths } from '../src/index.js';
+import { readForms } from '../src/read-forms.js';
 
 // QAG-287 B1: forms of playwright/prefer-web-first-assertions (S3b read-reused, S7c read-url-count).
 
@@ -48,11 +49,46 @@ describe('QAG-287 S3b: read-reused', () => {
     assert.deepEqual(f.map((x) => x.form), ['read-direct']);
   });
 
-  it('only the rule, position and message of a read-direct finding are what they were', async () => {
-    const f = await reads("  const shown = await page.getByRole('alert').isVisible();\n  if (shown) { await page.getByRole('button').click(); }\n  expect(shown).toBe(true);");
-    assert.equal(f.length, 1);
-    assert.equal(f[0].form, 'read-reused');
-    assert.match(f[0].message, /isVisible\(\)/);
+  it('expect.soft on a reused read is read-reused', async () => {
+    const f = await reads("  const shown = await page.getByRole('alert').isVisible();\n  if (shown) { await page.getByRole('button').click(); }\n  expect.soft(shown).toBe(true);");
+    assert.deepEqual(f.map((x) => x.form), ['read-reused']);
+  });
+
+  it('a read upstream reports inside its declaration is judged on the declared variable', async () => {
+    const reused = await reads("  const names = await page.getByRole('listitem').allTextContents();\n  console.log(names.length);\n  expect(names).toEqual(['a']);");
+    assert.deepEqual(reused.map((x) => x.form), ['read-reused']);
+    const once = await reads("  const names = await page.getByRole('listitem').allTextContents();\n  expect(names).toEqual(['a']);");
+    assert.deepEqual(once.map((x) => x.form), ['read-direct']);
+  });
+
+  it('an inner binding of the same name is not a reuse of the outer read', async () => {
+    const pre = "  const n = await page.getByRole('row').count();\n  console.log(n);\n";
+    for (const use of ['[1, 2].forEach((n) => expect(n).toBe(1));', 'for (const n of [1, 2]) expect(n).toBe(1);', 'try { x(); } catch (n) { expect(n).toBe(1); }', 'const f = ({ n }) => expect(n).toBe(1);', '{ const n = 1; expect(n).toBe(1); }']) {
+      assert.deepEqual(await reads(pre + '  ' + use), [], use);
+    }
+  });
+
+  it('the same sources give the same (rule, file, line, column, message) with form assignment on and off', async () => {
+    const sources = [
+      "  const shown = await page.getByRole('alert').isVisible();\n  if (shown) { await page.getByRole('button').click(); }\n  expect(shown).toBe(true);",
+      "  const names = await page.getByRole('listitem').allTextContents();\n  console.log(names.length);\n  expect(names).toEqual(['a']);",
+      "  const t = await page.getByTestId('total').textContent();\n  expect(t).toBe('$10');",
+      "  expect(await page.getByRole('alert').isVisible()).toBe(true);",
+    ];
+    const key = (fs: Awaited<ReturnType<typeof reads>>) => fs.map((f) => [f.rule, f.line, f.column, f.message].join('|')).sort();
+    for (const src of sources) {
+      const on = await reads(src);
+      readForms.enabled = false;
+      let off: Awaited<ReturnType<typeof reads>>;
+      try {
+        off = await reads(src);
+      } finally {
+        readForms.enabled = true;
+      }
+      assert.deepEqual(key(on), key(off), src);
+      assert.ok(on.length > 0);
+      assert.ok(off.every((f) => f.form === undefined));
+    }
   });
 });
 
@@ -70,8 +106,25 @@ describe('QAG-287 S7c: read-url-count', () => {
   });
 
   it('read-reused wins over read-url-count', async () => {
-    const f = await reads("  const n = await page.getByRole('row').count();\n  expect(n).toBe(3);\n  expect(n).toBeGreaterThan(0);");
+    const f = await reads("  const n = await page.getByRole('row').count();\n  expect(n).toBe(3);\n  expect(n).toEqual(3);");
     assert.deepEqual(f.map((x) => x.form), ['read-reused', 'read-reused']);
+  });
+
+  it('only matchers with a web-first equivalent are reported, so a weak count check is not charged twice', async () => {
+    const f = await reads(
+      [
+        "  expect(await page.getByRole('row').count()).toBeGreaterThanOrEqual(0);",
+        "  expect(await page.getByRole('row').count()).toBeDefined();",
+        "  expect(await page.getByRole('row').count()).toBeGreaterThan(2);",
+        "  expect(page.url()).toBeDefined();",
+      ].join('\n')
+    );
+    assert.deepEqual(f, []);
+  });
+
+  it('expect.soft with a url read is reported', async () => {
+    const f = await reads("  expect.soft(page.url()).toContain('/cart');");
+    assert.deepEqual(f.map((x) => x.form), ['read-url-count']);
   });
 
   it('leaves retrying and non-page shapes alone', async () => {

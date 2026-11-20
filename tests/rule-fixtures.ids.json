@@ -854,6 +854,10 @@
    "pending": null
   },
   {
+   "id": "prefer-web-first-assertions/false-count-at-least-zero",
+   "pending": null
+  },
+  {
    "id": "prefer-web-first-assertions/false-count-of-a-plain-object",
    "pending": null
   },
@@ -864,6 +868,14 @@
   {
    "id": "prefer-web-first-assertions/false-jest-expect-page-is-visible",
    "pending": "S4b"
+  },
+  {
+   "id": "prefer-web-first-assertions/false-js-count-at-least-zero",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/false-js-shadow-foreach-param",
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/false-js-single-use",
@@ -891,6 +903,14 @@
   },
   {
    "id": "prefer-web-first-assertions/false-read-reused-two-uses",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/false-shadow-for-of",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/false-shadow-foreach-param",
    "pending": null
   },
   {
@@ -926,6 +946,10 @@
    "pending": null
   },
   {
+   "id": "prefer-web-first-assertions/true-all-texts-reused",
+   "pending": null
+  },
+  {
    "id": "prefer-web-first-assertions/true-awaited-is-visible",
    "pending": null
   },
@@ -944,6 +968,10 @@
   {
    "id": "prefer-web-first-assertions/true-helper-awaited-is-visible",
    "pending": "S6b"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-js-all-texts-reused",
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/true-js-awaited-is-visible",
@@ -980,6 +1008,10 @@
   {
    "id": "prefer-web-first-assertions/true-shared-read-url",
    "pending": "S6b"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-soft-expect-reused",
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/true-stored-const-text",

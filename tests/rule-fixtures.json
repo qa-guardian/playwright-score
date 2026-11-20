@@ -2345,6 +2345,74 @@
    "tags": [
     "js"
    ]
+  },
+  {
+   "id": "prefer-web-first-assertions/true-soft-expect-reused",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-reused/true-soft-expect-reused.ts",
+   "form": "read-reused",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/true-all-texts-reused",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-reused/true-all-texts-reused.ts",
+   "form": "read-reused"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-js-all-texts-reused",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-reused/true-js-all-texts-reused.js",
+   "form": "read-reused",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/false-shadow-foreach-param",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-reused/false-shadow-foreach-param.ts",
+   "form": "read-reused"
+  },
+  {
+   "id": "prefer-web-first-assertions/false-shadow-for-of",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-reused/false-shadow-for-of.ts",
+   "form": "read-reused"
+  },
+  {
+   "id": "prefer-web-first-assertions/false-js-shadow-foreach-param",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-reused/false-js-shadow-foreach-param.js",
+   "form": "read-reused",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/false-count-at-least-zero",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-url-count/false-count-at-least-zero.ts",
+   "form": "read-url-count"
+  },
+  {
+   "id": "prefer-web-first-assertions/false-js-count-at-least-zero",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-url-count/false-js-count-at-least-zero.js",
+   "form": "read-url-count",
+   "tags": [
+    "js"
+   ]
   }
  ]
 }
