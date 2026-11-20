@@ -1,6 +1,7 @@
 import { parseForESLint } from '@typescript-eslint/parser';
 import { sourceTypeFor } from './source-type.js';
 import type { Severity } from './types.js';
+import { PAGE_RECEIVER_RULES, createReceiverEvidence, type ProjectAccess } from './receiver-evidence.js';
 
 // QAG-287 slice F: AST post-filters for upstream eslint-plugin-playwright
 // messages. A hand-check of real findings showed several upstream rules fire on
@@ -803,7 +804,8 @@ function parse(source: string, file: string): Tree | undefined {
 }
 
 /** Parses lazily, once per file; a file that does not parse gets no decisions (all findings kept). */
-export function createPostFilter(source: () => string, file: string): PostFilter {
+export function createPostFilter(source: () => string, file: string, project?: ProjectAccess): PostFilter {
+  const receiverIsNotPlaywright = createReceiverEvidence(parse, project);
   let tree: Tree | undefined;
   let tried = false;
   let awaited: Set<string> | undefined;
@@ -823,6 +825,8 @@ export function createPostFilter(source: () => string, file: string): PostFilter
     if (!tree) return undefined;
     const node = tree.nodeAt(msg.line, msg.column);
     if (!node) return undefined;
+    // S4a-R: a Page/Frame-API finding is dropped only on positive evidence that the receiver is not Playwright's.
+    if (PAGE_RECEIVER_RULES.has(msg.ruleId) && receiverIsNotPlaywright(tree, file, node)) return { drop: true };
     switch (msg.ruleId) {
       case 'playwright/valid-expect':
         if ((msg.messageId === 'matcherNotFound' || msg.messageId === 'matcherNotCalled') && validExpectExempt(tree, node)) {

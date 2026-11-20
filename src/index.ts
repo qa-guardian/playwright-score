@@ -5,7 +5,7 @@ import { globSync, hasMagic, Ignore, type IgnoreLike, type Path as GlobPath } fr
 import { createHelperScope } from './helper-scope.js';
 import { runEslint } from './eslint-runner.js';
 import { commonAncestorDir } from './fs-util.js';
-import { collectLocallyImportedFiles, createModuleResolver } from './import-graph.js';
+import { collectLocallyImportedFiles, createModuleResolver, resolveImportSpecifier } from './import-graph.js';
 import {
   analyzeSource,
   attributeFindingScopes,
@@ -688,6 +688,16 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
       reportBase: filesBase,
       assertFunctionNamesByFile,
       testAliasNames,
+      project: {
+        resolve: (from, spec) => resolveImportSpecifier(from, spec, importBoundary, moduleResolver),
+        read: (f) => {
+          try {
+            return fs.readFileSync(f, 'utf8');
+          } catch {
+            return undefined;
+          }
+        },
+      },
     }),
     { filesBase, sources, importedFiles, importBoundary, moduleResolver }
   );

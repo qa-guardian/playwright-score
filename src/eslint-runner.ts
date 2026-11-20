@@ -9,6 +9,7 @@ import { mapRule } from './profiles.js';
 import { getCurriedTestCallbackRanges } from './metrics.js';
 import { plainAliasNames } from './test-aliases.js';
 import { createPostFilter } from './eslint-postfilter.js';
+import type { ProjectAccess } from './receiver-evidence.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
 const ASSERT_FUNCTION_PATTERNS = [
@@ -257,6 +258,8 @@ export async function runEslint(options: {
   assertFunctionNamesByFile?: ReadonlyMap<string, string[]>;
   /** See detectExtendedTestAliases in test-aliases.ts. */
   testAliasNames?: string[];
+  /** Lets the receiver check (S4a-R) read project files an import points to. */
+  project?: ProjectAccess;
 }): Promise<Finding[]> {
   // ESLint 9 flat config resolves a `basePath` from `cwd` and silently
   // drops (as an untracked, ruleId-less message) any file that isn't
@@ -339,7 +342,7 @@ export async function runEslint(options: {
       );
     };
     const file = path.relative(options.reportBase ?? cwd, absFile) || path.basename(absFile);
-    const postFilter = createPostFilter(() => result.source ?? fs.readFileSync(absFile, 'utf8'), absFile);
+    const postFilter = createPostFilter(() => result.source ?? fs.readFileSync(absFile, 'utf8'), absFile, options.project);
     for (const msg of result.messages) {
       // A `// eslint-disable-next-line some/rule-we-dont-bundle` comment is
       // extremely common in real-world code (any host project that lints
