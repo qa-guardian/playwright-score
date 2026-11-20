@@ -202,4 +202,110 @@ test('x', async ({ page: fixturePage }) => {
     });
     assert.equal(count(rules, EH), 1);
   });
+
+  const CART = `import type { Page } from '@playwright/test';
+export class CartPage {
+  constructor(private readonly page: Page) {}
+  get checkoutButton() { return this.page.locator('#checkout'); }
+  row(n: number) { return this.page.getByRole('row').nth(n); }
+  panel = () => this.page.getByRole('region');
+  async waitForNavigation() {}
+}`;
+  const FORCE = 'playwright/no-force-option';
+
+  it('true-chained-locator-calls-through-getter-method-and-arrow-property', async () => {
+    const rules = await rulesFor({
+      'a.spec.ts': `${PW}import { CartPage } from './cart-page';
+test('cart', async ({ page }) => {
+  const cartPage = new CartPage(page);
+  await cartPage.checkoutButton.click({ force: true });
+  await cartPage.row(1).click({ force: true });
+  await cartPage.panel().click({ force: true });
+});`,
+      'cart-page.ts': CART,
+    });
+    assert.equal(count(rules, FORCE), 3);
+  });
+
+  it('true-getter-is-not-a-callable-member', async () => {
+    const rules = await rulesFor({
+      'a.spec.ts': `${PW}import { CartPage } from './cart-page';
+test('cart', async ({ page }) => {
+  const cartPage = new CartPage(page);
+  await cartPage.waitForNavigation();
+});`,
+      'cart-page.ts': `export class CartPage {
+  constructor(private readonly page: unknown) {}
+  get waitForNavigation() { return async () => {}; }
+}`,
+    });
+    assert.equal(count(rules, NAV), 1);
+  });
+
+  it('true-for-of-playwright-page-shadows-puppeteer-page', async () => {
+    const rules = await rulesFor({
+      'a.spec.ts': `${PW}import puppeteer from 'puppeteer';
+test('x', async ({ context }) => {
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  for (const page of context.pages()) { await page.waitForTimeout(100); }
+});`,
+    });
+    assert.equal(count(rules, 'playwright/no-wait-for-timeout'), 1);
+  });
+
+  it('true-destructuring-assignment-to-puppeteer-named-page', async () => {
+    const rules = await rulesFor({
+      'a.spec.ts': `${PW}import puppeteer from 'puppeteer';
+test('x', async ({ browser: pw }) => {
+  const b = await puppeteer.launch();
+  let page = await b.newPage();
+  ({ page } = { page: await pw.newPage() });
+  await page.$('h1');
+});`,
+    });
+    assert.equal(count(rules, EH), 1);
+  });
+
+  it('true-logical-assignment-to-puppeteer-named-page', async () => {
+    const rules = await rulesFor({
+      'a.spec.ts': `${PW}import puppeteer from 'puppeteer';
+test('x', async ({ page: fx }) => {
+  const b = await puppeteer.launch();
+  let page: any = await b.newPage();
+  page ??= fx;
+  page ||= fx;
+  await page.$('h1');
+});`,
+    });
+    assert.equal(count(rules, EH), 1);
+  });
+
+  it('true-useless-await-checks-awaited-call-not-enclosing-helper', async () => {
+    const rules = await rulesFor({
+      'a.spec.ts': `${PW}import { Runner } from './runner';
+test('x', async ({ page }) => {
+  const helper = new Runner();
+  await helper.run(async () => { await page.locator('x'); });
+});`,
+      'runner.ts': `export class Runner { async run(fn: () => Promise<void>) { await fn(); } }`,
+    });
+    assert.equal(count(rules, 'playwright/no-useless-await'), 1);
+  });
+
+  it('true-locator-chain-after-page-object-method-keeps-reporting', async () => {
+    const rules = await rulesFor({
+      'a.spec.ts': `${PW}import { CartPage } from './cart-page';
+test('cart', async ({ page }) => {
+  const cartPage = new CartPage(page);
+  const sample = cartPage
+    .row(1)
+    .locator('div > span.price')
+    .first();
+  await expect(sample).toBeVisible();
+});`,
+      'cart-page.ts': CART,
+    });
+    assert.equal(count(rules, 'playwright/no-raw-locators'), 1);
+  });
 });

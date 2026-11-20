@@ -125,6 +125,13 @@ export function createReceiverEvidence(parse: ParseFile, project: ProjectAccess 
           return plain.type === 'Identifier' ? { kind: 'param', annotation: plain.typeAnnotation?.typeAnnotation } : { kind: 'unknown' };
         }
       }
+      if (a.type === 'ForOfStatement' || a.type === 'ForInStatement' || a.type === 'ForStatement') {
+        const head = (a.type === 'ForStatement' ? a.init : a.left) as N | null;
+        const declared =
+          head?.type === 'VariableDeclaration' ? (head.declarations as N[]).some((d) => patternHas(d.id, name)) : patternHas(head, name);
+        if (declared) return { kind: 'unknown' };
+      }
+      if (a.type === 'CatchClause' && patternHas(a.param, name)) return { kind: 'unknown' };
       if (a.type === 'Program' || a.type === 'BlockStatement' || a.type === 'StaticBlock' || a.type === 'TSModuleBlock') {
         for (const raw of a.body as N[]) {
           const st = raw.type === 'ExportNamedDeclaration' && raw.declaration ? (raw.declaration as N) : raw;
@@ -133,12 +140,18 @@ export function createReceiverEvidence(parse: ParseFile, project: ProjectAccess 
               if (!patternHas(d.id, name)) continue;
               if (d.id.type !== 'Identifier' && d.id.type !== 'ArrayPattern') return { kind: 'unknown' };
               const values: N[] = d.init ? [d.init] : [];
+              // Any write that is not a plain `name = value` (destructuring, ??=, ||=, &&=, for-of/in target) makes the value unknowable.
+              let opaque = false;
               tree.some(a, (n) => {
-                if (n.type === 'AssignmentExpression' && n.operator === '=' && n.left?.type === 'Identifier' && n.left.name === name) {
-                  values.push(n.right);
+                if (n.type === 'AssignmentExpression' && patternHas(n.left, name)) {
+                  if (n.operator === '=' && n.left.type === 'Identifier') values.push(n.right);
+                  else opaque = true;
+                } else if ((n.type === 'ForOfStatement' || n.type === 'ForInStatement') && n.left?.type !== 'VariableDeclaration' && patternHas(n.left, name)) {
+                  opaque = true;
                 }
                 return false;
               });
+              if (opaque) return { kind: 'unknown' };
               return { kind: 'values', values, arrayPattern: d.id.type === 'ArrayPattern', annotation: d.id.typeAnnotation?.typeAnnotation };
             }
           } else if ((st.type === 'FunctionDeclaration' || st.type === 'ClassDeclaration') && st.id?.name === name) {
@@ -209,6 +222,8 @@ export function createReceiverEvidence(parse: ParseFile, project: ProjectAccess 
           (m.type === 'MethodDefinition' || m.type === 'PropertyDefinition') &&
           !m.static &&
           !m.computed &&
+          m.kind !== 'get' &&
+          m.kind !== 'set' &&
           (m.key?.name === method || m.key?.value === method) &&
           (m.type === 'MethodDefinition' ||
             (m.value && (m.value.type === 'ArrowFunctionExpression' || m.value.type === 'FunctionExpression')))
@@ -325,11 +340,32 @@ export function createReceiverEvidence(parse: ParseFile, project: ProjectAccess 
     }
   };
 
-  /** The call chain a reported node belongs to: its root receiver and the first member read from it. */
-  const chainOf = (tree: Tree, node: N): { root: N; first: string } | undefined => {
+  /**
+   * The call a reported node belongs to, when it is a DIRECT call `receiver.method(...)` on a plain
+   * identifier / `new X()` receiver. Longer chains (`x.getter.click()`, `x.row(1).click()`) are
+   * Locator/Frame calls on something the receiver returned, so they are never resolved.
+   */
+  const directCall = (tree: Tree, node: N): { root: N; method: string } | undefined => {
     let start: N | undefined = node;
-    const p = tree.parent(node);
-    if (node.type === 'Identifier' && p?.type === 'MemberExpression' && p.property === node && !p.computed) start = p;
+    if (node.type === 'AwaitExpression') {
+      // no-useless-await reports the `await` keyword: check the awaited call, not an enclosing one.
+      start = unwrap(node.argument);
+      if (start?.type !== 'CallExpression' || start.callee?.type !== 'MemberExpression') return undefined;
+    } else {
+      const p = tree.parent(node);
+      if (node.type === 'Identifier' && p?.type === 'MemberExpression' && p.property === node && !p.computed) start = p;
+    }
+    // A finding on `a.b(x).c(y)` is positioned at the start of the whole chain, where the deepest node is
+    // `a`: climb to the outermost chain node that starts at the same position so the reported (outer)
+    // call is the one checked, not the innermost call of the chain.
+    const sameStart = (a: N, b: N) => a.loc?.start.line === b.loc?.start.line && a.loc?.start.column === b.loc?.start.column;
+    while (start && node.type !== 'AwaitExpression') {
+      const up = tree.parent(start);
+      if (up && sameStart(up, start) && ['CallExpression', 'MemberExpression', 'ChainExpression', 'TSNonNullExpression', 'TSAsExpression'].includes(up.type)) start = up;
+      else break;
+    }
+    const top = unwrap(start);
+    if (top?.type === 'CallExpression') start = top;
     let call: N | undefined;
     for (let c: N | undefined = start; c; c = tree.parent(c)) {
       if (c.type === 'CallExpression' && c.callee?.type === 'MemberExpression') {
@@ -338,31 +374,17 @@ export function createReceiverEvidence(parse: ParseFile, project: ProjectAccess 
       }
     }
     if (!call) return undefined;
-    let cur: N | undefined = call.callee;
-    let first: string | undefined;
-    for (;;) {
-      cur = unwrap(cur);
-      if (!cur) return undefined;
-      if (cur.type === 'CallExpression') cur = cur.callee;
-      else if (cur.type === 'MemberExpression') {
-        first = propertyName(cur);
-        const obj = unwrap(cur.object);
-        if (obj?.type !== 'CallExpression' && obj?.type !== 'MemberExpression') {
-          return first === undefined || !obj ? undefined : { root: obj, first };
-        }
-        cur = obj;
-      } else return undefined;
-    }
+    const callee = call.callee as N;
+    const method = propertyName(callee);
+    const root = unwrap(callee.object);
+    if (method === undefined || !root || (root.type !== 'Identifier' && root.type !== 'NewExpression')) return undefined;
+    return { root, method };
   };
 
   /** True only with positive evidence that the receiver of the call at `node` is not a Playwright Page/Frame. */
   return function receiverIsNotPlaywright(tree: Tree, file: string, node: N): boolean {
-    const chain = chainOf(tree, node);
-    if (!chain) return false;
-    const ctx = { tree, file };
-    if (chain.root.type === 'Identifier' || chain.root.type === 'NewExpression') {
-      return nonPlaywrightPage(ctx, chain.root, chain.first, 0);
-    }
-    return false;
+    const call = directCall(tree, node);
+    if (!call) return false;
+    return nonPlaywrightPage({ tree, file }, call.root, call.method, 0);
   };
 }
