@@ -85,7 +85,7 @@ const MIN_OTHER = 1;
 /** Catalogue rules the runner keeps switched off on purpose; the test below checks that it still does. */
 const NOT_ENABLED = ['playwright/require-top-level-describe'];
 /** Slices already closed: a fixture cannot wait for them (ADR 0.E E-3). Add a slice here when it lands. */
-const LANDED = ['S1', 'S2', 'S3'];
+const LANDED = ['S1', 'S2', 'S3', 'S3b', 'S7c'];
 const isPending = (f: Fixture): boolean => f.pending !== undefined;
 
 function allFiles(dir: string, base = dir): string[] {
@@ -268,7 +268,7 @@ describe('QAG-287 S3: fixture manifest', () => {
 
   it('pending marks only name slices of the plan', () => {
     const pending = new Set(manifest.fixtures.filter(isPending).map((f) => f.pending));
-    const known = new Set(['S3b', 'S3c', 'S4a', 'S4b', 'S6b', 'S7a', 'S7b', 'S7c']);
+    const known = new Set(['S3c', 'S4a', 'S4b', 'S6b', 'S7a', 'S7b']);
     for (const p of pending) assert.ok(known.has(p as string), `unknown pending slice ${p}`);
   });
 
@@ -279,12 +279,9 @@ describe('QAG-287 S3: fixture manifest', () => {
       ['false-chai-expect', 'S4b'],
       ['true-helper', 'S6b'],
       ['true-foreach-async', 'S7a'],
-      ['true-read-url', 'S7c'],
-      ['true-read-count', 'S7c'],
       ['true-not-catch-chain', 'S7b'],
       ['false-vitest-expect', 'S4b'],
       ['false-jest-expect', 'S4b'],
-      ['false-read-reused-guard', 'S3b'],
       ['false-api-under-test', 'S3c'],
     ];
     for (const [prefix, slice] of want) {

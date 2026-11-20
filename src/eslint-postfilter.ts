@@ -1,6 +1,8 @@
 import { parseForESLint } from '@typescript-eslint/parser';
 import { sourceTypeFor } from './source-type.js';
 import type { Severity } from './types.js';
+import { formOfReportedRead, urlCountReads } from './read-forms.js';
+import type { ReadFinding } from './read-forms.js';
 
 // QAG-287 slice F: AST post-filters for upstream eslint-plugin-playwright
 // messages. A hand-check of real findings showed several upstream rules fire on
@@ -484,7 +486,7 @@ function conditionIsLive(t: Tree, cond: N, awaited: () => Set<string>): boolean 
  * retried as a whole, so reading a value and asserting on it is the retrying
  * form already.
  */
-function insideRetryingBlock(t: Tree, node: N): boolean {
+export function insideRetryingBlock(t: Tree, node: N): boolean {
   let cur: N | undefined = t.parent(node);
   let child: N = node;
   while (cur) {
@@ -784,6 +786,8 @@ export type PostFilter = ((msg: PostFilterMessage) => Decision | undefined) & {
    * node cannot be found.
    */
   formOf: (msg: PostFilterMessage) => string | undefined;
+  /** Reads of page.url() and locator.count() that upstream prefer-web-first-assertions does not report (S7c). */
+  readFindings: () => ReadFinding[];
 };
 
 function parse(source: string, file: string): Tree | undefined {
@@ -862,9 +866,19 @@ export function createPostFilter(source: () => string, file: string): PostFilter
         const node = t?.nodeAt(msg.line, msg.column);
         return t && node ? missingAwaitForm(t, node) : undefined;
       }
+      case 'playwright/prefer-web-first-assertions': {
+        const t = ensureTree();
+        const node = t?.nodeAt(msg.line, msg.column);
+        return t && node ? formOfReportedRead(t, node) : undefined;
+      }
       default:
         return undefined;
     }
   };
-  return Object.assign(decide, { formOf });
+  /** Reads upstream does not report (page.url(), locator.count()); none for a file that does not parse. */
+  const readFindings = (): ReadFinding[] => {
+    const t = ensureTree();
+    return t ? urlCountReads(t) : [];
+  };
+  return Object.assign(decide, { formOf, readFindings });
 }

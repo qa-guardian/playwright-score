@@ -854,8 +854,20 @@
    "pending": null
   },
   {
+   "id": "prefer-web-first-assertions/false-count-of-a-plain-object",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/false-count-reused-precedence",
+   "pending": null
+  },
+  {
    "id": "prefer-web-first-assertions/false-jest-expect-page-is-visible",
    "pending": "S4b"
+  },
+  {
+   "id": "prefer-web-first-assertions/false-js-single-use",
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/false-js-to-have-url",
@@ -875,11 +887,15 @@
   },
   {
    "id": "prefer-web-first-assertions/false-read-reused-guard",
-   "pending": "S3b"
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/false-read-reused-two-uses",
-   "pending": "S3b"
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/false-single-use",
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/false-to-have-count",
@@ -898,15 +914,31 @@
    "pending": null
   },
   {
+   "id": "prefer-web-first-assertions/true-alias-locator-reused",
+   "pending": null
+  },
+  {
    "id": "prefer-web-first-assertions/true-aliased-test",
    "pending": null
   },
   {
    "id": "prefer-web-first-assertions/true-aliased-test-read-url",
-   "pending": "S7c"
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/true-awaited-is-visible",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/true-const-locator-alias-count",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/true-const-page-alias-read-url",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/true-count-reused-precedence",
    "pending": null
   },
   {
@@ -918,28 +950,36 @@
    "pending": null
   },
   {
+   "id": "prefer-web-first-assertions/true-js-const-locator-alias-count",
+   "pending": null
+  },
+  {
    "id": "prefer-web-first-assertions/true-js-read-url",
-   "pending": "S7c"
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/true-js-text-reused",
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/true-read-count",
-   "pending": "S7c"
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/true-read-count-stored",
-   "pending": "S7c"
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/true-read-url",
-   "pending": "S7c"
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/true-read-url-contains",
-   "pending": "S7c"
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/true-shared-read-url",
-   "pending": "S7c"
+   "pending": "S6b"
   },
   {
    "id": "prefer-web-first-assertions/true-stored-const-text",
@@ -947,6 +987,10 @@
   },
   {
    "id": "prefer-web-first-assertions/true-text-content-direct",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/true-text-reused-in-branch",
    "pending": null
   },
   {

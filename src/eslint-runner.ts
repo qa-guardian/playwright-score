@@ -217,6 +217,9 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
   return base;
 }
 
+/** Message of a url()/count() read, which upstream does not report (S7c). */
+const PREFER_WEB_FIRST_MESSAGE = 'Prefer a web-first assertion (toHaveURL, toHaveCount) instead of reading the value once.';
+
 function toSeverity(
   eslintSeverity: number,
   override?: Severity
@@ -401,6 +404,25 @@ export async function runEslint(options: {
         dimension: mapping.dimension,
         reportOnly: decision?.reportOnly ?? mapping.reportOnly,
         ...(form !== undefined ? { form } : {}),
+      });
+    }
+    // QAG-287 S7c: url()/count() reads that upstream prefer-web-first-assertions does not report.
+    const reported = new Set(
+      result.messages.filter((m) => m.ruleId === 'playwright/prefer-web-first-assertions').map((m) => `${m.line}:${m.column}`)
+    );
+    for (const r of postFilter.readFindings()) {
+      if (reported.has(`${r.line}:${r.column}`) || unawaitedLines.has(r.line)) continue;
+      const mapping = mapRule('playwright/prefer-web-first-assertions');
+      findings.push({
+        rule: 'playwright/prefer-web-first-assertions',
+        severity: toSeverity(2, mapping.severityOverride),
+        message: PREFER_WEB_FIRST_MESSAGE,
+        file,
+        line: r.line,
+        column: r.column,
+        dimension: mapping.dimension,
+        reportOnly: mapping.reportOnly,
+        form: r.form,
       });
     }
   }

@@ -57,10 +57,13 @@
   },
   {
    "rule": "playwright/prefer-web-first-assertions",
+   "form": "read-reused"
+  },
+  {
+   "rule": "playwright/prefer-web-first-assertions",
    "form": "read-url-count",
    "class": "C7",
-   "certain": true,
-   "builtBy": "S7c"
+   "certain": true
   },
   {
    "rule": "playwright/no-networkidle",
@@ -1004,8 +1007,7 @@
    "form": "read-direct",
    "tags": [
     "g10:read-reused"
-   ],
-   "pending": "S3b"
+   ]
   },
   {
    "id": "prefer-web-first-assertions/false-read-reused-two-uses",
@@ -1015,40 +1017,35 @@
    "form": "read-direct",
    "tags": [
     "g10:read-reused"
-   ],
-   "pending": "S3b"
+   ]
   },
   {
    "id": "prefer-web-first-assertions/true-read-url",
    "rule": "playwright/prefer-web-first-assertions",
    "verdict": "true",
    "entry": "playwright__prefer-web-first-assertions/read-url-count/true-read-url.ts",
-   "form": "read-url-count",
-   "pending": "S7c"
+   "form": "read-url-count"
   },
   {
    "id": "prefer-web-first-assertions/true-read-url-contains",
    "rule": "playwright/prefer-web-first-assertions",
    "verdict": "true",
    "entry": "playwright__prefer-web-first-assertions/read-url-count/true-read-url-contains.ts",
-   "form": "read-url-count",
-   "pending": "S7c"
+   "form": "read-url-count"
   },
   {
    "id": "prefer-web-first-assertions/true-read-count",
    "rule": "playwright/prefer-web-first-assertions",
    "verdict": "true",
    "entry": "playwright__prefer-web-first-assertions/read-url-count/true-read-count.ts",
-   "form": "read-url-count",
-   "pending": "S7c"
+   "form": "read-url-count"
   },
   {
    "id": "prefer-web-first-assertions/true-read-count-stored",
    "rule": "playwright/prefer-web-first-assertions",
    "verdict": "true",
    "entry": "playwright__prefer-web-first-assertions/read-url-count/true-read-count-stored.ts",
-   "form": "read-url-count",
-   "pending": "S7c"
+   "form": "read-url-count"
   },
   {
    "id": "prefer-web-first-assertions/true-aliased-test-read-url",
@@ -1058,8 +1055,7 @@
    "form": "read-url-count",
    "tags": [
     "alias"
-   ],
-   "pending": "S7c"
+   ]
   },
   {
    "id": "prefer-web-first-assertions/true-js-read-url",
@@ -1069,8 +1065,7 @@
    "form": "read-url-count",
    "tags": [
     "js"
-   ],
-   "pending": "S7c"
+   ]
   },
   {
    "id": "prefer-web-first-assertions/false-js-to-have-url",
@@ -2126,8 +2121,8 @@
    "tags": [
     "shared"
    ],
-   "pending": "S7c",
-   "note": "needs the read shape (S7c) and shared-file linting (S6b); S7c is the later slice, so the mark flips there"
+   "note": "the read shape is reported (S7c); the finding is in a shared helper file, which needs shared-file linting (S6b)",
+   "pending": "S6b"
   },
   {
    "id": "no-wait-for-selector/true-helper-wait-for-selector",
@@ -2254,6 +2249,102 @@
    "entry": "playwright__no-networkidle/-/true-const-options-wait-until.ts",
    "pending": "S4a",
    "note": "C8 with the options object held in a const; needs scope resolution"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-const-page-alias-read-url",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-url-count/true-const-page-alias-read-url.ts",
+   "form": "read-url-count",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/true-const-locator-alias-count",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-url-count/true-const-locator-alias-count.ts",
+   "form": "read-url-count",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/true-js-const-locator-alias-count",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-url-count/true-js-const-locator-alias-count.js",
+   "form": "read-url-count",
+   "tags": [
+    "js",
+    "alias"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/false-count-reused-precedence",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-url-count/false-count-reused-precedence.ts",
+   "form": "read-url-count"
+  },
+  {
+   "id": "prefer-web-first-assertions/false-count-of-a-plain-object",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-url-count/false-count-of-a-plain-object.ts",
+   "form": "read-url-count"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-count-reused-precedence",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-reused/true-count-reused-precedence.ts",
+   "form": "read-reused"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-text-reused-in-branch",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-reused/true-text-reused-in-branch.ts",
+   "form": "read-reused"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-js-text-reused",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-reused/true-js-text-reused.js",
+   "form": "read-reused",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/true-alias-locator-reused",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-reused/true-alias-locator-reused.ts",
+   "form": "read-reused",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/false-single-use",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-reused/false-single-use.ts",
+   "form": "read-reused"
+  },
+  {
+   "id": "prefer-web-first-assertions/false-js-single-use",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-reused/false-js-single-use.js",
+   "form": "read-reused",
+   "tags": [
+    "js"
+   ]
   }
  ]
 }
