@@ -16,8 +16,6 @@ import {
   tierOf,
   confidenceOfRow,
   decorateFindings,
-  ADVISORY_BELOW,
-  MIN_DECIDED,
 } from '../src/catalogue/index.js';
 import { ESLINT_RULE_MAP } from '../src/profiles.js';
 import { RULE_COPY } from '../src/rule-copy.js';
@@ -36,7 +34,8 @@ function packageRoot(): string {
 const root = packageRoot();
 const readJson = (rel: string) => JSON.parse(fs.readFileSync(path.join(root, rel), 'utf8'));
 const precision = readJson('labels/precision.json') as {
-  cells: Array<{ rule: string; form: string; role: string; decided: number; precision: number | null; wilsonLow: number | null; inSample: Record<string, number>; heldoutV1: Record<string, number> }>;
+  schema: number;
+  cells: Array<{ rule: string; form: string; role: string; tier: string }>;
 };
 const cellForms = readJson('tests/data/cell-forms.json') as { bc_eligible_cells: string[][]; bc_ineligible_certain_candidate_cells: string[][] };
 const legacy = readJson('tests/data/legacy-maps.json') as {
@@ -154,45 +153,34 @@ describe('QAG-287 S2: certain-candidate rows and the by-construction path', () =
   });
 });
 
-describe('QAG-287 S2: tier and confidence follow labels/precision.json', () => {
-  const stats = new Map(precision.cells.map((c) => [`${c.rule}|${c.form}`, c]));
+describe('QAG-287 F-5: tier follows labels/precision.json', () => {
+  const listed = new Map(precision.cells.map((c) => [`${c.rule}|${c.form}|${c.role}`, c.tier]));
 
   // Restated independently of src/catalogue/tiers.ts.
   const expectedTier = (r: (typeof ROWS)[number]): string => {
-    if (r.design === 'definite') return 'certain';
-    if (r.design === 'likely') return 'likely';
-    if (r.design === 'advisory' || r.design === 'deleting') return 'advisory';
-    const s = stats.get(`${r.rule}|${r.form}`);
-    if (s && s.decided >= 5 && s.precision !== null && s.precision < 0.7) return 'advisory';
-    return (s as { passedPath?: string } | undefined)?.passedPath ? 'certain' : 'likely';
+    const t = listed.get(`${r.rule}|${r.form}|spec`);
+    if (t) return t;
+    return r.design === 'advisory' || r.design === 'deleting' ? 'advisory' : 'likely';
   };
 
-  it('the thresholds are the documented ones', () => {
-    assert.equal(ADVISORY_BELOW, 0.7);
-    assert.equal(MIN_DECIDED, 5);
-  });
-
-  it('every row has the tier the precision file implies', () => {
-    for (const r of ROWS) assert.equal(tierOf(r), expectedTier(r), `${r.rule} ${r.form}`);
-  });
-
-  it('confidence is the Wilson lower bound of the cell, null below five decided rows', () => {
-    for (const r of ROWS) {
-      const s = stats.get(`${r.rule}|${r.form}`);
-      const expected = s && s.decided >= 5 && s.wilsonLow !== null ? Math.round(s.wilsonLow * 100) / 100 : null;
-      assert.equal(confidenceOfRow(r), expected, `${r.rule} ${r.form}`);
-    }
-  });
-
-  it('the precision file is internally consistent', () => {
+  it('the file is schema 2 and every listed cell has a known tier, role and row', () => {
+    assert.equal(precision.schema, 2);
     for (const c of precision.cells) {
-      const t = c.inSample.TRUE + c.heldoutV1.TRUE;
-      const f = c.inSample.FALSE + c.heldoutV1.FALSE;
-      assert.equal(c.decided, t + f, `${c.rule} ${c.form}`);
-      assert.equal(c.precision, c.decided ? Math.round((t / c.decided) * 10000) / 10000 : null, `${c.rule} ${c.form}`);
+      assert.ok(['certain', 'likely', 'advisory'].includes(c.tier), `${c.rule} ${c.form}: tier ${c.tier}`);
       assert.equal(c.role, 'spec', 'shared-file cells have no measurement yet');
-      assert.ok(rowFor(c.rule, c.form), `${c.rule} ${c.form}: labelled cell has no catalogue row`);
+      assert.ok(rowFor(c.rule, c.form), `${c.rule} ${c.form}: listed cell has no catalogue row`);
     }
+  });
+
+  it('every row has the tier the file gives it, and only listed certain cells are certain', () => {
+    for (const r of ROWS) assert.equal(tierOf(r), expectedTier(r), `${r.rule} ${r.form}`);
+    const certainRows = ROWS.filter((r) => tierOf(r) === 'certain').map((r) => `${r.rule}|${r.form}`).sort();
+    const certainCells = precision.cells.filter((c) => c.tier === 'certain').map((c) => `${c.rule}|${c.form}`).sort();
+    assert.deepEqual(certainRows, certainCells);
+  });
+
+  it('confidence is null when the file carries no counts', () => {
+    for (const r of ROWS) assert.equal(confidenceOfRow(r), null, `${r.rule} ${r.form}`);
   });
 
   it('a shared-file cell is never certain without a shared-file measurement', () => {
@@ -240,7 +228,7 @@ describe('QAG-287 S2: decorateFindings only adds keys', () => {
     const before = JSON.parse(JSON.stringify(f));
     decorateFindings([f], undefined);
     for (const [k, v] of Object.entries(before)) assert.deepEqual((f as unknown as Record<string, unknown>)[k], v, k);
-    assert.equal(f.tier, 'likely', 'no cell has passed a path yet');
+    assert.equal(f.tier, 'likely', 'the file lists no-networkidle as likely');
     assert.equal(f.family, 'flake-risk');
     assert.equal(f.form, '-');
     assert.equal(f.basis, 'docs');
@@ -354,7 +342,7 @@ test('mix', async ({ page }) => {
     const n = r.findings.find((f) => f.rule === 'playwright/no-networkidle');
     assert.equal(n?.form, '-');
     assert.equal(n?.tier, 'likely');
-    assert.equal(r.findings.find((f) => f.rule === 'playwright/no-wait-for-timeout')?.tier, 'likely');
+    assert.equal(r.findings.find((f) => f.rule === 'playwright/no-wait-for-timeout')?.tier, 'advisory', 'the file lists it as advisory');
   });
 
 });

@@ -7,8 +7,8 @@ import { maintainabilityRows } from './maintainability.js';
 import { readCatalogueJson } from './data.js';
 
 export type { Basis, CellStats, Design, Evidence, Family, RuleRow, Tier, VerdictCounts } from './types.js';
-export { cellKey, cellStats, precisionFile } from './precision.js';
-export { tierOf, confidenceOfRow, ADVISORY_BELOW, MIN_DECIDED } from './tiers.js';
+export { cellKey, cellStats, cellTier, precisionFile } from './precision.js';
+export { tierOf, confidenceOfRow, MIN_DECIDED } from './tiers.js';
 
 /** Every cell, in a fixed order. The first row of a rule is its default form. */
 export const ROWS: readonly RuleRow[] = [

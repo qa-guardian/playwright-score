@@ -1,645 +1,222 @@
 {
- "schema": 1,
- "generatedBy": "scripts/build-precision.mjs",
- "stage": "interim: development rows only (hand-checked in-sample rows and held-out v1); regenerated from the fresh labels later",
- "counting": "a row counts only when the build behind --run still reports that finding; TRUE-CLEAN counts as TRUE; precision = TRUE / (TRUE + FALSE)",
- "inputs": {
-  "inSample": {
-   "rows": 531,
-   "emitted": 384
-  },
-  "heldoutV1": {
-   "rows": 153,
-   "emitted": 149
-  }
- },
+ "schema": 2,
+ "purpose": "Per-cell tier for the scorer. certain = meets the L1-M bar; likely = worth a look; advisory = hidden. A cell not listed here is likely.",
  "cells": [
   {
-   "rule": "playwright-score/assertion-unverified",
+   "rule": "metrics/oversized-file",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 9,
-    "FALSE": 0,
-    "DEBATABLE": 7
-   },
-   "heldoutV1": {
-    "TRUE": 0,
-    "FALSE": 0,
-    "DEBATABLE": 2
-   },
-   "decided": 9,
-   "trueRows": 9,
-   "precision": 1,
-   "wilsonLow": 0.7008
+   "tier": "advisory"
+  },
+  {
+   "rule": "playwright-score/parse-error",
+   "form": "-",
+   "role": "spec",
+   "tier": "likely"
   },
   {
    "rule": "playwright/expect-expect",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 5,
-    "FALSE": 0,
-    "DEBATABLE": 11
-   },
-   "heldoutV1": {
-    "TRUE": 0,
-    "FALSE": 2,
-    "DEBATABLE": 6
-   },
-   "decided": 7,
-   "trueRows": 5,
-   "precision": 0.7143,
-   "wilsonLow": 0.3589
+   "tier": "advisory"
+  },
+  {
+   "rule": "playwright/missing-playwright-await",
+   "form": "action",
+   "role": "spec",
+   "tier": "likely"
   },
   {
    "rule": "playwright/missing-playwright-await",
    "form": "assertion",
    "role": "spec",
-   "inSample": {
-    "TRUE": 18,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "heldoutV1": {
-    "TRUE": 4,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "decided": 22,
-   "trueRows": 22,
-   "precision": 1,
-   "wilsonLow": 0.8513
+   "tier": "likely"
   },
   {
    "rule": "playwright/no-conditional-expect",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 4,
-    "FALSE": 2,
-    "DEBATABLE": 8
-   },
-   "heldoutV1": {
-    "TRUE": 7,
-    "FALSE": 0,
-    "DEBATABLE": 1
-   },
-   "decided": 13,
-   "trueRows": 11,
-   "precision": 0.8462,
-   "wilsonLow": 0.5776
+   "tier": "advisory"
   },
   {
    "rule": "playwright/no-conditional-in-test",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 4,
-    "FALSE": 6,
-    "DEBATABLE": 10
-   },
-   "heldoutV1": {
-    "TRUE": 2,
-    "FALSE": 2,
-    "DEBATABLE": 6
-   },
-   "decided": 14,
-   "trueRows": 6,
-   "precision": 0.4286,
-   "wilsonLow": 0.2138
+   "tier": "advisory"
   },
   {
    "rule": "playwright/no-element-handle",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 9,
-    "FALSE": 1,
-    "DEBATABLE": 0
-   },
-   "heldoutV1": {
-    "TRUE": 0,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "decided": 10,
-   "trueRows": 9,
-   "precision": 0.9,
-   "wilsonLow": 0.5958
+   "tier": "likely"
   },
   {
    "rule": "playwright/no-eval",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 3,
-    "FALSE": 0,
-    "DEBATABLE": 7
-   },
-   "heldoutV1": {
-    "TRUE": 3,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "decided": 6,
-   "trueRows": 6,
-   "precision": 1,
-   "wilsonLow": 0.6097
+   "tier": "advisory"
+  },
+  {
+   "rule": "playwright/no-focused-test",
+   "form": "-",
+   "role": "spec",
+   "tier": "likely"
   },
   {
    "rule": "playwright/no-force-option",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 5,
-    "FALSE": 2,
-    "DEBATABLE": 3
-   },
-   "heldoutV1": {
-    "TRUE": 3,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "decided": 10,
-   "trueRows": 8,
-   "precision": 0.8,
-   "wilsonLow": 0.4902
+   "tier": "likely"
   },
   {
    "rule": "playwright/no-networkidle",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 6,
-    "FALSE": 0,
-    "DEBATABLE": 3
-   },
-   "heldoutV1": {
-    "TRUE": 6,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "decided": 12,
-   "trueRows": 12,
-   "precision": 1,
-   "wilsonLow": 0.7575
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/no-page-pause",
+   "form": "-",
+   "role": "spec",
+   "tier": "likely"
   },
   {
    "rule": "playwright/no-raw-locators",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 2,
-    "FALSE": 2,
-    "DEBATABLE": 11
-   },
-   "heldoutV1": {
-    "TRUE": 1,
-    "FALSE": 3,
-    "DEBATABLE": 4
-   },
-   "decided": 8,
-   "trueRows": 3,
-   "precision": 0.375,
-   "wilsonLow": 0.1368
+   "tier": "advisory"
   },
   {
    "rule": "playwright/no-standalone-expect",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 0,
-    "FALSE": 6,
-    "DEBATABLE": 0
-   },
-   "heldoutV1": {
-    "TRUE": 0,
-    "FALSE": 6,
-    "DEBATABLE": 0
-   },
-   "decided": 12,
-   "trueRows": 0,
-   "precision": 0,
-   "wilsonLow": 0
+   "tier": "advisory"
   },
   {
    "rule": "playwright/no-useless-await",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 1,
-    "FALSE": 1,
-    "DEBATABLE": 13
-   },
-   "heldoutV1": {
-    "TRUE": 5,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "decided": 7,
-   "trueRows": 6,
-   "precision": 0.8571,
-   "wilsonLow": 0.4869
+   "tier": "advisory"
   },
   {
    "rule": "playwright/no-wait-for-navigation",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 0,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "heldoutV1": {
-    "TRUE": 1,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "decided": 1,
-   "trueRows": 1,
-   "precision": 1,
-   "wilsonLow": 0.2065
+   "tier": "likely"
   },
   {
    "rule": "playwright/no-wait-for-selector",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 2,
-    "FALSE": 0,
-    "DEBATABLE": 8
-   },
-   "heldoutV1": {
-    "TRUE": 3,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "decided": 5,
-   "trueRows": 5,
-   "precision": 1,
-   "wilsonLow": 0.5655
+   "tier": "certain"
   },
   {
    "rule": "playwright/no-wait-for-timeout",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 3,
-    "FALSE": 2,
-    "DEBATABLE": 5
-   },
-   "heldoutV1": {
-    "TRUE": 6,
-    "FALSE": 0,
-    "DEBATABLE": 2
-   },
-   "decided": 11,
-   "trueRows": 9,
-   "precision": 0.8182,
-   "wilsonLow": 0.523
+   "tier": "advisory"
   },
   {
    "rule": "playwright/prefer-locator",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 0,
-    "FALSE": 0,
-    "DEBATABLE": 7
-   },
-   "heldoutV1": {
-    "TRUE": 2,
-    "FALSE": 1,
-    "DEBATABLE": 0
-   },
-   "decided": 3,
-   "trueRows": 2,
-   "precision": 0.6667,
-   "wilsonLow": 0.2077
+   "tier": "advisory"
   },
   {
    "rule": "playwright/prefer-native-locators",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 0,
-    "FALSE": 2,
-    "DEBATABLE": 13
-   },
-   "heldoutV1": {
-    "TRUE": 3,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "decided": 5,
-   "trueRows": 3,
-   "precision": 0.6,
-   "wilsonLow": 0.2307
+   "tier": "advisory"
   },
   {
    "rule": "playwright/prefer-web-first-assertions",
    "form": "read-direct",
    "role": "spec",
-   "inSample": {
-    "TRUE": 7,
-    "FALSE": 1,
-    "DEBATABLE": 5
-   },
-   "heldoutV1": {
-    "TRUE": 6,
-    "FALSE": 0,
-    "DEBATABLE": 2
-   },
-   "decided": 14,
-   "trueRows": 13,
-   "precision": 0.9286,
-   "wilsonLow": 0.6853
+   "tier": "likely"
   },
   {
    "rule": "playwright/valid-expect",
    "form": "matcherless",
    "role": "spec",
-   "inSample": {
-    "TRUE": 13,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "heldoutV1": {
-    "TRUE": 2,
-    "FALSE": 3,
-    "DEBATABLE": 0
-   },
-   "decided": 18,
-   "trueRows": 15,
-   "precision": 0.8333,
-   "wilsonLow": 0.6078
+   "tier": "likely"
   },
   {
    "rule": "pwscore/eslint-disable-comment",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 0,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "heldoutV1": {
-    "TRUE": 2,
-    "FALSE": 0,
-    "DEBATABLE": 2
-   },
-   "decided": 2,
-   "trueRows": 2,
-   "precision": 1,
-   "wilsonLow": 0.3424
+   "tier": "advisory"
   },
   {
    "rule": "pwscore/no-brittle-selector",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 10,
-    "FALSE": 7,
-    "DEBATABLE": 4
-   },
-   "heldoutV1": {
-    "TRUE": 4,
-    "FALSE": 1,
-    "DEBATABLE": 3
-   },
-   "decided": 22,
-   "trueRows": 14,
-   "precision": 0.6364,
-   "wilsonLow": 0.4295
+   "tier": "advisory"
   },
   {
    "rule": "pwscore/no-coordinate-click",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 0,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "heldoutV1": {
-    "TRUE": 0,
-    "FALSE": 0,
-    "DEBATABLE": 2
-   },
-   "decided": 0,
-   "trueRows": 0,
-   "precision": null,
-   "wilsonLow": null
+   "tier": "likely"
   },
   {
    "rule": "pwscore/no-excessive-timeout",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 4,
-    "FALSE": 0,
-    "DEBATABLE": 14
-   },
-   "heldoutV1": {
-    "TRUE": 0,
-    "FALSE": 0,
-    "DEBATABLE": 5
-   },
-   "decided": 4,
-   "trueRows": 4,
-   "precision": 1,
-   "wilsonLow": 0.5101
+   "tier": "advisory"
   },
   {
    "rule": "pwscore/no-fixme-test",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 6,
-    "FALSE": 0,
-    "DEBATABLE": 14
-   },
-   "heldoutV1": {
-    "TRUE": 1,
-    "FALSE": 0,
-    "DEBATABLE": 1
-   },
-   "decided": 7,
-   "trueRows": 7,
-   "precision": 1,
-   "wilsonLow": 0.6457
-  },
-  {
-   "rule": "pwscore/no-shared-mutable-state",
-   "form": "-",
-   "role": "spec",
-   "inSample": {
-    "TRUE": 9,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "heldoutV1": {
-    "TRUE": 1,
-    "FALSE": 0,
-    "DEBATABLE": 3
-   },
-   "decided": 10,
-   "trueRows": 10,
-   "precision": 1,
-   "wilsonLow": 0.7225
+   "tier": "likely"
   },
   {
    "rule": "pwscore/no-skipped-test-declaration",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 9,
-    "FALSE": 0,
-    "DEBATABLE": 3
-   },
-   "heldoutV1": {
-    "TRUE": 3,
-    "FALSE": 0,
-    "DEBATABLE": 2
-   },
-   "decided": 12,
-   "trueRows": 12,
-   "precision": 1,
-   "wilsonLow": 0.7575
+   "tier": "likely"
   },
   {
    "rule": "pwscore/no-swallowed-assertion",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 9,
-    "FALSE": 0,
-    "DEBATABLE": 6
-   },
-   "heldoutV1": {
-    "TRUE": 6,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "decided": 15,
-   "trueRows": 15,
-   "precision": 1,
-   "wilsonLow": 0.7961
+   "tier": "likely"
   },
   {
    "rule": "pwscore/no-timer-sleep",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 3,
-    "FALSE": 1,
-    "DEBATABLE": 5
-   },
-   "heldoutV1": {
-    "TRUE": 1,
-    "FALSE": 1,
-    "DEBATABLE": 4
-   },
-   "decided": 6,
-   "trueRows": 4,
-   "precision": 0.6667,
-   "wilsonLow": 0.3
+   "tier": "advisory"
   },
   {
    "rule": "pwscore/no-trivial-assertion",
    "form": "literal",
    "role": "spec",
-   "inSample": {
-    "TRUE": 9,
-    "FALSE": 0,
-    "DEBATABLE": 4
-   },
-   "heldoutV1": {
-    "TRUE": 3,
-    "FALSE": 0,
-    "DEBATABLE": 3
-   },
-   "decided": 12,
-   "trueRows": 12,
-   "precision": 1,
-   "wilsonLow": 0.7575
+   "tier": "advisory"
   },
   {
    "rule": "pwscore/no-unawaited-action",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 11,
-    "FALSE": 0,
-    "DEBATABLE": 3
-   },
-   "heldoutV1": {
-    "TRUE": 2,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "decided": 13,
-   "trueRows": 13,
-   "precision": 1,
-   "wilsonLow": 0.7719
+   "tier": "certain"
   },
   {
    "rule": "pwscore/no-unawaited-expect-value",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 3,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "heldoutV1": {
-    "TRUE": 0,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "decided": 3,
-   "trueRows": 3,
-   "precision": 1,
-   "wilsonLow": 0.4385
+   "tier": "likely"
   },
   {
    "rule": "pwscore/no-weak-assertion",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 16,
-    "FALSE": 0,
-    "DEBATABLE": 4
-   },
-   "heldoutV1": {
-    "TRUE": 3,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "decided": 19,
-   "trueRows": 19,
-   "precision": 1,
-   "wilsonLow": 0.8318
+   "tier": "certain"
   },
   {
    "rule": "pwscore/serial-mode-dependency",
    "form": "-",
    "role": "spec",
-   "inSample": {
-    "TRUE": 3,
-    "FALSE": 0,
-    "DEBATABLE": 0
-   },
-   "heldoutV1": {
-    "TRUE": 0,
-    "FALSE": 0,
-    "DEBATABLE": 2
-   },
-   "decided": 3,
-   "trueRows": 3,
-   "precision": 1,
-   "wilsonLow": 0.4385
+   "tier": "advisory"
   }
  ]
 }

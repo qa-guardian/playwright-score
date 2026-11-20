@@ -9,7 +9,7 @@ export type Tier = 'certain' | 'likely' | 'needs-check' | 'advisory';
 
 /**
  * How a row's tier is decided.
- * - candidate: may be certain; whether it is, is decided by evidence (src/catalogue/tiers.ts).
+ * - candidate: may be certain; whether it is, is decided by labels/precision.json (src/catalogue/tiers.ts).
  * - likely / advisory: fixed by design.
  * - deleting: scheduled for deletion in 3.0.0 and reported as advisory until then.
  * - definite: the scorer's own status findings (parse error, no files).
