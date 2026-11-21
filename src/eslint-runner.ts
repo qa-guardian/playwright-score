@@ -9,6 +9,7 @@ import { mapRule } from './profiles.js';
 import { getCurriedTestCallbackRanges } from './metrics.js';
 import { plainAliasNames } from './test-aliases.js';
 import { createPostFilter } from './eslint-postfilter.js';
+import { formOfReportedRead, urlCountReads } from './read-forms.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
 const ASSERT_FUNCTION_PATTERNS = [
@@ -393,7 +394,10 @@ export async function runEslint(options: {
       if (decision?.drop) continue;
       const mapping = mapRule(msg.ruleId);
       const messageSeverity = msg.messageId ? MESSAGE_SEVERITY[`${msg.ruleId}#${msg.messageId}`] : undefined;
-      const form = postFilter.formOf({ ruleId: msg.ruleId, messageId: msg.messageId, line: msg.line, column: msg.column });
+      const form =
+        msg.ruleId === 'playwright/prefer-web-first-assertions'
+          ? formOfReportedRead(postFilter.tree(), msg.line, msg.column)
+          : postFilter.formOf({ ruleId: msg.ruleId, messageId: msg.messageId, line: msg.line, column: msg.column });
       findings.push({
         rule: msg.ruleId,
         severity: decision?.severity ?? messageSeverity ?? toSeverity(msg.severity, mapping.severityOverride),
@@ -410,7 +414,7 @@ export async function runEslint(options: {
     const reported = new Set(
       result.messages.filter((m) => m.ruleId === 'playwright/prefer-web-first-assertions').map((m) => `${m.line}:${m.column}`)
     );
-    for (const r of postFilter.readFindings()) {
+    for (const r of urlCountReads(postFilter.tree())) {
       if (reported.has(`${r.line}:${r.column}`) || unawaitedLines.has(r.line)) continue;
       const mapping = mapRule('playwright/prefer-web-first-assertions');
       findings.push({

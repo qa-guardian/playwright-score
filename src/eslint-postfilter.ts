@@ -1,8 +1,6 @@
 import { parseForESLint } from '@typescript-eslint/parser';
 import { sourceTypeFor } from './source-type.js';
 import type { Severity } from './types.js';
-import { formOfReportedRead, urlCountReads } from './read-forms.js';
-import type { ReadFinding } from './read-forms.js';
 
 // QAG-287 slice F: AST post-filters for upstream eslint-plugin-playwright
 // messages. A hand-check of real findings showed several upstream rules fire on
@@ -407,7 +405,7 @@ function reportedConditional(t: Tree, node: N): N | undefined {
 }
 
 /** Every name a binding pattern introduces (`x`, `[a, b]`, `{ a, b: c, ...rest }`, defaults). */
-function patternNames(p: N | null | undefined, out: string[] = []): string[] {
+export function patternNames(p: N | null | undefined, out: string[] = []): string[] {
   if (!p) return out;
   switch (p.type) {
     case 'Identifier':
@@ -589,7 +587,7 @@ function waitIsSwallowed(t: Tree, node: N): boolean {
 
 // ---- prefer-locator ------------------------------------------------------
 
-const PAGE_OR_FRAME_NAME = /^(page|frame)$|(Page|Frame)$/;
+export const PAGE_OR_FRAME_NAME = /^(page|frame)$|(Page|Frame)$/;
 
 /**
  * Upstream treats any receiver whose name starts with `page`/`frame` as a Page
@@ -786,8 +784,8 @@ export type PostFilter = ((msg: PostFilterMessage) => Decision | undefined) & {
    * node cannot be found.
    */
   formOf: (msg: PostFilterMessage) => string | undefined;
-  /** Reads of page.url() and locator.count() that upstream prefer-web-first-assertions does not report (S7c). */
-  readFindings: () => ReadFinding[];
+  /** The parsed file, for form modules the caller runs itself (src/read-forms.ts); undefined when it does not parse. */
+  tree: () => Tree | undefined;
 };
 
 function parse(source: string, file: string): Tree | undefined {
@@ -866,19 +864,9 @@ export function createPostFilter(source: () => string, file: string): PostFilter
         const node = t?.nodeAt(msg.line, msg.column);
         return t && node ? missingAwaitForm(t, node) : undefined;
       }
-      case 'playwright/prefer-web-first-assertions': {
-        const t = ensureTree();
-        const node = t?.nodeAt(msg.line, msg.column);
-        return t && node ? formOfReportedRead(t, node) : undefined;
-      }
       default:
         return undefined;
     }
   };
-  /** Reads upstream does not report (page.url(), locator.count()); none for a file that does not parse. */
-  const readFindings = (): ReadFinding[] => {
-    const t = ensureTree();
-    return t ? urlCountReads(t) : [];
-  };
-  return Object.assign(decide, { formOf, readFindings });
+  return Object.assign(decide, { formOf, tree: ensureTree });
 }

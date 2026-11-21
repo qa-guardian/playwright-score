@@ -127,6 +127,13 @@ describe('QAG-287 S7c: read-url-count', () => {
     assert.deepEqual(f.map((x) => x.form), ['read-url-count']);
   });
 
+  it('a page object built with new is not a Page, a page bound any other way is', async () => {
+    const own = await reads("  class CartPage { url() { return '/cart'; } }\n  const cartPage = new CartPage();\n  expect(cartPage.url()).toBe('/cart');");
+    assert.deepEqual(own, []);
+    const popup = await reads("  const popupPage = await page.waitForEvent('popup');\n  expect(popupPage.url()).toContain('/help');");
+    assert.deepEqual(popup.map((x) => x.form), ['read-url-count']);
+  });
+
   it('leaves retrying and non-page shapes alone', async () => {
     const f = await reads(
       [

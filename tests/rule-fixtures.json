@@ -2296,6 +2296,13 @@
    "form": "read-url-count"
   },
   {
+   "id": "prefer-web-first-assertions/false-page-object-url",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-url-count/false-page-object-url.ts",
+   "form": "read-url-count"
+  },
+  {
    "id": "prefer-web-first-assertions/true-count-reused-precedence",
    "rule": "playwright/prefer-web-first-assertions",
    "verdict": "true",

@@ -1,5 +1,6 @@
-import { isFunction, insideRetryingBlock } from './eslint-postfilter.js';
+import { isFunction, insideRetryingBlock, patternNames, PAGE_OR_FRAME_NAME } from './eslint-postfilter.js';
 import type { N, Tree } from './eslint-postfilter.js';
+import { unwrap as unwrapNode, memberName, parseMatcherCall } from './rules/ast-util.js';
 
 // QAG-287 B1 (S3b, S7c): forms of `playwright/prefer-web-first-assertions`.
 //
@@ -20,45 +21,21 @@ export interface ReadFinding {
   form: ReadForm;
 }
 
-const PAGE_NAME = /^(page|frame)$|(Page|Frame)$/;
 const LOCATOR_FACTORIES = new Set([
   'locator', 'getByRole', 'getByText', 'getByLabel', 'getByPlaceholder', 'getByAltText', 'getByTitle', 'getByTestId', 'frameLocator',
 ]);
 const LOCATOR_NARROWERS = new Set(['filter', 'nth', 'first', 'last', 'and', 'or', 'locator', 'getByRole', 'getByText', 'getByLabel', 'getByPlaceholder', 'getByAltText', 'getByTitle', 'getByTestId']);
 const MAX_ALIAS_DEPTH = 3;
 
-const unwrap = (n: N | undefined): N | undefined => {
-  let cur = n;
-  while (cur && (cur.type === 'TSNonNullExpression' || cur.type === 'ChainExpression' || cur.type === 'TSAsExpression' || cur.type === 'ParenthesizedExpression')) {
-    cur = (cur.expression ?? cur.argument) as N | undefined;
-  }
-  return cur;
-};
-const unwrapAwait = (n: N | undefined): N | undefined => {
-  const u = unwrap(n);
-  return u?.type === 'AwaitExpression' ? unwrap(u.argument as N) : u;
-};
-const propName = (m: N): string | undefined => (m.computed ? undefined : (m.property?.name as string | undefined));
+/** The shared unwrap (await, non-null, optional chain, `as`, parentheses), typed for this module's nodes. */
+const unwrap = (n: N | undefined): N | undefined => unwrapNode(n) as N | undefined;
 
-/** `expect(...)` or `expect.soft(...)`. */
-function isExpectCall(n: N | undefined): boolean {
+/** `expect(<subject>)` or `expect.soft(<subject>)`: a call whose first argument is the value under test (`expect.poll` takes a function, so it is not one). */
+function isExpectSubjectCall(n: N | undefined): boolean {
   if (n?.type !== 'CallExpression') return false;
   const c = n.callee as N | undefined;
   if (c?.type === 'Identifier') return c.name === 'expect';
-  return c?.type === 'MemberExpression' && c.object?.type === 'Identifier' && c.object.name === 'expect' && propName(c) === 'soft';
-}
-
-/** Does the pattern (parameter, declarator id, catch or loop binding) bind `name`? */
-function patternBinds(p: N | undefined, name: string): boolean {
-  if (!p) return false;
-  switch (p.type) {
-    case 'Identifier': return p.name === name;
-    case 'AssignmentPattern': return patternBinds(p.left as N, name);
-    case 'RestElement': return patternBinds(p.argument as N, name);
-    case 'ArrayPattern': return (p.elements as (N | null)[]).some((e) => !!e && patternBinds(e, name));
-    case 'ObjectPattern': return (p.properties as N[]).some((q) => patternBinds(q.type === 'Property' ? (q.value as N) : q, name));
-    default: return false;
-  }
+  return c?.type === 'MemberExpression' && c.object?.type === 'Identifier' && c.object.name === 'expect' && memberName(c) === 'soft';
 }
 
 interface Binding {
@@ -70,7 +47,7 @@ interface Binding {
 
 function bindingInDeclaration(d: N, name: string): Binding | undefined {
   for (const v of (d.declarations ?? []) as N[]) {
-    if (!patternBinds(v.id as N, name)) continue;
+    if (!patternNames(v.id as N).includes(name)) continue;
     const simple = v.id?.type === 'Identifier' && !!v.init;
     return { decl: v, hasInit: simple, isConst: d.kind === 'const' };
   }
@@ -99,7 +76,7 @@ function bindingOf(t: Tree, scope: N, name: string): Binding | undefined {
     n?.type === 'VariableDeclaration' ? bindingInDeclaration(n, name) : undefined;
   const asBinding = (n: N): Binding => ({ decl: n, hasInit: false, isConst: false });
   if (isFunction(scope)) {
-    if (((scope.params ?? []) as N[]).some((q) => patternBinds(q, name))) return asBinding(scope);
+    if (((scope.params ?? []) as N[]).some((q) => patternNames(q).includes(name))) return asBinding(scope);
     return varInFunction(t, scope, name);
   }
   switch (scope.type) {
@@ -115,9 +92,9 @@ function bindingOf(t: Tree, scope: N, name: string): Binding | undefined {
       return own(scope.init as N);
     case 'ForInStatement':
     case 'ForOfStatement':
-      return scope.left?.type === 'VariableDeclaration' ? (patternBinds(scope.left.declarations?.[0]?.id as N, name) ? asBinding(scope.left as N) : undefined) : undefined;
+      return scope.left?.type === 'VariableDeclaration' ? (patternNames(scope.left.declarations?.[0]?.id as N).includes(name) ? asBinding(scope.left as N) : undefined) : undefined;
     case 'CatchClause':
-      return patternBinds(scope.param as N, name) ? asBinding(scope) : undefined;
+      return patternNames(scope.param as N).includes(name) ? asBinding(scope) : undefined;
     case 'SwitchStatement':
       for (const c of (scope.cases ?? []) as N[]) for (const st of (c.consequent ?? []) as N[]) {
         const b = own(st);
@@ -168,7 +145,7 @@ function reusedName(t: Tree, from: N, name: string): boolean {
 
 /** A variable bound to a read whose name is used again beyond the subject of this expect. */
 function reusedVariable(t: Tree, expectCall: N): boolean {
-  const subject = unwrapAwait(expectCall.arguments?.[0] as N | undefined);
+  const subject = unwrap(expectCall.arguments?.[0] as N | undefined);
   return subject?.type === 'Identifier' && reusedName(t, expectCall, subject.name);
 }
 
@@ -179,7 +156,7 @@ function reusedVariable(t: Tree, expectCall: N): boolean {
  */
 function reportedReadReused(t: Tree, node: N): boolean {
   for (let c: N | undefined = node; c; c = t.parent(c)) {
-    if (isExpectCall(c)) return reusedVariable(t, c);
+    if (isExpectSubjectCall(c)) return reusedVariable(t, c);
     if (c.type === 'VariableDeclarator' && c.id?.type === 'Identifier' && c.init) return reusedName(t, c.id as N, c.id.name as string);
     if (isFunction(c)) return false;
   }
@@ -191,11 +168,17 @@ function isPageLike(t: Tree, n: N | undefined, depth = 0): boolean {
   const u = unwrap(n);
   if (!u) return false;
   if (u.type === 'Identifier') {
-    if (PAGE_NAME.test(u.name)) return true;
+    if (PAGE_OR_FRAME_NAME.test(u.name)) return !boundToNew(t, u);
     return aliasOf(t, u, depth, (init) => isPageLike(t, init, depth + 1));
   }
-  if (u.type === 'MemberExpression') return PAGE_NAME.test(propName(u) ?? '');
+  if (u.type === 'MemberExpression') return PAGE_OR_FRAME_NAME.test(memberName(u) ?? '');
   return false;
+}
+
+/** `const checkoutPage = new CheckoutPage(page)`: a page object named like a Page, whose `url()` is its own method. */
+function boundToNew(t: Tree, id: N): boolean {
+  const b = resolve(t, id, id.name);
+  return !!b && b.hasInit && (b.decl.init as N).type === 'NewExpression';
 }
 
 /** Is `n` a Locator built from a page: a factory call on a page, narrowed by locator methods, or a const bound to one? */
@@ -204,7 +187,7 @@ function isLocatorLike(t: Tree, n: N | undefined, depth = 0): boolean {
   if (!u) return false;
   if (u.type === 'Identifier') return aliasOf(t, u, depth, (init) => isLocatorLike(t, init, depth + 1));
   if (u.type !== 'CallExpression' || u.callee?.type !== 'MemberExpression') return false;
-  const name = propName(u.callee);
+  const name = memberName(u.callee);
   if (!name) return false;
   const obj = u.callee.object as N;
   if (LOCATOR_FACTORIES.has(name) && isPageLike(t, obj, depth)) return true;
@@ -216,14 +199,14 @@ function aliasOf(t: Tree, id: N, depth: number, accept: (init: N) => boolean): b
   if (depth >= MAX_ALIAS_DEPTH) return false;
   const b = resolve(t, id, id.name);
   if (!b || !b.isConst || !b.hasInit) return false;
-  return accept(unwrapAwait(b.decl.init as N) as N);
+  return accept(unwrap(b.decl.init as N) as N);
 }
 
 /** `page.url()` is a url read, `<locator>.count()` a count read. */
 function readKind(t: Tree, n: N | undefined): 'url' | 'count' | undefined {
-  const u = unwrapAwait(n);
+  const u = unwrap(n);
   if (!u || u.type !== 'CallExpression' || u.callee?.type !== 'MemberExpression' || (u.arguments as N[]).length > 0) return undefined;
-  const name = propName(u.callee);
+  const name = memberName(u.callee);
   const obj = u.callee.object as N;
   if (name === 'url') return isPageLike(t, obj) ? 'url' : undefined;
   if (name === 'count') return isLocatorLike(t, obj) ? 'count' : undefined;
@@ -232,7 +215,7 @@ function readKind(t: Tree, n: N | undefined): 'url' | 'count' | undefined {
 
 /** The subject of the expect is a url/count read, directly or through a const bound to one. */
 function urlOrCountKind(t: Tree, expectCall: N): 'url' | 'count' | undefined {
-  const subject = unwrapAwait(expectCall.arguments?.[0] as N | undefined);
+  const subject = unwrap(expectCall.arguments?.[0] as N | undefined);
   if (!subject) return undefined;
   if (subject.type === 'Identifier') {
     const b = resolve(t, expectCall, subject.name);
@@ -251,7 +234,7 @@ function matcherOf(t: Tree, expectCall: N): string | undefined {
   for (;;) {
     const p = t.parent(cur);
     if (p?.type === 'MemberExpression' && p.object === cur) cur = p;
-    else if (p?.type === 'CallExpression' && p.callee === cur) return propName(cur);
+    else if (p?.type === 'CallExpression' && p.callee === cur) return parseMatcherCall(p)?.matcher;
     else return undefined;
   }
 }
@@ -260,17 +243,18 @@ function matcherOf(t: Tree, expectCall: N): string | undefined {
 export const readForms = { enabled: true };
 
 /** Form of an upstream finding reported at (line, column): read-reused when the read is reused, else read-direct. */
-export function formOfReportedRead(t: Tree, node: N): ReadForm | undefined {
-  if (!readForms.enabled) return undefined;
+export function formOfReportedRead(t: Tree | undefined, line: number, column: number): ReadForm | undefined {
+  const node = t?.nodeAt(line, column);
+  if (!t || !node || !readForms.enabled) return undefined;
   return reportedReadReused(t, node) ? 'read-reused' : 'read-direct';
 }
 
 /** The url/count reads upstream does not report: `expect(<read>).toX()` with an equivalent web-first matcher, outside a retrying block. */
-export function urlCountReads(t: Tree): ReadFinding[] {
+export function urlCountReads(t: Tree | undefined): ReadFinding[] {
   const out: ReadFinding[] = [];
-  if (!readForms.enabled) return out;
+  if (!t || !readForms.enabled) return out;
   t.some(t.root, (n) => {
-    if (!isExpectCall(n)) return false;
+    if (!isExpectSubjectCall(n)) return false;
     const matcher = matcherOf(t, n);
     if (!matcher || insideRetryingBlock(t, n)) return false;
     const kind = urlOrCountKind(t, n);

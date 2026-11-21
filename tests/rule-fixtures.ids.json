@@ -890,6 +890,10 @@
    "pending": null
   },
   {
+   "id": "prefer-web-first-assertions/false-page-object-url",
+   "pending": null
+  },
+  {
    "id": "prefer-web-first-assertions/false-poll-callback",
    "pending": null
   },
