@@ -4,7 +4,6 @@ import { flakeRiskRows } from './flake-risk.js';
 import { flakeRiskAdvisoryRows } from './flake-risk-advisory.js';
 import { suiteRows } from './suite.js';
 import { maintainabilityRows } from './maintainability.js';
-import { receiverUnresolvedRows } from './receiver-unresolved.js';
 import { readCatalogueJson } from './data.js';
 
 export type { Basis, CellStats, Design, Evidence, Family, RuleRow, Tier, VerdictCounts } from './types.js';
@@ -18,7 +17,6 @@ export const ROWS: readonly RuleRow[] = [
   ...flakeRiskAdvisoryRows,
   ...suiteRows,
   ...maintainabilityRows,
-  ...receiverUnresolvedRows,
 ];
 
 const byCell = new Map<string, RuleRow>();

@@ -182,10 +182,6 @@
    "pending": "S3c"
   },
   {
-   "id": "no-element-handle/false-js-fixture-page",
-   "pending": null
-  },
-  {
    "id": "no-element-handle/false-js-locator-click",
    "pending": null
   },
@@ -206,15 +202,7 @@
    "pending": null
   },
   {
-   "id": "no-element-handle/true-constructor-parameter-property",
-   "pending": null
-  },
-  {
    "id": "no-element-handle/true-customer-calls-customer-registry-deps",
-   "pending": null
-  },
-  {
-   "id": "no-element-handle/true-destructuring-assignment-to-page",
    "pending": null
   },
   {
@@ -222,27 +210,7 @@
    "pending": "S6b"
   },
   {
-   "id": "no-element-handle/true-js-exports-changed-by-object-assign",
-   "pending": null
-  },
-  {
    "id": "no-element-handle/true-js-page-dollar",
-   "pending": null
-  },
-  {
-   "id": "no-element-handle/true-js-require-test",
-   "pending": null
-  },
-  {
-   "id": "no-element-handle/true-launcher-re-exported-from-local-file",
-   "pending": null
-  },
-  {
-   "id": "no-element-handle/true-logical-assignment-to-page",
-   "pending": null
-  },
-  {
-   "id": "no-element-handle/true-non-playwright-launcher-helper",
    "pending": null
   },
   {
@@ -251,14 +219,6 @@
   },
   {
    "id": "no-element-handle/true-page-dollar-dollar",
-   "pending": null
-  },
-  {
-   "id": "no-element-handle/true-two-launchers-in-helper",
-   "pending": null
-  },
-  {
-   "id": "no-element-handle/true-typed-class-field-this",
    "pending": null
   },
   {
@@ -374,19 +334,11 @@
    "pending": null
   },
   {
-   "id": "no-force-option/false-page-object-wrapper-forwards-force",
-   "pending": null
-  },
-  {
    "id": "no-force-option/false-plain-click",
    "pending": null
   },
   {
    "id": "no-force-option/true-force-click",
-   "pending": null
-  },
-  {
-   "id": "no-force-option/true-page-object-getter-method-arrow",
    "pending": null
   },
   {
@@ -407,10 +359,6 @@
   },
   {
    "id": "no-networkidle/false-load-state-load",
-   "pending": null
-  },
-  {
-   "id": "no-networkidle/false-page-object-wrapper-forwards-networkidle",
    "pending": null
   },
   {
@@ -458,10 +406,6 @@
    "pending": "S3c"
   },
   {
-   "id": "no-page-pause/false-fixture-page",
-   "pending": null
-  },
-  {
    "id": "no-page-pause/false-js-no-pause",
    "pending": null
   },
@@ -482,15 +426,7 @@
    "pending": null
   },
   {
-   "id": "no-page-pause/true-context-new-page",
-   "pending": null
-  },
-  {
    "id": "no-page-pause/true-customer-calls-customer-registry-deps",
-   "pending": null
-  },
-  {
-   "id": "no-page-pause/true-electron-first-window",
    "pending": null
   },
   {
@@ -498,15 +434,7 @@
    "pending": "S6b"
   },
   {
-   "id": "no-page-pause/true-js-launcher-new-page",
-   "pending": null
-  },
-  {
    "id": "no-page-pause/true-js-pause-in-test",
-   "pending": null
-  },
-  {
-   "id": "no-page-pause/true-js-untyped-helper-parameter",
    "pending": null
   },
   {
@@ -527,10 +455,6 @@
   },
   {
    "id": "no-raw-locators/true-css-locator",
-   "pending": null
-  },
-  {
-   "id": "no-raw-locators/true-page-object-locator-chain",
    "pending": null
   },
   {
@@ -662,10 +586,6 @@
    "pending": null
   },
   {
-   "id": "no-unawaited-action/true-destructured-keyboard-press",
-   "pending": null
-  },
-  {
    "id": "no-unawaited-action/true-goto",
    "pending": null
   },
@@ -754,10 +674,6 @@
    "pending": null
   },
   {
-   "id": "no-wait-for-navigation/false-typed-page-parameter",
-   "pending": null
-  },
-  {
    "id": "no-wait-for-navigation/false-wait-for-url",
    "pending": null
   },
@@ -782,27 +698,11 @@
    "pending": null
   },
   {
-   "id": "no-wait-for-navigation/true-merge-tests",
-   "pending": null
-  },
-  {
-   "id": "no-wait-for-navigation/true-page-object-own-method",
-   "pending": null
-  },
-  {
    "id": "no-wait-for-navigation/true-promise-all-click",
    "pending": null
   },
   {
    "id": "no-wait-for-navigation/true-stored-promise",
-   "pending": null
-  },
-  {
-   "id": "no-wait-for-navigation/true-test-import-does-not-resolve",
-   "pending": null
-  },
-  {
-   "id": "no-wait-for-navigation/true-typed-let-page-before-all",
    "pending": null
   },
   {
@@ -816,10 +716,6 @@
   {
    "id": "no-wait-for-selector/false-api-under-test-lockfile-link-only",
    "pending": "S3c"
-  },
-  {
-   "id": "no-wait-for-selector/false-fixture-page",
-   "pending": null
   },
   {
    "id": "no-wait-for-selector/false-js-locator-wait-for",
@@ -842,10 +738,6 @@
    "pending": null
   },
   {
-   "id": "no-wait-for-selector/true-const-page-alias",
-   "pending": null
-  },
-  {
    "id": "no-wait-for-selector/true-customer-calls-customer-registry-deps",
    "pending": null
   },
@@ -858,47 +750,11 @@
    "pending": "S6b"
   },
   {
-   "id": "no-wait-for-selector/true-js-const-page-alias",
-   "pending": null
-  },
-  {
-   "id": "no-wait-for-selector/true-js-module-exports-reassigned",
-   "pending": null
-  },
-  {
-   "id": "no-wait-for-selector/true-js-untyped-helper-parameter",
-   "pending": null
-  },
-  {
    "id": "no-wait-for-selector/true-js-wait-for-selector",
    "pending": null
   },
   {
-   "id": "no-wait-for-selector/true-loop-and-catch-bindings",
-   "pending": null
-  },
-  {
    "id": "no-wait-for-selector/true-page-wait-for-selector",
-   "pending": null
-  },
-  {
-   "id": "no-wait-for-selector/true-renamed-page-fixture",
-   "pending": null
-  },
-  {
-   "id": "no-wait-for-selector/true-test-from-extend-file",
-   "pending": null
-  },
-  {
-   "id": "no-wait-for-selector/true-type-not-from-playwright",
-   "pending": null
-  },
-  {
-   "id": "no-wait-for-selector/true-untyped-helper-parameter",
-   "pending": null
-  },
-  {
-   "id": "no-wait-for-selector/true-var-page-redeclared",
    "pending": null
   },
   {
@@ -919,10 +775,6 @@
   },
   {
    "id": "no-weak-assertion/false-count-at-least-one",
-   "pending": null
-  },
-  {
-   "id": "no-weak-assertion/false-destructured-const-in-expect",
    "pending": null
   },
   {
