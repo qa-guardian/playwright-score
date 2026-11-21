@@ -342,7 +342,9 @@ test('mix', async ({ page }) => {
     const n = r.findings.find((f) => f.rule === 'playwright/no-networkidle');
     assert.equal(n?.form, '-');
     assert.equal(n?.tier, 'likely');
-    assert.equal(r.findings.find((f) => f.rule === 'playwright/no-wait-for-timeout')?.tier, 'advisory', 'the file lists it as advisory');
+    const listed = precision.cells.find((c) => c.rule === 'playwright/no-wait-for-timeout' && c.form === '-' && c.role === 'spec');
+    assert.ok(listed, 'the file lists no-wait-for-timeout');
+    assert.equal(r.findings.find((f) => f.rule === 'playwright/no-wait-for-timeout')?.tier, listed.tier, 'a listed cell has the tier the file gives it');
   });
 
 });

@@ -9,12 +9,6 @@
    "tier": "advisory"
   },
   {
-   "rule": "playwright-score/parse-error",
-   "form": "-",
-   "role": "spec",
-   "tier": "likely"
-  },
-  {
    "rule": "playwright/expect-expect",
    "form": "-",
    "role": "spec",
@@ -36,7 +30,7 @@
    "rule": "playwright/no-conditional-expect",
    "form": "-",
    "role": "spec",
-   "tier": "advisory"
+   "tier": "likely"
   },
   {
    "rule": "playwright/no-conditional-in-test",
@@ -114,7 +108,7 @@
    "rule": "playwright/no-wait-for-timeout",
    "form": "-",
    "role": "spec",
-   "tier": "advisory"
+   "tier": "likely"
   },
   {
    "rule": "playwright/prefer-locator",
@@ -156,7 +150,7 @@
    "rule": "pwscore/no-coordinate-click",
    "form": "-",
    "role": "spec",
-   "tier": "likely"
+   "tier": "advisory"
   },
   {
    "rule": "pwscore/no-excessive-timeout",
@@ -192,7 +186,7 @@
    "rule": "pwscore/no-trivial-assertion",
    "form": "literal",
    "role": "spec",
-   "tier": "advisory"
+   "tier": "likely"
   },
   {
    "rule": "pwscore/no-unawaited-action",
