@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scorePaths } from '../src/index.js';
 import { catalogueRules } from '../src/catalogue/index.js';
+import { RECEIVER_TIERED_RULES } from '../src/receiver-forms.js';
 import type { ProfileName } from '../src/types.js';
 
 // QAG-287 S3: the per-rule fixture gate (ADR section 6.0 R2).
@@ -199,10 +200,22 @@ export function judge(f: Fixture, probe: Probe & { parseError: boolean }): strin
     return null;
   }
   if (probe.fires !== wantFires) return `${f.id}: ${wantFires ? 'expected a finding' : 'expected no finding'} for ${target} and got ${probe.fires ? 'one' : 'none'}`;
-  if (wantFires && f.form && probe.formSeen.length > 0 && !probe.formSeen.includes(f.form)) {
-    return `${f.id}: finding form is ${probe.formSeen.join(',')}, fixture says ${f.form}`;
+  const form = expectedForm(f);
+  if (wantFires && form && probe.formSeen.length > 0 && !probe.formSeen.includes(form)) {
+    return `${f.id}: finding form is ${probe.formSeen.join(',')}, fixture says ${form}`;
   }
   return null;
+}
+
+/**
+ * The form a TRUE fixture's finding must carry. A receiver-tiered rule (B2) gives every finding a form, so a fixture
+ * of its `-` cell must come back as `-` and not as `unresolved`. A rule that is not in RECEIVER_TIERED_RULES has no
+ * `unresolved` form: the same shapes are still reported, as `-`.
+ */
+export function expectedForm(f: Fixture): string | undefined {
+  const tiered = RECEIVER_TIERED_RULES.includes(f.rule);
+  if (f.form === 'unresolved' && !tiered) return '-';
+  return tiered && !f.project ? (f.form ?? '-') : f.form;
 }
 
 async function probeFixture(f: Fixture): Promise<Probe & { parseError: boolean; unexpectedNoFiles: boolean }> {
