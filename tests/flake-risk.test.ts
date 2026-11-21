@@ -103,6 +103,22 @@ describe('QAG-287 2b: pwscore/no-excessive-timeout', () => {
   });
 });
 
+describe('QAG-287 2b: tests declared through a factory function', () => {
+  async function tests(rel: string) {
+    const r = await scorePaths({ paths: [path.join(fixtures, rel)], profile: 'standard', threshold: 0, cwd: fixtures });
+    return r.summary.tests;
+  }
+  it('a factory in a sibling file (direct and nested) makes its call result a test alias: two tests counted', async () => {
+    assert.equal(await tests('test-factory/good-factory.spec.ts'), 2);
+  });
+  it('twin: a function that does not return a test is not an alias: no test counted', async () => {
+    assert.equal(await tests('test-factory/bad-not-a-factory.spec.ts'), 0);
+  });
+  it('twin: calling the result of a non-factory like a test does not count as a test', async () => {
+    assert.equal(await tests('test-factory/bad-not-a-factory-called.spec.ts'), 0);
+  });
+});
+
 describe('QAG-287: curried test-factory calls factory({...})("title", fn)', () => {
   async function run(rel: string) {
     return scorePaths({ paths: [path.join(fixtures, rel)], profile: 'standard', threshold: 0, cwd: fixtures });
