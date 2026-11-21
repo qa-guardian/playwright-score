@@ -147,10 +147,37 @@ export function parseErrorFileCount(result: ScoreResult): number {
   return new Set(result.findings.filter((f) => f.rule === PARSE_ERROR_RULE).map((f) => f.file)).size;
 }
 
+/**
+ * A result from scorePaths says so itself (`status`). A result without a
+ * status (built by computeScore directly) falls back to what its findings
+ * and counts show.
+ */
 export function notScoredState(result: ScoreResult): NotScored {
+  if (result.status === 'scored' || result.status === 'partial') return undefined;
   if (parseErrorFileCount(result) > 0) return 'parse-error';
-  if (result.summary.tests === 0) return 'no-tests';
+  if (result.summary.tests === 0 || result.status === 'not-scored') return 'no-tests';
   return undefined;
+}
+
+const SKIP_REASON_TEXT: Record<string, string> = {
+  'parse-error': 'syntax error',
+  'too-large': 'over the 1 MB size limit',
+  binary: 'not a text file',
+  unreadable: 'could not be read',
+};
+
+/** "a.spec.ts (syntax error), b.spec.ts (over the 1 MB size limit) and 2 more". */
+export function skippedFilesText(result: ScoreResult, max = 3): string {
+  const skipped = result.coverage?.skipped ?? [];
+  const shown = skipped.slice(0, max).map((s) => `${s.file} (${SKIP_REASON_TEXT[s.reason] ?? s.reason})`);
+  return shown.join(', ') + (skipped.length > max ? ` and ${skipped.length - max} more` : '');
+}
+
+/** One line for a partial result, or undefined. */
+export function partialNote(result: ScoreResult): string | undefined {
+  if (result.status !== 'partial' || !result.coverage) return undefined;
+  const { filesFound, skipped } = result.coverage;
+  return `Partial: ${skipped.length} of ${plural(filesFound, 'file')} skipped, so this is not a pass. The score covers the other ${plural(filesFound - skipped.length, 'file')}. Skipped: ${skippedFilesText(result)}.`;
 }
 
 /** "B means 80-89; A is 90 and up." Built from the engine's own grade bands. */
@@ -183,6 +210,16 @@ export function notScoredHeadline(result: ScoreResult): { headline: string; line
           ? '1 file has a syntax error, so this suite could not be scored.'
           : `${n} files have syntax errors, so this suite could not be scored.`,
       line: 'Fix the file below and run the score again. The other findings are shown as a preview.',
+    };
+  }
+  const skipped = result.coverage?.skipped.length ?? 0;
+  if (skipped > 0) {
+    return {
+      headline:
+        skipped === 1
+          ? '1 file was skipped, so this suite could not be scored.'
+          : `${skipped} files were skipped, so this suite could not be scored.`,
+      line: `Skipped: ${skippedFilesText(result)}.`,
     };
   }
   return {

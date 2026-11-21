@@ -43,7 +43,7 @@ outputs:
     description: 'Letter grade, A-F'
     value: ${{ steps.score.outputs.grade }}
   pass:
-    description: '"true" or "false" — whether score >= threshold'
+    description: '"true" or "false": true only when every file was scored and the score meets the threshold'
     value: ${{ steps.score.outputs.pass }}
 
 runs:
@@ -134,6 +134,6 @@ runs:
       shell: bash
       run: |
         if [ "${{ steps.score.outputs.pass }}" != "true" ]; then
-          echo "::error::Playwright Spec Score ${{ steps.score.outputs.score }}/100 (${{ steps.score.outputs.grade }}) is below threshold. Set mode: warn to report without failing CI."
+          echo "::error::Playwright Spec Score ${{ steps.score.outputs.score }}/100 (${{ steps.score.outputs.grade }}) did not pass: the score is below the threshold, or the result is partial or not scored (a file was skipped, or no tests were found). See the report for details. Set mode: warn to report without failing CI."
           exit 1
         fi

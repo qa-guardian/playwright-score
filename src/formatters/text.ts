@@ -5,6 +5,7 @@ import {
   DIMENSIONS,
   notScoredHeadline,
   notScoredState,
+  partialNote,
   plural,
   rankGroups,
   INCOMPLETE_NOTE,
@@ -40,7 +41,7 @@ export function formatText(result: ScoreResult, opts: TextOptions = {}): string 
   const state = notScoredState(result);
   const lines: string[] = [];
   const counts = state
-    ? plural(summary.files, 'file')
+    ? plural(result.coverage?.filesFound ?? summary.files, 'file')
     : `${plural(summary.tests, 'test')} in ${plural(summary.files, 'file')}`;
   lines.push(opts.suiteName ? `${opts.suiteName}  ·  ${counts}` : counts);
   if (state) {
@@ -59,6 +60,9 @@ export function formatText(result: ScoreResult, opts: TextOptions = {}): string 
         .join(' · ')
     );
   }
+
+  const partial = partialNote(result);
+  if (partial) lines.push(partial);
 
   // 'no-tests' hard-fail findings carry the absolute working directory as their file.
   const groups = state === 'no-tests' ? [] : rankGroups(result.findings);

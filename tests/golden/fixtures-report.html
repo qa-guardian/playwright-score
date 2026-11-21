@@ -80,15 +80,31 @@ pre.code{overflow:visible;white-space:pre-wrap}
 <p class="eyebrow">Playwright suite score</p>
 <p class="suite">fixtures</p>
 <div class="hd">
-<div class="score notscored" role="img" aria-label="Not scored"><span class="big">--</span><span class="grade">Not scored</span></div>
+<div class="score g-B" aria-hidden="true"><span class="big">82</span><span class="of">/100</span><span class="grade">B</span></div>
 <div>
-<h1>1 file has a syntax error, so this suite could not be scored.</h1>
-<p class="explain">Fix the file below and run the score again. The other findings are shown as a preview.</p>
-<p class="meta">85 files · scored 14 Nov 2026</p>
+<h1><span class="sr-only">Score 82 out of 100, grade B. </span>67 of 136 tests have no issues.</h1>
+<p class="explain">A weighted average of four areas below. B means 80-89; A starts at 90.</p>
+<p class="check"><a href="#human-check">4 tests are not decided automatically and are left out of the score: a person should look.</a></p>
+<p class="check">Partial: 1 of 85 files skipped, so this is not a pass. The score covers the other 84 files. Skipped: bad-syntax-error.spec.ts (syntax error).</p>
+<p class="meta">136 tests in 84 files · scored 14 Nov 2026</p>
 </div>
 </div>
 </header>
-
+<h2>Score by area</h2>
+<div class="dims">
+<div class="dim" title="Waits, forced clicks and missing awaits: the habits that make tests fail at random."><div class="dimhead"><span>Reliability <span class="muted">40% of score</span></span><strong>89</strong></div>
+<div class="bar" role="img" aria-label="Reliability 89 out of 100"><span style="width:89%"></span></div>
+<p class="muted sr-only">Waits, forced clicks and missing awaits: the habits that make tests fail at random.</p></div>
+<div class="dim" title="Whether each test actually verifies something, with checks that retry."><div class="dimhead"><span>Checks <span class="muted">25% of score</span></span><strong>66</strong></div>
+<div class="bar" role="img" aria-label="Checks 66 out of 100"><span style="width:66%"></span></div>
+<p class="muted sr-only">Whether each test actually verifies something, with checks that retry.</p></div>
+<div class="dim" title="How many elements are found the way a user sees them (role, label, test id) rather than by CSS or XPath."><div class="dimhead"><span>Resilience to UI changes <span class="muted">20% of score</span></span><strong>75</strong></div>
+<div class="bar" role="img" aria-label="Resilience to UI changes 75 out of 100"><span style="width:75%"></span></div>
+<p class="muted sr-only">How many elements are found the way a user sees them (role, label, test id) rather than by CSS or XPath.</p></div>
+<div class="dim" title="Switched-off tests, nesting and file size."><div class="dimhead"><span>Maintainability <span class="muted">15% of score</span></span><strong>97</strong></div>
+<div class="bar" role="img" aria-label="Maintainability 97 out of 100"><span style="width:97%"></span></div>
+<p class="muted sr-only">Switched-off tests, nesting and file size.</p></div>
+</div>
 <h2>Top 3 to fix</h2>
 <p class="muted legend">Definite: the code does this for certain. Likely: usually a problem, but there are legitimate uses. None of these are confirmed bugs in your product; they are patterns that make bugs easier to miss or tests less reliable.</p>
 <ol class="top3" role="list">
@@ -101,12 +117,12 @@ pre.code{overflow:visible;white-space:pre-wrap}
 <p class="count">4 places in 2 tests. Most in <code>bad-unawaited-action.spec.ts</code> (line 4).</p>
 <p class="why">The test moves on before the action finishes, so it can fail at random or pass without the step having happened, and real regressions hide behind the noise.</p></div></li>
 <li class="top"><span class="rank" aria-hidden="true">3</span>
-<div><h3>Waiting for the network to go quiet <span class="tag">Definite</span></h3>
-<p class="count">1 place in 1 test: <code>bad-waits.spec.ts</code> (line 8).</p>
-<p class="why">Pages that keep polling or streaming never go quiet, so tests that wait for it can time out at random and hold up releases without a real defect.</p></div></li>
+<div><h3>Missing await inside an assertion <span class="tag">Definite</span></h3>
+<p class="count">3 places in 1 test. All in <code>bad-unawaited-value.spec.ts</code> (line 6).</p>
+<p class="why">The assertion compares a pending promise instead of the page value, so it can pass or fail without checking the feature.</p></div></li>
 </ol>
 <h2>What to do next</h2>
-<ol><li>Fix the syntax error and re-run the score.</li><li>Have someone confirm that the tests under &quot;Not decided automatically&quot; really assert, since the score cannot tell.</li><li>Move CSS and XPath selectors to role, label or test-id locators, starting with the busiest page objects.</li></ol>
+<ol><li>Fix the syntax error and re-run the score.</li><li>Add await in front of the action.</li><li>Have someone confirm that the tests under &quot;Not decided automatically&quot; really assert, since the score cannot tell.</li></ol>
 </section>
 <section class="details">
 <h2>Details</h2>
@@ -126,25 +142,25 @@ pre.code{overflow:visible;white-space:pre-wrap}
 <p class="muted">4 occurrences across 2 tests.</p>
 </article>
 <article class="finding sev-error">
-<h3><span class="rank" aria-hidden="true">3</span>Waiting for the network to go quiet <span class="tag">Definite</span></h3>
+<h3><span class="rank" aria-hidden="true">3</span>Missing await inside an assertion <span class="tag">Definite</span></h3>
+<p class="where"><code>missed-bug/bad-unawaited-value.spec.ts:6</code></p>
+<pre class="code" aria-label="Code excerpt"><span class="ln"><i>3</i>test(&#39;compares promises&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>4</i>  await page.goto(&#39;/&#39;);</span><span class="ln"><i>5</i>  const other = page.locator(&#39;h2&#39;);</span><span class="ln hit"><i>&#9656;6</i><span class="sr-only">flagged line: </span>  expect(page.locator(&#39;h1&#39;).innerText()).not.toBe(other.innerText());</span><span class="ln"><i>7</i>  expect(page.title()).toBe(&#39;Home&#39;);</span><span class="ln"><i>8</i>  const first = page.locator(&#39;[data-testid=first]&#39;).innerText();</span><span class="ln"><i>9</i>  const second = page.locator(&#39;[data-testid=second]&#39;).innerText();</span></pre>
+<p class="why">The assertion compares a pending promise instead of the page value, so it can pass or fail without checking the feature.</p>
+<p class="muted">3 occurrences across 1 test.</p>
+</article>
+<article class="finding sev-error">
+<h3><span class="rank" aria-hidden="true">4</span>Waiting for the network to go quiet <span class="tag">Definite</span></h3>
 <p class="where"><code>bad-waits.spec.ts:8</code></p>
 <pre class="code" aria-label="Code excerpt"><span class="ln"><i>5</i>    await page.goto(&#39;/app&#39;);</span><span class="ln"><i>6</i>    await page.waitForTimeout(5000);</span><span class="ln"><i>7</i>    await page.locator(&#39;.btn-primary&#39;).click({ force: true });</span><span class="ln hit"><i>&#9656;8</i><span class="sr-only">flagged line: </span>    await page.waitForLoadState(&#39;networkidle&#39;);</span><span class="ln"><i>9</i>    await expect(page.locator(&#39;.done&#39;)).toBeVisible();</span><span class="ln"><i>10</i>  });</span><span class="ln"><i>11</i>});</span></pre>
 <p class="why">Pages that keep polling or streaming never go quiet, so tests that wait for it can time out at random and hold up releases without a real defect.</p>
 <p class="muted">One occurrence.</p>
 </article>
 <article class="finding sev-error">
-<h3><span class="rank" aria-hidden="true">4</span>Fixed pause before continuing <span class="tag">Definite</span></h3>
+<h3><span class="rank" aria-hidden="true">5</span>Fixed pause before continuing <span class="tag">Definite</span></h3>
 <p class="where"><code>bad-waits.spec.ts:6</code></p>
 <pre class="code" aria-label="Code excerpt"><span class="ln"><i>3</i>test.describe(&#39;Flaky waits&#39;, () =&gt; {</span><span class="ln"><i>4</i>  test(&#39;uses hard waits&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>5</i>    await page.goto(&#39;/app&#39;);</span><span class="ln hit"><i>&#9656;6</i><span class="sr-only">flagged line: </span>    await page.waitForTimeout(5000);</span><span class="ln"><i>7</i>    await page.locator(&#39;.btn-primary&#39;).click({ force: true });</span><span class="ln"><i>8</i>    await page.waitForLoadState(&#39;networkidle&#39;);</span><span class="ln"><i>9</i>    await expect(page.locator(&#39;.done&#39;)).toBeVisible();</span></pre>
 <p class="why">Fixed delays make runs slower and can cause random red builds, so engineers re-run pipelines and learn to ignore failures.</p>
 <p class="muted">One occurrence.</p>
-</article>
-<article class="finding sev-error">
-<h3><span class="rank" aria-hidden="true">5</span>Missing await inside an assertion <span class="tag">Definite</span></h3>
-<p class="where"><code>missed-bug/bad-unawaited-value.spec.ts:6</code></p>
-<pre class="code" aria-label="Code excerpt"><span class="ln"><i>3</i>test(&#39;compares promises&#39;, async ({ page }) =&gt; {</span><span class="ln"><i>4</i>  await page.goto(&#39;/&#39;);</span><span class="ln"><i>5</i>  const other = page.locator(&#39;h2&#39;);</span><span class="ln hit"><i>&#9656;6</i><span class="sr-only">flagged line: </span>  expect(page.locator(&#39;h1&#39;).innerText()).not.toBe(other.innerText());</span><span class="ln"><i>7</i>  expect(page.title()).toBe(&#39;Home&#39;);</span><span class="ln"><i>8</i>  const first = page.locator(&#39;[data-testid=first]&#39;).innerText();</span><span class="ln"><i>9</i>  const second = page.locator(&#39;[data-testid=second]&#39;).innerText();</span></pre>
-<p class="why">The assertion compares a pending promise instead of the page value, so it can pass or fail without checking the feature.</p>
-<p class="muted">3 occurrences across 1 test.</p>
 </article>
 <p class="muted">21 more issue types not shown. Use --format json for every occurrence.</p>
 <h3 id="human-check">Not decided automatically</h3>

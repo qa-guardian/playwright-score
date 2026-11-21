@@ -343,8 +343,9 @@ export async function runEslint(options: {
         // A file that doesn't parse can't be meaningfully scored at all —
         // surface it explicitly rather than silently dropping it (it has
         // no ruleId) and letting an unparseable file default to a clean
-        // 100. scorePaths hard-fails the whole result when this rule id
-        // is present.
+        // 100. scorePaths skips a file that carries this rule id: the file
+        // is listed in `coverage.skipped` and the result is `partial` or
+        // `not-scored`, while the other files are scored.
         findings.push({
           rule: 'playwright-score/parse-error',
           severity: 'error',
