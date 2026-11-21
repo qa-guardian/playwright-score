@@ -199,6 +199,66 @@ describe('QAG-287 S5a fuzz list: no crash, a documented status and exit code', (
     assert.ok(!r.ok && r.reason === 'too-large');
   });
 
+  it('a file over 1 MB that only a config glob matches: a spec is listed as too-large (partial); a non-spec and a binary file are left out', async () => {
+    const CONFIG = `import { defineConfig } from '@playwright/test';
+export default defineConfig({ testDir: './tests', testMatch: '**/*.ts' });
+`;
+    const pad = '// padding\n'.repeat(Math.ceil((1.5 * 1024 * 1024) / 11));
+    const names = (r: Run) => r.result.coverage?.skipped.map((s) => [path.basename(s.file), s.reason]);
+
+    // A spec without a spec-style name, 1.5 MB, importing @playwright/test.
+    const direct = suite({
+      '.git/HEAD': 'ref: refs/heads/trunk\n',
+      'playwright.config.ts': CONFIG,
+      'tests/orders.ts': GOOD,
+      'tests/generated-flows.ts': WAITS + pad,
+    });
+    const r1 = await run([direct], direct);
+    assert.equal(r1.result.status, 'partial', JSON.stringify(r1.result.coverage));
+    assert.equal(r1.code, 1);
+    assert.equal(r1.result.pass, false);
+    assert.deepEqual(names(r1), [['generated-flows.ts', 'too-large']]);
+    assert.equal(r1.result.coverage?.filesFound, 2);
+    assert.equal(r1.result.coverage?.filesScored, 1);
+
+    // The same file under the cap is scored: the cap is the only difference.
+    const small = suite({
+      '.git/HEAD': 'ref: refs/heads/trunk\n',
+      'playwright.config.ts': CONFIG,
+      'tests/orders.ts': GOOD,
+      'tests/generated-flows.ts': WAITS,
+    });
+    const r2 = await run([small], small);
+    expectScored(r2, 2);
+
+    // Playwright reached through a local module that re-exports it.
+    const viaLocal = suite({
+      '.git/HEAD': 'ref: refs/heads/trunk\n',
+      'playwright.config.ts': CONFIG,
+      'tests/orders.ts': GOOD,
+      'support/base.ts': `export { test, expect } from '@playwright/test';\n`,
+      'tests/generated-flows.ts': WAITS.replace(`'@playwright/test'`, `'../support/base'`) + pad,
+    });
+    const r3 = await run([viaLocal], viaLocal);
+    assert.equal(r3.result.status, 'partial', JSON.stringify(r3.result.coverage));
+    assert.equal(r3.code, 1);
+    assert.deepEqual(names(r3), [['generated-flows.ts', 'too-large']]);
+
+    // Not specs: a large data module and an MPEG-TS style binary named *.ts.
+    const video = Buffer.alloc(2 * 1024 * 1024, 0);
+    video[0] = 0x47;
+    const others = suite({
+      '.git/HEAD': 'ref: refs/heads/trunk\n',
+      'playwright.config.ts': CONFIG,
+      'tests/orders.ts': GOOD,
+      'tests/catalogue-data.ts': `export const rows = [\n${'  "row",\n'.repeat(160000)}];\n`,
+      'tests/clip.ts': video,
+      'tests/short-clip.ts': Buffer.from([0x47, 0, 0, 0, 1, 2, 3]),
+    });
+    const r4 = await run([others], others);
+    expectScored(r4, 1);
+  });
+
   it('invalid UTF-8: scored (bytes that are not UTF-8 read as replacement characters)', async () => {
     const bytes = Buffer.concat([
       Buffer.from(`import { test, expect } from '@playwright/test';\n\ntest('shows the note', async ({ page }) => {\n  await page.goto('/notes');\n  await expect(page.getByText('caf`),

@@ -59,6 +59,33 @@ export function readSourceFile(file: string): SourceRead {
   return { ok: true, source: buf.toString('utf8') };
 }
 
+/** How much of an over-the-cap file is looked at to tell whether it is a spec. */
+export const SPEC_PROBE_BYTES = 64 * 1024;
+
+/**
+ * The first `bytes` of a file as text, without reading the rest; never throws.
+ * `undefined` when the file cannot be opened or read.
+ */
+export function readSourcePrefix(file: string, bytes: number = SPEC_PROBE_BYTES): string | undefined {
+  let fd: number | undefined;
+  try {
+    fd = fs.openSync(file, 'r');
+    const buf = Buffer.alloc(bytes);
+    const n = fs.readSync(fd, buf, 0, bytes, 0);
+    return buf.subarray(0, n).toString('utf8');
+  } catch {
+    return undefined;
+  } finally {
+    if (fd !== undefined) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        // nothing to release
+      }
+    }
+  }
+}
+
 function tooLarge(bytes: number): string {
   return `${bytes} bytes (limit ${MAX_SOURCE_BYTES})`;
 }

@@ -8,6 +8,7 @@ import { commonAncestorDir, readSourceFile } from './fs-util.js';
 import {
   countedTests,
   dropFindingsOfSkipped,
+  oversizedFileLooksLikeSpec,
   parseErrorFiles,
   scoredFindings,
   SkipLog,
@@ -434,11 +435,16 @@ function expandPaths(
           // module) re-exports it isn't a Playwright spec regardless of
           // what the config's glob matched.
           if (configApplied && !SPEC_NAME_RE.test(resolved)) {
-            // A match that cannot be read (also: over the size cap, or
-            // binary) shows no evidence of being a spec either.
+            // A match that cannot be read, or is binary, shows no evidence
+            // of being a spec either. One over the size cap is judged on its
+            // first bytes: when it is a spec it stays in the set, so that it
+            // is listed as skipped (too-large) and the result is partial.
             const read = readSourceFile(resolved);
-            if (!read.ok) continue;
-            if (!importsPlaywrightTestTransitively(resolved, read.source, importSafetyNetBoundary)) continue;
+            if (read.ok) {
+              if (!importsPlaywrightTestTransitively(resolved, read.source, importSafetyNetBoundary)) continue;
+            } else if (read.reason !== 'too-large' || !oversizedFileLooksLikeSpec(resolved, importSafetyNetBoundary)) {
+              continue;
+            }
           }
           expanded.add(resolved);
         }

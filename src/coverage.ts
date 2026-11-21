@@ -1,5 +1,6 @@
 import path from 'node:path';
-import type { SourceRead } from './fs-util.js';
+import { readSourcePrefix, type SourceRead } from './fs-util.js';
+import { importsPlaywrightTestTransitively } from './playwright-config.js';
 import type { TestSpans } from './metrics.js';
 import { PARSE_ERROR_RULE } from './report-model.js';
 import type { Coverage, Finding, NotScoredReason, ScoreResult, ScoreStatus, SkipReason, SkippedFile } from './types.js';
@@ -114,4 +115,24 @@ export function withCoverage(result: ScoreResult, coverage: Coverage, allFinding
     ...(reason ? { reason } : {}),
     coverage,
   };
+}
+
+const MODULE_SPECIFIER_RE = /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)(['"])([^'"\n]+)\1/g;
+
+/**
+ * Whether a file over the size cap, matched by a config glob but not named
+ * like a spec, is a Playwright spec. The file is too large to read whole, so
+ * only its first bytes are looked at: the module specifiers found there go
+ * through the same check a readable file gets (a direct or re-exported
+ * `@playwright/test` import; an import that cannot be resolved keeps the
+ * file). A file that is a spec must be listed as skipped, not left out.
+ */
+export function oversizedFileLooksLikeSpec(file: string, boundaryDir: string): boolean {
+  const prefix = readSourcePrefix(file);
+  if (prefix === undefined) return false;
+  const specifiers = new Set<string>();
+  for (const m of prefix.matchAll(MODULE_SPECIFIER_RE)) specifiers.add(m[2]);
+  if (specifiers.size === 0) return false;
+  const imports = [...specifiers].map((s) => `require(${JSON.stringify(s)});`).join('\n');
+  return importsPlaywrightTestTransitively(file, imports, boundaryDir);
 }
