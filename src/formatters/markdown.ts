@@ -1,5 +1,5 @@
 import type { ScoreResult } from '../types.js';
-import { INCOMPLETE_NOTE, notScoredState, partialNote } from '../report-model.js';
+import { INCOMPLETE_NOTE, notScoredState } from '../report-model.js';
 import { sortFindings } from '../confidence.js';
 
 /** Make a value safe inside a Markdown table cell: no pipe or newline can end the cell or row. */
@@ -14,11 +14,6 @@ export function formatMarkdown(result: ScoreResult): string {
   lines.push(
     `**${result.score}/100 (${result.grade})** — ${result.pass ? 'PASS' : 'FAIL'} · profile \`${result.profile}\` · threshold ${result.threshold}`
   );
-  const partial = partialNote(result);
-  if (partial) {
-    lines.push('');
-    lines.push(escapeCell(partial));
-  }
   lines.push('');
   lines.push('| Dimension | Score |');
   lines.push('|---|---|');

@@ -92,44 +92,6 @@ export interface ScoreSummary {
   cleanTests: number;
 }
 
-/**
- * How much of the suite the score stands for.
- * `scored`: every file found was scored. `partial`: one or more files were
- * skipped (see `coverage.skipped`) and the score covers the rest; it does not
- * pass. `not-scored`: nothing counted toward a score (no files, every file
- * skipped, or no counted tests); the score is 0 and never a pass.
- */
-export type ScoreStatus = 'scored' | 'partial' | 'not-scored';
-export type NotScoredReason = 'no-files' | 'no-counted-tests';
-/**
- * Why a file was left out. `parse-error`: not valid JS/TS. `too-large`: over
- * the 1 MB source cap. `binary`: a NUL byte in the first 8 KB. `unreadable`:
- * the file could not be read (a broken link, a permission error).
- */
-export type SkipReason = 'parse-error' | 'too-large' | 'binary' | 'unreadable';
-
-export interface SkippedFile {
-  /** Relative to the same directory as `Finding.file`. */
-  file: string;
-  reason: SkipReason;
-  /** Short machine-made detail (a size, an error code). Never a local path. */
-  detail?: string;
-}
-
-export interface Coverage {
-  /** Playwright spec files found (files of another test framework are in `skippedFiles`, not here). */
-  filesFound: number;
-  /** Files the score and the findings cover. */
-  filesScored: number;
-  /**
-   * Tests in the scored files that can run: every declared test except one
-   * declared with `test.skip(...)` or `test.fixme(...)`. Zero means `not-scored`.
-   */
-  testsCounted: number;
-  /** Files found but left out of the score, in path order. */
-  skipped: SkippedFile[];
-}
-
 export interface ScoreResult {
   scoreVersion: ScoreVersion;
   profile: ProfileName;
@@ -170,12 +132,6 @@ export interface ScoreResult {
   ruleCrashes?: Array<{ rule: string; count: number }>;
   /** Versions of the lint engine that produced this result (additive). */
   engine?: EngineVersions;
-  /** Always set by `scorePaths`. Absent only on a result built by `computeScore` directly. */
-  status?: ScoreStatus;
-  /** Set only when `status` is `not-scored`. */
-  reason?: NotScoredReason;
-  /** Always set by `scorePaths`: what was found, what was scored and what was skipped. */
-  coverage?: Coverage;
 }
 
 export interface ScoreOptions {

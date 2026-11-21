@@ -111,7 +111,7 @@ npx -p @qaguardian/playwright-score pwscore ./tests
 | `--out <file>` | Write report to file |
 | `--version` | Print version |
 
-**Exit codes:** `0` pass · `1` below threshold, **partial** (a file was skipped) or **not scored** (no files matched, every file skipped, or no test that can run) · `2` tool error  
+**Exit codes:** `0` pass · `1` below threshold **or no files matched** · `2` tool error  
 
 ## Library
 

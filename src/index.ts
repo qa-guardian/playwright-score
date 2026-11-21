@@ -4,16 +4,7 @@ import path from 'node:path';
 import { globSync, hasMagic, Ignore, type IgnoreLike, type Path as GlobPath } from 'glob';
 import { createHelperScope } from './helper-scope.js';
 import { runEslint } from './eslint-runner.js';
-import { commonAncestorDir, readSourceFile } from './fs-util.js';
-import {
-  countedTests,
-  dropFindingsOfSkipped,
-  oversizedFileLooksLikeSpec,
-  parseErrorFiles,
-  scoredFindings,
-  SkipLog,
-  withCoverage,
-} from './coverage.js';
+import { commonAncestorDir } from './fs-util.js';
 import { collectLocallyImportedFiles, createModuleResolver } from './import-graph.js';
 import {
   analyzeSource,
@@ -42,19 +33,9 @@ import { decorateFindings } from './catalogue/decorate.js';
 import { computeScore } from './score-engine.js';
 import { getEngineVersions } from './engine-versions.js';
 import { resetRuleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
-import type { Coverage, Finding, ProfileName, ScoreOptions, ScoreResult } from './types.js';
+import type { Finding, ProfileName, ScoreOptions, ScoreResult } from './types.js';
 
-export type {
-  ScoreResult,
-  ScoreOptions,
-  Finding,
-  ProfileName,
-  ScoreStatus,
-  NotScoredReason,
-  Coverage,
-  SkippedFile,
-  SkipReason,
-} from './types.js';
+export type { ScoreResult, ScoreOptions, Finding, ProfileName } from './types.js';
 export {
   computeScore,
   MODEL,
@@ -435,16 +416,13 @@ function expandPaths(
           // module) re-exports it isn't a Playwright spec regardless of
           // what the config's glob matched.
           if (configApplied && !SPEC_NAME_RE.test(resolved)) {
-            // A match that cannot be read, or is binary, shows no evidence
-            // of being a spec either. One over the size cap is judged on its
-            // first bytes: when it is a spec it stays in the set, so that it
-            // is listed as skipped (too-large) and the result is partial.
-            const read = readSourceFile(resolved);
-            if (read.ok) {
-              if (!importsPlaywrightTestTransitively(resolved, read.source, importSafetyNetBoundary)) continue;
-            } else if (read.reason !== 'too-large' || !oversizedFileLooksLikeSpec(resolved, importSafetyNetBoundary)) {
+            let source: string;
+            try {
+              source = fs.readFileSync(resolved, 'utf8');
+            } catch {
               continue;
             }
+            if (!importsPlaywrightTestTransitively(resolved, source, importSafetyNetBoundary)) continue;
           }
           expanded.add(resolved);
         }
@@ -589,10 +567,9 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
 
   const { explicit, expanded, scanRootDirs, inputDirs, configWarnings } = expandPaths(options.paths, cwd);
 
-  const NO_FILES: Coverage = { filesFound: 0, filesScored: 0, testsCounted: 0, skipped: [] };
   if (explicit.length === 0 && expanded.length === 0) {
     // Hard-fail: empty match must never look like a healthy suite (was ~99 PASS).
-    return withCoverage(hardFail(
+    return hardFail(
       profile,
       threshold,
       [
@@ -607,7 +584,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
       {},
       undefined,
       configWarnings
-    ), NO_FILES);
+    );
   }
 
   // Directory/glob matches are excluded only on positive evidence of a
@@ -616,33 +593,19 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   const skippedFiles: string[] = [];
   const acceptedExpanded: string[] = [];
   const skipBase = reportBaseDir(inputDirs, [...explicit, ...expanded]);
-  // Every file is read once, here, through readSourceFile: a file that is
-  // too large, binary or unreadable is skipped and listed in `coverage`
-  // (see coverage.ts) instead of taking the whole run down.
-  const skips = new SkipLog();
-  const readSources = new Map<string, string>();
   for (const f of expanded) {
-    const source = skips.take(f, readSourceFile(f));
-    if (source === undefined) {
-      acceptedExpanded.push(f);
-    } else if (looksLikeNonPlaywrightTest(source)) {
+    const source = fs.readFileSync(f, 'utf8');
+    if (looksLikeNonPlaywrightTest(source)) {
       skippedFiles.push(path.relative(skipBase, f) || path.basename(f));
     } else {
       acceptedExpanded.push(f);
-      readSources.set(f, source);
     }
   }
-  for (const f of explicit) {
-    const source = skips.take(f, readSourceFile(f));
-    if (source !== undefined) readSources.set(f, source);
-  }
 
-  // `found`: every Playwright spec file discovered. `files`: the readable ones.
-  const found = [...explicit, ...acceptedExpanded].sort();
-  const files = found.filter((f) => !skips.has(f));
+  const files = [...explicit, ...acceptedExpanded].sort();
 
-  if (found.length === 0) {
-    return withCoverage(hardFail(
+  if (files.length === 0) {
+    return hardFail(
       profile,
       threshold,
       [
@@ -656,7 +619,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
       ],
       {},
       skippedFiles
-    ), NO_FILES);
+    );
   }
 
   // Relative to the directory the caller scored (common ancestor of the
@@ -665,7 +628,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   // from the scored directory. Not the caller's cwd, which may be
   // unrelated: findings stay portable across machines/CI and
   // formatters/sarif.ts can emit repo-relative artifactLocation URIs.
-  const filesBase = reportBaseDir(inputDirs, found);
+  const filesBase = reportBaseDir(inputDirs, files);
 
   // Wider than filesBase on purpose: a Page Object Model's classes
   // typically live in a directory *sibling* to the specs themselves
@@ -675,16 +638,16 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   // a real suite (n8n) where this was the exact reason locator counts from
   // its page objects were being discarded. Falls back to filesBase itself
   // when every input was an explicit file (no directory to widen to).
-  const importBoundary = commonAncestorDir([...found, ...scanRootDirs]);
+  const importBoundary = commonAncestorDir([...files, ...scanRootDirs]);
 
-  // Every source was read once, above, so (a) we can feed ESLint's
+  // Read every file once, up front, so (a) we can feed ESLint's
   // expect-expect a per-run list of local assertion-helper names before
   // linting (see findLocalAssertionHelperNames) and (b) the metrics loop
   // below doesn't re-read the same files ESLint already read internally.
   const sources = new Map<string, string>();
   const helperFacts: HelperFacts[] = [];
   for (const file of files) {
-    const source = readSources.get(file) ?? '';
+    const source = fs.readFileSync(file, 'utf8');
     sources.set(file, source);
     helperFacts.push(...extractHelperFacts(source, file));
   }
@@ -717,33 +680,17 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   // base-plugin.ts).
   const testAliasNames = detectTestAliasNamesWithFactories(sources, importedFiles, importBoundary);
 
-  const lintFindings =
-    files.length === 0
-      ? []
-      : triageFindings(
-          await runEslint({
-            files,
-            profile,
-            cwd,
-            reportBase: filesBase,
-            assertFunctionNamesByFile,
-            testAliasNames,
-          }),
-          { filesBase, sources, importedFiles, importBoundary, moduleResolver }
-        );
-
-  // A file that isn't valid JS/TS can't be executed, let alone scored on its
-  // merits. It is skipped: it keeps its parse-error finding, it is listed in
-  // `coverage`, and the result is `partial` (never a pass) or, when nothing
-  // else counts, `not-scored`. The other files are scored as usual.
-  const relOf = (file: string): string => path.relative(filesBase, file) || path.basename(file);
-  const unparsed = parseErrorFiles(lintFindings);
-  for (const file of files) {
-    const detail = unparsed.get(relOf(file));
-    if (detail !== undefined) skips.add(file, 'parse-error', detail);
-  }
-  const eslintFindings = dropFindingsOfSkipped(lintFindings, new Set(unparsed.keys()));
-  const scoredFiles = files.filter((f) => !skips.has(f));
+  const eslintFindings = triageFindings(
+    await runEslint({
+      files,
+      profile,
+      cwd,
+      reportBase: filesBase,
+      assertFunctionNamesByFile,
+      testAliasNames,
+    }),
+    { filesBase, sources, importedFiles, importBoundary, moduleResolver }
+  );
 
   let totalSloc = 0;
   let totalTests = 0;
@@ -753,10 +700,9 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
 
   const fileTests: Record<string, number> = {};
   const fileSpans = new Map<string, ReturnType<typeof getTestSpans>>();
-  let testsCounted = 0;
-  for (const file of scoredFiles) {
+  for (const file of files) {
     const source = sources.get(file) ?? '';
-    const relFile = relOf(file);
+    const relFile = path.relative(filesBase, file) || path.basename(file);
     const m = analyzeSource(source, relFile, testAliasNames);
     totalSloc += m.sloc;
     native += m.locators.native;
@@ -766,11 +712,10 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
     fileSpans.set(relFile, spans);
     // AST spans are the authoritative test count (they are also the
     // attribution targets); the regex count is the fallback for a file
-    // whose syntax tree shows no test declaration.
+    // the parser can't read — which hard-fails below anyway.
     const testCount = spans.tests.length > 0 ? spans.tests.length : m.tests;
     fileTests[relFile] = testCount;
     totalTests += testCount;
-    testsCounted += countedTests(spans, testCount);
   }
 
   for (const [file, source] of importedFiles) {
@@ -785,57 +730,46 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   // attributeFindingScopes in metrics.ts.
   attributeFindingScopes(findings, fileSpans);
 
-  const coverage: Coverage = {
-    filesFound: found.length,
-    filesScored: scoredFiles.length,
-    testsCounted,
-    skipped: skips.report(filesBase),
-  };
-  if (testsCounted === 0) {
-    // Nothing counts toward a score (every file skipped, or no test that can
-    // run): never a number that could read as a healthy suite.
-    return withCoverage(
-      {
-        ...hardFail(
-          profile,
-          threshold,
-          findings,
-          {
-            files: scoredFiles.length,
-            tests: totalTests,
-            sloc: Math.max(totalSloc, 1),
-            nativeLocators: native,
-            rawLocators: raw,
-          },
-          skippedFiles,
-          configWarnings
-        ),
-        baseDir: filesBase,
-      },
-      coverage
-    );
+  const parseErrors = findings.filter((f) => f.rule === 'playwright-score/parse-error');
+  if (parseErrors.length > 0) {
+    // A file that isn't valid JS/TS can't be executed, let alone scored on
+    // its merits. Diluting this into the normal per-dimension penalty math
+    // (a handful of exp-decay points on an otherwise large, clean batch)
+    // would let a broken file hide inside a passing score. Hard-fail
+    // instead, same as the no-matching-files case.
+    return {
+      ...hardFail(
+        profile,
+        threshold,
+        findings,
+        {
+          files: files.length,
+          sloc: Math.max(totalSloc, 1),
+          nativeLocators: native,
+          rawLocators: raw,
+        },
+        skippedFiles
+      ),
+      baseDir: filesBase,
+    };
   }
 
   const result = computeScore({
     profile,
     threshold,
-    findings: scoredFindings(findings),
+    findings,
     sloc: Math.max(totalSloc, 1),
-    files: scoredFiles.length,
+    files: files.length,
     tests: totalTests,
     fileTests,
     nativeLocators: native,
     rawLocators: raw,
   });
 
-  return withCoverage(
-    {
-      ...result,
-      baseDir: filesBase,
-      ...(skippedFiles.length > 0 ? { skippedFiles } : {}),
-      ...(configWarnings.length > 0 ? { configWarnings } : {}),
-    },
-    coverage,
-    findings
-  );
+  return {
+    ...result,
+    baseDir: filesBase,
+    ...(skippedFiles.length > 0 ? { skippedFiles } : {}),
+    ...(configWarnings.length > 0 ? { configWarnings } : {}),
+  };
 }

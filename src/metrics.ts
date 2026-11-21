@@ -511,8 +511,6 @@ export function resolveAssertionHelperNames(candidates: HelperCandidate[]): stri
 export interface SourceSpan {
   startLine: number;
   endLine: number;
-  /** Set on a test declared `test.skip(...)` or `test.fixme(...)`: it never runs. */
-  neverRuns?: true;
 }
 
 export interface TestSpans {
@@ -621,12 +619,7 @@ export function getTestSpans(
     const callee = (node as { callee?: Record<string, unknown> }).callee;
     const loc = (node as { loc?: { start?: { line?: number }; end?: { line?: number } } }).loc;
     if (!loc?.start?.line || !loc?.end?.line) return;
-    const span: SourceSpan = { startLine: loc.start.line, endLine: loc.end.line };
-    const modifier =
-      callee?.type === 'MemberExpression' && !callee.computed
-        ? (callee.property as { name?: string } | undefined)?.name
-        : undefined;
-    if (modifier === 'skip' || modifier === 'fixme') span.neverRuns = true;
+    const span = { startLine: loc.start.line, endLine: loc.end.line };
 
     let isTest = false;
     let isHook = false;
