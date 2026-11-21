@@ -222,6 +222,10 @@
    "pending": "S6b"
   },
   {
+   "id": "no-element-handle/true-js-exports-changed-by-object-assign",
+   "pending": null
+  },
+  {
    "id": "no-element-handle/true-js-page-dollar",
    "pending": null
   },
@@ -855,6 +859,10 @@
   },
   {
    "id": "no-wait-for-selector/true-js-const-page-alias",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-js-module-exports-reassigned",
    "pending": null
   },
   {

@@ -11,7 +11,8 @@ import type { Finding } from '../src/types.js';
 // QAG-287 B2: receiver forms. A finding of a receiver-tiered rule keeps form `-` only when its receiver is
 // proven to be a Playwright Page or Frame (E1 fixture, E2 type, E3 factory); otherwise it is still reported,
 // as `unresolved`. Shapes are written from playwright.dev (and pptr.dev for the other library) with invented names.
-// Every expectation is computed from RECEIVER_TIERED_RULES, so the suite holds with a rule in or out of the list.
+// Three of the four rules are pinned here as literals, so the suite fails if the step or the list drops one of them.
+// Only no-wait-for-selector follows RECEIVER_TIERED_RULES: it is the one rule that may be taken out of the list.
 
 const WFS = 'playwright/no-wait-for-selector';
 const NAV = 'playwright/no-wait-for-navigation';
@@ -19,7 +20,9 @@ const EH = 'playwright/no-element-handle';
 const PAUSE = 'playwright/no-page-pause';
 const FOUR = [WFS, NAV, EH, PAUSE];
 const PW = `import { test, expect } from '@playwright/test';\n`;
-const tiered = (rule: string): boolean => RECEIVER_TIERED_RULES.includes(rule);
+/** Always receiver-tiered. Written out, not read from the list. */
+const PINNED = [NAV, EH, PAUSE];
+const tiered = (rule: string): boolean => PINNED.includes(rule) || (rule === WFS && RECEIVER_TIERED_RULES.includes(WFS));
 /** The form a finding of `rule` carries when its receiver is not proven. */
 const un = (rule: string): string => (tiered(rule) ? 'unresolved' : '-');
 
@@ -46,6 +49,23 @@ async function forms(files: Record<string, string> | string, spec = 'a.spec.ts')
 const lines = (n: number, form: string, from = 1): string[] => Array.from({ length: n }, (_, i) => `${from + i}:${form}`);
 
 describe('QAG-287 B2: the catalogue holds the unresolved cells as one data entry', () => {
+  it('the list is the three pinned rules, with no-wait-for-selector first when it is in', () => {
+    assert.deepEqual(RECEIVER_TIERED_RULES.filter((r) => r !== WFS), ['playwright/no-wait-for-navigation', 'playwright/no-element-handle', 'playwright/no-page-pause']);
+    assert.ok(RECEIVER_TIERED_RULES.length === 3 || (RECEIVER_TIERED_RULES.length === 4 && RECEIVER_TIERED_RULES[0] === 'playwright/no-wait-for-selector'), JSON.stringify(RECEIVER_TIERED_RULES));
+  });
+
+  it('an unproven receiver of each pinned rule comes back unresolved and likely, with the conditional copy', async () => {
+    const all = await score({ 'a.spec.ts': `${PW}async function helper(page) { await page.waitForNavigation(); await page.$('#a'); await page.$$('li'); await page.pause(); }\n` });
+    const mine = all.filter((f) => FOUR.includes(f.rule));
+    assert.deepEqual(mine.map((f) => `${f.rule}:${f.form}:${f.tier}`).sort(), [
+      'playwright/no-element-handle:unresolved:likely',
+      'playwright/no-element-handle:unresolved:likely',
+      'playwright/no-page-pause:unresolved:likely',
+      'playwright/no-wait-for-navigation:unresolved:likely',
+    ]);
+    for (const f of mine) assert.match(f.fix ?? '', /^If this is a Playwright page, /, f.rule);
+  });
+
   it('each receiver-tiered rule has an unresolved row that is likely, with the same docs, family and basis', () => {
     for (const rule of FOUR) {
       const base = rowFor(rule, '-')!;
@@ -271,6 +291,42 @@ const t2 = test.extend({ shop: async ({ page }, use) => { await page.waitForSele
     await expectAll(WFS, 1, { 'a.spec.ts': spec, 'fixtures.ts': `export * from './one';\nexport * from './two';\n`, 'one.ts': `export { test } from '@playwright/test';\n`, 'two.ts': `export const other = 1;\n` });
     await expectAll(WFS, 1, { 'a.spec.ts': spec, 'fixtures.ts': `export { test } from './fixtures';\n` });
     await expectAll(WFS, 1, { 'a.spec.ts': `import { test } from '@acme/fixtures';\ntest('t', async ({ page }) => { await page.waitForSelector('#a'); });\n` });
+  });
+
+  it('a CommonJS module that writes its exports anywhere but in one object literal or exports.name lines is not proof', async () => {
+    const spec = `const { test } = require('./fixtures');\ntest('t', async ({ page }) => { await page.$('#a'); });\n`;
+    const head = `const { test: base } = require('@playwright/test');\nconst { createRunner } = require('./runner');\n`;
+    const runner = `exports.createRunner = () => ({ test: (name, fn) => fn({ page: {} }) });\n`;
+    const run = (body: string) => forms({ 'a.spec.js': spec, 'fixtures.js': head + body, 'runner.js': runner }, 'a.spec.js');
+    // Proven: the plain forms.
+    for (const body of [
+      `module.exports = { test: base };\n`,
+      `module.exports = { 'test': base, other: 1 };\nmodule.exports.extra = createRunner;\n`,
+      `exports.test = base;\nexports.other = 1;\n`,
+      `const local = { exports: {} };\nlocal.exports.test = createRunner().test;\nexports.test = base;\n`,
+      `function pick(module) { return module.exports; }\nexports.test = base;\n`,
+    ]) {
+      assert.deepEqual(await run(body), ['2:-'], body);
+    }
+    // Not proven: the export object is replaced or changed some other way.
+    for (const body of [
+      `module.exports = { test: base };\nmodule.exports = createRunner();\n`,
+      `module.exports = createRunner();\nmodule.exports = { test: base };\n`,
+      `module.exports = { test: base };\nmodule.exports = { test: base };\n`,
+      `module.exports = { test: base };\nObject.assign(module.exports, createRunner());\n`,
+      `module.exports = { test: base };\nif (process.env.LEGACY) { module.exports = createRunner(); }\n`,
+      `module.exports = { test: base };\nif (process.env.LEGACY) module.exports.test = createRunner().test;\n`,
+      `exports.test = base;\nObject.assign(exports, createRunner());\n`,
+      `exports.test = base;\nexports['test'] = createRunner().test;\n`,
+      `exports.test = base;\nconst out = exports;\nout.test = createRunner().test;\n`,
+      `exports.test = base;\nfunction swap(m) { m.exports = createRunner(); }\nswap(module);\n`,
+      `module.exports = { test: base, ['te' + 'st']: createRunner().test };\n`,
+      `module.exports = { test: base, ...createRunner() };\n`,
+      `module.exports = { test: base };\nmodule.exports.test = createRunner().test;\n`,
+      `exports.test = base;\nexports.test ||= createRunner().test;\n`,
+    ]) {
+      assert.deepEqual(await run(body), ['2:unresolved'], body);
+    }
   });
 
   it('a type that is not Playwright Page or Frame is not proof', async () => {

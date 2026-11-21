@@ -2682,6 +2682,32 @@
    "note": "probe: a var page redeclared in a nested block"
   },
   {
+   "id": "no-wait-for-selector/true-js-module-exports-reassigned",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-js-module-exports-reassigned/run.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-js-module-exports-reassigned",
+   "form": "unresolved",
+   "tags": [
+    "js",
+    "cjs"
+   ],
+   "note": "review probe p06: module.exports is assigned an object literal and then a call result, so the required test is not proven"
+  },
+  {
+   "id": "no-element-handle/true-js-exports-changed-by-object-assign",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/unresolved/true-js-exports-changed-by-object-assign/invoice.spec.js",
+   "dir": "playwright__no-element-handle/unresolved/true-js-exports-changed-by-object-assign",
+   "form": "unresolved",
+   "tags": [
+    "js",
+    "cjs"
+   ],
+   "note": "review probe p06, pinned rule: the export object is changed by Object.assign inside an if, so the required test is not proven"
+  },
+  {
    "id": "no-wait-for-selector/false-fixture-page",
    "rule": "playwright/no-wait-for-selector",
    "verdict": "false",

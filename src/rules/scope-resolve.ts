@@ -187,10 +187,33 @@ function exportIsTest(env: ResolveEnv, fromFile: string, pkg: string, name: stri
 const isModuleExports = (n: N | undefined): boolean =>
   n?.type === 'MemberExpression' && !n.computed && n.object?.type === 'Identifier' && n.object.name === 'module' && n.property?.name === 'exports';
 
+/** `exports` or `module`, the CommonJS globals: an identifier that is not a property name and not a local binding. */
+const isCommonJsGlobal = (sf: ScopeFile, n: N, parent: N | undefined): boolean => {
+  if (n.type !== 'Identifier' || (n.name !== 'exports' && n.name !== 'module') || !parent) return false;
+  if ((parent.type === 'MemberExpression' && parent.property === n && !parent.computed) || (parent.type === 'Property' && parent.key === n && !parent.computed)) return false;
+  return !((lookup(sf, n, n.name)?.defs.length ?? 0) > 0);
+};
+
+/**
+ * Does the file touch its CommonJS exports anywhere but in the top-level assignments in `read`? Any other mention
+ * (`Object.assign(module.exports, ...)`, an assignment inside an `if`, `exports[key] = ...`, `module` passed on)
+ * can replace an export, so nothing the file exports is proven.
+ */
+function writesExportsElsewhere(sf: ScopeFile, read: ReadonlySet<N>): boolean {
+  for (const [n, parent] of sf.parents) {
+    if (read.has(n)) continue;
+    if (isModuleExports(n) && isCommonJsGlobal(sf, n.object, n)) return true;
+    if (isCommonJsGlobal(sf, n, parent) && !(n.name === 'module' && isModuleExports(parent))) return true;
+  }
+  return false;
+}
+
 /** Is the export `name` of this local module Playwright's `test`? Every declaration of the export must be one. */
 function moduleExportIsTest(env: ResolveEnv, sf: ScopeFile, name: string, fileDepth: number): boolean {
   const verdicts: boolean[] = [];
   const stars: string[] = [];
+  const read = new Set<N>();
+  let wholeAssignments = 0;
   const here = (n: N | undefined): boolean => isPlaywrightTest(env, sf, n, fileDepth);
   for (const st of (sf.ast.body ?? []) as N[]) {
     if (st.type === 'ExportNamedDeclaration') {
@@ -210,16 +233,23 @@ function moduleExportIsTest(env: ResolveEnv, sf: ScopeFile, name: string, fileDe
       if (!st.exported && name !== 'default' && typeof st.source?.value === 'string') stars.push(st.source.value);
     } else if (st.type === 'ExpressionStatement' && st.expression?.type === 'AssignmentExpression' && st.expression.operator === '=') {
       const { left, right } = st.expression as { left: N; right: N };
-      if (isModuleExports(left) && right.type === 'ObjectExpression') {
+      if (isModuleExports(left)) {
+        // The whole export object. Only one object literal is read; anything else (a call, a class, a second assignment) proves nothing.
+        wholeAssignments += 1;
+        if (right.type !== 'ObjectExpression' || wholeAssignments > 1) return false;
+        read.add(left);
         for (const p of right.properties as N[]) {
-          if (p.type === 'Property' && !p.computed && p.key?.type === 'Identifier' && p.key.name === name) verdicts.push(here(p.value));
-          else if (p.type !== 'Property') verdicts.push(false);
+          const key = p.type === 'Property' && !p.computed ? (p.key?.type === 'Identifier' ? p.key.name : p.key?.value) : undefined;
+          if (key === undefined) verdicts.push(false);
+          else if (key === name) verdicts.push(here(p.value));
         }
-      } else if (left.type === 'MemberExpression' && !left.computed && left.property?.name === name && (isModuleExports(left.object) || (left.object?.type === 'Identifier' && left.object.name === 'exports'))) {
-        verdicts.push(here(right));
+      } else if (left.type === 'MemberExpression' && !left.computed && left.property?.type === 'Identifier' && (isModuleExports(left.object) || (left.object?.type === 'Identifier' && left.object.name === 'exports'))) {
+        read.add(left.object);
+        if (left.property.name === name) verdicts.push(here(right));
       }
     }
   }
+  if (writesExportsElsewhere(sf, read)) return false;
   if (verdicts.length > 0) return verdicts.every(Boolean);
   return stars.length === 1 && exportIsTest(env, sf.file, stars[0], name, fileDepth);
 }

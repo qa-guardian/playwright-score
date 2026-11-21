@@ -207,13 +207,18 @@ export function judge(f: Fixture, probe: Probe & { parseError: boolean }): strin
   return null;
 }
 
+/** Receiver-tiered whatever the list holds: written out, so a fixture of their `unresolved` cell fails if the step or the list drops one. */
+const RECEIVER_PINNED_RULES = ['playwright/no-wait-for-navigation', 'playwright/no-element-handle', 'playwright/no-page-pause'];
+/** The one rule that may be taken out of RECEIVER_TIERED_RULES; its fixtures follow the list. */
+const RECEIVER_OPTIONAL_RULE = 'playwright/no-wait-for-selector';
+
 /**
  * The form a TRUE fixture's finding must carry. A receiver-tiered rule (B2) gives every finding a form, so a fixture
- * of its `-` cell must come back as `-` and not as `unresolved`. A rule that is not in RECEIVER_TIERED_RULES has no
- * `unresolved` form: the same shapes are still reported, as `-`.
+ * of its `-` cell must come back as `-` and not as `unresolved`. Only no-wait-for-selector may be out of
+ * RECEIVER_TIERED_RULES: it then has no `unresolved` form and the same shapes are still reported, as `-`.
  */
 export function expectedForm(f: Fixture): string | undefined {
-  const tiered = RECEIVER_TIERED_RULES.includes(f.rule);
+  const tiered = RECEIVER_PINNED_RULES.includes(f.rule) || (f.rule === RECEIVER_OPTIONAL_RULE && RECEIVER_TIERED_RULES.includes(f.rule));
   if (f.form === 'unresolved' && !tiered) return '-';
   return tiered && !f.project ? (f.form ?? '-') : f.form;
 }
