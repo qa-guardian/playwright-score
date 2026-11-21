@@ -40,7 +40,8 @@ import { PROFILE_WEIGHTS } from './profiles.js';
  * QAG-196 gameability rules and the eslint-disable-comment finding are
  * now unconditional demerits (previously report-only under `standard`,
  * scored only under the now-removed `strict` profile), and
- * no-coordinate-click is a warning (0.4), not an error (1.0). See
+ * the fixed-coordinate click rule (since removed) was a warning (0.4), not
+ * an error (1.0). See
  * METHODOLOGY.md's "Why v4" and CHANGELOG.md.
  */
 export const MODEL = {

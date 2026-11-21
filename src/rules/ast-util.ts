@@ -1,7 +1,7 @@
 /**
  * Small AST helpers shared by the QAG-287 "would miss a real bug" rules
  * (no-swallowed-assertion, no-weak-assertion, no-unawaited-expect-value,
- * no-self-fulfilling-fallback, no-fixme-test). Plain-object ESTree nodes;
+ * no-fixme-test). Plain-object ESTree nodes;
  * `parent` is attached by ESLint during traversal.
  */
 import type { Rule } from 'eslint';

@@ -12,7 +12,7 @@ export const MIN_DECIDED = 5;
 export function tierOf(row: RuleRow, role: 'spec' | 'shared' = 'spec'): Tier {
   const listed = cellTier(row.rule, row.form, role);
   if (listed) return listed;
-  return row.design === 'advisory' || row.design === 'deleting' ? 'advisory' : 'likely';
+  return row.design === 'advisory' ? 'advisory' : 'likely';
 }
 
 /**

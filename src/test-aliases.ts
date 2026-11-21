@@ -4,8 +4,8 @@ import { sourceTypeFor } from './source-type.js';
 
 // A `test.extend()` fixture bound to a custom name is a first-class,
 // Playwright-documented pattern (playwright.dev/docs/test-fixtures), not a
-// style choice. `eslint-plugin-playwright`'s own `no-standalone-expect` (and
-// several sibling rules) key off the literal identifier `test` — the
+// style choice. Several of `eslint-plugin-playwright`'s own rules key off
+// the literal identifier `test` — the
 // vendored version here (2.11.0) already dereferences a *same-file*
 // `const loggedTest = test.extend(...)` chain internally (see
 // `isTestExtendCall`/`dereference` in the plugin), but its `dereference`

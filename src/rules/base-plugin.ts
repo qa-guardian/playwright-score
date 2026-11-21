@@ -11,7 +11,6 @@ import { noFixmeTest } from './no-fixme-test.js';
 import { noSwallowedAssertion } from './no-swallowed-assertion.js';
 import { noWeakAssertion } from './no-weak-assertion.js';
 import { noUnawaitedExpectValue } from './no-unawaited-expect-value.js';
-import { noSelfFulfillingFallback } from './no-self-fulfilling-fallback.js';
 
 type Node = {
   type: string;
@@ -600,141 +599,6 @@ const noTimerSleep: Rule.RuleModule = {
   },
 };
 
-/**
- * `page.mouse.click(x, y)` (or `this.page.mouse.click(...)`, any object
- * expression ending in `.mouse.click`) clicks a fixed viewport coordinate
- * instead of an element — brittle by construction (breaks on any layout,
- * zoom, or viewport-size change) and, unlike `locator.click({ force:
- * true })`, has no upstream rule at all. Also catches three respellings
- * found in a pre-1.1.0 review, all still coordinate-based interaction
- * through the same `Mouse` API: `const { mouse } = page; mouse.click(...)`
- * (destructuring hides the `.mouse.` member access this rule originally
- * looked for), `mouse.dblclick(x, y)` (same brittleness, different
- * method), and `touchscreen.tap(x, y)`.
- *
- * Fires only on a click, double click or tap whose x and y are both
- * numeric literals (QAG-287 slice E1). `mouse.move/down/up/wheel` are not
- * flagged (they park the cursor, end a drag, or scroll; `up()` takes no
- * coordinates), and neither is a click at values computed from
- * `boundingBox()` or variables, which is how drag and pointer-event tests
- * must be written.
- */
-const MOUSE_COORDINATE_METHODS = new Set(['click', 'dblclick']);
-
-/** A numeric literal, optionally negated: `120`, `-5`. Nothing computed. */
-function isNumericLiteral(node: Node | undefined): boolean {
-  if (!node) return false;
-  if (node.type === 'Literal') return typeof (node as unknown as { value?: unknown }).value === 'number';
-  const un = node as unknown as { operator?: string; argument?: Node };
-  return node.type === 'UnaryExpression' && (un.operator === '-' || un.operator === '+') && isNumericLiteral(un.argument);
-}
-
-const noCoordinateClick: Rule.RuleModule = {
-  meta: {
-    type: 'suggestion',
-    docs: {
-      description:
-        'Disallow page.mouse.click/dblclick(x, y) and touchscreen.tap(x, y) at fixed numeric coordinates — click a locator instead',
-    },
-    messages: {
-      coordinateClick:
-        'Click at fixed pixel coordinates via {{method}}(x, y). Interact through a locator (locator.click()) so the action targets an element, not a fixed pixel position, which breaks on any layout or viewport change.',
-    },
-    schema: [],
-  },
-  create(context) {
-    return {
-      // Single full-tree pass at the end of the file rather than the
-      // usual incremental per-node visitor: alias detection (`const m =
-      // page.mouse`) needs every declaration collected before any
-      // CallExpression can be checked against it, and declarations don't
-      // reliably precede their uses in a single top-down traversal
-      // ordering guarantee otherwise. Typed loosely (not our shared
-      // `Node`, nor the real ESTree `Program`) for the same reason as
-      // ImportDeclaration/VariableDeclarator above — walkNode only needs
-      // a `type` string and recurses over own enumerable properties, so
-      // an `unknown` in is enough.
-      'Program:exit'(raw: unknown) {
-        const program = raw as Node;
-        // Any variable initialized directly from `.mouse` (`page.mouse`,
-        // `this.page.mouse`, ...) is the same Mouse API under an
-        // arbitrary local name — `const m = page.mouse; m.click(x, y)` is
-        // exactly as brittle as `page.mouse.click(x, y)`, just harder to
-        // grep for. Seeded with the bare name `mouse` so `const { mouse }
-        // = page; mouse.click(...)` (destructuring, not an assignment
-        // this pass's MemberExpression check would match) is still
-        // caught, same as before this alias tracking existed. A simple
-        // identifier-to-identifier chain (`const m2 = m1`) is also
-        // followed, since the walk below visits declarations in source
-        // order for the common sequential-declaration case.
-        const mouseAliasNames = new Set<string>(['mouse']);
-        walkNode(program, (n) => {
-          if (n.type !== 'VariableDeclarator') return;
-          const decl = n as unknown as { id?: Node; init?: Node | null };
-          if (decl.id?.type !== 'Identifier' || !decl.id.name || !decl.init) return;
-          const init = decl.init;
-          const isDotMouseInit =
-            init.type === 'MemberExpression' &&
-            !init.computed &&
-            init.property?.type === 'Identifier' &&
-            init.property.name === 'mouse';
-          const isChainedAlias =
-            init.type === 'Identifier' &&
-            typeof init.name === 'string' &&
-            mouseAliasNames.has(init.name);
-          if (isDotMouseInit || isChainedAlias) {
-            mouseAliasNames.add(decl.id.name);
-          }
-        });
-
-        walkNode(program, (n) => {
-          if (n.type !== 'CallExpression') return;
-          const callee = n.callee;
-          if (!callee || callee.type !== 'MemberExpression' || callee.computed) return;
-          const methodName = callee.property?.type === 'Identifier' ? callee.property.name : undefined;
-          const isTap = methodName === 'tap';
-          if (!methodName || !(MOUSE_COORDINATE_METHODS.has(methodName) || isTap)) return;
-          const obj = callee.object;
-          if (!obj) return;
-          // Only fixed literal positions: `click(120, 240)`. Anything
-          // computed (boundingBox maths, variables) is deliberate.
-          const callArgs = n.arguments ?? [];
-          if (!isNumericLiteral(callArgs[0]) || !isNumericLiteral(callArgs[1])) return;
-          if (isTap) {
-            const isTouchscreen =
-              obj.type === 'MemberExpression' &&
-              !obj.computed &&
-              obj.property?.type === 'Identifier' &&
-              obj.property.name === 'touchscreen';
-            if (!isTouchscreen) return;
-            context.report({ node: n as never, messageId: 'coordinateClick', data: { method: 'touchscreen.tap' } });
-            return;
-          }
-          // `page.mouse.click(...)` / `this.page.mouse.click(...)` — any
-          // expression ending in `.mouse`.
-          const isDotMouse =
-            obj.type === 'MemberExpression' &&
-            !obj.computed &&
-            obj.property?.type === 'Identifier' &&
-            obj.property.name === 'mouse';
-          // `const { mouse } = page; mouse.click(...)` (bare `mouse`,
-          // always in the set) or `const m = page.mouse; m.click(...)`
-          // (any other name aliased above) — either way, the exact same
-          // Mouse API under a name that isn't a `.mouse` member access.
-          const isAliasedMouseIdentifier =
-            obj.type === 'Identifier' && typeof obj.name === 'string' && mouseAliasNames.has(obj.name);
-          if (!isDotMouse && !isAliasedMouseIdentifier) return;
-          context.report({
-            node: n as never,
-            messageId: 'coordinateClick',
-            data: { method: `mouse.${methodName}` },
-          });
-        });
-      },
-    };
-  },
-};
-
 type ConstResult = { ok: true; value: unknown } | { ok: false };
 const NOT_CONST: ConstResult = { ok: false };
 
@@ -1232,7 +1096,6 @@ const noTrivialAssertion: Rule.RuleModule = {
 const rawRules: Record<string, Rule.RuleModule> = {
   'no-skipped-test-declaration': noSkippedTestDeclaration,
   'no-timer-sleep': noTimerSleep,
-  'no-coordinate-click': noCoordinateClick,
   'no-trivial-assertion': noTrivialAssertion,
   'no-unawaited-action': noUnawaitedAction,
   'no-brittle-selector': noBrittleSelector,
@@ -1243,7 +1106,6 @@ const rawRules: Record<string, Rule.RuleModule> = {
   'no-swallowed-assertion': noSwallowedAssertion,
   'no-weak-assertion': noWeakAssertion,
   'no-unawaited-expect-value': noUnawaitedExpectValue,
-  'no-self-fulfilling-fallback': noSelfFulfillingFallback,
 };
 
 /**

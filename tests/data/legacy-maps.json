@@ -174,17 +174,6 @@
    },
    "conf": null
   },
-  "playwright/no-standalone-expect": {
-   "map": {
-    "dimension": "assertions"
-   },
-   "copy": {
-    "title": "Assertion outside any test",
-    "why": "It runs at load time and fails the whole run with a confusing error, which costs engineers time to diagnose.",
-    "fix": "Move the expect inside a test() or a hook."
-   },
-   "conf": null
-  },
   "playwright/no-useless-await": {
    "map": {
     "dimension": "playwrightHygiene",
@@ -313,18 +302,6 @@
    },
    "conf": "needs-check"
   },
-  "pwscore/no-coordinate-click": {
-   "map": {
-    "dimension": "playwrightHygiene",
-    "severityOverride": "warning"
-   },
-   "copy": {
-    "title": "Click at screen coordinates",
-    "why": "Pixel positions can break at another screen size or layout, so the test can fail when nothing is wrong with the product.",
-    "fix": "Click a locator instead of page.mouse.click(x, y), except on canvas surfaces."
-   },
-   "conf": null
-  },
   "pwscore/no-excessive-timeout": {
    "map": {
     "dimension": "playwrightHygiene",
@@ -347,19 +324,6 @@
     "fix": "Fix and re-enable the test, or delete it and track the gap in the backlog."
    },
    "conf": "high"
-  },
-  "pwscore/no-self-fulfilling-fallback": {
-   "map": {
-    "dimension": "assertions",
-    "severityOverride": "info",
-    "reportOnly": true
-   },
-   "copy": {
-    "title": "Test fills in the value it then checks",
-    "why": "If the page is missing the value, the test types it in and then confirms it, so the check passes on a broken feature.",
-    "fix": "Remove the fallback and assert on what the page shows."
-   },
-   "conf": "needs-check"
   },
   "pwscore/no-shared-mutable-state": {
    "map": {

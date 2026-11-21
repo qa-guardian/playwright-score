@@ -34,7 +34,6 @@ const CASES: Array<[string, string, number]> = [
   ['no-swallowed-assertion', 'swallowed', 2],
   ['no-weak-assertion', 'weak', 5],
   ['no-unawaited-expect-value', 'unawaited-value', 3],
-  ['no-self-fulfilling-fallback', 'self-fulfilling', 2],
 ];
 
 for (const [rule, stem, count] of CASES) {
@@ -73,11 +72,9 @@ describe('QAG-287 fix round 2: no-swallowed-assertion skip in catch', () => {
 });
 
 describe('QAG-287 2a: severities and de-duplication', () => {
-  it('weak/unawaited are errors; swallowed is a warning; fallback is info and report-only', async () => {
+  it('weak/unawaited are errors; swallowed is a warning', async () => {
     const w = await hits('bad-weak.spec.ts', 'pwscore/no-weak-assertion');
     assert.ok(w.own.every((f) => f.severity === 'error' && f.dimension === 'assertions'));
-    const s = await hits('bad-self-fulfilling.spec.ts', 'pwscore/no-self-fulfilling-fallback');
-    assert.ok(s.own.every((f) => f.severity === 'info' && f.reportOnly === true && f.dimension === 'assertions'));
     const sw = await hits('bad-swallowed.spec.ts', 'pwscore/no-swallowed-assertion');
     assert.ok(sw.own.every((f) => f.severity === 'warning' && f.dimension === 'assertions'));
   });

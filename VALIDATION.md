@@ -261,24 +261,26 @@ actually driving the C/D/F grades (the corpus script itself only prints a
 findings *count* per repo, not the rule breakdown). Rule frequency across
 those 16: `playwright/no-raw-locators` 8,452 (dominated by
 `ionic-team/ionic-framework`'s per-component shadow-DOM queries and
-`tanstack/table`'s example apps), `playwright/no-standalone-expect` 2,416,
+`tanstack/table`'s example apps), the upstream standalone-expect rule 2,416,
 `playwright/no-conditional-expect` 791, `playwright/no-conditional-in-test`
 693, `playwright/prefer-locator` 602, `playwright/no-wait-for-timeout`
-369, `pwscore/no-coordinate-click` 333, `playwright/prefer-web-first-
-assertions` 331. Consistent with the original 50: raw/native locators and
+369, the fixed-coordinate click rule 333, `playwright/prefer-web-first-
+assertions` 331. (The standalone-expect and fixed-coordinate click rules were
+removed in 3.0.0: a later hand-check of their findings measured zero
+precision.) Consistent with the original 50: raw/native locators and
 standalone/conditional expects are still the most common real issues in
 public suites generally, not corpus-specific noise.
 
 ### Candidate scorer false positives found this pass (not fixed in this pass)
 
-- **`pwscore/no-coordinate-click`'s canvas-app exception (see below) has a
+- **The fixed-coordinate click rule's canvas-app exception (see below) has a
   second confirmed example**: `KittyCAD/modeling-app` (a browser-based CAD
   tool) accounts for 130 of this pass's 333 hits, on top of tldraw/AFFiNE
   already documented from the original 50.
 
-**Known false-positive class, mitigated but not eliminated**:
-`no-coordinate-click` flags `page.mouse.click/dblclick/move/down/up(x, y)`
-unconditionally. That's the right call for a typical DOM app (a
+**Known false-positive class, mitigated in 2.0.0 and closed in 3.0.0 by
+removing the rule**: the fixed-coordinate click rule flagged
+`page.mouse.click/dblclick/move/down/up(x, y)` unconditionally. That's the right call for a typical DOM app (a
 fixed-pixel interaction is always brittle there) but it is the *correct
 and only* way to interact with canvas-based apps — tldraw, AFFiNE, and
 now KittyCAD's modeling-app (three infinite-canvas/CAD editors) account
@@ -290,7 +292,7 @@ this case — see METHODOLOGY.md's "Why v4" for why a severity change was
 chosen over a canvas-detection heuristic. It still costs real points for
 a canvas-heavy suite (this is exactly what flips tldraw from pass to fail
 above), and there's no per-repo override: **this project no longer
-recommends `// eslint-disable-next-line pwscore/no-coordinate-click` as a
+recommends an inline `eslint-disable-next-line` comment for this rule as a
 workaround** — see "Known limitations" below for why, and use a
 per-test-file exemption in your own CI config if you maintain a
 canvas/whiteboard/drawing-tool suite and need one.
@@ -379,9 +381,9 @@ doesn't own.
   `linterOptions.noInlineConfig` (see CHANGELOG.md's 2.0.0 "Fixed" entry)
   makes every inline directive inert for this package's own rule set, so
   the comment is only ever a demerit, never a way to make a real finding
-  disappear. This project's own earlier docs recommended `//
-  eslint-disable-next-line pwscore/no-coordinate-click` as an escape
-  hatch for canvas apps (see above); that recommendation stays withdrawn
+  disappear. This project's own earlier docs recommended an inline
+  `eslint-disable-next-line` comment for the fixed-coordinate click rule as
+  an escape hatch for canvas apps (see above); that recommendation stays withdrawn
   regardless — it no longer even works as a silencer, only as an extra
   demerit on top of whatever it was aimed at. Resolving exactly which
   rule a given comment targets (and whether that rule is even one this
@@ -437,8 +439,8 @@ a hypothetical:
   `flat/recommended` only when it was an array, but the plugin exports a
   single config object, so nine mapped rules (`no-conditional-in-test`,
   `no-conditional-expect`, `no-element-handle`, `no-eval`,
-  `no-page-pause`, `no-useless-await`, `valid-expect`,
-  `no-standalone-expect`, `max-nested-describe`) never fired. A suite
+  `no-page-pause`, `no-useless-await`, `valid-expect`, the
+  standalone-expect rule, `max-nested-describe`) never fired. A suite
   built entirely out of `if (await locator.isVisible())` branches scored
   a clean 100. Fixed in 0.3.0 by enabling the sqs-v1 rule set explicitly
   (frozen severities, no install-time inheritance).
@@ -479,7 +481,7 @@ a hypothetical:
   every rule that keys off the literal identifier `test`** (2026-09-23/24) — `argos-ci/argos`'s `loggedTest(...)` and
   `apache/superset`'s `testWithAssets(...)` each got every `expect()`
   inside a completely normal, well-formed test flagged as
-  `no-standalone-expect`/`no-conditional-expect`/"outside a test block",
+  a standalone expect/`no-conditional-expect`/"outside a test block",
   and undercounted by this package's own test-span/`countTests` logic
   too. Upstream `eslint-plugin-playwright` already dereferences a
   *same-file* extend chain; it can't follow one across files (a fixture

@@ -115,20 +115,4 @@ export const flakeRiskAdvisoryRows: readonly RuleRow[] = [
     reportOnly: true,
     label: 'medium',
   },
-  // Scheduled for deletion: zero measured precision. Page.mouse.click(x, y) is also the correct way to drive a canvas, which is where most hits came from.
-  {
-    rule: 'pwscore/no-coordinate-click',
-    form: '-',
-    family: 'flake-risk',
-    design: 'deleting',
-    basis: 'convention',
-    bcEligible: false,
-    title: 'Click at screen coordinates',
-    what: 'A mouse click or move uses fixed screen coordinates.',
-    why: 'Pixel positions can break at another screen size or layout, so the test can fail when nothing is wrong with the product.',
-    fix: 'Click a locator instead of page.mouse.click(x, y), except on canvas surfaces.',
-    dimension: 'playwrightHygiene',
-    severityOverride: 'warning',
-    label: 'medium',
-  },
 ];

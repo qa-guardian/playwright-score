@@ -5,7 +5,6 @@
   "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/no-conditional-in-test.md",
   "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/no-eval.md",
   "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/no-force-option.md",
-  "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/no-standalone-expect.md",
   "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/no-useless-await.md",
   "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/require-top-level-describe.md",
   "https://github.com/playwright-community/eslint-plugin-playwright/blob/main/docs/rules/valid-expect.md",

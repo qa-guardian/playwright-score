@@ -62,7 +62,7 @@ describe('scorePaths integration', () => {
     assert.ok(result.score < 100);
   });
 
-  it('catches the three remaining QAG-196 gameability tricks as real, scored findings under standard (model v4 — owner direction: public scores reflect quality, not a report-only compromise)', async () => {
+  it('catches the two remaining QAG-196 gameability tricks as real, scored findings under standard (model v4 — owner direction: public scores reflect quality, not a report-only compromise)', async () => {
     const result = await scorePaths({
       paths: [path.join(fixtures, 'bad-gameable.spec.ts')],
       profile: 'standard',
@@ -71,14 +71,13 @@ describe('scorePaths integration', () => {
     });
     const GAMEABILITY_RULES = [
       'pwscore/no-timer-sleep',
-      'pwscore/no-coordinate-click',
       'pwscore/no-trivial-assertion',
     ];
     const rules = result.findings.map((f) => f.rule);
     for (const expected of GAMEABILITY_RULES) {
       assert.ok(rules.includes(expected), `expected ${expected}, got: ${rules.join(', ')}`);
     }
-    // v4: none of the three is report-only any more — every one is a real
+    // v4: neither is report-only any more — every one is a real
     // demerit under the one remaining public profile (`standard`). See
     // profiles.ts and CHANGELOG.md's 2.0.0 entry.
     for (const rule of GAMEABILITY_RULES) {
@@ -87,7 +86,7 @@ describe('scorePaths integration', () => {
     }
     assert.ok(
       result.score < 100,
-      `expected a real score hit from all three gameability tricks, got ${result.score}`
+      `expected a real score hit from both gameability tricks, got ${result.score}`
     );
   });
 
@@ -102,7 +101,6 @@ describe('scorePaths integration', () => {
       !result.findings.some((f) =>
         [
           'pwscore/no-timer-sleep',
-          'pwscore/no-coordinate-click',
           'pwscore/no-trivial-assertion',
             ].includes(f.rule)
       ),
@@ -111,27 +109,10 @@ describe('scorePaths integration', () => {
     assert.equal(result.score, 100);
   });
 
-  it('no-coordinate-click is a warning-level (partial) demerit, not error-level, to soften the canvas-app false positive', async () => {
-    const result = await scoreSource(
-      `import { test, expect } from '@playwright/test';\n` +
-        `test('coordinate click', async ({ page }) => {\n` +
-        `  await page.goto('/app');\n` +
-        `  await page.mouse.click(120, 240);\n` +
-        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
-        `});\n`
-    );
-    const finding = result.findings.find((f) => f.rule === 'pwscore/no-coordinate-click');
-    assert.equal(finding?.severity, 'warning', `expected a warning, not an error: ${JSON.stringify(finding)}`);
-    // A single warning-level finding costs 0.4 of one test's demerit
-    // budget in one dimension: 1 test, 0.4/1 -> 60. A full error-level
-    // demerit would have zeroed the dimension instead (0/1 -> 0).
-    assert.equal(result.dimensions.playwrightHygiene, 60, JSON.stringify(result.dimensions));
-  });
-
   it("standard-profile scores of the local fixture corpus reflect v4's scored gameability rules (regression guard — locks in the exact numbers so an accidental rule/severity change is caught)", async () => {
     const EXPECTED_STANDARD_SCORES: Record<string, number> = {
       'bad-conditional-logic.spec.ts': 73,
-      'bad-gameable.spec.ts': 73,
+      'bad-gameable.spec.ts': 68,
       'bad-legacy-selector-actions.spec.ts': 87,
       'bad-no-expects.spec.ts': 75,
       'bad-raw-locators.spec.ts': 83,
@@ -1045,110 +1026,6 @@ describe('pre-1.1.0 review fixes: no-timer-sleep respellings', () => {
   });
 });
 
-describe('pre-1.1.0 review fixes: no-coordinate-click respellings', () => {
-  it('flags a destructured mouse binding (const { mouse } = page; mouse.click(...))', async () => {
-    const result = await scoreSource(
-      `import { test, expect } from '@playwright/test';\n` +
-        `test('destructured mouse click', async ({ page }) => {\n` +
-        `  await page.goto('/app');\n` +
-        `  const { mouse } = page;\n` +
-        `  await mouse.click(120, 240);\n` +
-        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
-        `});\n`
-    );
-    assert.ok(
-      result.findings.some((f) => f.rule === 'pwscore/no-coordinate-click'),
-      `expected no-coordinate-click to fire on a destructured mouse.click: ${JSON.stringify(result.findings)}`
-    );
-  });
-
-  it('flags page.mouse.dblclick(x, y)', async () => {
-    const result = await scoreSource(
-      `import { test, expect } from '@playwright/test';\n` +
-        `test('coordinate double click', async ({ page }) => {\n` +
-        `  await page.goto('/app');\n` +
-        `  await page.mouse.dblclick(120, 240);\n` +
-        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
-        `});\n`
-    );
-    assert.ok(
-      result.findings.some((f) => f.rule === 'pwscore/no-coordinate-click'),
-      `expected no-coordinate-click to fire on page.mouse.dblclick: ${JSON.stringify(result.findings)}`
-    );
-  });
-
-  it('QAG-287: does not flag mouse.move/down/up/wheel, or clicks at computed coordinates', async () => {
-    const result = await scoreSource(
-      `import { test, expect } from '@playwright/test';\n` +
-        `test('drag, hover-end and wheel', async ({ page }) => {\n` +
-        `  await page.goto('/app');\n` +
-        `  await page.mouse.move(1, 1);\n` +
-        `  await page.mouse.move(1000, 1000);\n` +
-        `  await page.mouse.down();\n` +
-        `  await page.mouse.up();\n` +
-        `  await page.mouse.wheel(0, 300);\n` +
-        `  const box = await page.getByRole('heading').boundingBox();\n` +
-        `  await page.mouse.move(box!.x + box!.width / 2, box!.y + 4);\n` +
-        `  await page.mouse.click(box!.x + 5, box!.y + 5, { button: 'right' });\n` +
-        `  const px = 120;\n` +
-        `  await page.mouse.click(px, 240);\n` +
-        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
-        `});\n`
-    );
-    assert.ok(
-      !result.findings.some((f) => f.rule === 'pwscore/no-coordinate-click'),
-      `expected no coordinate-click finding: ${JSON.stringify(result.findings)}`
-    );
-  });
-
-  it('QAG-287: flags literal-coordinate click, negative literals and touchscreen.tap', async () => {
-    const result = await scoreSource(
-      `import { test, expect } from '@playwright/test';\n` +
-        `test('literals', async ({ page }) => {\n` +
-        `  await page.goto('/app');\n` +
-        `  await page.mouse.click(120, 240);\n` +
-        `  await page.mouse.click(10, -5, { button: 'right' });\n` +
-        `  await page.touchscreen.tap(50, 60);\n` +
-        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
-        `});\n`
-    );
-    const hits = result.findings.filter((f) => f.rule === 'pwscore/no-coordinate-click');
-    assert.equal(hits.length, 3, JSON.stringify(result.findings));
-  });
-
-  it('2.0.0: flags an arbitrarily-named alias of page.mouse (const m = page.mouse; m.click(x, y))', async () => {
-    const result = await scoreSource(
-      `import { test, expect } from '@playwright/test';\n` +
-        `test('aliased mouse click', async ({ page }) => {\n` +
-        `  await page.goto('/app');\n` +
-        `  const m = page.mouse;\n` +
-        `  await m.click(120, 240);\n` +
-        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
-        `});\n`
-    );
-    assert.ok(
-      result.findings.some((f) => f.rule === 'pwscore/no-coordinate-click'),
-      `expected no-coordinate-click to fire on an arbitrarily-named page.mouse alias: ${JSON.stringify(result.findings)}`
-    );
-  });
-
-  it('2.0.0: does not flag an unrelated variable named m that never aliases page.mouse', async () => {
-    const result = await scoreSource(
-      `import { test, expect } from '@playwright/test';\n` +
-        `test('unrelated m', async ({ page }) => {\n` +
-        `  await page.goto('/app');\n` +
-        `  const m = { click: async (_x: number, _y: number) => {} };\n` +
-        `  await m.click(120, 240);\n` +
-        `  await expect(page.getByRole('heading')).toBeVisible();\n` +
-        `});\n`
-    );
-    assert.ok(
-      !result.findings.some((f) => f.rule === 'pwscore/no-coordinate-click'),
-      `expected no-coordinate-click not to fire on an unrelated variable that happens to be named m: ${JSON.stringify(result.findings)}`
-    );
-  });
-});
-
 describe('QAG-287: the removed no-soft-assertion-only-test rule stays removed', () => {
   it('a soft-only test is not flagged: a failed expect.soft still fails the test', async () => {
     const result = await scoreSource(
@@ -1163,6 +1040,24 @@ describe('QAG-287: the removed no-soft-assertion-only-test rule stays removed', 
       `expected no soft-assertion finding: ${JSON.stringify(result.findings)}`
     );
   });
+
+  it('the three rules removed for zero measured precision report nothing on the shapes they used to flag', async () => {
+    const result = await scoreSource(
+      `import { test, expect } from '@playwright/test';\n` +
+        `expect(1 + 1).toBe(2);\n` +
+        `test('old shapes', async ({ page }) => {\n` +
+        `  await page.goto('/app');\n` +
+        `  await page.mouse.click(120, 240);\n` +
+        `  const name = page.getByLabel('Name');\n` +
+        `  if (!(await name.inputValue())) {\n` +
+        `    await name.fill('Ada');\n` +
+        `  }\n` +
+        `  await expect(name).toHaveValue('Ada');\n` +
+        `});\n`
+    );
+    const removed = result.findings.filter((f) => /standalone-expect|coordinate-click|self-fulfilling/.test(f.rule));
+    assert.deepEqual(removed, [], JSON.stringify(removed));
+  });
 });
 
 describe('pre-2.0.0 review fixes: inline eslint-disable comments are reported, not invisible', () => {
@@ -1170,8 +1065,8 @@ describe('pre-2.0.0 review fixes: inline eslint-disable comments are reported, n
     `import { test, expect } from '@playwright/test';\n` +
     `test('suppresses a real finding', async ({ page }) => {\n` +
     `  await page.goto('/app');\n` +
-    `  // eslint-disable-next-line pwscore/no-coordinate-click\n` +
-    `  await page.mouse.click(120, 240);\n` +
+    `  // eslint-disable-next-line playwright/no-wait-for-timeout\n` +
+    `  await page.waitForTimeout(1000);\n` +
     `  await expect(page.getByRole('heading')).toBeVisible();\n` +
     `});\n`;
 
@@ -1253,7 +1148,7 @@ describe('2.0.0 MUST FIX: noInlineConfig — an inline eslint-disable can no lon
 });
 
 describe('2.1.0: custom test.extend() fixture names are recognized as test declarations', () => {
-  it('same-file: const loggedTest = test.extend(...) does not false-positive no-standalone-expect (regression: argos-ci/apache-superset shape)', async () => {
+  it('same-file: const loggedTest = test.extend(...) counts as a test declaration (regression: argos-ci/apache-superset shape)', async () => {
     const result = await scoreSource(
       `import { test, expect } from '@playwright/test';\n` +
         `const loggedTest = test.extend<{}>({});\n\n` +
@@ -1261,10 +1156,6 @@ describe('2.1.0: custom test.extend() fixture names are recognized as test decla
         `  await page.goto('/dashboard');\n` +
         `  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();\n` +
         `});\n`
-    );
-    assert.ok(
-      !result.findings.some((f) => f.rule === 'playwright/no-standalone-expect'),
-      `expected no false no-standalone-expect finding: ${JSON.stringify(result.findings)}`
     );
     assert.equal(result.summary.tests, 1, `expected the loggedTest(...) declaration to count as one test, got ${result.summary.tests}`);
     assert.equal(result.score, 100, `expected a clean score, got ${result.score}: ${JSON.stringify(result.findings)}`);
@@ -1295,10 +1186,6 @@ describe('2.1.0: custom test.extend() fixture names are recognized as test decla
       );
 
       const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
-      assert.ok(
-        !result.findings.some((f) => f.rule === 'playwright/no-standalone-expect'),
-        `expected no false no-standalone-expect finding: ${JSON.stringify(result.findings)}`
-      );
       assert.equal(result.summary.files, 1, 'only the spec file counts as a scored file');
       assert.equal(result.summary.tests, 1, `expected the loggedTest(...) declaration to count as one test, got ${result.summary.tests}`);
       assert.equal(result.score, 100, `expected a clean score, got ${result.score}: ${JSON.stringify(result.findings)}`);
@@ -1330,10 +1217,6 @@ describe('2.1.0: custom test.extend() fixture names are recognized as test decla
       );
 
       const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
-      assert.ok(
-        !result.findings.some((f) => f.rule === 'playwright/no-standalone-expect'),
-        `expected no false no-standalone-expect finding: ${JSON.stringify(result.findings)}`
-      );
       assert.equal(result.summary.tests, 1, `expected the testWithAssets(...) declaration to count as one test, got ${result.summary.tests}`);
       assert.equal(result.score, 100, `expected a clean score, got ${result.score}: ${JSON.stringify(result.findings)}`);
     } finally {
@@ -1351,9 +1234,10 @@ describe('2.1.0: custom test.extend() fixture names are recognized as test decla
         `  expect(1).toBe(1);\n` +
         `});\n`
     );
-    assert.ok(
-      result.findings.some((f) => f.rule === 'playwright/no-standalone-expect'),
-      'an unrelated same-named function must still be flagged — the alias must come from a real .extend() chain, not the name alone'
+    assert.equal(
+      result.summary.tests,
+      0,
+      'an unrelated same-named function is not a test declaration: the alias must come from a real .extend() chain, not the name alone'
     );
   });
 
@@ -1403,10 +1287,6 @@ describe('2.1.0: custom test.extend() fixture names are recognized as test decla
       const start = Date.now();
       const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
       assert.ok(Date.now() - start < 10_000, 'a two-file import cycle must not hang or take unreasonably long');
-      assert.ok(
-        !result.findings.some((f) => f.rule === 'playwright/no-standalone-expect'),
-        `expected the cyclic-import-resolved bTest(...) alias to be recognized, not false-flagged: ${JSON.stringify(result.findings)}`
-      );
       assert.equal(result.summary.tests, 1, `expected the bTest(...) declaration to count as one test, got ${result.summary.tests}`);
       assert.equal(result.score, 100, `expected a clean score despite the cyclic fixture imports, got ${result.score}: ${JSON.stringify(result.findings)}`);
     } finally {

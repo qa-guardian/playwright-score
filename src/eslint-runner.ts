@@ -6,7 +6,6 @@ import type { Linter } from 'eslint';
 import playwright from 'eslint-plugin-playwright';
 import { basePlugin } from './rules/base-plugin.js';
 import { mapRule } from './profiles.js';
-import { getCurriedTestCallbackRanges } from './metrics.js';
 import { plainAliasNames } from './test-aliases.js';
 import { createPostFilter } from './eslint-postfilter.js';
 import { formOfReportedRead, urlCountReads } from './read-forms.js';
@@ -179,19 +178,12 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
         'playwright/no-page-pause': 'warn',
         'playwright/no-useless-await': 'warn',
         'playwright/valid-expect': 'error',
-        'playwright/no-standalone-expect': 'error',
         'playwright/max-nested-describe': 'warn',
 
         // QAG-196 gameability fixes (2026-09-21), scored unconditionally
         // as of 2.0.0/model v4 — see base-plugin.ts for what each one
         // catches and profiles.ts for the severity → demerit mapping.
-        // no-coordinate-click is 'warn' here too (not 'error'): profiles.ts
-        // overrides its scoring severity to 'warning' regardless (the
-        // canvas-app false-positive mitigation), so setting 'error' here
-        // would only mislead the raw ESLint severity shown in some
-        // formatters without changing what it actually costs.
         'pwscore/no-timer-sleep': 'error',
-        'pwscore/no-coordinate-click': 'warn',
         'pwscore/no-trivial-assertion': 'error',
         // QAG-287 slice 2b flake-risk rules, one file each under src/rules/.
         'pwscore/no-unawaited-action': 'error',
@@ -204,7 +196,6 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
         'pwscore/no-swallowed-assertion': 'warn',
         'pwscore/no-weak-assertion': 'error',
         'pwscore/no-unawaited-expect-value': 'error',
-        'pwscore/no-self-fulfilling-fallback': ['warn', { testAliasNames }],
       },
     },
     // .cjs/.cts are always CommonJS (top-level `return`, `require`, no
@@ -320,28 +311,6 @@ export async function runEslint(options: {
       result.messages.filter((m) => m.ruleId === 'pwscore/no-unawaited-expect-value').map((m) => m.line)
     );
     const absFile = path.resolve(result.filePath);
-    // Curried test declarations `factory({...})("title", fn)` are invisible to
-    // eslint-plugin-playwright (it matches tests by callee name), so its
-    // no-standalone-expect flags every expect in them: drop those (QAG-287).
-    let curriedRanges: ReturnType<typeof getCurriedTestCallbackRanges> | undefined;
-    const insideCurriedTest = (line: number | undefined, column: number | undefined): boolean => {
-      if (line === undefined || column === undefined) return false;
-      if (curriedRanges === undefined) {
-        try {
-          const src = result.source ?? fs.readFileSync(absFile, 'utf8');
-          curriedRanges = getCurriedTestCallbackRanges(src, absFile, options.testAliasNames ?? []);
-        } catch {
-          curriedRanges = [];
-        }
-      }
-      // ESLint columns are 1-based, AST columns 0-based.
-      const col = column - 1;
-      return curriedRanges.some(
-        (r) =>
-          (line > r.start.line || (line === r.start.line && col >= r.start.column)) &&
-          (line < r.end.line || (line === r.end.line && col <= r.end.column))
-      );
-    };
     const file = path.relative(options.reportBase ?? cwd, absFile) || path.basename(absFile);
     const postFilter = createPostFilter(() => result.source ?? fs.readFileSync(absFile, 'utf8'), absFile);
     for (const msg of result.messages) {
@@ -388,7 +357,6 @@ export async function runEslint(options: {
         continue;
       }
       if (!msg.ruleId) continue;
-      if (msg.ruleId === 'playwright/no-standalone-expect' && insideCurriedTest(msg.line, msg.column)) continue;
       if (msg.ruleId === 'playwright/prefer-web-first-assertions' && unawaitedLines.has(msg.line)) continue;
       const decision = postFilter({ ruleId: msg.ruleId, messageId: msg.messageId, line: msg.line, column: msg.column });
       if (decision?.drop) continue;

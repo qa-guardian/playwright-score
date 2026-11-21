@@ -166,14 +166,6 @@
    "pending": null
   },
   {
-   "id": "no-coordinate-click/false-locator-click",
-   "pending": null
-  },
-  {
-   "id": "no-coordinate-click/true-fixed-coordinates",
-   "pending": null
-  },
-  {
    "id": "no-element-handle/false-api-under-test-engine-named-package",
    "pending": "S3c"
   },
@@ -458,14 +450,6 @@
    "pending": null
   },
   {
-   "id": "no-self-fulfilling-fallback/false-click-only-fallback",
-   "pending": null
-  },
-  {
-   "id": "no-self-fulfilling-fallback/true-fill-then-assert",
-   "pending": null
-  },
-  {
    "id": "no-shared-mutable-state/false-serial-describe",
    "pending": null
   },
@@ -479,26 +463,6 @@
   },
   {
    "id": "no-skipped-test-declaration/true-skip-declaration",
-   "pending": null
-  },
-  {
-   "id": "no-standalone-expect/false-expect-in-test",
-   "pending": null
-  },
-  {
-   "id": "no-standalone-expect/false-expect-in-test-step",
-   "pending": null
-  },
-  {
-   "id": "no-standalone-expect/false-foreign-expect-in-helper",
-   "pending": null
-  },
-  {
-   "id": "no-standalone-expect/true-expect-at-module-level",
-   "pending": null
-  },
-  {
-   "id": "no-standalone-expect/true-expect-in-describe-body",
    "pending": null
   },
   {

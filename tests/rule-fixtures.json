@@ -130,10 +130,6 @@
    "form": "-"
   },
   {
-   "rule": "playwright/no-standalone-expect",
-   "form": "-"
-  },
-  {
    "rule": "playwright/no-useless-await",
    "form": "-"
   },
@@ -158,19 +154,11 @@
    "form": "-"
   },
   {
-   "rule": "pwscore/no-coordinate-click",
-   "form": "-"
-  },
-  {
    "rule": "pwscore/no-excessive-timeout",
    "form": "-"
   },
   {
    "rule": "pwscore/no-fixme-test",
-   "form": "-"
-  },
-  {
-   "rule": "pwscore/no-self-fulfilling-fallback",
    "form": "-"
   },
   {
@@ -1745,39 +1733,6 @@
    "entry": "playwright__no-raw-locators/-/false-role-locator.ts"
   },
   {
-   "id": "no-standalone-expect/true-expect-in-describe-body",
-   "rule": "playwright/no-standalone-expect",
-   "verdict": "true",
-   "entry": "playwright__no-standalone-expect/-/true-expect-in-describe-body.ts"
-  },
-  {
-   "id": "no-standalone-expect/true-expect-at-module-level",
-   "rule": "playwright/no-standalone-expect",
-   "verdict": "true",
-   "entry": "playwright__no-standalone-expect/-/true-expect-at-module-level.ts"
-  },
-  {
-   "id": "no-standalone-expect/false-expect-in-test",
-   "rule": "playwright/no-standalone-expect",
-   "verdict": "false",
-   "entry": "playwright__no-standalone-expect/-/false-expect-in-test.ts"
-  },
-  {
-   "id": "no-standalone-expect/false-expect-in-test-step",
-   "rule": "playwright/no-standalone-expect",
-   "verdict": "false",
-   "entry": "playwright__no-standalone-expect/-/false-expect-in-test-step.ts"
-  },
-  {
-   "id": "no-standalone-expect/false-foreign-expect-in-helper",
-   "rule": "playwright/no-standalone-expect",
-   "verdict": "false",
-   "entry": "playwright__no-standalone-expect/-/false-foreign-expect-in-helper.ts",
-   "tags": [
-    "g10:foreign-expect"
-   ]
-  },
-  {
    "id": "no-useless-await/true-await-locator",
    "rule": "playwright/no-useless-await",
    "verdict": "true",
@@ -1859,18 +1814,6 @@
    "entry": "pwscore__no-brittle-selector/-/false-role-and-test-id.ts"
   },
   {
-   "id": "no-coordinate-click/true-fixed-coordinates",
-   "rule": "pwscore/no-coordinate-click",
-   "verdict": "true",
-   "entry": "pwscore__no-coordinate-click/-/true-fixed-coordinates.ts"
-  },
-  {
-   "id": "no-coordinate-click/false-locator-click",
-   "rule": "pwscore/no-coordinate-click",
-   "verdict": "false",
-   "entry": "pwscore__no-coordinate-click/-/false-locator-click.ts"
-  },
-  {
    "id": "no-excessive-timeout/true-two-minute-timeout",
    "rule": "pwscore/no-excessive-timeout",
    "verdict": "true",
@@ -1893,18 +1836,6 @@
    "rule": "pwscore/no-fixme-test",
    "verdict": "false",
    "entry": "pwscore__no-fixme-test/-/false-conditional-fixme.ts"
-  },
-  {
-   "id": "no-self-fulfilling-fallback/true-fill-then-assert",
-   "rule": "pwscore/no-self-fulfilling-fallback",
-   "verdict": "true",
-   "entry": "pwscore__no-self-fulfilling-fallback/-/true-fill-then-assert.ts"
-  },
-  {
-   "id": "no-self-fulfilling-fallback/false-click-only-fallback",
-   "rule": "pwscore/no-self-fulfilling-fallback",
-   "verdict": "false",
-   "entry": "pwscore__no-self-fulfilling-fallback/-/false-click-only-fallback.ts"
   },
   {
    "id": "no-shared-mutable-state/true-order-dependent-let",

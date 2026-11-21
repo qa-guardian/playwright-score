@@ -160,7 +160,7 @@ describe('QAG-287 F-5: tier follows labels/precision.json', () => {
   const expectedTier = (r: (typeof ROWS)[number]): string => {
     const t = listed.get(`${r.rule}|${r.form}|spec`);
     if (t) return t;
-    return r.design === 'advisory' || r.design === 'deleting' ? 'advisory' : 'likely';
+    return r.design === 'advisory' ? 'advisory' : 'likely';
   };
 
   it('the file is schema 2 and every listed cell has a known tier, role and row', () => {

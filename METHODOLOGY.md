@@ -81,8 +81,8 @@ owns this dimension; counting them as demerits too would double-penalize.)
 
 | Dimension | Weight | Demerit sources |
 |---|---:|---|
-| playwrightHygiene | 40 | hard waits (`page.waitForTimeout`, `new Promise`+`setTimeout` and its respellings, `node:timers/promises` setTimeout), networkidle, force, a click at fixed numeric coordinates (`*.mouse.click/dblclick(x, y)`, `touchscreen.tap(x, y)`; `move/down/up/wheel` and computed coordinates are not flagged), partial demerit — see below), missing await, element handles, eval, conditionals, page.pause, useless await |
-| assertions | 25 | a test with no recognized assertion is fully flawed (`expect-expect`, after all delegation resolution; a test with no `expect` of its own that calls an assertion-named method (`assert`, `verify`, `check`, `validate`, `expect`, `ensure`, `should`, `confirm` followed by an upper-case letter, `_`, a digit or nothing; or `toBe*`, `toHave*`, `toContain*`, `toMatch*`, `toEqual*`, `toThrow*`) on an object the scan cannot read, or calls a fixture that comes from a module the scan cannot resolve is a report-only `playwright-score/assertion-unverified` "not decided automatically" finding, not a demerit, and is counted in `summary.unverifiedTests` rather than as asserting; any other call on such an object does not excuse the test, so query-style names (`is...`, `has...`, `wait...`), helper methods named like Playwright actions (`fill`, `check`, `goto`) and built-in calls are never treated as assertions; an assertion helper or fixture only counts when its body is readable, it is called by the test, and its name does not collide with a Playwright method); an assertion whose subject/matcher combination can only ever pass (`expect(true).toBe(true)`, `expect([]).toEqual([])`, never a deliberate force-fail like `expect(true).toBe(false)`, and never an array that may be mutated elsewhere: passed to a call, the receiver of a mutating method such as `push`, an assignment target, or captured by a closure such as an event listener doing so, including an inner array mutated through an index such as `rows[0].push(9)`); `valid-expect`, `no-standalone-expect`, `prefer-web-first-assertions`, all add partial demerits |
+| playwrightHygiene | 40 | hard waits (`page.waitForTimeout`, `new Promise`+`setTimeout` and its respellings, `node:timers/promises` setTimeout), networkidle, force, missing await, element handles, eval, conditionals, page.pause, useless await |
+| assertions | 25 | a test with no recognized assertion is fully flawed (`expect-expect`, after all delegation resolution; a test with no `expect` of its own that calls an assertion-named method (`assert`, `verify`, `check`, `validate`, `expect`, `ensure`, `should`, `confirm` followed by an upper-case letter, `_`, a digit or nothing; or `toBe*`, `toHave*`, `toContain*`, `toMatch*`, `toEqual*`, `toThrow*`) on an object the scan cannot read, or calls a fixture that comes from a module the scan cannot resolve is a report-only `playwright-score/assertion-unverified` "not decided automatically" finding, not a demerit, and is counted in `summary.unverifiedTests` rather than as asserting; any other call on such an object does not excuse the test, so query-style names (`is...`, `has...`, `wait...`), helper methods named like Playwright actions (`fill`, `check`, `goto`) and built-in calls are never treated as assertions; an assertion helper or fixture only counts when its body is readable, it is called by the test, and its name does not collide with a Playwright method); an assertion whose subject/matcher combination can only ever pass (`expect(true).toBe(true)`, `expect([]).toEqual([])`, never a deliberate force-fail like `expect(true).toBe(false)`, and never an array that may be mutated elsewhere: passed to a call, the receiver of a mutating method such as `push`, an assignment target, or captured by a closure such as an event listener doing so, including an inner array mutated through an index such as `rows[0].push(9)`); `valid-expect`, `prefer-web-first-assertions`, all add partial demerits |
 | locators | 20 | usage ratio (above) |
 | structure | 15 | focused tests, always-skipped declarations, nested-describe depth, oversized files (module scope), an inline `eslint-disable` suppression comment (partial demerit — see "Known limitations" in VALIDATION.md) |
 
@@ -128,7 +128,7 @@ code scores identically regardless of which plugin version npm resolves.
 
 ### Tests that would miss a real bug
 
-Five rules (QAG-287) target tests that pass whatever the app does. Each
+Four rules (QAG-287) target tests that pass whatever the app does. Each
 matches one exact syntactic shape and stays silent when unsure.
 
 | Rule | Dimension, severity | Exact shape |
@@ -137,7 +137,6 @@ matches one exact syntactic shape and stays silent when unsure.
 | `pwscore/no-swallowed-assertion` | assertions, warning | `expect(...)` in a `try` whose `catch` has no throw, expect, fail-ish call, returned value or assignment (not inside a loop); or `await expect(...).catch(fn)` as a statement where `fn` does not throw. |
 | `pwscore/no-weak-assertion` | assertions, error | `.count()`/`.length` `toBeGreaterThanOrEqual(0)`; a syntactic Locator (`page.locator`, `getBy*`, or a const from one) asserted `toBeTruthy`/`toBeDefined`/`not.toBeNull`; `isVisible()`-style and `count()` results asserted `toBeDefined`. `toBeTruthy()` on other values is not flagged. |
 | `pwscore/no-unawaited-expect-value` | assertions, error | `expect(<promise call>)` without `await`, receiver syntactically a Page/Locator, matcher not web-first (also an un-awaited promise call as the expected value of `toBe`/`toEqual`). `.resolves`/`.rejects` are exempt. |
-| `pwscore/no-self-fulfilling-fallback` | assertions, info, report-only (no score effect; no real-suite hits, validated on fixtures only) | Inside a test: `if (!check) { actions }`, the `else` of `if (check) {...} else { actions }`, or `try { expect/check } catch { actions }`, where the actions include `fill`/`type`/`pressSequentially`/`selectOption`/`setInputFiles` (click-only and key-press fallbacks are the usual "make sure the menu is open" setup and are not flagged), followed in the same block by an `expect` on a locator shared with the check or the actions AND compared against the very value the fallback supplied (`fill('x')` then `toHaveValue('x')`, same literal or const). An assertion on anything else means the fallback only creates test data and is not flagged. Positive-branch actions (dismiss a banner if visible) are never flagged. |
 
 
 ---
@@ -147,38 +146,40 @@ matches one exact syntactic shape and stays silent when unsure.
 v4 keeps v3's per-test ratio formula unchanged. What changed is which
 findings feed it:
 
-1. **(Historical: `pwscore/no-soft-assertion-only-test` was removed in 2.4.0 because a failed `expect.soft` does fail the test; the other three below remain.) Four gameability rules, planned as report-only under `standard`,
-   are real demerits there instead.** 1.1.0 (never published) planned
-   `pwscore/no-timer-sleep`,
-   `pwscore/no-coordinate-click`, `pwscore/no-trivial-assertion` and
-   `pwscore/no-soft-assertion-only-test` behind a separate opt-in `strict`
-   profile, so the public default (`standard`) wouldn't move anyone's
-   score. Owner direction, 2026-09-23: public scores should reflect
-   quality, full stop — a spec that sleeps on a timer, clicks a fixed
-   pixel coordinate, or asserts on a literal constant should score worse
-   under the default profile, not only under an opt-in one nobody has to
-   run. `strict` is removed as a result: with nothing left for it to gate
-   (every rule now scores the same way in the only remaining profile), a
-   second profile identical to the first was dead weight, not a real
-   choice. See CHANGELOG.md's 2.0.0 entry for the exact corpus repos this
-   moved, including pass→fail flips.
-2. **`pwscore/no-coordinate-click` is a warning (0.4 demerit), not an
-   error (1.0).** The 50-repo corpus surfaced a real false-positive
-   class: two infinite-canvas editors (tldraw, AFFiNE) accounted for
-   428/459 of this rule's hits, and a fixed-pixel `page.mouse.click(x,
-   y)` is the *correct*, only way to interact with canvas content that
-   has no addressable DOM element — not a brittleness anti-pattern there.
-   A full error-level demerit would treat every legitimate canvas
-   interaction as a fully-flawed test; a partial one keeps it a real cost
-   (still visible, still moves the score) without a brittle "is this a
-   canvas app?" heuristic (filename/import sniffing) that would itself
-   become a new gameability surface — name your spec file to dodge it.
+1. **Gameability rules, planned as report-only under `standard`, are
+   real demerits there instead.** 1.1.0 (never published) planned four
+   of them (a timer sleep, a click at fixed pixel coordinates, an
+   assertion on a literal constant, and a test with only soft
+   assertions) behind a separate opt-in `strict` profile, so the public
+   default (`standard`) wouldn't move anyone's score. Owner direction,
+   2026-09-23: public scores should reflect quality, full stop — a spec
+   that sleeps on a timer or asserts on a literal constant should score
+   worse under the default profile, not only under an opt-in one nobody
+   has to run. `strict` is removed as a result: with nothing left for it
+   to gate (every rule now scores the same way in the only remaining
+   profile), a second profile identical to the first was dead weight,
+   not a real choice. See CHANGELOG.md's 2.0.0 entry for the exact
+   corpus repos this moved, including pass→fail flips. Two of the four
+   remain today, `pwscore/no-timer-sleep` and
+   `pwscore/no-trivial-assertion`: the soft-assertion rule was removed in
+   2.4.0 (a failed `expect.soft` does fail the test), and the
+   fixed-coordinate click rule was removed in 3.0.0 (see item 2).
+2. **The fixed-coordinate click rule was a warning (0.4 demerit) in v4,
+   and is removed in 3.0.0.** The 50-repo corpus surfaced a real
+   false-positive class: two infinite-canvas editors (tldraw, AFFiNE)
+   accounted for 428/459 of its hits, and a fixed-pixel
+   `page.mouse.click(x, y)` is the *correct*, only way to interact with
+   canvas content that has no addressable DOM element — not a
+   brittleness anti-pattern there. v4 answered with a partial demerit
+   instead of a full one. A later hand-check of its real findings
+   measured zero precision, so 3.0.0 deletes the rule rather than keep
+   charging for a correct interaction.
 3. **Inline `eslint-disable` suppression comments are now a demerit,
    not invisible.** A pre-2.0.0 review found this project's own docs
-   recommending `// eslint-disable-next-line pwscore/no-coordinate-click`
-   as an escape hatch, while every rule this package ships can in fact be
-   silenced the same way — defeating the score for whatever it hides.
-   `pwscore/eslint-disable-comment` reports the presence of any
+   recommending an inline `eslint-disable-next-line` comment as an
+   escape hatch for one rule, while every rule this package ships can in
+   fact be silenced the same way — defeating the score for whatever it
+   hides. `pwscore/eslint-disable-comment` reports the presence of any
    suppression directive (not, yet, which specific rule it targets — a
    documented known limitation, see VALIDATION.md).
 
@@ -244,5 +245,5 @@ preconditions rather than the behaviour under test.
 **Test factories.** A function whose `return` is `<test>.extend(...)`, a known
 test alias, or a call of another such function (same file or imported through
 relative paths) is a test factory; `const t = factory(...)` makes `t` a test
-alias, so `t('name', ...)` is a test declaration and its `expect` calls are not
-"standalone".
+alias, so `t('name', ...)` is a test declaration, counted and checked like any
+other test.

@@ -81,12 +81,6 @@
    "tier": "advisory"
   },
   {
-   "rule": "playwright/no-standalone-expect",
-   "form": "-",
-   "role": "spec",
-   "tier": "advisory"
-  },
-  {
    "rule": "playwright/no-useless-await",
    "form": "-",
    "role": "spec",
@@ -142,12 +136,6 @@
   },
   {
    "rule": "pwscore/no-brittle-selector",
-   "form": "-",
-   "role": "spec",
-   "tier": "advisory"
-  },
-  {
-   "rule": "pwscore/no-coordinate-click",
    "form": "-",
    "role": "spec",
    "tier": "advisory"

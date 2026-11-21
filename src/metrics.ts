@@ -565,43 +565,6 @@ export function isCurriedFactoryCall(
   return inner?.type === 'Identifier' && !!inner.name && factories.has(inner.name);
 }
 
-/**
- * Line/column ranges of the function arguments of curried test calls
- * (`factory({...})("title", async () => {...})`, also `.only`/`.skip`/...).
- * eslint-plugin-playwright matches tests by callee name and cannot see these
- * as tests, so its `no-standalone-expect` reports every expect in them; the
- * eslint runner drops findings inside these ranges. The factory's own
- * options object is not a range: an expect there is still standalone.
- */
-export function getCurriedTestCallbackRanges(
-  source: string,
-  file: string | undefined,
-  testAliasNames: readonly string[]
-): Array<{ start: { line: number; column: number }; end: { line: number; column: number } }> {
-  const factories = factoryNamesOf(testAliasNames);
-  const out: Array<{ start: { line: number; column: number }; end: { line: number; column: number } }> = [];
-  if (factories.size === 0) return out;
-  const ast = parseSource(source, file);
-  if (!ast) return out;
-  walk(ast, (node) => {
-    if (node.type !== 'CallExpression') return;
-    const callee = (node as { callee?: Record<string, unknown> }).callee;
-    const curried =
-      isCurriedFactoryCall(callee, factories) ||
-      (callee?.type === 'MemberExpression' &&
-        !callee.computed &&
-        isCurriedFactoryCall(callee.object as Record<string, unknown>, factories) &&
-        TEST_MODIFIERS.has((callee.property as { name?: string })?.name ?? ''));
-    if (!curried) return;
-    for (const arg of ((node as { arguments?: Array<Record<string, unknown>> }).arguments ?? [])) {
-      if (arg.type !== 'ArrowFunctionExpression' && arg.type !== 'FunctionExpression') continue;
-      const loc = (arg as { loc?: { start: { line: number; column: number }; end: { line: number; column: number } } }).loc;
-      if (loc) out.push({ start: loc.start, end: loc.end });
-    }
-  });
-  return out;
-}
-
 export function getTestSpans(
   source: string,
   file?: string,
@@ -753,7 +716,7 @@ export function findOversizedFile(
  * `/* ... *\/` block-comment equivalents. Deliberately does NOT parse which
  * rule(s) it names or narrow to only our own rule ids — a pre-2.0.0 review
  * found this project's own docs (VALIDATION.md) recommending
- * `eslint-disable-next-line pwscore/no-coordinate-click` as "the correct
+ * an inline `eslint-disable-next-line` comment for one rule as "the correct
  * escape hatch", while every one of this project's rules can in fact be
  * silenced this way, defeating the score entirely for whatever it hides.
  * Reporting the comment itself, without attempting to resolve exactly what
