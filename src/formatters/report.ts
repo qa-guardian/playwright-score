@@ -11,6 +11,7 @@ import {
   mostAffectedFile,
   notScoredHeadline,
   notScoredState,
+  partialNote,
   plural,
   rankGroups,
   summaryTop,
@@ -247,7 +248,7 @@ export function formatReport(result: ScoreResult, opts: ReportOptions): string {
     scoreBox = `<div class="score notscored" role="img" aria-label="Not scored"><span class="big">--</span><span class="grade">Not scored</span></div>`;
   } else {
     headline = `${clean} of ${summary.tests} ${summary.tests === 1 ? 'test has' : 'tests have'} no issues.`;
-    explain = `A weighted average of four areas below. ${gradeBandText(result.grade, result.pass)} ${barText(result.threshold, opts.customThreshold === true, result.pass)}`;
+    explain = `A weighted average of four areas below. ${gradeBandText(result.grade, result.pass)}${result.status === 'partial' ? '' : ` ${barText(result.threshold, opts.customThreshold === true, result.pass)}`}`;
     scoreBox = `<div class="score g-${result.grade}" aria-hidden="true"><span class="big">${result.score}</span><span class="of">/100</span><span class="grade">${result.grade}</span></div>`;
   }
   const srScore = state ? '' : `<span class="sr-only">Score ${result.score} out of 100, grade ${result.grade}. </span>`;
@@ -258,8 +259,10 @@ export function formatReport(result: ScoreResult, opts: ReportOptions): string {
       ? `\n<p class="check">${humanItems.length ? '<a href="#human-check">' : ''}${plural(humanCount, 'test')} ${humanCount === 1 ? 'is' : 'are'} not decided automatically and ${humanCount === 1 ? 'is' : 'are'} left out of the score: a person should look.${humanItems.length ? '</a>' : ''}</p>`
       : '';
   const crashLine = result.ruleCrashes?.length ? `\n<p class="check">${escapeHtml(INCOMPLETE_NOTE)}</p>` : '';
+  const partial = partialNote(result);
+  const partialLine = partial ? `\n<p class="check">${escapeHtml(partial)}</p>` : '';
   const meta = state
-    ? plural(summary.files, 'file')
+    ? plural(result.coverage?.filesFound ?? summary.files, 'file')
     : `${plural(summary.tests, 'test')} in ${plural(summary.files, 'file')}`;
 
   const header = `<header>
@@ -269,7 +272,7 @@ export function formatReport(result: ScoreResult, opts: ReportOptions): string {
 ${scoreBox}
 <div>
 <h1>${srScore}${escapeHtml(headline)}</h1>
-<p class="explain">${escapeHtml(explain)}</p>${humanLine}${crashLine}
+<p class="explain">${escapeHtml(explain)}</p>${humanLine}${crashLine}${partialLine}
 <p class="meta">${meta} · scored ${escapeHtml(longDate(opts.date))}</p>
 </div>
 </div>

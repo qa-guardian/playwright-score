@@ -12,6 +12,7 @@ import { formatSarif } from './formatters/sarif.js';
 import { formatReport } from './formatters/report.js';
 import { makeSourceReader } from './report-source.js';
 import { suiteLabel } from './suite-name.js';
+import { resolveDotSlashAbsolute } from './fs-util.js';
 import type { ProfileName } from './types.js';
 
 function printHelp(): void {
@@ -40,8 +41,10 @@ Options:
   --help                          Show help
 
 Exit codes:
-  0  score >= threshold
-  1  score < threshold (or no files matched)
+  0  score >= threshold, every file scored
+  1  score < threshold, or partial (a file was skipped: syntax error,
+     over 1 MB, binary or unreadable), or not scored (no files matched,
+     every file skipped, or no test that can run)
   2  tool error
 
 Website: https://qaguardian.com/open-source/playwright-score
@@ -164,7 +167,7 @@ async function main(): Promise<void> {
       process.exitCode = 2;
       return;
     } else {
-      paths.push(a);
+      paths.push(resolveDotSlashAbsolute(a));
     }
   }
 

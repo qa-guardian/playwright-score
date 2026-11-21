@@ -135,7 +135,9 @@ describe('scorePaths integration', () => {
       'bad-legacy-selector-actions.spec.ts': 87,
       'bad-no-expects.spec.ts': 75,
       'bad-raw-locators.spec.ts': 83,
-      'bad-standard-blanket-skip.spec.ts': 94,
+      // Its only test is declared test.skip: no test that can run, so not
+      // scored (QAG-287 S5a; 94 before, with the same finding).
+      'bad-standard-blanket-skip.spec.ts': 0,
       'bad-syntax-error.spec.ts': 0, // hard-fail (parse error), not a real score
       'bad-waits.spec.ts': 40,
       'good-standard-assertion-helper.spec.ts': 100,
