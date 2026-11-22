@@ -11,7 +11,6 @@ import { suiteRows } from './suite.js';
  * it is likely, never certain. One entry per line, so a rule can be taken out alone.
  */
 export const RECEIVER_TIERED_RULES: readonly string[] = [
-  'playwright/no-wait-for-selector',
   'playwright/no-wait-for-navigation',
   'playwright/no-element-handle',
   'playwright/no-page-pause',
