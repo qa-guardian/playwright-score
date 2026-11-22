@@ -164,6 +164,8 @@ const SKIP_REASON_TEXT: Record<string, string> = {
   'too-large': 'over the 1 MB size limit',
   binary: 'not a text file',
   unreadable: 'could not be read',
+  deadline: 'time limit reached',
+  'worker-died': 'analysis ran out of memory or stopped',
 };
 
 /** "a.spec.ts (syntax error), b.spec.ts (over the 1 MB size limit) and 2 more". */

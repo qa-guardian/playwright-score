@@ -10,12 +10,13 @@ import { readForms } from '../src/read-forms.js';
 
 const RULE = 'playwright/prefer-web-first-assertions';
 
-async function reads(body: string) {
+// `inProcess`: for a test that flips a switch of this thread's modules, which the analysis worker does not share.
+async function reads(body: string, inProcess = false) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-read-'));
   try {
     const file = path.join(dir, 'a.spec.ts');
     fs.writeFileSync(file, `import { test, expect } from '@playwright/test';\n\ntest('t', async ({ page }) => {\n${body}\n});\n`);
-    const r = await scorePaths({ paths: [file], profile: 'standard', threshold: 0, cwd: dir });
+    const r = await scorePaths({ paths: [file], profile: 'standard', threshold: 0, cwd: dir, ...(inProcess ? { isolate: false } : {}) });
     return r.findings.filter((f) => f.rule === RULE);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -77,11 +78,11 @@ describe('QAG-287 S3b: read-reused', () => {
     ];
     const key = (fs: Awaited<ReturnType<typeof reads>>) => fs.map((f) => [f.rule, f.line, f.column, f.message].join('|')).sort();
     for (const src of sources) {
-      const on = await reads(src);
+      const on = await reads(src, true);
       readForms.enabled = false;
       let off: Awaited<ReturnType<typeof reads>>;
       try {
-        off = await reads(src);
+        off = await reads(src, true);
       } finally {
         readForms.enabled = true;
       }

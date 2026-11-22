@@ -1,0 +1,255 @@
+/**
+ * The analysis of a run's files (lint, triage, per-file metrics), and the
+ * worker thread it runs in.
+ *
+ * Discovery and classification are finished in the main thread before this
+ * module sees a file. The worker is a guard around the analysis only: a file
+ * it gives up on (the time limit passed, or the worker ran out of heap or
+ * died) was already classified as a Playwright file, is listed in `coverage`
+ * and makes the result `partial`. It never moves a file into or out of
+ * `skippedFiles`.
+ *
+ * Results do not depend on the machine: files go to the worker in sorted
+ * batches of a fixed size, one batch at a time, and the batch results are
+ * merged in batch order, so the output equals the in-process analysis
+ * whenever no limit is hit.
+ */
+import path from 'node:path';
+import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
+import { dropFindingsOfSkipped, parseErrorFiles } from './coverage.js';
+import { createTriage } from './finding-triage.js';
+import { commonAncestorDir } from './fs-util.js';
+import { analyzeSource, getTestSpans, type TestSpans } from './metrics.js';
+import { createModuleResolver, type ImportResolver } from './module-resolution.js';
+import { resetRuleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
+import type { Finding, ProfileName, SkipReason } from './types.js';
+
+/**
+ * Default old-generation heap limit of the analysis worker, in MB.
+ *
+ * ADR section 5.6: max(4096, 2 x the largest peak heap measured at S1-E),
+ * rounded up to 512 MB. A source constant on purpose: it is never derived
+ * from the host's RAM, so a result under the defaults cannot flip between
+ * scored and partial from one machine to the next.
+ */
+export const DEFAULT_MAX_HEAP_MB = 4608;
+
+/** Lowest heap limit accepted: below this the worker cannot load the lint engine. */
+export const MIN_MAX_HEAP_MB = 64;
+
+/** Files per batch. Fixed, so batch boundaries never depend on the machine. */
+export const BATCH_SIZE = 20;
+
+/** Everything the analysis needs. Plain data: it is copied into the worker. */
+export interface AnalysisInput {
+  /** Files to analyse: absolute, sorted, already classified and read. */
+  files: string[];
+  /** Absolute path -> source, for every file in `files`. */
+  sources: Map<string, string>;
+  /** Locally imported dependency files, absolute path -> source. */
+  importedFiles: Map<string, string>;
+  /** Directory the findings' `file` paths are relative to. */
+  filesBase: string;
+  importBoundary: string;
+  profile: ProfileName;
+  cwd: string;
+  assertFunctionNamesByFile: Map<string, string[]>;
+  testAliasNames: string[];
+}
+
+/** What the analysis says about one file that parsed. */
+export interface FileFacts {
+  /** Relative to `filesBase`, as findings name it. */
+  rel: string;
+  sloc: number;
+  tests: number;
+  native: number;
+  raw: number;
+  spans: TestSpans;
+}
+
+export interface BatchResult {
+  /** Lint findings after triage; a file that did not parse keeps only its parse-error finding. */
+  lintFindings: Finding[];
+  metricFindings: Finding[];
+  /** One entry per scored file, in file order. */
+  facts: FileFacts[];
+  /** Files that did not parse: [absolute path, detail]. */
+  parseErrors: Array<[string, string]>;
+  /** Contained rule crashes (set by the worker; the in-process path reads the shared log). */
+  crashes?: Array<{ rule: string; count: number }>;
+}
+
+export interface WorkerSkip {
+  file: string;
+  reason: Extract<SkipReason, 'deadline' | 'worker-died'>;
+  detail: string;
+}
+
+export interface IsolateLimits {
+  maxHeapMb: number;
+  /** Whole seconds or a fraction; the clock starts at `startedAt`. Absent: no time limit. */
+  maxSeconds?: number;
+  /** `performance.now()` at the start of the run. */
+  startedAt: number;
+}
+
+/**
+ * The analysis of one list of files. Called once with every file (in
+ * process) or once per batch (in the worker); both give the same findings,
+ * because the lint base path and the triage knowledge are those of the whole
+ * run either way.
+ */
+export function createAnalyzer(
+  input: AnalysisInput,
+  moduleResolver: ImportResolver = createModuleResolver(input.importBoundary)
+): (files: string[]) => Promise<BatchResult> {
+  const { filesBase, sources, importedFiles, importBoundary, testAliasNames } = input;
+  const triage = createTriage({ filesBase, sources, importedFiles, importBoundary, moduleResolver });
+  const basePath = input.files.length > 0 ? commonAncestorDir(input.files) : undefined;
+  const relOf = (file: string): string => path.relative(filesBase, file) || path.basename(file);
+
+  return async (files) => {
+    // Loaded on first use: with a worker, the main thread never loads the lint engine.
+    const lint =
+      files.length === 0
+        ? []
+        : triage(
+            await (await import('./eslint-runner.js')).runEslint({
+              files,
+              profile: input.profile,
+              cwd: input.cwd,
+              reportBase: filesBase,
+              assertFunctionNamesByFile: input.assertFunctionNamesByFile,
+              testAliasNames,
+              basePath,
+            })
+          );
+    // A file that is not valid JS/TS keeps its parse-error finding and nothing else.
+    const unparsed = parseErrorFiles(lint);
+    const result: BatchResult = {
+      lintFindings: dropFindingsOfSkipped(lint, new Set(unparsed.keys())),
+      metricFindings: [],
+      facts: [],
+      parseErrors: [],
+    };
+    for (const file of files) {
+      const rel = relOf(file);
+      const detail = unparsed.get(rel);
+      if (detail !== undefined) {
+        result.parseErrors.push([file, detail]);
+        continue;
+      }
+      const source = sources.get(file) ?? '';
+      const m = analyzeSource(source, rel, testAliasNames);
+      result.metricFindings.push(...m.findings);
+      const spans = getTestSpans(source, rel, testAliasNames);
+      // AST spans are the authoritative test count (they are also the
+      // attribution targets); the regex count is the fallback for a file
+      // whose syntax tree shows no test declaration.
+      const tests = spans.tests.length > 0 ? spans.tests.length : m.tests;
+      result.facts.push({ rel, sloc: m.sloc, tests, native: m.locators.native, raw: m.locators.raw, spans });
+    }
+    return result;
+  };
+}
+
+/** `files` (already sorted) cut into consecutive batches of `size`. */
+export function toBatches(files: readonly string[], size = BATCH_SIZE): string[][] {
+  const out: string[][] = [];
+  for (let i = 0; i < files.length; i += size) out.push(files.slice(i, i + size));
+  return out;
+}
+
+const WORKER_MARK = 'pwscoreAnalysisWorker';
+
+type WorkerEnd = { kind: 'finished' } | { kind: 'deadline' } | { kind: 'died'; detail: string };
+
+function deathDetail(error: unknown, maxHeapMb: number): string {
+  const e = error as { code?: unknown; name?: unknown } | undefined;
+  if (e?.code === 'ERR_WORKER_OUT_OF_MEMORY') return `heap limit ${maxHeapMb} MB`;
+  // Never the message: it can carry a local path.
+  return typeof e?.name === 'string' && /^[A-Za-z]+$/.test(e.name) ? `worker error (${e.name})` : 'worker error';
+}
+
+/**
+ * Runs the analysis in a worker thread, batch by batch.
+ *
+ * - The time limit passes: the worker is stopped, and the batch in flight and
+ *   every later one are skipped with `deadline`.
+ * - The worker dies (out of heap, or any other error): the batch in flight
+ *   is skipped with `worker-died`, and a fresh worker takes the later ones.
+ *
+ * Batches that came back before either event are kept.
+ */
+export async function analyzeIsolated(
+  input: AnalysisInput,
+  limits: IsolateLimits
+): Promise<{ batches: BatchResult[]; skipped: WorkerSkip[] }> {
+  const batches = toBatches(input.files);
+  const done: BatchResult[] = [];
+  const skipped: WorkerSkip[] = [];
+  const deadlineAt = limits.maxSeconds === undefined ? undefined : limits.startedAt + limits.maxSeconds * 1000;
+  const msLeft = (): number => (deadlineAt === undefined ? Infinity : deadlineAt - performance.now());
+  const skipBatch = (i: number, reason: WorkerSkip['reason'], detail: string): void => {
+    for (const file of batches[i]) skipped.push({ file, reason, detail });
+  };
+
+  let next = 0;
+  /** One worker: batches from `next` on, until all are done, the worker dies or the time limit passes. */
+  const runWorker = (): Promise<WorkerEnd> =>
+    new Promise((resolve) => {
+      const worker = new Worker(new URL(import.meta.url), {
+        workerData: { [WORKER_MARK]: true, input },
+        resourceLimits: { maxOldGenerationSizeMb: limits.maxHeapMb },
+      });
+      let settled = false;
+      let timer: NodeJS.Timeout | undefined;
+      const settle = (end: WorkerEnd): void => {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        worker.removeAllListeners();
+        worker.on('error', () => undefined); // a late error of a worker being stopped is not ours to report
+        void worker.terminate().then(() => resolve(end), () => resolve(end));
+      };
+      const left = msLeft();
+      if (left !== Infinity) timer = setTimeout(() => settle({ kind: 'deadline' }), Math.max(0, left));
+      worker.on('message', (result: BatchResult) => {
+        if (settled) return;
+        done.push(result);
+        next++;
+        if (next < batches.length) worker.postMessage(batches[next]);
+        else settle({ kind: 'finished' });
+      });
+      worker.on('error', (error) => settle({ kind: 'died', detail: deathDetail(error, limits.maxHeapMb) }));
+      worker.on('exit', () => settle({ kind: 'died', detail: 'worker error' }));
+      worker.postMessage(batches[next]);
+    });
+
+  while (next < batches.length) {
+    const end: WorkerEnd = msLeft() <= 0 ? { kind: 'deadline' } : await runWorker();
+    if (end.kind === 'deadline') {
+      for (; next < batches.length; next++) skipBatch(next, 'deadline', `time limit ${limits.maxSeconds} s`);
+    } else if (end.kind === 'died') {
+      // Only the dead worker's batch: a later batch may need less, so each gets its own fresh worker.
+      skipBatch(next++, 'worker-died', end.detail);
+    }
+  }
+  return { batches: done, skipped };
+}
+
+/** Worker side: one batch in, one result out. */
+function serve(): void {
+  const analyze = createAnalyzer((workerData as { input: AnalysisInput }).input);
+  parentPort!.on('message', (files: string[]) => {
+    resetRuleCrashes();
+    // A rejection is left unhandled on purpose: it ends the worker, and the
+    // main thread skips the batch as `worker-died`.
+    void analyze(files).then((result) => {
+      parentPort!.postMessage({ ...result, crashes: summarizeRuleCrashes() });
+    });
+  });
+}
+
+if (!isMainThread && parentPort && (workerData as Record<string, unknown> | null)?.[WORKER_MARK] === true) serve();

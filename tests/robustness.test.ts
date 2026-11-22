@@ -75,7 +75,9 @@ describe('QAG-287 fix round 2: a crashed rule is reported, not silent', () => {
   it('puts ruleCrashes on the result, resets between runs, and keeps clean JSON free of the key', async () => {
     crash();
     try {
-      const bad = await scorePaths({ paths: [file], profile: 'standard', threshold: 0, cwd: fixtures });
+      // In process: the rule is swapped in this thread's plugin object, which the analysis worker does not share.
+      // (The CLI test below covers a crash inside the worker.)
+      const bad = await scorePaths({ paths: [file], profile: 'standard', threshold: 0, cwd: fixtures, isolate: false });
       assert.deepEqual(bad.ruleCrashes, [{ rule: 'no-fixme-test', count: 1 }]);
       assert.ok(JSON.parse(formatJson(bad)).ruleCrashes);
       assert.ok(formatText(bad, { suiteName: 'x', version: '0' }).includes(INCOMPLETE_NOTE));

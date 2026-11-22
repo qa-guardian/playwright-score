@@ -23,8 +23,9 @@ import type { ScoreResult } from '../src/types.js';
 //   partial     exit 1, `coverage.skipped` lists each skipped file
 //   not-scored  exit 1, score 0, grade F, `reason` is no-files or no-counted-tests
 //
-// Owned by other slices: forced --max-seconds 1 and --max-heap-mb 256 (S5b);
-// "every test skipped" becoming not-scored (S9a; the case below pins today's result).
+// Forced --max-seconds 1 and --max-heap-mb 256 (S5b) are at the end of this file.
+// Owned by another slice: "every test skipped" becoming not-scored (S9a; the
+// case below pins today's result). "Exit 0 with --allow-partial" is S9c's.
 
 const execFileAsync = promisify(execFile);
 
@@ -500,5 +501,69 @@ describe('QAG-287 S5a.1: a ./ prefix in front of an absolute path', () => {
     const prefixed = await run(['./' + dir], elsewhere);
     expectScored(prefixed, 2);
     assert.deepEqual(prefixed.result, plain.result);
+  });
+});
+
+// QAG-287 S5b (R9): forced limits on the largest suite this file builds. 45
+// files in 3 sorted batches of 20, 20 and 5; the second batch holds one dense
+// file just under the 1 MB cap (about 340,000 statements), which no worker can
+// lint in 256 MB (measured: it also fails at 512 and at 1024 MB, and passes
+// at 2048) and which takes far longer than a second to analyse.
+function largestSuite(): string {
+  const two = (i: number): string => String(i).padStart(2, '0');
+  const page = (n: string): string => GOOD.replace('opens the orders page', `opens page ${n}`);
+  const files: Record<string, string> = {};
+  for (let i = 0; i < 20; i++) files[`a-${two(i)}.spec.ts`] = page(`a${i}`);
+  for (let i = 1; i < 20; i++) files[`b-${two(i)}.spec.ts`] = page(`b${i}`);
+  for (let i = 0; i < 5; i++) files[`c-${two(i)}.spec.ts`] = page(`c${i}`);
+  const head = page('dense');
+  files['b-00.spec.ts'] = head + 'a;\n'.repeat(Math.floor((MAX_SOURCE_BYTES - head.length) / 3));
+  return suite(files);
+}
+
+describe('QAG-287 S5b: forced limits give a labelled result and exit 1, never 2', () => {
+  it('--max-heap-mb 256 on the largest suite: partial, exit 1; the batch that ran out of heap is skipped, the batches before and after are scored', async () => {
+    const dir = largestSuite();
+    const r = await run([dir, '--max-heap-mb', '256']);
+    const batchB = Array.from({ length: 20 }, (_, i): [string, string] => [`b-${String(i).padStart(2, '0')}.spec.ts`, 'worker-died']);
+    expectPartial(r, batchB, 25);
+    assert.deepEqual([...new Set(r.result.coverage?.skipped.map((s) => s.detail))], ['heap limit 256 MB']);
+    // A skipped file contributes no test and no finding.
+    assert.equal(r.result.coverage?.testsCounted, 25);
+    assert.equal(r.result.summary.tests, 25);
+    assert.ok(!r.result.findings.some((f) => f.file.startsWith('b-')));
+    assert.equal(r.stderr, '');
+  });
+
+  it('--max-seconds 1 on the largest suite: exit 1; every file not analysed in time is listed as deadline', async () => {
+    const dir = largestSuite();
+    const started = Date.now();
+    const r = await run([dir, '--max-seconds', '1']);
+    assert.equal(r.code, 1);
+    assert.equal(r.result.pass, false);
+    const cov = r.result.coverage!;
+    assert.equal(cov.filesFound, 45);
+    assert.ok(cov.skipped.length >= 25, `only ${cov.skipped.length} skipped`);
+    assert.deepEqual([...new Set(cov.skipped.map((s) => `${s.reason}|${s.detail}`))], ['deadline|time limit 1 s']);
+    assert.equal(cov.filesScored + cov.skipped.length, cov.filesFound);
+    // The dense file's batch and the one after it can never make it; the first batch may.
+    assert.ok(cov.skipped.some((s) => s.file === 'b-00.spec.ts') && cov.skipped.some((s) => s.file === 'c-04.spec.ts'));
+    // Nothing analysed in time is not-scored; some of it is partial (S5a.1 status order).
+    if (cov.filesScored === 0) expectNotScored(r, 'no-counted-tests');
+    else assert.equal(r.result.status, 'partial');
+    assert.equal(cov.testsCounted, cov.filesScored);
+    // The limit is enforced: the run is cut off, it does not finish the suite first.
+    assert.ok(Date.now() - started < 20_000, `took ${Date.now() - started} ms`);
+  });
+
+  it('a limit that is not a usable number is a usage error (exit 2), and no limit is ever applied silently', async () => {
+    for (const args of [['--max-seconds', '0'], ['--max-seconds', 'soon'], ['--max-heap-mb', '12.5'], ['--max-heap-mb', '8'], ['--max-heap-mb']]) {
+      const e = await execFileAsync(process.execPath, [cli, suite({ 'orders.spec.ts': GOOD }), ...args]).then(
+        () => undefined,
+        (err: { code?: number; stderr?: string }) => err
+      );
+      assert.equal(e?.code, 2, args.join(' '));
+      assert.match(e?.stderr ?? '', /--max-(seconds|heap-mb) must be/);
+    }
   });
 });

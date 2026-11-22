@@ -1,26 +1,21 @@
-import { triageFindings } from './finding-triage.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { globSync, hasMagic, Ignore, type IgnoreLike, type Path as GlobPath } from 'glob';
 import { createHelperScope } from './helper-scope.js';
-import { runEslint } from './eslint-runner.js';
 import { commonAncestorDir } from './fs-util.js';
 import { Admission, type Route } from './admission.js';
 import {
-  dropFindingsOfSkipped,
-  parseErrorFiles,
   scoredFindings,
   SkipLog,
   withCoverage,
 } from './coverage.js';
 import { collectLocallyImportedFiles, createModuleResolver } from './import-graph.js';
 import {
-  analyzeSource,
   attributeFindingScopes,
   countLocators,
   extractHelperFacts,
   type HelperFacts,
-  getTestSpans,
+  type TestSpans,
 } from './metrics.js';
 import { detectTestAliasNamesWithFactories } from './test-aliases.js';
 import {
@@ -38,7 +33,8 @@ import { DEFAULT_THRESHOLDS } from './profiles.js';
 import { decorateFindings } from './catalogue/decorate.js';
 import { computeScore } from './score-engine.js';
 import { getEngineVersions } from './engine-versions.js';
-import { resetRuleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
+import { resetRuleCrashes, ruleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
+import { DEFAULT_MAX_HEAP_MB, analyzeIsolated, createAnalyzer, type AnalysisInput } from './isolate.js';
 import type { Coverage, Finding, ProfileName, ScoreOptions, ScoreResult } from './types.js';
 
 export type {
@@ -66,6 +62,7 @@ export {
   attributeFindingScopes,
   getTestSpans,
 } from './metrics.js';
+export { DEFAULT_MAX_HEAP_MB } from './isolate.js';
 export { formatJson } from './formatters/json.js';
 export { formatText } from './formatters/text.js';
 export { formatMarkdown } from './formatters/markdown.js';
@@ -579,6 +576,7 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
 }
 
 async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
+  const startedAt = performance.now();
   const cwd = options.cwd ?? process.cwd();
   const profile: ProfileName = options.profile ?? 'standard';
   const threshold =
@@ -715,59 +713,61 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   // base-plugin.ts).
   const testAliasNames = detectTestAliasNamesWithFactories(sources, importedFiles, importBoundary);
 
-  const lintFindings =
-    files.length === 0
-      ? []
-      : triageFindings(
-          await runEslint({
-            files,
-            profile,
-            cwd,
-            reportBase: filesBase,
-            assertFunctionNamesByFile,
-            testAliasNames,
-          }),
-          { filesBase, sources, importedFiles, importBoundary, moduleResolver }
-        );
+  // The analysis itself (lint, triage, per-file metrics) lives in isolate.ts.
+  // By default it runs in a worker thread with a heap limit and, when the
+  // caller passes one, a time limit; a file the worker gives up on is listed
+  // in `coverage` and the result is `partial`. Every file was classified
+  // above, so a limit can only skip a file that is already a Playwright file.
+  const analysis: AnalysisInput = {
+    files,
+    sources,
+    importedFiles,
+    filesBase,
+    importBoundary,
+    profile,
+    cwd,
+    assertFunctionNamesByFile,
+    testAliasNames,
+  };
+  const outcome =
+    options.isolate === false
+      ? { batches: [await createAnalyzer(analysis, moduleResolver)(files)], skipped: [] }
+      : await analyzeIsolated(analysis, {
+          maxHeapMb: options.maxHeapMb ?? DEFAULT_MAX_HEAP_MB,
+          maxSeconds: options.maxSeconds,
+          startedAt,
+        });
+  for (const s of outcome.skipped) skips.add(s.file, s.reason, s.detail);
 
   // A file that isn't valid JS/TS can't be executed, let alone scored on its
   // merits. It is skipped: it keeps its parse-error finding, it is listed in
   // `coverage`, and the result is `partial` (never a pass) or, when nothing
   // else counts, `not-scored`. The other files are scored as usual.
-  const relOf = (file: string): string => path.relative(filesBase, file) || path.basename(file);
-  const unparsed = parseErrorFiles(lintFindings);
-  for (const file of files) {
-    const detail = unparsed.get(relOf(file));
-    if (detail !== undefined) skips.add(file, 'parse-error', detail);
-  }
-  const eslintFindings = dropFindingsOfSkipped(lintFindings, new Set(unparsed.keys()));
-  const scoredFiles = files.filter((f) => !skips.has(f));
-
   let totalSloc = 0;
   let totalTests = 0;
   let native = 0;
   let raw = 0;
+  const eslintFindings: Finding[] = [];
   const metricFindings: Finding[] = [];
-
   const fileTests: Record<string, number> = {};
-  const fileSpans = new Map<string, ReturnType<typeof getTestSpans>>();
-  for (const file of scoredFiles) {
-    const source = sources.get(file) ?? '';
-    const relFile = relOf(file);
-    const m = analyzeSource(source, relFile, testAliasNames);
-    totalSloc += m.sloc;
-    native += m.locators.native;
-    raw += m.locators.raw;
-    metricFindings.push(...m.findings);
-    const spans = getTestSpans(source, relFile, testAliasNames);
-    fileSpans.set(relFile, spans);
-    // AST spans are the authoritative test count (they are also the
-    // attribution targets); the regex count is the fallback for a file
-    // whose syntax tree shows no test declaration.
-    const testCount = spans.tests.length > 0 ? spans.tests.length : m.tests;
-    fileTests[relFile] = testCount;
-    totalTests += testCount;
+  const fileSpans = new Map<string, TestSpans>();
+  for (const batch of outcome.batches) {
+    for (const [file, detail] of batch.parseErrors) skips.add(file, 'parse-error', detail);
+    eslintFindings.push(...batch.lintFindings);
+    metricFindings.push(...batch.metricFindings);
+    for (const f of batch.facts) {
+      totalSloc += f.sloc;
+      native += f.native;
+      raw += f.raw;
+      fileSpans.set(f.rel, f.spans);
+      fileTests[f.rel] = f.tests;
+      totalTests += f.tests;
+    }
+    for (const c of batch.crashes ?? []) {
+      for (let i = 0; i < c.count; i++) ruleCrashes.push({ rule: c.rule, error: new Error('rule crashed in the analysis worker') });
+    }
   }
+  const scoredFiles = files.filter((f) => !skips.has(f));
 
   for (const [file, source] of importedFiles) {
     const counts = countLocators(source, file);

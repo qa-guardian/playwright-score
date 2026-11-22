@@ -252,6 +252,11 @@ export async function runEslint(options: {
   assertFunctionNamesByFile?: ReadonlyMap<string, string[]>;
   /** See detectExtendedTestAliases in test-aliases.ts. */
   testAliasNames?: string[];
+  /**
+   * ESLint base path. A run that lints its files in batches passes the common
+   * ancestor of ALL its files, so every batch is linted under the same base.
+   */
+  basePath?: string;
 }): Promise<Finding[]> {
   // ESLint 9 flat config resolves a `basePath` from `cwd` and silently
   // drops (as an untracked, ruleId-less message) any file that isn't
@@ -262,9 +267,8 @@ export async function runEslint(options: {
   // contain every file instead; fall back to the caller's cwd only when
   // there are no files (nothing to lint anyway).
   const cwd =
-    options.files.length > 0
-      ? commonAncestorDir(options.files)
-      : (options.cwd ?? process.cwd());
+    options.basePath ??
+    (options.files.length > 0 ? commonAncestorDir(options.files) : (options.cwd ?? process.cwd()));
   const overrideConfig = buildConfig(options.assertFunctionNames ?? [], options.testAliasNames ?? []);
 
   // Try to attach typescript-eslint parser for .ts files

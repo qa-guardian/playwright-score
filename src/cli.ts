@@ -13,6 +13,7 @@ import { formatReport } from './formatters/report.js';
 import { makeSourceReader } from './report-source.js';
 import { suiteLabel } from './suite-name.js';
 import { resolveDotSlashAbsolute } from './fs-util.js';
+import { DEFAULT_MAX_HEAP_MB, MIN_MAX_HEAP_MB } from './isolate.js';
 import type { ProfileName } from './types.js';
 
 function printHelp(): void {
@@ -37,14 +38,22 @@ Options:
   --out, --output <file>          Write report to file
   --name <suite name>             Suite name for the report headline
                                   (default: the directory basename)
+  --max-seconds <n>               Time limit for the run. No default: without
+                                  it a run is never cut short. Finding the
+                                  files always finishes; files not analysed
+                                  when the limit passes are skipped.
+  --max-heap-mb <n>               Heap limit of the analysis worker
+                                  (default: ${DEFAULT_MAX_HEAP_MB}, the same on every machine).
+                                  Files in the batch that hits it are skipped.
   --version                       Print version
   --help                          Show help
 
 Exit codes:
   0  score >= threshold, every file scored
   1  score < threshold, or partial (a file was skipped: syntax error,
-     over 1 MB, binary or unreadable), or not scored (no files matched,
-     every file skipped, or no tests found)
+     over 1 MB, binary, unreadable, or a --max-seconds / --max-heap-mb
+     limit was hit), or not scored (no files matched, every file skipped,
+     or no tests found)
   2  tool error
 
 Website: https://qaguardian.com/open-source/playwright-score
@@ -110,6 +119,8 @@ async function main(): Promise<void> {
   let format: Format = 'text';
   let out: string | undefined;
   let name: string | undefined;
+  let maxSeconds: number | undefined;
+  let maxHeapMb: number | undefined;
   const paths: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
@@ -160,6 +171,20 @@ async function main(): Promise<void> {
         process.exitCode = 2;
         return;
       }
+    } else if (a === '--max-seconds') {
+      maxSeconds = Number(args[++i]);
+      if (!Number.isFinite(maxSeconds) || maxSeconds <= 0) {
+        console.error('--max-seconds must be a number above 0');
+        process.exitCode = 2;
+        return;
+      }
+    } else if (a === '--max-heap-mb') {
+      maxHeapMb = Number(args[++i]);
+      if (!Number.isInteger(maxHeapMb) || maxHeapMb < MIN_MAX_HEAP_MB) {
+        console.error(`--max-heap-mb must be a whole number, ${MIN_MAX_HEAP_MB} or more`);
+        process.exitCode = 2;
+        return;
+      }
     } else if (a === '--version' || a === '-v') {
       continue;
     } else if (a.startsWith('-')) {
@@ -178,7 +203,7 @@ async function main(): Promise<void> {
   }
 
   try {
-    const result = await scorePaths({ paths, profile, threshold });
+    const result = await scorePaths({ paths, profile, threshold, maxSeconds, maxHeapMb });
     for (const c of result.ruleCrashes ?? []) {
       console.error(`warning: rule ${c.rule} crashed on ${c.count} node(s); results may be incomplete`);
     }

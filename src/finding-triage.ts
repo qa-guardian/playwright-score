@@ -412,16 +412,35 @@ function isUnconditionalSkipDeclaration(call: N): boolean {
 }
 
 export function triageFindings(findings: Finding[], ctx: TriageContext): Finding[] {
-  const wants = findings.some(
-    (f) =>
-      f.rule === 'playwright/expect-expect' ||
-      f.rule === 'playwright/no-conditional-in-test' ||
-      f.rule === 'playwright/valid-expect'
-  );
-  if (!wants) return findings;
-  ctx = { ...ctx, moduleResolver: ctx.moduleResolver ?? createModuleResolver(ctx.importBoundary ?? ctx.filesBase) };
-  const cache: AstCache = new Map(); // per call: nothing leaks between scorePaths runs
-  const know = gather(ctx, cache);
+  return createTriage(ctx)(findings);
+}
+
+/**
+ * A triage function for one run. What it knows about the suite is gathered
+ * once, on the first call that needs it, so a run that lints its files in
+ * batches triages each batch exactly as one call over all findings would.
+ */
+export function createTriage(context: TriageContext): (findings: Finding[]) => Finding[] {
+  const ctx = {
+    ...context,
+    moduleResolver: context.moduleResolver ?? createModuleResolver(context.importBoundary ?? context.filesBase),
+  };
+  const cache: AstCache = new Map(); // per run: nothing leaks between scorePaths runs
+  let know: Knowledge | undefined;
+  return (findings) => {
+    const wants = findings.some(
+      (f) =>
+        f.rule === 'playwright/expect-expect' ||
+        f.rule === 'playwright/no-conditional-in-test' ||
+        f.rule === 'playwright/valid-expect'
+    );
+    if (!wants) return findings;
+    know ??= gather(ctx, cache);
+    return triageWith(findings, ctx, know, cache);
+  };
+}
+
+function triageWith(findings: Finding[], ctx: TriageContext, know: Knowledge, cache: AstCache): Finding[] {
   const out: Finding[] = [];
   for (const f of findings) {
     if (

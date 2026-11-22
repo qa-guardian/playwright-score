@@ -104,9 +104,14 @@ export type NotScoredReason = 'no-files' | 'no-counted-tests';
 /**
  * Why a file was left out. `parse-error`: not valid JS/TS. `too-large`: over
  * the 1 MB source cap. `binary`: a NUL byte in the first 8 KB. `unreadable`:
- * the file could not be read (a broken link, a permission error).
+ * the file could not be read (a broken link, a permission error). `deadline`:
+ * the caller's time limit (`maxSeconds`) passed before the file was analysed.
+ * `worker-died`: the analysis worker ran out of heap (`maxHeapMb`) or stopped
+ * on an error while it had the file's batch. A file has one reason, the first
+ * that applies in this order: `unreadable`, `too-large`, `binary`, `deadline`
+ * or `worker-died`, `parse-error`.
  */
-export type SkipReason = 'parse-error' | 'too-large' | 'binary' | 'unreadable';
+export type SkipReason = 'parse-error' | 'too-large' | 'binary' | 'unreadable' | 'deadline' | 'worker-died';
 
 export interface SkippedFile {
   /** Relative to the same directory as `Finding.file`. */
@@ -180,6 +185,26 @@ export interface ScoreOptions {
   profile?: ProfileName;
   threshold?: number;
   cwd?: string;
+  /**
+   * Time limit for the run, in seconds, counted from the call. No default: a
+   * run without it is never cut short. Finding and classifying the files
+   * always finishes; the limit stops the analysis that follows. The files not
+   * analysed when it passes are skipped (`deadline`) and the result is
+   * `partial`, or `not-scored` when none was analysed in time. This is the
+   * only limit whose effect depends on the machine.
+   */
+  maxSeconds?: number;
+  /**
+   * Heap limit of the analysis worker, in MB. Defaults to a fixed constant
+   * (`DEFAULT_MAX_HEAP_MB`), never to a share of the host's memory.
+   */
+  maxHeapMb?: number;
+  /**
+   * `false` runs the analysis in the calling thread, with no heap or time
+   * limit (`maxSeconds` and `maxHeapMb` are then ignored). Default: a worker
+   * thread. Both give the same result when no limit is hit.
+   */
+  isolate?: boolean;
 }
 
 export interface LocatorCounts {
