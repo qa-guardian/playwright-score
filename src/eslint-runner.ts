@@ -223,10 +223,6 @@ function toSeverity(
 }
 
 /**
- * Run ESLint once per scorePaths invocation with embedded config only.
- * Does not load host-repo eslint.config.js.
- */
-/**
  * Per-message severity for rules whose messages differ in how serious the
  * case is (QAG-287 slice E2): a fixme that already carries a reason, or an
  * empty fixme placeholder, is listed as info; a fixme with no reason keeps the
@@ -237,8 +233,7 @@ const MESSAGE_SEVERITY: Record<string, 'info'> = {
   'pwscore/no-fixme-test#placeholder': 'info',
 };
 
-export async function runEslint(options: {
-  files: string[];
+export interface LintOptions {
   // Kept on the options shape for call-site/API stability even though
   // mapRule no longer branches on it (there's only one profile as of
   // 2.0.0 — see profiles.ts and types.ts's ProfileName).
@@ -257,7 +252,28 @@ export async function runEslint(options: {
    * ancestor of ALL its files, so every batch is linted under the same base.
    */
   basePath?: string;
-}): Promise<Finding[]> {
+}
+
+/**
+ * Lint `options.files` with the embedded config only (a host repo's
+ * eslint.config.js is never loaded).
+ */
+export async function runEslint(options: LintOptions & { files: string[] }): Promise<Finding[]> {
+  return (await createLinter(options, options.files))(options.files);
+}
+
+/**
+ * Builds the lint engine once and returns the function that lints a list of
+ * files with it. A run that lints its files in batches builds one engine and
+ * reuses it for every batch: the config, and so every finding, is the same as
+ * with one engine per batch, and the config is set up once instead of once
+ * per batch. `allFiles`: every file the returned function will be given
+ * (they fix the base path when `options.basePath` is absent).
+ */
+export async function createLinter(
+  options: LintOptions,
+  allFiles: readonly string[]
+): Promise<(files: string[]) => Promise<Finding[]>> {
   // ESLint 9 flat config resolves a `basePath` from `cwd` and silently
   // drops (as an untracked, ruleId-less message) any file that isn't
   // underneath it — no error, no findings, just a quietly clean score.
@@ -268,7 +284,7 @@ export async function runEslint(options: {
   // there are no files (nothing to lint anyway).
   const cwd =
     options.basePath ??
-    (options.files.length > 0 ? commonAncestorDir(options.files) : (options.cwd ?? process.cwd()));
+    (allFiles.length > 0 ? commonAncestorDir([...allFiles]) : (options.cwd ?? process.cwd()));
   const overrideConfig = buildConfig(options.assertFunctionNames ?? [], options.testAliasNames ?? []);
 
   // Try to attach typescript-eslint parser for .ts files
@@ -304,7 +320,11 @@ export async function runEslint(options: {
     ignore: false,
   });
 
-  const results = await eslint.lintFiles(options.files);
+  return (files) => lintWith(eslint, files, options.reportBase ?? cwd);
+}
+
+async function lintWith(eslint: ESLint, files: string[], reportBase: string): Promise<Finding[]> {
+  const results = await eslint.lintFiles(files);
   const findings: Finding[] = [];
 
   for (const result of results) {
@@ -315,7 +335,7 @@ export async function runEslint(options: {
       result.messages.filter((m) => m.ruleId === 'pwscore/no-unawaited-expect-value').map((m) => m.line)
     );
     const absFile = path.resolve(result.filePath);
-    const file = path.relative(options.reportBase ?? cwd, absFile) || path.basename(absFile);
+    const file = path.relative(reportBase, absFile) || path.basename(absFile);
     const postFilter = createPostFilter(() => result.source ?? fs.readFileSync(absFile, 'utf8'), absFile);
     for (const msg of result.messages) {
       // A `// eslint-disable-next-line some/rule-we-dont-bundle` comment is

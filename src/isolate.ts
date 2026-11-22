@@ -134,22 +134,28 @@ export function createAnalyzer(
   const basePath = input.files.length > 0 ? commonAncestorDir(input.files) : undefined;
   const relOf = (file: string): string => path.relative(filesBase, file) || path.basename(file);
 
+  // Built on first use (with a worker, the main thread never loads the lint
+  // engine) and reused for every later batch: the config is the whole run's.
+  let linter: Promise<(files: string[]) => Promise<Finding[]>> | undefined;
+  const lintFiles = async (files: string[]): Promise<Finding[]> => {
+    linter ??= import('./eslint-runner.js').then((m) =>
+      m.createLinter(
+        {
+          profile: input.profile,
+          cwd: input.cwd,
+          reportBase: filesBase,
+          assertFunctionNamesByFile: input.assertFunctionNamesByFile,
+          testAliasNames,
+          basePath,
+        },
+        input.files
+      )
+    );
+    return (await linter)(files);
+  };
+
   return async (files) => {
-    // Loaded on first use: with a worker, the main thread never loads the lint engine.
-    const lint =
-      files.length === 0
-        ? []
-        : triage(
-            await (await import('./eslint-runner.js')).runEslint({
-              files,
-              profile: input.profile,
-              cwd: input.cwd,
-              reportBase: filesBase,
-              assertFunctionNamesByFile: input.assertFunctionNamesByFile,
-              testAliasNames,
-              basePath,
-            })
-          );
+    const lint = files.length === 0 ? [] : triage(await lintFiles(files));
     // A file that is not valid JS/TS keeps its parse-error finding and nothing else.
     const unparsed = parseErrorFiles(lint);
     const result: BatchResult = {
