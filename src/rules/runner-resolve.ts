@@ -120,8 +120,9 @@ function configPath(env: RunnerEnv, from: string, name: string): string {
   return p;
 }
 
-// The lenient reader drops a comma before `]` or `}` inside string literals too,
-// where the runner's reader keeps it: such a config is read differently, so it is not modelled.
+// The lenient reader drops a comma before `]` or `}` inside string literals too, where the runner's
+// reader keeps it; and it ends a `//` comment only at a line feed, where the runner's also ends it at
+// a lone carriage return, U+2028 or U+2029. Such a config is read differently, so it is not modelled.
 function commaInsideString(text: string): boolean {
   let i = 0;
   while (i < text.length) {
@@ -131,7 +132,9 @@ function commaInsideString(text: string): boolean {
       if (/,\s*[}\]]/.test(text.slice(i, j + 1))) return true;
       i = j + 1;
     } else if (text[i] === '/' && text[i + 1] === '/') {
-      while (i < text.length && text[i] !== '\n') i++;
+      for (; i < text.length && text[i] !== '\n'; i++) {
+        if (text[i] === '\u2028' || text[i] === '\u2029' || (text[i] === '\r' && text[i + 1] !== '\n')) return true;
+      }
     } else if (text[i] === '/' && text[i + 1] === '*') {
       const end = text.indexOf('*/', i + 2);
       i = end === -1 ? text.length : end + 2;

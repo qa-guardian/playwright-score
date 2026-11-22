@@ -260,6 +260,20 @@ describe('runner-resolve: step R3, the config mapping', () => {
     const ok = '{"compilerOptions": {"paths": {"@fx/*": ["./x]/*",], /* ",]" */ }, // ",}"\n "note": "a,b" }}';
     assert.deepEqual(run('@fx/fixtures', tree(ok), legacy), file('x]/fixtures.ts'));
   });
+  it('R3-10c: a // comment ended by a lone CR, U+2028 or U+2029 is runner-config (the lenient reader ends it only at LF)', () => {
+    // The reviewer's tree: the runner ends the comment at the terminator and reads the second, fake mapping.
+    const tree = (end: string): Record<string, string> => ({
+      'tsconfig.json':
+        '{"compilerOptions": {"paths": {"@fx/*": ["./real/*"]}} // c' + end + ', "compilerOptions": {"paths": {"@fx/*": ["./fake/*"]}}\n}',
+      'real/fixtures.ts': REEXPORT,
+      'fake/fixtures.ts': OWN,
+    });
+    for (const end of ['\r', '\u2028', '\u2029']) {
+      assert.deepEqual(run('@fx/fixtures', tree(end), { legacy: 'real/fixtures.ts' }), CONFIG, JSON.stringify(end));
+    }
+    // Control: CRLF ends the comment for both readers, and both read the second mapping.
+    assert.deepEqual(run('@fx/fixtures', tree('\r\n'), { legacy: 'fake/fixtures.ts' }), file('fake/fixtures.ts'));
+  });
   it('R3-11: a referenced config with allowJs mapping to another file is ambiguous', () => {
     const files = {
       'tsconfig.json': JSON.stringify({
