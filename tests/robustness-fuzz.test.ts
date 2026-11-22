@@ -21,7 +21,7 @@ import type { ScoreResult } from '../src/types.js';
 // Documented outcomes:
 //   scored      exit 0 (at threshold 0)
 //   partial     exit 1, `coverage.skipped` lists each skipped file
-//   not-scored  exit 1, score 0, grade F, `reason` is no-files or no-counted-tests
+//   not-scored  exit 1, score 0, grade F, `reason` is no-files, no-counted-tests or limit-reached
 //
 // Forced --max-seconds 1 and --max-heap-mb 256 (S5b) are at the end of this file.
 // Owned by another slice: "every test skipped" becoming not-scored (S9a; the
@@ -93,7 +93,7 @@ function expectScored(r: Run, files: number): void {
   assert.equal(r.result.coverage?.filesFound, files);
   assert.equal(r.result.coverage?.filesScored, files);
 }
-function expectNotScored(r: Run, reason: 'no-files' | 'no-counted-tests'): void {
+function expectNotScored(r: Run, reason: 'no-files' | 'no-counted-tests' | 'limit-reached'): void {
   assert.equal(r.result.status, 'not-scored', JSON.stringify(r.result.coverage));
   assert.equal(r.result.reason, reason);
   assert.equal(r.code, 1);
@@ -518,6 +518,8 @@ function largestSuite(): string {
   for (let i = 0; i < 5; i++) files[`c-${two(i)}.spec.ts`] = page(`c${i}`);
   const head = page('dense');
   files['b-00.spec.ts'] = head + 'a;\n'.repeat(Math.floor((MAX_SOURCE_BYTES - head.length) / 3));
+  // A file of another test framework: never a Playwright file, with or without a limit.
+  files['unit/sum.test.ts'] = "import { describe, it, expect } from 'vitest';\ndescribe('sum', () => {\n  it('adds', () => {\n    expect(1 + 1).toBe(2);\n  });\n});\n";
   return suite(files);
 }
 
@@ -532,14 +534,16 @@ describe('QAG-287 S5b: forced limits give a labelled result and exit 1, never 2'
     assert.equal(r.result.coverage?.testsCounted, 25);
     assert.equal(r.result.summary.tests, 25);
     assert.ok(!r.result.findings.some((f) => f.file.startsWith('b-')));
+    assert.deepEqual(r.result.skippedFiles, ['unit/sum.test.ts']);
     assert.equal(r.stderr, '');
   });
 
-  it('--max-seconds 1 on the largest suite: exit 1; every file not analysed in time is listed as deadline', async () => {
+  it('--max-seconds 1 on the largest suite: exit 1, never 2; not-scored (limit-reached) when nothing was scored in time, partial otherwise; every skipped file is listed as deadline', async () => {
     const dir = largestSuite();
     const started = Date.now();
     const r = await run([dir, '--max-seconds', '1']);
     assert.equal(r.code, 1);
+    assert.equal(r.stderr, '');
     assert.equal(r.result.pass, false);
     const cov = r.result.coverage!;
     assert.equal(cov.filesFound, 45);
@@ -548,9 +552,14 @@ describe('QAG-287 S5b: forced limits give a labelled result and exit 1, never 2'
     assert.equal(cov.filesScored + cov.skipped.length, cov.filesFound);
     // The dense file's batch and the one after it can never make it; the first batch may.
     assert.ok(cov.skipped.some((s) => s.file === 'b-00.spec.ts') && cov.skipped.some((s) => s.file === 'c-04.spec.ts'));
-    // Nothing analysed in time is not-scored; some of it is partial (S5a.1 status order).
-    if (cov.filesScored === 0) expectNotScored(r, 'no-counted-tests');
-    else assert.equal(r.result.status, 'partial');
+    // Nothing analysed in time is not-scored and says a limit did it; some of it is partial (S5a.1 status order).
+    if (cov.filesScored === 0) expectNotScored(r, 'limit-reached');
+    else {
+      assert.equal(r.result.status, 'partial');
+      assert.equal(r.result.reason, undefined);
+    }
+    // Classification does not depend on the limit.
+    assert.deepEqual(r.result.skippedFiles, ['unit/sum.test.ts']);
     assert.equal(cov.testsCounted, cov.filesScored);
     // The limit is enforced: the run is cut off, it does not finish the suite first.
     assert.ok(Date.now() - started < 20_000, `took ${Date.now() - started} ms`);

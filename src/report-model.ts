@@ -154,6 +154,8 @@ export function parseErrorFileCount(result: ScoreResult): number {
  */
 export function notScoredState(result: ScoreResult): NotScored {
   if (result.status === 'scored' || result.status === 'partial') return undefined;
+  // A limit cut the run short: that, not what the few analysed files hold, is the reason.
+  if (result.reason === 'limit-reached') return 'no-tests';
   if (parseErrorFileCount(result) > 0) return 'parse-error';
   if (result.summary.tests === 0 || result.status === 'not-scored') return 'no-tests';
   return undefined;
@@ -212,6 +214,18 @@ export function notScoredHeadline(result: ScoreResult): { headline: string; line
           ? '1 file has a syntax error, so this suite could not be scored.'
           : `${n} files have syntax errors, so this suite could not be scored.`,
       line: 'Fix the file below and run the score again. The other findings are shown as a preview.',
+    };
+  }
+  if (result.reason === 'limit-reached') {
+    const reasons = new Set((result.coverage?.skipped ?? []).map((s) => s.reason));
+    const what = !reasons.has('worker-died')
+      ? 'The time limit was reached'
+      : !reasons.has('deadline')
+        ? 'The analysis ran out of memory or stopped'
+        : 'A time or memory limit was reached';
+    return {
+      headline: `${what} before any test was scored, so this suite could not be scored.`,
+      line: `Raise the limit and run the score again. Skipped: ${skippedFilesText(result)}.`,
     };
   }
   const skipped = result.coverage?.skipped.length ?? 0;

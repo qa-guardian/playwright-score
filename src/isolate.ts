@@ -86,12 +86,37 @@ export interface WorkerSkip {
   detail: string;
 }
 
+/**
+ * The clock the time limit reads. Internal test seam (not part of the public
+ * API, never a CLI flag): a test replaces `now` to make the limit pass at a
+ * chosen checkpoint. `at` names the checkpoint that asks.
+ */
+export const clock = { now: (_at: string): number => performance.now() };
+
+/** The time limit of one call. It bounds the whole call, from `startTimeLimit` on. */
+export interface TimeLimit {
+  /** As the caller gave it. Absent: no limit, and the clock is never read. */
+  seconds?: number;
+  /** Milliseconds until the limit passes; `Infinity` with no limit. */
+  msLeft(at: string): number;
+  passed(at: string): boolean;
+}
+
+export function startTimeLimit(seconds: number | undefined): TimeLimit {
+  if (seconds === undefined) return { msLeft: () => Infinity, passed: () => false };
+  const deadlineAt = clock.now('start') + seconds * 1000;
+  const msLeft = (at: string): number => deadlineAt - clock.now(at);
+  return { seconds, msLeft, passed: (at) => msLeft(at) <= 0 };
+}
+
+/** The skip entry of a file the time limit left unanalysed. */
+export function deadlineSkip(file: string, limit: TimeLimit): WorkerSkip {
+  return { file, reason: 'deadline', detail: `time limit ${limit.seconds} s` };
+}
+
 export interface IsolateLimits {
   maxHeapMb: number;
-  /** Whole seconds or a fraction; the clock starts at `startedAt`. Absent: no time limit. */
-  maxSeconds?: number;
-  /** `performance.now()` at the start of the run. */
-  startedAt: number;
+  time: TimeLimit;
 }
 
 /**
@@ -175,7 +200,8 @@ function deathDetail(error: unknown, maxHeapMb: number): string {
 /**
  * Runs the analysis in a worker thread, batch by batch.
  *
- * - The time limit passes: the worker is stopped, and the batch in flight and
+ * - The time limit passes (it is checked before each batch, and a timer stops
+ *   a batch in flight): the worker is stopped, and the batch in flight and
  *   every later one are skipped with `deadline`.
  * - The worker dies (out of heap, or any other error): the batch in flight
  *   is skipped with `worker-died`, and a fresh worker takes the later ones.
@@ -189,11 +215,7 @@ export async function analyzeIsolated(
   const batches = toBatches(input.files);
   const done: BatchResult[] = [];
   const skipped: WorkerSkip[] = [];
-  const deadlineAt = limits.maxSeconds === undefined ? undefined : limits.startedAt + limits.maxSeconds * 1000;
-  const msLeft = (): number => (deadlineAt === undefined ? Infinity : deadlineAt - performance.now());
-  const skipBatch = (i: number, reason: WorkerSkip['reason'], detail: string): void => {
-    for (const file of batches[i]) skipped.push({ file, reason, detail });
-  };
+  const { time } = limits;
 
   let next = 0;
   /** One worker: batches from `next` on, until all are done, the worker dies or the time limit passes. */
@@ -213,14 +235,15 @@ export async function analyzeIsolated(
         worker.on('error', () => undefined); // a late error of a worker being stopped is not ours to report
         void worker.terminate().then(() => resolve(end), () => resolve(end));
       };
-      const left = msLeft();
+      const left = time.msLeft('timer');
       if (left !== Infinity) timer = setTimeout(() => settle({ kind: 'deadline' }), Math.max(0, left));
       worker.on('message', (result: BatchResult) => {
         if (settled) return;
         done.push(result);
         next++;
-        if (next < batches.length) worker.postMessage(batches[next]);
-        else settle({ kind: 'finished' });
+        if (next >= batches.length) settle({ kind: 'finished' });
+        else if (time.passed(`batch:${next}`)) settle({ kind: 'deadline' });
+        else worker.postMessage(batches[next]);
       });
       worker.on('error', (error) => settle({ kind: 'died', detail: deathDetail(error, limits.maxHeapMb) }));
       worker.on('exit', () => settle({ kind: 'died', detail: 'worker error' }));
@@ -228,12 +251,12 @@ export async function analyzeIsolated(
     });
 
   while (next < batches.length) {
-    const end: WorkerEnd = msLeft() <= 0 ? { kind: 'deadline' } : await runWorker();
+    const end: WorkerEnd = time.passed(`batch:${next}`) ? { kind: 'deadline' } : await runWorker();
     if (end.kind === 'deadline') {
-      for (; next < batches.length; next++) skipBatch(next, 'deadline', `time limit ${limits.maxSeconds} s`);
+      for (; next < batches.length; next++) skipped.push(...batches[next].map((file) => deadlineSkip(file, time)));
     } else if (end.kind === 'died') {
       // Only the dead worker's batch: a later batch may need less, so each gets its own fresh worker.
-      skipBatch(next++, 'worker-died', end.detail);
+      for (const file of batches[next++]) skipped.push({ file, reason: 'worker-died', detail: end.detail });
     }
   }
   return { batches: done, skipped };

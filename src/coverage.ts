@@ -58,13 +58,20 @@ export function scoredFindings(findings: Finding[]): Finding[] {
   return findings.some((f) => f.rule === PARSE_ERROR_RULE) ? findings.filter((f) => f.rule !== PARSE_ERROR_RULE) : findings;
 }
 
+/** A file skipped by a limit of the run (`maxSeconds`, `maxHeapMb`), not for what it contains. */
+const isLimitSkip = (s: SkippedFile): boolean => s.reason === 'deadline' || s.reason === 'worker-died';
+
 /**
  * Status, in order: `not-scored` with no files or no tests in the scored files, `partial`
- * when a file was skipped, `scored` otherwise.
+ * when a file was skipped, `scored` otherwise. A `not-scored` result with no
+ * counted test says `limit-reached` when a limit skipped at least one file:
+ * the suite may hold tests the run did not get to.
  */
 export function decideStatus(coverage: Coverage): { status: ScoreStatus; reason?: NotScoredReason } {
   if (coverage.filesFound === 0) return { status: 'not-scored', reason: 'no-files' };
-  if (coverage.testsCounted === 0) return { status: 'not-scored', reason: 'no-counted-tests' };
+  if (coverage.testsCounted === 0) {
+    return { status: 'not-scored', reason: coverage.skipped.some(isLimitSkip) ? 'limit-reached' : 'no-counted-tests' };
+  }
   if (coverage.skipped.length > 0) return { status: 'partial' };
   return { status: 'scored' };
 }

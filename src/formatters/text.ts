@@ -47,7 +47,7 @@ export function formatText(result: ScoreResult, opts: TextOptions = {}): string 
   if (state) {
     lines.push(`Not scored: ${notScoredHeadline(result).headline.replace(/, so this suite could not be scored\.$/, '')}.`);
     const first = result.findings.find((f) => f.rule === 'playwright-score/parse-error');
-    if (first) lines.push(`  ${shortPath(first.file, first.line)}`);
+    if (first && state === 'parse-error') lines.push(`  ${shortPath(first.file, first.line)}`);
     lines.push(notScoredHeadline(result).line);
   } else {
     const clean = summary.cleanTests;

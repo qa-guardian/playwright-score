@@ -109,7 +109,7 @@ npx -p @qaguardian/playwright-score pwscore ./tests
 | `--threshold <n>` | Pass bar 0–100 |
 | `--format text\|json\|markdown\|sarif\|report` | Output format (`report` is a self-contained one-page HTML suite report) |
 | `--out <file>` | Write report to file |
-| `--max-seconds <n>` | Time limit for the run, counted from the start. No default: without it a run is never cut short. Finding the files always finishes; files not analysed when the limit passes are skipped and the result is partial, or not scored when none was analysed in time |
+| `--max-seconds <n>` | Time limit for the whole run, counted from the start. No default: without it a run is never cut short. Finding the files always finishes; after that no new step starts once the limit has passed. Files not analysed in time are skipped and the result is partial, or not scored (reason `limit-reached`) when no test was scored in time |
 | `--max-heap-mb <n>` | Heap limit of the analysis worker. Default 4608, the same on every machine. Files in a batch that hits it are skipped |
 | `--version` | Print version |
 

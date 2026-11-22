@@ -7,7 +7,10 @@ import { fileURLToPath } from 'node:url';
 import { DEFAULT_MAX_HEAP_MB, scorePaths } from '../src/index.js';
 import { formatJson } from '../src/formatters/json.js';
 import { formatText } from '../src/formatters/text.js';
-import { analyzeIsolated, BATCH_SIZE, toBatches, type AnalysisInput } from '../src/isolate.js';
+import { execFile } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
+import { analyzeIsolated, BATCH_SIZE, clock, startTimeLimit, toBatches, type AnalysisInput } from '../src/isolate.js';
 import { MAX_SOURCE_BYTES } from '../src/fs-util.js';
 import type { ScoreResult } from '../src/types.js';
 
@@ -170,7 +173,7 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
     const reference = await scorePaths({ paths: [dir], cwd: dir });
     const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxSeconds: 0.001 });
     assert.equal(r.status, 'not-scored');
-    assert.equal(r.reason, 'no-counted-tests');
+    assert.equal(r.reason, 'limit-reached');
     assert.equal(r.pass, false);
     assert.equal(r.score, 0);
     assert.equal(r.coverage?.filesFound, reference.coverage?.filesFound);
@@ -181,6 +184,7 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
     assert.deepEqual(r.findings, []);
     // Classification is untouched: the file of another framework is where it was.
     assert.deepEqual(r.skippedFiles, reference.skippedFiles);
+    assert.match(formatText(r), /^Not scored: The time limit was reached before any test was scored\.$/m);
     assert.match(formatText(r), /time limit reached/);
   });
 
@@ -207,7 +211,7 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
       testAliasNames: [],
     };
     const started = performance.now();
-    const out = await analyzeIsolated(input, { maxHeapMb: DEFAULT_MAX_HEAP_MB, maxSeconds: 3, startedAt: started });
+    const out = await analyzeIsolated(input, { maxHeapMb: DEFAULT_MAX_HEAP_MB, time: startTimeLimit(3) });
     const elapsed = performance.now() - started;
     // Stopped at the limit, not after the dense file (which alone takes several times longer).
     assert.ok(elapsed >= 2900 && elapsed < 9000, `took ${Math.round(elapsed)} ms`);
@@ -231,12 +235,13 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
     const reference = await scorePaths({ paths: [dir], cwd: dir });
     const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxHeapMb: 4 });
     assert.equal(r.status, 'not-scored');
-    assert.equal(r.reason, 'no-counted-tests');
+    assert.equal(r.reason, 'limit-reached');
     assert.equal(r.coverage?.filesScored, 0);
     assert.equal(r.coverage?.skipped.length, reference.coverage?.filesFound);
     assert.deepEqual([...new Set(r.coverage?.skipped.map((s) => s.reason))], ['worker-died']);
     assert.ok(r.coverage?.skipped.every((s) => s.detail !== undefined && !s.detail.includes('/')), 'a detail carries a path');
     assert.deepEqual(r.skippedFiles, reference.skippedFiles);
+    assert.match(formatText(r), /^Not scored: The analysis ran out of memory or stopped before any test was scored\.$/m);
     assert.match(formatText(r), /analysis ran out of memory or stopped/);
   });
 
@@ -244,5 +249,128 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
     const dir = suite({ 'a.spec.ts': good('a') });
     const r = await scorePaths({ paths: [dir], cwd: dir, isolate: false, maxSeconds: 0.001, maxHeapMb: 4 });
     assert.equal(r.status, 'scored');
+  });
+});
+
+// QAG-287 S5b: the time limit bounds the whole call. These tests replace the
+// clock (an internal seam of src/isolate.ts, not an option and not a CLI flag)
+// so that the limit passes at a chosen checkpoint, whatever the machine.
+describe('QAG-287 S5b: the time limit passes mid-run, on an injected clock', () => {
+  const realNow = clock.now;
+  after(() => {
+    clock.now = realNow;
+  });
+  /** Time stands still until the checkpoint `at` asks, and the limit has passed from then on. */
+  const passAt = (at: string): string[] => {
+    const asked: string[] = [];
+    let t = 0;
+    clock.now = (checkpoint) => {
+      asked.push(checkpoint);
+      if (checkpoint === at) t = 1e12;
+      return t;
+    };
+    return asked;
+  };
+  const specNames = (): string[] => Array.from({ length: 2 * BATCH_SIZE + 7 }, (_, i) => `s-${two(i)}.spec.ts`);
+
+  for (const k of [1, 2]) {
+    it(`after batch ${k} of 3: partial; batches ${k + 1} to 3 are skipped as deadline; the kept findings are the in-process ones`, async () => {
+      const dir = mixedSuite();
+      clock.now = realNow;
+      const reference = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, isolate: false });
+      assert.deepEqual(reference.coverage?.skipped.map((s) => `${s.file}|${s.reason}`), ['s-33.spec.ts|parse-error']);
+      passAt(`batch:${k}`);
+      const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxSeconds: 1000 });
+      clock.now = realNow;
+
+      const names = specNames();
+      const kept = new Set(names.slice(0, k * BATCH_SIZE));
+      const later = names.slice(k * BATCH_SIZE);
+      assert.equal(r.status, 'partial');
+      assert.equal(r.reason, undefined);
+      assert.equal(r.pass, false);
+      // Exactly the later batches, as deadline; the unparsable file keeps its own reason when its batch was analysed.
+      const expected = [
+        ...later.map((file) => ({ file, reason: 'deadline', detail: 'time limit 1000 s' })),
+        ...(kept.has('s-33.spec.ts') ? reference.coverage!.skipped : []),
+      ].sort((a, b) => (a.file < b.file ? -1 : 1));
+      assert.deepEqual(r.coverage?.skipped, expected);
+      assert.equal(r.coverage?.filesFound, names.length);
+      assert.equal(r.coverage?.filesScored, names.length - expected.length);
+      // The kept batches: the same findings as the in-process run gives for those files.
+      assert.deepEqual(r.findings, reference.findings.filter((f) => kept.has(f.file)));
+      assert.ok(r.findings.length > 0);
+      // Classification does not move.
+      assert.deepEqual(r.skippedFiles, reference.skippedFiles);
+      assert.deepEqual(r.skippedFiles, ['unit/sum.test.ts']);
+    });
+  }
+
+  it('the CLI on the same clock: exit 1, never 2, and the same partial result', async () => {
+    const dir = mixedSuite();
+    const root = packageRoot();
+    const preload = path.join(dir, '..', `${path.basename(dir)}-clock.mjs`);
+    tmpDirs.push(preload);
+    fs.writeFileSync(
+      preload,
+      `import { clock } from ${JSON.stringify(pathToFileURL(path.join(root, 'dist', 'isolate.js')).href)};\n` +
+        `let t = 0;\nclock.now = (at) => { if (at === 'batch:1') t = 1e12; return t; };\n`
+    );
+    const args = ['--import', pathToFileURL(preload).href, path.join(root, 'dist', 'cli.js'), dir, '--format', 'json', '--threshold', '0', '--max-seconds', '1000'];
+    const e = await promisify(execFile)(process.execPath, args, { maxBuffer: 64 * 1024 * 1024 }).then(
+      () => undefined,
+      (err: { code?: number; stdout?: string; stderr?: string }) => err
+    );
+    assert.equal(e?.code, 1, e?.stderr);
+    const result = JSON.parse(e?.stdout ?? '') as ScoreResult;
+    assert.equal(result.status, 'partial');
+    assert.equal(result.coverage?.filesScored, BATCH_SIZE);
+    assert.deepEqual(result.coverage?.skipped.map((s) => `${s.file}|${s.reason}`), specNames().slice(BATCH_SIZE).map((f) => `${f}|deadline`));
+    assert.deepEqual(result.skippedFiles, ['unit/sum.test.ts']);
+  });
+
+  for (const step of ['helper-facts', 'import-graph', 'aliases', 'analysis-input', 'batch:0']) {
+    it(`before the ${step} step: no later step starts; every file is skipped as deadline; not-scored, limit-reached`, async () => {
+      const dir = mixedSuite();
+      const asked = passAt(step);
+      const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxSeconds: 1000 });
+      clock.now = realNow;
+      // The clock is not read again once the limit has passed.
+      assert.equal(asked[asked.length - 1], step);
+      assert.equal(r.status, 'not-scored');
+      assert.equal(r.reason, 'limit-reached');
+      assert.equal(r.pass, false);
+      assert.deepEqual(r.coverage?.skipped, specNames().map((file) => ({ file, reason: 'deadline', detail: 'time limit 1000 s' })));
+      assert.deepEqual(r.findings, []);
+      assert.deepEqual(r.skippedFiles, ['unit/sum.test.ts']);
+    });
+  }
+
+  it('the checkpoints, in order: the start, each pre-pass step, each batch', async () => {
+    const dir = mixedSuite();
+    const asked = passAt('never');
+    const r = await scorePaths({ paths: [dir], cwd: dir, maxSeconds: 1000 });
+    clock.now = realNow;
+    assert.equal(r.status, 'partial'); // s-33 only
+    assert.deepEqual(asked.filter((a) => a !== 'timer'), ['start', 'helper-facts', 'import-graph', 'aliases', 'analysis-input', 'batch:0', 'batch:1', 'batch:2']);
+  });
+
+  it('with no time limit the clock is never read, in the worker path or in process', async () => {
+    const dir = mixedSuite();
+    clock.now = () => {
+      throw new Error('the clock was read');
+    };
+    const isolated = await scorePaths({ paths: [dir], cwd: dir });
+    const inProcess = await scorePaths({ paths: [dir], cwd: dir, isolate: false, maxSeconds: 5 });
+    clock.now = realNow;
+    assert.equal(json(isolated), json(inProcess));
+  });
+
+  it('limit-reached is only for a limit: no counted test without one stays no-counted-tests, and a counted test stays partial', async () => {
+    const empty = suite({ 'a.spec.ts': '// nothing yet\n' });
+    assert.equal((await scorePaths({ paths: [path.join(empty, 'a.spec.ts')], cwd: empty })).reason, 'no-counted-tests');
+    const broken = suite({ 'a.spec.ts': BROKEN });
+    assert.equal((await scorePaths({ paths: [broken], cwd: broken })).reason, 'no-counted-tests');
+    assert.equal((await scorePaths({ paths: [path.join(empty, 'none')], cwd: empty })).reason, 'no-files');
   });
 });

@@ -34,7 +34,14 @@ import { decorateFindings } from './catalogue/decorate.js';
 import { computeScore } from './score-engine.js';
 import { getEngineVersions } from './engine-versions.js';
 import { resetRuleCrashes, ruleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
-import { DEFAULT_MAX_HEAP_MB, analyzeIsolated, createAnalyzer, type AnalysisInput } from './isolate.js';
+import {
+  DEFAULT_MAX_HEAP_MB,
+  analyzeIsolated,
+  createAnalyzer,
+  deadlineSkip,
+  startTimeLimit,
+  type AnalysisInput,
+} from './isolate.js';
 import type { Coverage, Finding, ProfileName, ScoreOptions, ScoreResult } from './types.js';
 
 export type {
@@ -576,7 +583,8 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
 }
 
 async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
-  const startedAt = performance.now();
+  // The time limit bounds the whole call. Without one the clock is never read.
+  const timeLimit = startTimeLimit(options.isolate === false ? undefined : options.maxSeconds);
   const cwd = options.cwd ?? process.cwd();
   const profile: ProfileName = options.profile ?? 'standard';
   const threshold =
@@ -673,70 +681,83 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   // when every input was an explicit file (no directory to widen to).
   const importBoundary = commonAncestorDir([...found, ...scanRootDirs]);
 
+  // Classification is finished: `found`, `files` and `skippedFiles` are final
+  // whatever the time limit. From here on the limit is checked before each
+  // step of the pre-pass below and before each batch of the analysis; once it
+  // has passed no new step starts, and every file not yet analysed is skipped
+  // as `deadline`.
+  //
   // Every source was read once, above, so (a) we can feed ESLint's
   // expect-expect a per-run list of local assertion-helper names before
   // linting (see findLocalAssertionHelperNames) and (b) the metrics loop
   // below doesn't re-read the same files ESLint already read internally.
   const sources = new Map<string, string>();
   const helperFacts: HelperFacts[] = [];
-  for (const file of files) {
-    const source = readSources.get(file) ?? '';
-    sources.set(file, source);
-    helperFacts.push(...extractHelperFacts(source, file));
-  }
-
-  // Page Object Model suites route locator calls through imported classes
-  // (`n8n.canvas.click(...)`) rather than calling `page.locator()`/
-  // `getByRole()` directly in the spec file — see import-graph.ts. These
-  // dependency files are never linted or counted toward sloc/tests/
-  // findings; they only contribute locator counts (and, the same way,
-  // any assertion-helper names) to the suite-level totals below.
   const moduleResolver = createModuleResolver(importBoundary);
   const importEdges = new Map<string, string[]>();
-  const importedFiles = collectLocallyImportedFiles(sources, importBoundary, moduleResolver, importEdges);
-  for (const [file, source] of importedFiles) {
-    helperFacts.push(...extractHelperFacts(source, file));
-  }
-  // One fixed point over every readable file, so delegation chains may cross
-  // file boundaries (spec helper -> imported page object -> expect).
-  // Names are scoped per spec file: own helpers plus helpers of files the spec
-  // reaches through imports (see helper-scope.ts).
-  const helperNamesFor = createHelperScope(helperFacts, importEdges);
-  const assertFunctionNamesByFile = new Map(files.map((f) => [f, helperNamesFor(f)] as const));
+  let importedFiles = new Map<string, string>();
+  let analysis: AnalysisInput | undefined;
+  prePass: {
+    if (timeLimit.passed('helper-facts')) break prePass;
+    for (const file of files) {
+      const source = readSources.get(file) ?? '';
+      sources.set(file, source);
+      helperFacts.push(...extractHelperFacts(source, file));
+    }
 
-  // Identifiers bound to a `test.extend(...)`-derived fixture under a
-  // custom name (same-file, or imported from a local fixtures module —
-  // see test-aliases.ts), so a suite that always declares its tests via
-  // `loggedTest(...)` instead of `test(...)` is recognized correctly by
-  // both eslint-plugin-playwright's rules (fed via runEslint's settings
-  // below) and this package's own AST checks (getTestSpans/countTests,
-  // base-plugin.ts).
-  const testAliasNames = detectTestAliasNamesWithFactories(sources, importedFiles, importBoundary);
+    // Page Object Model suites route locator calls through imported classes
+    // (`n8n.canvas.click(...)`) rather than calling `page.locator()`/
+    // `getByRole()` directly in the spec file — see import-graph.ts. These
+    // dependency files are never linted or counted toward sloc/tests/
+    // findings; they only contribute locator counts (and, the same way,
+    // any assertion-helper names) to the suite-level totals below.
+    if (timeLimit.passed('import-graph')) break prePass;
+    importedFiles = collectLocallyImportedFiles(sources, importBoundary, moduleResolver, importEdges);
+    for (const [file, source] of importedFiles) {
+      helperFacts.push(...extractHelperFacts(source, file));
+    }
+    // One fixed point over every readable file, so delegation chains may cross
+    // file boundaries (spec helper -> imported page object -> expect).
+    // Names are scoped per spec file: own helpers plus helpers of files the spec
+    // reaches through imports (see helper-scope.ts).
+    const helperNamesFor = createHelperScope(helperFacts, importEdges);
+    const assertFunctionNamesByFile = new Map(files.map((f) => [f, helperNamesFor(f)] as const));
+
+    // Identifiers bound to a `test.extend(...)`-derived fixture under a
+    // custom name (same-file, or imported from a local fixtures module —
+    // see test-aliases.ts), so a suite that always declares its tests via
+    // `loggedTest(...)` instead of `test(...)` is recognized correctly by
+    // both eslint-plugin-playwright's rules (fed via runEslint's settings
+    // below) and this package's own AST checks (getTestSpans/countTests,
+    // base-plugin.ts).
+    if (timeLimit.passed('aliases')) break prePass;
+    const testAliasNames = detectTestAliasNamesWithFactories(sources, importedFiles, importBoundary);
+
+    if (timeLimit.passed('analysis-input')) break prePass;
+    analysis = {
+      files,
+      sources,
+      importedFiles,
+      filesBase,
+      importBoundary,
+      profile,
+      cwd,
+      assertFunctionNamesByFile,
+      testAliasNames,
+    };
+  }
 
   // The analysis itself (lint, triage, per-file metrics) lives in isolate.ts.
   // By default it runs in a worker thread with a heap limit and, when the
-  // caller passes one, a time limit; a file the worker gives up on is listed
+  // caller passes one, the time limit; a file the worker gives up on is listed
   // in `coverage` and the result is `partial`. Every file was classified
   // above, so a limit can only skip a file that is already a Playwright file.
-  const analysis: AnalysisInput = {
-    files,
-    sources,
-    importedFiles,
-    filesBase,
-    importBoundary,
-    profile,
-    cwd,
-    assertFunctionNamesByFile,
-    testAliasNames,
-  };
   const outcome =
-    options.isolate === false
-      ? { batches: [await createAnalyzer(analysis, moduleResolver)(files)], skipped: [] }
-      : await analyzeIsolated(analysis, {
-          maxHeapMb: options.maxHeapMb ?? DEFAULT_MAX_HEAP_MB,
-          maxSeconds: options.maxSeconds,
-          startedAt,
-        });
+    analysis === undefined
+      ? { batches: [], skipped: files.map((f) => deadlineSkip(f, timeLimit)) }
+      : options.isolate === false
+        ? { batches: [await createAnalyzer(analysis, moduleResolver)(files)], skipped: [] }
+        : await analyzeIsolated(analysis, { maxHeapMb: options.maxHeapMb ?? DEFAULT_MAX_HEAP_MB, time: timeLimit });
   for (const s of outcome.skipped) skips.add(s.file, s.reason, s.detail);
 
   // A file that isn't valid JS/TS can't be executed, let alone scored on its

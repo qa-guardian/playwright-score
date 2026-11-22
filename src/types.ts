@@ -100,7 +100,14 @@ export interface ScoreSummary {
  * skipped, or no tests found in the scored files); the score is 0 and never a pass.
  */
 export type ScoreStatus = 'scored' | 'partial' | 'not-scored';
-export type NotScoredReason = 'no-files' | 'no-counted-tests';
+/**
+ * Why nothing was scored. `no-files`: no Playwright file was found.
+ * `limit-reached`: no test was counted, and a limit of the run (`maxSeconds`
+ * or `maxHeapMb`) skipped at least one file, so the suite may hold tests the
+ * run did not get to. `no-counted-tests`: no test was counted, and no limit
+ * was involved.
+ */
+export type NotScoredReason = 'no-files' | 'no-counted-tests' | 'limit-reached';
 /**
  * Why a file was left out. `parse-error`: not valid JS/TS. `too-large`: over
  * the 1 MB source cap. `binary`: a NUL byte in the first 8 KB. `unreadable`:
@@ -186,12 +193,14 @@ export interface ScoreOptions {
   threshold?: number;
   cwd?: string;
   /**
-   * Time limit for the run, in seconds, counted from the call. No default: a
-   * run without it is never cut short. Finding and classifying the files
-   * always finishes; the limit stops the analysis that follows. The files not
-   * analysed when it passes are skipped (`deadline`) and the result is
-   * `partial`, or `not-scored` when none was analysed in time. This is the
-   * only limit whose effect depends on the machine.
+   * Time limit for the whole call, in seconds, counted from the call. No
+   * default: a run without it is never cut short. Finding and classifying the
+   * files always finishes, so `skippedFiles` never depends on the limit. After
+   * that the limit is checked before each step; once it has passed no new step
+   * starts, and a batch being analysed is stopped. The files not analysed are
+   * skipped (`deadline`) and the result is `partial`, or `not-scored` with
+   * reason `limit-reached` when no test was counted in time. This is the only
+   * limit whose effect depends on the machine.
    */
   maxSeconds?: number;
   /**
