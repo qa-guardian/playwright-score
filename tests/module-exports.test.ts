@@ -174,6 +174,8 @@ table('X: ESM export shapes', [
   ['X-chain-4', 'module-unresolved', sp(`import { test } from './a';\n${C()}`, { 'a.ts': `export * from './missing';\n` })],
   ['X-chain-5', 'PROVEN', fx(STAR, `import * as fx from './fixtures';\n${C('fx.test')}`)],
   ['X-chain-6', 'not-a-binding-shape', fx(`export * as fx from '${PW}';\n`, `import { fx } from './fixtures';\n${C('fx.test')}`)],
+  // A5-pin-2 (require cache): the cache entry reaches the export object by no name the table reads.
+  ['A5-pin-2', 'PROVEN', fx(`${STAR}import { fake } from './runner';\nrequire.cache[__filename]!.exports = { test: fake };\n`)],
 ]);
 
 table('C: CommonJS shapes', [
@@ -211,11 +213,14 @@ table('C: CommonJS shapes', [
   ['C-R-1 eval', 'reflection', fx(`${HB}export const test = base.extend({});\ndeclare const code: string;\neval(code);\n`)],
   ['C-R-1 with', 'reflection', { 'a.spec.cjs': CSPEC.replace('./fixtures', './fixtures.cjs'), 'fixtures.cjs': `${CH.replace('./runner', './runner.cjs')}exports.test = base;\nwith (fake) { length; }\n`, 'runner.cjs': CRUNNER }],
   ['C-R-1 control: a property named eval', 'PROVEN', fx(`${HB}export const test = base.extend({});\nexport const tools = { eval: 1 }.eval;\n`)],
+  // A5-pin-1 (wrapper arguments): the module wrapper's own arguments reach the export object by no name the table reads.
+  ['A5-pin-1', 'PROVEN', cjs(`${CH}exports.test = base;\narguments[0].test = require('./runner').test;\n`)],
 ]);
 
 const aliasFx = { 'tsconfig.json': paths({ '@fx/*': ['./support/*'] }) };
 const fake = (file = 'support/fake.ts'): Files => ({ [file]: OWN });
 const V1 = `import { test } from '${PW}';\n${C()}`;
+const PWCFG = (option: string): string => `export default { testDir: '.', ${option} };\n`;
 
 table('V, B: bindings in the spec file, and which file a specifier leads to', [
   ['V1+', 'PROVEN', sp(V1)],
@@ -286,6 +291,13 @@ table('V, B: bindings in the spec file, and which file a specifier leads to', [
   ['B3-1 mergeTests re-exported by a local file', 'not-a-playwright-export', sp(`import { test as base } from '${PW}';\nimport { mergeTests } from './fixtures';\nconst test = mergeTests(base);\n${C()}`, { 'fixtures.ts': `export { mergeTests } from '${PW}';\n` })],
   ['A2-pin-1', 'PROVEN', sp(`import { test as base } from '${PW}';\nimport { fake } from './runner';\nconst test = base.extend({ page: async ({}, use) => { await use(fake as any); } });\n${C()}`)],
   ['A2-pin-2', 'PROVEN', sp(`import { test } from '${PW}';\nimport { fake } from './runner';\ntest.use({ page: async ({}, use) => { await use(fake as any); } });\n${C()}`)],
+  // The pins of section 10 (limits of the model): each is proven by design, and its on-disk fixture says which limit it shows.
+  ['A1-pin-1', 'PROVEN', sp(V1, { 'package.json': '{"name":"orders-suite","private":true,"devDependencies":{"@playwright/test":"npm:orders-runner@1.0.0"}}' })],
+  ['A7-pin-1', 'PROVEN', sp(V1, { 'playwright.config.ts': PWCFG(`tsconfig: './tsconfig.e2e.json'`), 'tsconfig.e2e.json': paths({ [PW]: ['./support/fake.ts'] }), 'tsconfig.json': '{"compilerOptions":{"strict":true}}', ...fake() })],
+  ['A7-pin-2', 'PROVEN', sp(`import { test } from '@fx/fixtures';\n${C()}`, { 'playwright.config.ts': PWCFG(`tsconfig: './tsconfig.e2e.json'`), 'tsconfig.e2e.json': paths({ '@fx/*': ['./own/*'] }), ...aliasFx, 'support/fixtures.ts': RE, 'own/fixtures.ts': OWN }), { legacy: { '@fx/fixtures': 'support/fixtures.ts' } }],
+  ['A7-pin-3', 'PROVEN', sp(`import { test } from './ext/fixtures';\n${C()}`, { 'playwright.config.ts': PWCFG(`build: { external: ['**/ext/**'] }`), 'ext/fixtures.js': `exports.test = require('@fx/base').test;\n`, 'tsconfig.json': paths({ '@fx/*': ['./support/*'] }, { allowJs: true }), 'support/base.ts': RE }), { legacy: { '@fx/base': 'support/base.ts' } }],
+  ['A5-pin-3', 'PROVEN', sp(`import * as fx from './fixtures';\nimport { test } from './fixtures';\nimport { fake } from './runner';\n(fx as any).test = fake;\n${C()}`, { 'fixtures.ts': `import { test as base } from '${PW}';\nexport const test = base.extend({});\n` })],
+  ['A6-pin', 'PROVEN', sp(`import { test as base } from '${PW}';\nimport { fake } from './runner';\n(base as any).extend = () => fake;\nconst test = base.extend({});\n${C()}`)],
   ['default export of @playwright/test', 'PROVEN', sp(`import test from '${PW}';\n${C()}`)],
   ['default export of a component-testing package', 'not-a-playwright-export', sp(`import test from '@playwright/experimental-ct-react';\n${C()}`)],
 ]);
@@ -342,6 +354,8 @@ table('T, E: types and receivers', [
   ['E3-1 wrong event', 'receiver-shape', inTest(`test('t', async ({ page }) => { const popup = await page.waitForEvent('download'); await popup.waitForSelector('#a'); });\n`)],
   ['E3-1 two writes of different kinds', 'binding-written', inTest(`test('t', async ({ page, context }) => { let tab = await context.newPage(); tab = page.mainFrame(); await tab.waitForSelector('#a'); });\n`)],
   ['E3-1 a write that is not a factory call', 'binding-written', inTest(`test('t', async ({ context }) => { let tab = await context.newPage(); tab = other; await tab.waitForSelector('#a'); });\n`, `import { test } from '${PW}';\ndeclare const other: any;\n`)],
+  // A3-pin (annotation not checked): the annotation is the proof; the value passed in is not examined.
+  ['A3-pin', 'PROVEN', sp(`import type { Page } from '${PW}';\nimport { fake } from './runner';\nasync function open(adminPage: Page) { await adminPage.waitForSelector('#a'); }\nvoid open(fake as any);\n`)],
 ], recv);
 
 describe('outcome 2: another package\'s export', () => {
