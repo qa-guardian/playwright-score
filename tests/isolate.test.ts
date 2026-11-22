@@ -10,7 +10,7 @@ import { formatText } from '../src/formatters/text.js';
 import { execFile } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
-import { analyzeIsolated, BATCH_SIZE, clock, startTimeLimit, toBatches, type AnalysisInput } from '../src/isolate.js';
+import { analyzeIsolated, BATCH_SIZE, clock, MAX_TIMER_MS, startTimeLimit, toBatches, type AnalysisInput } from '../src/isolate.js';
 import { MAX_SOURCE_BYTES } from '../src/fs-util.js';
 import type { ScoreResult } from '../src/types.js';
 
@@ -364,6 +364,43 @@ describe('QAG-287 S5b: the time limit passes mid-run, on an injected clock', () 
     const inProcess = await scorePaths({ paths: [dir], cwd: dir, isolate: false, maxSeconds: 5 });
     clock.now = realNow;
     assert.equal(json(isolated), json(inProcess));
+  });
+
+  // A timer delay above 2^31 - 1 ms is not a longer wait: Node turns it into 1 ms.
+  for (const maxSeconds of [MAX_TIMER_MS / 1000 + 1, 99999999, Number.MAX_VALUE]) {
+    it(`a time limit longer than one timer can hold (${maxSeconds} s) gives the result of a run with no limit`, async () => {
+      const dir = mixedSuite();
+      clock.now = realNow;
+      const warnings: string[] = [];
+      const onWarning = (w: Error): void => void warnings.push(w.name);
+      process.on('warning', onWarning);
+      try {
+        const reference = await scorePaths({ paths: [dir], cwd: dir });
+        const r = await scorePaths({ paths: [dir], cwd: dir, maxSeconds });
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.equal(json(r), json(reference));
+        assert.ok(!r.coverage?.skipped.some((s) => s.reason === 'deadline'));
+        assert.deepEqual(warnings, []);
+      } finally {
+        process.off('warning', onWarning);
+      }
+    });
+  }
+
+  it('the timer fires while the clock says the limit has not passed: it is set again, and nothing is skipped as deadline', async () => {
+    const dir = mixedSuite();
+    clock.now = realNow;
+    const reference = await scorePaths({ paths: [dir], cwd: dir });
+    // Time stands still: the 50 ms timer fires again and again during the analysis.
+    const asked: string[] = [];
+    clock.now = (checkpoint) => {
+      asked.push(checkpoint);
+      return 0;
+    };
+    const r = await scorePaths({ paths: [dir], cwd: dir, maxSeconds: 0.05 });
+    clock.now = realNow;
+    assert.equal(json(r), json(reference));
+    assert.ok(asked.filter((a) => a === 'timer').length >= 3, `the timer asked ${asked.filter((a) => a === 'timer').length} times`);
   });
 
   it('limit-reached is only for a limit: no counted test without one stays no-counted-tests, and a counted test stays partial', async () => {

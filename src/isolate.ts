@@ -194,6 +194,9 @@ export function toBatches(files: readonly string[], size = BATCH_SIZE): string[]
 
 const WORKER_MARK = 'pwscoreAnalysisWorker';
 
+/** The longest delay a timer takes (2^31 - 1 ms, about 24.8 days); Node turns a longer one into 1 ms. */
+export const MAX_TIMER_MS = 2 ** 31 - 1;
+
 type WorkerEnd = { kind: 'finished' } | { kind: 'deadline' } | { kind: 'died'; detail: string };
 
 function deathDetail(error: unknown, maxHeapMb: number): string {
@@ -241,8 +244,15 @@ export async function analyzeIsolated(
         worker.on('error', () => undefined); // a late error of a worker being stopped is not ours to report
         void worker.terminate().then(() => resolve(end), () => resolve(end));
       };
-      const left = time.msLeft('timer');
-      if (left !== Infinity) timer = setTimeout(() => settle({ kind: 'deadline' }), Math.max(0, left));
+      // One timer holds at most MAX_TIMER_MS, so a longer limit is waited for
+      // in parts: when the timer fires, the clock says whether the limit passed.
+      const arm = (): void => {
+        const left = time.msLeft('timer');
+        if (left === Infinity) return;
+        const onTimer = (): void => (time.passed('timer') ? settle({ kind: 'deadline' }) : arm());
+        timer = setTimeout(onTimer, Math.min(Math.max(0, left), MAX_TIMER_MS));
+      };
+      arm();
       worker.on('message', (result: BatchResult) => {
         if (settled) return;
         done.push(result);
