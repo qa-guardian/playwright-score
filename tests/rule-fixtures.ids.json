@@ -182,6 +182,10 @@
    "pending": "S3c"
   },
   {
+   "id": "no-element-handle/false-js-fixture-page",
+   "pending": null
+  },
+  {
    "id": "no-element-handle/false-js-locator-click",
    "pending": null
   },
@@ -202,7 +206,31 @@
    "pending": null
   },
   {
+   "id": "no-element-handle/true-b22-const-alias-of-fixture-page",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-b22-const-alias-of-test",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-b22-js-const-alias-of-fixture-page",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-b22-js-const-alias-of-test",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-constructor-parameter-property",
+   "pending": null
+  },
+  {
    "id": "no-element-handle/true-customer-calls-customer-registry-deps",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-destructuring-assignment-to-page",
    "pending": null
   },
   {
@@ -210,7 +238,27 @@
    "pending": "S6b"
   },
   {
+   "id": "no-element-handle/true-js-exports-changed-by-object-assign",
+   "pending": null
+  },
+  {
    "id": "no-element-handle/true-js-page-dollar",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-js-require-test",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-launcher-re-exported-from-local-file",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-logical-assignment-to-page",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-non-playwright-launcher-helper",
    "pending": null
   },
   {
@@ -219,6 +267,14 @@
   },
   {
    "id": "no-element-handle/true-page-dollar-dollar",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-two-launchers-in-helper",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-typed-class-field-this",
    "pending": null
   },
   {
@@ -334,11 +390,19 @@
    "pending": null
   },
   {
+   "id": "no-force-option/false-page-object-wrapper-forwards-force",
+   "pending": null
+  },
+  {
    "id": "no-force-option/false-plain-click",
    "pending": null
   },
   {
    "id": "no-force-option/true-force-click",
+   "pending": null
+  },
+  {
+   "id": "no-force-option/true-page-object-getter-method-arrow",
    "pending": null
   },
   {
@@ -359,6 +423,10 @@
   },
   {
    "id": "no-networkidle/false-load-state-load",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/false-page-object-wrapper-forwards-networkidle",
    "pending": null
   },
   {
@@ -406,6 +474,10 @@
    "pending": "S3c"
   },
   {
+   "id": "no-page-pause/false-fixture-page",
+   "pending": null
+  },
+  {
    "id": "no-page-pause/false-js-no-pause",
    "pending": null
   },
@@ -426,7 +498,31 @@
    "pending": null
   },
   {
+   "id": "no-page-pause/true-b22-const-alias-of-fixture-page",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/true-b22-const-alias-of-test",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/true-b22-js-const-alias-of-fixture-page",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/true-b22-js-const-alias-of-test",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/true-context-new-page",
+   "pending": null
+  },
+  {
    "id": "no-page-pause/true-customer-calls-customer-registry-deps",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/true-electron-first-window",
    "pending": null
   },
   {
@@ -434,7 +530,15 @@
    "pending": "S6b"
   },
   {
+   "id": "no-page-pause/true-js-launcher-new-page",
+   "pending": null
+  },
+  {
    "id": "no-page-pause/true-js-pause-in-test",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/true-js-untyped-helper-parameter",
    "pending": null
   },
   {
@@ -455,6 +559,10 @@
   },
   {
    "id": "no-raw-locators/true-css-locator",
+   "pending": null
+  },
+  {
+   "id": "no-raw-locators/true-page-object-locator-chain",
    "pending": null
   },
   {
@@ -586,6 +694,10 @@
    "pending": null
   },
   {
+   "id": "no-unawaited-action/true-destructured-keyboard-press",
+   "pending": null
+  },
+  {
    "id": "no-unawaited-action/true-goto",
    "pending": null
   },
@@ -674,6 +786,10 @@
    "pending": null
   },
   {
+   "id": "no-wait-for-navigation/false-typed-page-parameter",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-navigation/false-wait-for-url",
    "pending": null
   },
@@ -683,6 +799,422 @@
   },
   {
    "id": "no-wait-for-navigation/true-aliased-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-alias-with-js-suffix-to-js-ts-file",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-child-config-sets-another-base-url",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-const-alias-of-fixture-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-const-alias-of-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-constructor-parameter-property",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-context-new-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-directory-with-package-main",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-electron-first-window",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-export-const-extend",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-export-const-pattern-of-runner",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-extend-then-export-list",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-extend-with-a-fixture",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-extends-without-leading-dot",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-in-a-hook",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-in-a-step",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-in-a-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-reassigned",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-renamed",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-with-default",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-four-star-links",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-import-from-playwright",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-import-shadowed-in-inner-scope",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-import-type-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-import-type-query",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-inner-value-named-like-the-type",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-const-alias-of-fixture-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-const-alias-of-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-context-new-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-electron-first-window",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-export-const-extend",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-export-const-pattern-of-runner",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-exports-property",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-extend-then-export-list",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-extend-with-a-fixture",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-in-a-hook",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-in-a-step",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-in-a-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-reassigned",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-renamed",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-with-default",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-four-star-links",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-import-from-playwright",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-js-spec-alias-with-allowjs",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-js-spec-alias-without-allowjs",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-js-spec-two-candidate-files",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-jsconfig-maps-nothing",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-jsconfig-maps-the-package",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-launcher-chain",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-literal-then-object-assign",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-literal-then-reassigned",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-local-function-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-merge-tests-of-two-proven",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-middle-link-adds-own-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-module-exports-literal",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-nested-pattern",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-pin-extend-overrides-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-pin-use-overrides-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-pin-wrapper-arguments",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-proto-literal",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-reexport-named",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-require-destructured",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-second-parameter",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-specifier-ts-and-jsx-files",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-specifier-ts-file-only",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-star-of-playwright",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-star-plus-own-function",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-star-plus-star-as-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-this-in-a-loop",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-this-property",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-launcher-reexported-by-a-local-file",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-local-function-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-merge-tests-of-two-proven",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-middle-link-adds-own-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-namespace-page-type",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-nearer-jsconfig-maps-elsewhere",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-nested-pattern",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-page-from-another-launcher-helper",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-paths-alias-of-the-package",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-paths-key-with-two-values",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-annotation-not-checked",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-build-external",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-config-tsconfig-option",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-config-tsconfig-option-local-alias",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-export-changed-by-importer",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-extend-overrides-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-extend-patched",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-npm-alias-of-the-package",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-require-cache",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-use-overrides-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-reexport-named",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-referenced-config-maps-the-package",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-renamed-page-type",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-second-parameter",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-star-of-playwright",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-star-plus-export-assignment",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-star-plus-own-function",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-star-plus-star-as-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-ts-spec-two-candidate-files",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-two-launchers-in-one-helper",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-type-reexport-then-star-of-runner",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-typed-class-field",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-typed-let",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-typed-module-level-let",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-workspace-package-main-in-dist",
    "pending": null
   },
   {
@@ -698,11 +1230,27 @@
    "pending": null
   },
   {
+   "id": "no-wait-for-navigation/true-merge-tests",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-page-object-own-method",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-navigation/true-promise-all-click",
    "pending": null
   },
   {
    "id": "no-wait-for-navigation/true-stored-promise",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-test-import-does-not-resolve",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-typed-let-page-before-all",
    "pending": null
   },
   {
@@ -716,6 +1264,10 @@
   {
    "id": "no-wait-for-selector/false-api-under-test-lockfile-link-only",
    "pending": "S3c"
+  },
+  {
+   "id": "no-wait-for-selector/false-fixture-page",
+   "pending": null
   },
   {
    "id": "no-wait-for-selector/false-js-locator-wait-for",
@@ -738,6 +1290,426 @@
    "pending": null
   },
   {
+   "id": "no-wait-for-selector/true-b22-alias-with-js-suffix-to-js-ts-file",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-child-config-sets-another-base-url",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-const-alias-of-fixture-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-const-alias-of-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-constructor-parameter-property",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-context-new-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-directory-with-package-main",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-electron-first-window",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-export-const-extend",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-export-const-pattern-of-runner",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-extend-then-export-list",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-extend-with-a-fixture",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-extends-without-leading-dot",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-in-a-hook",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-in-a-step",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-in-a-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-reassigned",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-renamed",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-with-default",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-four-star-links",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-import-from-playwright",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-import-shadowed-in-inner-scope",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-import-type-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-import-type-query",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-inner-value-named-like-the-type",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-const-alias-of-fixture-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-const-alias-of-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-context-new-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-electron-first-window",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-export-const-extend",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-export-const-pattern-of-runner",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-exports-property",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-extend-then-export-list",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-extend-with-a-fixture",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-in-a-hook",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-in-a-step",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-in-a-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-reassigned",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-renamed",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-with-default",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-four-star-links",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-import-from-playwright",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-js-spec-alias-with-allowjs",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-js-spec-alias-without-allowjs",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-js-spec-two-candidate-files",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-jsconfig-maps-nothing",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-jsconfig-maps-the-package",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-launcher-chain",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-literal-then-object-assign",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-literal-then-reassigned",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-local-function-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-merge-tests-of-two-proven",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-middle-link-adds-own-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-module-exports-literal",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-nested-pattern",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-pin-extend-overrides-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-pin-use-overrides-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-pin-wrapper-arguments",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-proto-literal",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-reexport-named",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-require-destructured",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-second-parameter",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-specifier-ts-and-jsx-files",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-specifier-ts-file-only",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-star-of-playwright",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-star-plus-own-function",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-star-plus-star-as-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-this-in-a-loop",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-this-property",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-launcher-reexported-by-a-local-file",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-local-function-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-merge-tests-of-two-proven",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-middle-link-adds-own-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-namespace-page-type",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-nearer-jsconfig-maps-elsewhere",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-nested-pattern",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-page-from-another-launcher-helper",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-paths-alias-of-the-package",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-paths-key-with-two-values",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-annotation-not-checked",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-build-external",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-config-tsconfig-option",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-config-tsconfig-option-local-alias",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-export-changed-by-importer",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-extend-overrides-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-extend-patched",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-npm-alias-of-the-package",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-require-cache",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-use-overrides-page",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-reexport-named",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-referenced-config-maps-the-package",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-renamed-page-type",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-second-parameter",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-star-of-playwright",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-star-plus-export-assignment",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-star-plus-own-function",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-star-plus-star-as-test",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-ts-spec-two-candidate-files",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-two-launchers-in-one-helper",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-type-reexport-then-star-of-runner",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-typed-class-field",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-typed-let",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-typed-module-level-let",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-workspace-package-main-in-dist",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-const-page-alias",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-selector/true-customer-calls-customer-registry-deps",
    "pending": null
   },
@@ -750,11 +1722,47 @@
    "pending": "S6b"
   },
   {
+   "id": "no-wait-for-selector/true-js-const-page-alias",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-js-module-exports-reassigned",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-js-untyped-helper-parameter",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-selector/true-js-wait-for-selector",
    "pending": null
   },
   {
+   "id": "no-wait-for-selector/true-loop-and-catch-bindings",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-selector/true-page-wait-for-selector",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-renamed-page-fixture",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-test-from-extend-file",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-type-not-from-playwright",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-untyped-helper-parameter",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-var-page-redeclared",
    "pending": null
   },
   {
@@ -775,6 +1783,10 @@
   },
   {
    "id": "no-weak-assertion/false-count-at-least-one",
+   "pending": null
+  },
+  {
+   "id": "no-weak-assertion/false-destructured-const-in-expect",
    "pending": null
   },
   {

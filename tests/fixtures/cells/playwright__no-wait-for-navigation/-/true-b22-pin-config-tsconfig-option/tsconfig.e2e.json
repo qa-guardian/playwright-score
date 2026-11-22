@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@playwright/test": [
+        "./support/fake.ts"
+      ]
+    }
+  }
+}

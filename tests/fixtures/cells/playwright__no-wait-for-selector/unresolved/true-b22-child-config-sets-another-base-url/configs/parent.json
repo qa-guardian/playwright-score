@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": "../real",
+    "paths": {
+      "@fx/*": [
+        "fx/*"
+      ]
+    }
+  }
+}

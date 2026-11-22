@@ -78,10 +78,18 @@
    "certain": true
   },
   {
+   "rule": "playwright/no-wait-for-selector",
+   "form": "unresolved"
+  },
+  {
    "rule": "playwright/no-wait-for-navigation",
    "form": "-",
    "class": "C10",
    "certain": true
+  },
+  {
+   "rule": "playwright/no-wait-for-navigation",
+   "form": "unresolved"
   },
   {
    "rule": "playwright/no-element-handle",
@@ -90,10 +98,18 @@
    "certain": true
   },
   {
+   "rule": "playwright/no-element-handle",
+   "form": "unresolved"
+  },
+  {
    "rule": "playwright/no-page-pause",
    "form": "-",
    "class": "C12",
    "certain": true
+  },
+  {
+   "rule": "playwright/no-page-pause",
+   "form": "unresolved"
   },
   {
    "rule": "playwright/no-focused-test",
@@ -2420,6 +2436,2899 @@
    "tags": [
     "js"
    ]
+  },
+  {
+   "id": "no-wait-for-selector/true-test-from-extend-file",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-test-from-extend-file/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-test-from-extend-file",
+   "note": "E1: test comes from a local fixture file that calls .extend"
+  },
+  {
+   "id": "no-wait-for-navigation/true-merge-tests",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-merge-tests/checkout.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-merge-tests",
+   "note": "E1: test is mergeTests of two extended tests (playwright.dev/docs/test-fixtures)"
+  },
+  {
+   "id": "no-element-handle/true-js-require-test",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/-/true-js-require-test.js",
+   "tags": [
+    "js"
+   ],
+   "note": "E1: CommonJS require of test"
+  },
+  {
+   "id": "no-wait-for-selector/true-renamed-page-fixture",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-renamed-page-fixture.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "E1: { page: shopPage } rename"
+  },
+  {
+   "id": "no-wait-for-selector/true-const-page-alias",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-const-page-alias.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "E1: single-assignment const alias of the fixture page"
+  },
+  {
+   "id": "no-wait-for-selector/true-js-const-page-alias",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-js-const-page-alias.js",
+   "tags": [
+    "js",
+    "alias"
+   ]
+  },
+  {
+   "id": "no-wait-for-navigation/true-typed-let-page-before-all",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-typed-let-page-before-all.ts",
+   "note": "E2: typed module-level let set in beforeAll"
+  },
+  {
+   "id": "no-element-handle/true-typed-class-field-this",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/-/true-typed-class-field-this.ts",
+   "note": "E2: typed class field read through this"
+  },
+  {
+   "id": "no-element-handle/true-constructor-parameter-property",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/-/true-constructor-parameter-property.ts",
+   "note": "E2: constructor parameter property with a namespace-qualified type"
+  },
+  {
+   "id": "no-page-pause/true-electron-first-window",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/-/true-electron-first-window.ts",
+   "note": "E3: firstWindow() of an Electron app launched from a Playwright package"
+  },
+  {
+   "id": "no-page-pause/true-context-new-page",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/-/true-context-new-page.ts",
+   "note": "E3: context.newPage() from the fixture context"
+  },
+  {
+   "id": "no-page-pause/true-js-launcher-new-page",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/-/true-js-launcher-new-page.js",
+   "tags": [
+    "js"
+   ],
+   "note": "E3: launcher required from a Playwright package"
+  },
+  {
+   "id": "no-wait-for-navigation/true-page-object-own-method",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-page-object-own-method/details.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-page-object-own-method",
+   "form": "unresolved",
+   "note": "an in-repo page object whose own method shares the Playwright name"
+  },
+  {
+   "id": "no-wait-for-selector/true-type-not-from-playwright",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-type-not-from-playwright.ts",
+   "form": "unresolved",
+   "note": "the binding is annotated with a type that is not imported from a Playwright package"
+  },
+  {
+   "id": "no-element-handle/true-non-playwright-launcher-helper",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/unresolved/true-non-playwright-launcher-helper/legacy.spec.ts",
+   "dir": "playwright__no-element-handle/unresolved/true-non-playwright-launcher-helper",
+   "form": "unresolved",
+   "note": "a page from a launcher helper that is not Playwright"
+  },
+  {
+   "id": "no-wait-for-selector/true-untyped-helper-parameter",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-untyped-helper-parameter.ts",
+   "form": "unresolved"
+  },
+  {
+   "id": "no-wait-for-selector/true-js-untyped-helper-parameter",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-js-untyped-helper-parameter.js",
+   "form": "unresolved",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-page-pause/true-js-untyped-helper-parameter",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/unresolved/true-js-untyped-helper-parameter.js",
+   "form": "unresolved",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-wait-for-navigation/true-test-import-does-not-resolve",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-test-import-does-not-resolve.ts",
+   "form": "unresolved",
+   "note": "a relative test import whose module does not resolve"
+  },
+  {
+   "id": "no-force-option/true-page-object-getter-method-arrow",
+   "rule": "playwright/no-force-option",
+   "verdict": "true",
+   "entry": "playwright__no-force-option/-/true-page-object-getter-method-arrow/cart.spec.ts",
+   "dir": "playwright__no-force-option/-/true-page-object-getter-method-arrow",
+   "note": "probe: a Locator reached through a page-object getter, method or arrow property; outside the receiver rules, so unchanged"
+  },
+  {
+   "id": "no-raw-locators/true-page-object-locator-chain",
+   "rule": "playwright/no-raw-locators",
+   "verdict": "true",
+   "entry": "playwright__no-raw-locators/-/true-page-object-locator-chain/cart.spec.ts",
+   "dir": "playwright__no-raw-locators/-/true-page-object-locator-chain",
+   "note": "probe: po.btn.locator(...); outside the receiver rules, so unchanged"
+  },
+  {
+   "id": "no-force-option/false-page-object-wrapper-forwards-force",
+   "rule": "playwright/no-force-option",
+   "verdict": "false",
+   "entry": "playwright__no-force-option/-/false-page-object-wrapper-forwards-force/cart.spec.ts",
+   "dir": "playwright__no-force-option/-/false-page-object-wrapper-forwards-force",
+   "note": "probe: a page-object wrapper that forwards { force: true } as a variable; not reported today, and the receiver step does not change that"
+  },
+  {
+   "id": "no-networkidle/false-page-object-wrapper-forwards-networkidle",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/-/false-page-object-wrapper-forwards-networkidle/cart.spec.ts",
+   "dir": "playwright__no-networkidle/-/false-page-object-wrapper-forwards-networkidle",
+   "note": "probe: a page-object wrapper that forwards waitUntil networkidle as a variable; not reported today, and networkidle is exempt from the receiver step"
+  },
+  {
+   "id": "no-wait-for-selector/true-loop-and-catch-bindings",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-loop-and-catch-bindings.ts",
+   "form": "unresolved",
+   "note": "probe: a Playwright page that shadows another page through for-of, for-in and catch bindings"
+  },
+  {
+   "id": "no-element-handle/true-destructuring-assignment-to-page",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/unresolved/true-destructuring-assignment-to-page.ts",
+   "form": "unresolved",
+   "note": "probe: a Playwright page assigned by destructuring over another page"
+  },
+  {
+   "id": "no-element-handle/true-logical-assignment-to-page",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/unresolved/true-logical-assignment-to-page.ts",
+   "form": "unresolved",
+   "note": "probe: ??=, ||= and &&= assignments over another page"
+  },
+  {
+   "id": "no-element-handle/true-two-launchers-in-helper",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/unresolved/true-two-launchers-in-helper/mixed.spec.ts",
+   "dir": "playwright__no-element-handle/unresolved/true-two-launchers-in-helper",
+   "form": "unresolved",
+   "note": "probe: a helper that imports another library and playwright-chromium; a helper return value is unresolved by design"
+  },
+  {
+   "id": "no-element-handle/true-launcher-re-exported-from-local-file",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/unresolved/true-launcher-re-exported-from-local-file/reexport.spec.ts",
+   "dir": "playwright__no-element-handle/unresolved/true-launcher-re-exported-from-local-file",
+   "form": "unresolved",
+   "note": "probe: a launcher re-exported from another local file; only a launcher imported from a Playwright package is proof"
+  },
+  {
+   "id": "no-wait-for-selector/true-var-page-redeclared",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-var-page-redeclared.ts",
+   "form": "unresolved",
+   "note": "probe: a var page redeclared in a nested block"
+  },
+  {
+   "id": "no-wait-for-selector/true-js-module-exports-reassigned",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-js-module-exports-reassigned/run.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-js-module-exports-reassigned",
+   "form": "unresolved",
+   "tags": [
+    "js",
+    "cjs"
+   ],
+   "note": "review probe p06: module.exports is assigned an object literal and then a call result, so the required test is not proven"
+  },
+  {
+   "id": "no-element-handle/true-js-exports-changed-by-object-assign",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/unresolved/true-js-exports-changed-by-object-assign/invoice.spec.js",
+   "dir": "playwright__no-element-handle/unresolved/true-js-exports-changed-by-object-assign",
+   "form": "unresolved",
+   "tags": [
+    "js",
+    "cjs"
+   ],
+   "note": "review probe p06, pinned rule: the export object is changed by Object.assign inside an if, so the required test is not proven"
+  },
+  {
+   "id": "no-wait-for-selector/false-fixture-page",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "false",
+   "entry": "playwright__no-wait-for-selector/unresolved/false-fixture-page.ts",
+   "form": "unresolved"
+  },
+  {
+   "id": "no-wait-for-navigation/false-typed-page-parameter",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "false",
+   "entry": "playwright__no-wait-for-navigation/unresolved/false-typed-page-parameter.ts",
+   "form": "unresolved"
+  },
+  {
+   "id": "no-element-handle/false-js-fixture-page",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "playwright__no-element-handle/unresolved/false-js-fixture-page.js",
+   "form": "unresolved",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-page-pause/false-fixture-page",
+   "rule": "playwright/no-page-pause",
+   "verdict": "false",
+   "entry": "playwright__no-page-pause/unresolved/false-fixture-page.ts",
+   "form": "unresolved"
+  },
+  {
+   "id": "no-unawaited-action/true-destructured-keyboard-press",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "true",
+   "entry": "pwscore__no-unawaited-action/-/true-destructured-keyboard-press.ts",
+   "note": "regression: a destructured const receiver keeps its finding (findConstInit is untouched)"
+  },
+  {
+   "id": "no-weak-assertion/false-destructured-const-in-expect",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-weak-assertion/-/false-destructured-const-in-expect.ts",
+   "note": "regression: a destructured const passed to expect keeps its result (resolveConstInit is untouched)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-reexport-named",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-reexport-named/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-reexport-named",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X1+: reexport named"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-reexport-named",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-reexport-named/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-reexport-named",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X1+: reexport named"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-type-reexport-then-star-of-runner",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-type-reexport-then-star-of-runner/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-type-reexport-then-star-of-runner",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X1-4: type reexport then star of runner"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-extend-then-export-list",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-extend-then-export-list/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-extend-then-export-list",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X2+: extend then export list"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-extend-then-export-list",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-extend-then-export-list/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-extend-then-export-list",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X2+: extend then export list"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-export-const-extend",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-export-const-extend/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-export-const-extend",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X3+: export const extend"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-export-const-extend",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-export-const-extend/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-export-const-extend",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X3+: export const extend"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-export-const-pattern-of-runner",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-export-const-pattern-of-runner/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-export-const-pattern-of-runner",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X3-2: export const pattern of runner"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-export-const-pattern-of-runner",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-export-const-pattern-of-runner/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-export-const-pattern-of-runner",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X3-2: export const pattern of runner"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-star-of-playwright",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-star-of-playwright/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-star-of-playwright",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X5+: star of playwright"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-star-of-playwright",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-star-of-playwright/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-star-of-playwright",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X5+: star of playwright"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-star-plus-own-function",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-star-plus-own-function/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-star-plus-own-function",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X5-1: star plus own function"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-star-plus-own-function",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-star-plus-own-function/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-star-plus-own-function",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X5-1: star plus own function"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-star-plus-star-as-test",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-star-plus-star-as-test/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-star-plus-star-as-test",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X5-4: star plus star as test"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-star-plus-star-as-test",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-star-plus-star-as-test/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-star-plus-star-as-test",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X5-4: star plus star as test"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-star-plus-export-assignment",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-star-plus-export-assignment/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-star-plus-export-assignment",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X5-6: star plus export assignment"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-four-star-links",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-four-star-links/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-four-star-links",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X-chain+: four star links"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-middle-link-adds-own-test",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-middle-link-adds-own-test/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-middle-link-adds-own-test",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X-chain-2: middle link adds own test"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-four-star-links",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-four-star-links/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-four-star-links",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X-chain+: four star links"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-middle-link-adds-own-test",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-middle-link-adds-own-test/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-middle-link-adds-own-test",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X-chain-2: middle link adds own test"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-module-exports-literal",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-module-exports-literal/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-module-exports-literal",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-A+: module exports literal"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-literal-then-reassigned",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-literal-then-reassigned/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-literal-then-reassigned",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-A-1: literal then reassigned"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-proto-literal",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-proto-literal/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-proto-literal",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-A-7: proto literal"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-literal-then-object-assign",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-literal-then-object-assign/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-literal-then-object-assign",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-A-9: literal then object assign"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-exports-property",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-exports-property/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-exports-property",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-B+: exports property"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-this-in-a-loop",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-this-in-a-loop/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-this-in-a-loop",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-B-3: this in a loop"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-this-property",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-this-property/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-this-property",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-B-3: this property"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-import-from-playwright",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-import-from-playwright/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-import-from-playwright",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1+: import from playwright"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-import-from-playwright",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-import-from-playwright/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-import-from-playwright",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row V1+: import from playwright"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-require-destructured",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-require-destructured/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-require-destructured",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row V3+: require destructured"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-paths-alias-of-the-package",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-paths-alias-of-the-package/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-paths-alias-of-the-package",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1-1: paths alias of the package"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-js-spec-two-candidate-files",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-js-spec-two-candidate-files/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-js-spec-two-candidate-files",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row V1-5: js spec two candidate files"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-ts-spec-two-candidate-files",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-ts-spec-two-candidate-files/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-ts-spec-two-candidate-files",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1-5: ts spec two candidate files"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-directory-with-package-main",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-directory-with-package-main/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-directory-with-package-main",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1-8: directory with package main"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-workspace-package-main-in-dist",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-workspace-package-main-in-dist/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-workspace-package-main-in-dist",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1-10: workspace package main in dist"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-specifier-ts-and-jsx-files",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-specifier-ts-and-jsx-files/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-specifier-ts-and-jsx-files",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-1: js specifier ts and jsx files"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-specifier-ts-file-only",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-specifier-ts-file-only/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-specifier-ts-file-only",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-1c: js specifier ts file only"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-js-spec-alias-without-allowjs",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-js-spec-alias-without-allowjs/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-js-spec-alias-without-allowjs",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row RD-2: js spec alias without allowjs"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-js-spec-alias-with-allowjs",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-js-spec-alias-with-allowjs/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-js-spec-alias-with-allowjs",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row RD-2c: js spec alias with allowjs"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-nearer-jsconfig-maps-elsewhere",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-nearer-jsconfig-maps-elsewhere/tests/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-nearer-jsconfig-maps-elsewhere",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-3: nearer jsconfig maps elsewhere"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-extends-without-leading-dot",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-extends-without-leading-dot/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-extends-without-leading-dot",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-4: extends without leading dot"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-referenced-config-maps-the-package",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-referenced-config-maps-the-package/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-referenced-config-maps-the-package",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-5: referenced config maps the package"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-child-config-sets-another-base-url",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-child-config-sets-another-base-url/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-child-config-sets-another-base-url",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-7: child config sets another base url"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-paths-key-with-two-values",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-paths-key-with-two-values/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-paths-key-with-two-values",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-8: paths key with two values"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-jsconfig-maps-the-package",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-jsconfig-maps-the-package/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-jsconfig-maps-the-package",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row RD-9: jsconfig maps the package"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-jsconfig-maps-nothing",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-jsconfig-maps-nothing/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-jsconfig-maps-nothing",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row RD-9: jsconfig maps nothing"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-alias-with-js-suffix-to-js-ts-file",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-alias-with-js-suffix-to-js-ts-file/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-alias-with-js-suffix-to-js-ts-file",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-13: alias with js suffix to js ts file"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-local-function-test",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-local-function-test/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-local-function-test",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1-6: local function test"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-local-function-test",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-local-function-test/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-local-function-test",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row V1-6: local function test"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-import-shadowed-in-inner-scope",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-import-shadowed-in-inner-scope/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-import-shadowed-in-inner-scope",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1-6: import shadowed in inner scope"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-const-alias-of-test",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-const-alias-of-test/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-const-alias-of-test",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V2+: const alias of test"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-extend-with-a-fixture",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-extend-with-a-fixture/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-extend-with-a-fixture",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row B2+: extend with a fixture"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-merge-tests-of-two-proven",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-merge-tests-of-two-proven/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-merge-tests-of-two-proven",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row B3+: merge tests of two proven"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-extend-overrides-page",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-pin-extend-overrides-page/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-extend-overrides-page",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A2-pin-1: pin extend overrides page (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-use-overrides-page",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-pin-use-overrides-page/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-use-overrides-page",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A2-pin-2: pin use overrides page (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-const-alias-of-test",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-const-alias-of-test/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-const-alias-of-test",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row V2+: const alias of test"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-extend-with-a-fixture",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-extend-with-a-fixture/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-extend-with-a-fixture",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row B2+: extend with a fixture"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-merge-tests-of-two-proven",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-merge-tests-of-two-proven/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-merge-tests-of-two-proven",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row B3+: merge tests of two proven"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-pin-extend-overrides-page",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-pin-extend-overrides-page/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-pin-extend-overrides-page",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row A2-pin-1: pin extend overrides page (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-pin-use-overrides-page",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-pin-use-overrides-page/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-pin-use-overrides-page",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row A2-pin-2: pin use overrides page (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-npm-alias-of-the-package",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-pin-npm-alias-of-the-package/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-npm-alias-of-the-package",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A1-pin-1: pin npm alias of the package (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-config-tsconfig-option",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-pin-config-tsconfig-option/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-config-tsconfig-option",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A7-pin-1: pin config tsconfig option (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-pin-wrapper-arguments",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-pin-wrapper-arguments/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-pin-wrapper-arguments",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row A5-pin-1: pin wrapper arguments (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-require-cache",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-pin-require-cache/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-require-cache",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A5-pin-2: pin require cache (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-extend-patched",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-pin-extend-patched/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-extend-patched",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A6-pin: pin extend patched (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-annotation-not-checked",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-pin-annotation-not-checked/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-annotation-not-checked",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A3-pin: pin annotation not checked (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-export-changed-by-importer",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-pin-export-changed-by-importer/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-export-changed-by-importer",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A5-pin-3: pin export changed by importer (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-config-tsconfig-option-local-alias",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-pin-config-tsconfig-option-local-alias/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-config-tsconfig-option-local-alias",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A7-pin-2: pin config tsconfig option local alias (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-build-external",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-pin-build-external/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-build-external",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A7-pin-3: pin build external (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-import-type-page",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-import-type-page/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-import-type-page",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row T+: import type page"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-renamed-page-type",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-renamed-page-type/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-renamed-page-type",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row T+: renamed page type"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-namespace-page-type",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-namespace-page-type/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-namespace-page-type",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row T+: namespace page type"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-import-type-query",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-import-type-query/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-import-type-query",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row T+: import type query"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-typed-let",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-typed-let/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-typed-let",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row T+: typed let"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-inner-value-named-like-the-type",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-inner-value-named-like-the-type/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-inner-value-named-like-the-type",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row T-1: inner value named like the type"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-in-a-test",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-fixture-page-in-a-test/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-fixture-page-in-a-test",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page in a test"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-in-a-hook",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-fixture-page-in-a-hook/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-fixture-page-in-a-hook",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page in a hook"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-in-a-step",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-fixture-page-in-a-step/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-fixture-page-in-a-step",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page in a step"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-renamed",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-fixture-page-renamed/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-fixture-page-renamed",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page renamed"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-const-alias-of-fixture-page",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-const-alias-of-fixture-page/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-const-alias-of-fixture-page",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1-alias: const alias of fixture page"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-reassigned",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-fixture-page-reassigned/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-fixture-page-reassigned",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1-1: fixture page reassigned"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-with-default",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-fixture-page-with-default/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-fixture-page-with-default",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1-1: fixture page with default"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-nested-pattern",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-nested-pattern/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-nested-pattern",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1-1: nested pattern"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-second-parameter",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-second-parameter/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-second-parameter",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1-1: second parameter"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-context-new-page",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-context-new-page/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-context-new-page",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E3+: context new page"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-electron-first-window",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-electron-first-window/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-electron-first-window",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E3+: electron first window"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-in-a-test",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-fixture-page-in-a-test/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-fixture-page-in-a-test",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page in a test"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-in-a-hook",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-fixture-page-in-a-hook/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-fixture-page-in-a-hook",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page in a hook"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-in-a-step",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-fixture-page-in-a-step/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-fixture-page-in-a-step",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page in a step"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-renamed",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-fixture-page-renamed/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-fixture-page-renamed",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page renamed"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-const-alias-of-fixture-page",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-const-alias-of-fixture-page/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-const-alias-of-fixture-page",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1-alias: const alias of fixture page"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-reassigned",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-fixture-page-reassigned/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-fixture-page-reassigned",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1-1: fixture page reassigned"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-with-default",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-fixture-page-with-default/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-fixture-page-with-default",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1-1: fixture page with default"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-nested-pattern",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-nested-pattern/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-nested-pattern",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1-1: nested pattern"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-second-parameter",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-js-second-parameter/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-second-parameter",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1-1: second parameter"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-context-new-page",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-context-new-page/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-context-new-page",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E3+: context new page"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-electron-first-window",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-electron-first-window/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-electron-first-window",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E3+: electron first window"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-typed-module-level-let",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-typed-module-level-let/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-typed-module-level-let",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E2+: typed module level let"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-typed-class-field",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-typed-class-field/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-typed-class-field",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E2+: typed class field"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-constructor-parameter-property",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-constructor-parameter-property/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-constructor-parameter-property",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E2+: constructor parameter property"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-launcher-chain",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-b22-js-launcher-chain/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-launcher-chain",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row E3+: launcher chain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-page-from-another-launcher-helper",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-page-from-another-launcher-helper/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-page-from-another-launcher-helper",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E3-1: page from another launcher helper"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-launcher-reexported-by-a-local-file",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-launcher-reexported-by-a-local-file/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-launcher-reexported-by-a-local-file",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E3-1: launcher reexported by a local file"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-two-launchers-in-one-helper",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/unresolved/true-b22-two-launchers-in-one-helper/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-two-launchers-in-one-helper",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E3-1: two launchers in one helper"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-reexport-named",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-reexport-named/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-reexport-named",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X1+: reexport named"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-reexport-named",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-reexport-named/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-reexport-named",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X1+: reexport named"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-type-reexport-then-star-of-runner",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-type-reexport-then-star-of-runner/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-type-reexport-then-star-of-runner",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X1-4: type reexport then star of runner"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-extend-then-export-list",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-extend-then-export-list/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-extend-then-export-list",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X2+: extend then export list"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-extend-then-export-list",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-extend-then-export-list/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-extend-then-export-list",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X2+: extend then export list"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-export-const-extend",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-export-const-extend/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-export-const-extend",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X3+: export const extend"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-export-const-extend",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-export-const-extend/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-export-const-extend",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X3+: export const extend"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-export-const-pattern-of-runner",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-export-const-pattern-of-runner/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-export-const-pattern-of-runner",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X3-2: export const pattern of runner"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-export-const-pattern-of-runner",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-export-const-pattern-of-runner/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-export-const-pattern-of-runner",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X3-2: export const pattern of runner"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-star-of-playwright",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-star-of-playwright/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-star-of-playwright",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X5+: star of playwright"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-star-of-playwright",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-star-of-playwright/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-star-of-playwright",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X5+: star of playwright"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-star-plus-own-function",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-star-plus-own-function/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-star-plus-own-function",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X5-1: star plus own function"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-star-plus-own-function",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-star-plus-own-function/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-star-plus-own-function",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X5-1: star plus own function"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-star-plus-star-as-test",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-star-plus-star-as-test/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-star-plus-star-as-test",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X5-4: star plus star as test"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-star-plus-star-as-test",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-star-plus-star-as-test/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-star-plus-star-as-test",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X5-4: star plus star as test"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-star-plus-export-assignment",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-star-plus-export-assignment/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-star-plus-export-assignment",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X5-6: star plus export assignment"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-four-star-links",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-four-star-links/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-four-star-links",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X-chain+: four star links"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-middle-link-adds-own-test",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-middle-link-adds-own-test/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-middle-link-adds-own-test",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row X-chain-2: middle link adds own test"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-four-star-links",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-four-star-links/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-four-star-links",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X-chain+: four star links"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-middle-link-adds-own-test",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-middle-link-adds-own-test/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-middle-link-adds-own-test",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row X-chain-2: middle link adds own test"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-module-exports-literal",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-module-exports-literal/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-module-exports-literal",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-A+: module exports literal"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-literal-then-reassigned",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-literal-then-reassigned/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-literal-then-reassigned",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-A-1: literal then reassigned"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-proto-literal",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-proto-literal/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-proto-literal",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-A-7: proto literal"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-literal-then-object-assign",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-literal-then-object-assign/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-literal-then-object-assign",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-A-9: literal then object assign"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-exports-property",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-exports-property/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-exports-property",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-B+: exports property"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-this-in-a-loop",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-this-in-a-loop/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-this-in-a-loop",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-B-3: this in a loop"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-this-property",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-this-property/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-this-property",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row C-B-3: this property"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-import-from-playwright",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-import-from-playwright/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-import-from-playwright",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1+: import from playwright"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-import-from-playwright",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-import-from-playwright/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-import-from-playwright",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row V1+: import from playwright"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-require-destructured",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-require-destructured/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-require-destructured",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row V3+: require destructured"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-paths-alias-of-the-package",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-paths-alias-of-the-package/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-paths-alias-of-the-package",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1-1: paths alias of the package"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-js-spec-two-candidate-files",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-js-spec-two-candidate-files/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-js-spec-two-candidate-files",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row V1-5: js spec two candidate files"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-ts-spec-two-candidate-files",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-ts-spec-two-candidate-files/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-ts-spec-two-candidate-files",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1-5: ts spec two candidate files"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-directory-with-package-main",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-directory-with-package-main/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-directory-with-package-main",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1-8: directory with package main"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-workspace-package-main-in-dist",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-workspace-package-main-in-dist/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-workspace-package-main-in-dist",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1-10: workspace package main in dist"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-specifier-ts-and-jsx-files",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-specifier-ts-and-jsx-files/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-specifier-ts-and-jsx-files",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-1: js specifier ts and jsx files"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-specifier-ts-file-only",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-specifier-ts-file-only/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-specifier-ts-file-only",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-1c: js specifier ts file only"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-js-spec-alias-without-allowjs",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-js-spec-alias-without-allowjs/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-js-spec-alias-without-allowjs",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row RD-2: js spec alias without allowjs"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-js-spec-alias-with-allowjs",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-js-spec-alias-with-allowjs/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-js-spec-alias-with-allowjs",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row RD-2c: js spec alias with allowjs"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-nearer-jsconfig-maps-elsewhere",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-nearer-jsconfig-maps-elsewhere/tests/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-nearer-jsconfig-maps-elsewhere",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-3: nearer jsconfig maps elsewhere"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-extends-without-leading-dot",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-extends-without-leading-dot/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-extends-without-leading-dot",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-4: extends without leading dot"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-referenced-config-maps-the-package",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-referenced-config-maps-the-package/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-referenced-config-maps-the-package",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-5: referenced config maps the package"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-child-config-sets-another-base-url",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-child-config-sets-another-base-url/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-child-config-sets-another-base-url",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-7: child config sets another base url"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-paths-key-with-two-values",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-paths-key-with-two-values/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-paths-key-with-two-values",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-8: paths key with two values"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-jsconfig-maps-the-package",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-jsconfig-maps-the-package/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-jsconfig-maps-the-package",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row RD-9: jsconfig maps the package"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-jsconfig-maps-nothing",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-jsconfig-maps-nothing/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-jsconfig-maps-nothing",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row RD-9: jsconfig maps nothing"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-alias-with-js-suffix-to-js-ts-file",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-alias-with-js-suffix-to-js-ts-file/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-alias-with-js-suffix-to-js-ts-file",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row RD-13: alias with js suffix to js ts file"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-local-function-test",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-local-function-test/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-local-function-test",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1-6: local function test"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-local-function-test",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-local-function-test/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-local-function-test",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row V1-6: local function test"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-import-shadowed-in-inner-scope",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-import-shadowed-in-inner-scope/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-import-shadowed-in-inner-scope",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V1-6: import shadowed in inner scope"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-const-alias-of-test",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-const-alias-of-test/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-const-alias-of-test",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V2+: const alias of test"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-extend-with-a-fixture",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-extend-with-a-fixture/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-extend-with-a-fixture",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row B2+: extend with a fixture"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-merge-tests-of-two-proven",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-merge-tests-of-two-proven/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-merge-tests-of-two-proven",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row B3+: merge tests of two proven"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-extend-overrides-page",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-pin-extend-overrides-page/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-extend-overrides-page",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A2-pin-1: pin extend overrides page (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-use-overrides-page",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-pin-use-overrides-page/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-use-overrides-page",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A2-pin-2: pin use overrides page (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-const-alias-of-test",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-const-alias-of-test/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-const-alias-of-test",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row V2+: const alias of test"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-extend-with-a-fixture",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-extend-with-a-fixture/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-extend-with-a-fixture",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row B2+: extend with a fixture"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-merge-tests-of-two-proven",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-merge-tests-of-two-proven/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-merge-tests-of-two-proven",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row B3+: merge tests of two proven"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-pin-extend-overrides-page",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-pin-extend-overrides-page/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-pin-extend-overrides-page",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row A2-pin-1: pin extend overrides page (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-pin-use-overrides-page",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-pin-use-overrides-page/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-pin-use-overrides-page",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row A2-pin-2: pin use overrides page (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-npm-alias-of-the-package",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-pin-npm-alias-of-the-package/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-npm-alias-of-the-package",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A1-pin-1: pin npm alias of the package (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-config-tsconfig-option",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-pin-config-tsconfig-option/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-config-tsconfig-option",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A7-pin-1: pin config tsconfig option (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-pin-wrapper-arguments",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-pin-wrapper-arguments/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-pin-wrapper-arguments",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row A5-pin-1: pin wrapper arguments (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-require-cache",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-pin-require-cache/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-require-cache",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A5-pin-2: pin require cache (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-extend-patched",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-pin-extend-patched/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-extend-patched",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A6-pin: pin extend patched (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-annotation-not-checked",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-pin-annotation-not-checked/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-annotation-not-checked",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A3-pin: pin annotation not checked (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-export-changed-by-importer",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-pin-export-changed-by-importer/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-export-changed-by-importer",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A5-pin-3: pin export changed by importer (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-config-tsconfig-option-local-alias",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-pin-config-tsconfig-option-local-alias/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-config-tsconfig-option-local-alias",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A7-pin-2: pin config tsconfig option local alias (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-build-external",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-pin-build-external/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-build-external",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row A7-pin-3: pin build external (a pinned limit: the receiver is reported as proven)"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-import-type-page",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-import-type-page/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-import-type-page",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row T+: import type page"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-renamed-page-type",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-renamed-page-type/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-renamed-page-type",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row T+: renamed page type"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-namespace-page-type",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-namespace-page-type/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-namespace-page-type",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row T+: namespace page type"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-import-type-query",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-import-type-query/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-import-type-query",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row T+: import type query"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-typed-let",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-typed-let/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-typed-let",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row T+: typed let"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-inner-value-named-like-the-type",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-inner-value-named-like-the-type/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-inner-value-named-like-the-type",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row T-1: inner value named like the type"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-in-a-test",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-fixture-page-in-a-test/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-fixture-page-in-a-test",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page in a test"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-in-a-hook",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-fixture-page-in-a-hook/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-fixture-page-in-a-hook",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page in a hook"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-in-a-step",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-fixture-page-in-a-step/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-fixture-page-in-a-step",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page in a step"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-renamed",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-fixture-page-renamed/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-fixture-page-renamed",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page renamed"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-const-alias-of-fixture-page",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-const-alias-of-fixture-page/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-const-alias-of-fixture-page",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1-alias: const alias of fixture page"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-reassigned",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-fixture-page-reassigned/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-fixture-page-reassigned",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1-1: fixture page reassigned"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-with-default",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-fixture-page-with-default/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-fixture-page-with-default",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1-1: fixture page with default"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-nested-pattern",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-nested-pattern/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-nested-pattern",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1-1: nested pattern"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-second-parameter",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-second-parameter/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-second-parameter",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1-1: second parameter"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-context-new-page",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-context-new-page/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-context-new-page",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E3+: context new page"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-electron-first-window",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-electron-first-window/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-electron-first-window",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E3+: electron first window"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-in-a-test",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-fixture-page-in-a-test/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-fixture-page-in-a-test",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page in a test"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-in-a-hook",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-fixture-page-in-a-hook/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-fixture-page-in-a-hook",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page in a hook"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-in-a-step",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-fixture-page-in-a-step/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-fixture-page-in-a-step",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page in a step"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-renamed",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-fixture-page-renamed/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-fixture-page-renamed",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1+: fixture page renamed"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-const-alias-of-fixture-page",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-const-alias-of-fixture-page/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-const-alias-of-fixture-page",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1-alias: const alias of fixture page"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-reassigned",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-fixture-page-reassigned/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-fixture-page-reassigned",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1-1: fixture page reassigned"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-with-default",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-fixture-page-with-default/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-fixture-page-with-default",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1-1: fixture page with default"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-nested-pattern",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-nested-pattern/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-nested-pattern",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1-1: nested pattern"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-second-parameter",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-js-second-parameter/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-second-parameter",
+   "form": "unresolved",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1-1: second parameter"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-context-new-page",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-context-new-page/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-context-new-page",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E3+: context new page"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-electron-first-window",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-electron-first-window/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-electron-first-window",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E3+: electron first window"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-typed-module-level-let",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-typed-module-level-let/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-typed-module-level-let",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E2+: typed module level let"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-typed-class-field",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-typed-class-field/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-typed-class-field",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E2+: typed class field"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-constructor-parameter-property",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-constructor-parameter-property/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-constructor-parameter-property",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E2+: constructor parameter property"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-launcher-chain",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-b22-js-launcher-chain/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-launcher-chain",
+   "tags": [
+    "b22",
+    "js",
+    "cjs"
+   ],
+   "note": "B2.2 matrix row E3+: launcher chain"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-page-from-another-launcher-helper",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-page-from-another-launcher-helper/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-page-from-another-launcher-helper",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E3-1: page from another launcher helper"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-launcher-reexported-by-a-local-file",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-launcher-reexported-by-a-local-file/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-launcher-reexported-by-a-local-file",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E3-1: launcher reexported by a local file"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-two-launchers-in-one-helper",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/true-b22-two-launchers-in-one-helper/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-two-launchers-in-one-helper",
+   "form": "unresolved",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E3-1: two launchers in one helper"
+  },
+  {
+   "id": "no-element-handle/true-b22-const-alias-of-test",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/-/true-b22-const-alias-of-test/orders.spec.ts",
+   "dir": "playwright__no-element-handle/-/true-b22-const-alias-of-test",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V2+: const alias of test"
+  },
+  {
+   "id": "no-element-handle/true-b22-js-const-alias-of-test",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/-/true-b22-js-const-alias-of-test/orders.spec.js",
+   "dir": "playwright__no-element-handle/-/true-b22-js-const-alias-of-test",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row V2+: const alias of test"
+  },
+  {
+   "id": "no-element-handle/true-b22-const-alias-of-fixture-page",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/-/true-b22-const-alias-of-fixture-page/orders.spec.ts",
+   "dir": "playwright__no-element-handle/-/true-b22-const-alias-of-fixture-page",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1-alias: const alias of fixture page"
+  },
+  {
+   "id": "no-element-handle/true-b22-js-const-alias-of-fixture-page",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/-/true-b22-js-const-alias-of-fixture-page/orders.spec.js",
+   "dir": "playwright__no-element-handle/-/true-b22-js-const-alias-of-fixture-page",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1-alias: const alias of fixture page"
+  },
+  {
+   "id": "no-page-pause/true-b22-const-alias-of-test",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/-/true-b22-const-alias-of-test/orders.spec.ts",
+   "dir": "playwright__no-page-pause/-/true-b22-const-alias-of-test",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row V2+: const alias of test"
+  },
+  {
+   "id": "no-page-pause/true-b22-js-const-alias-of-test",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/-/true-b22-js-const-alias-of-test/orders.spec.js",
+   "dir": "playwright__no-page-pause/-/true-b22-js-const-alias-of-test",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row V2+: const alias of test"
+  },
+  {
+   "id": "no-page-pause/true-b22-const-alias-of-fixture-page",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/-/true-b22-const-alias-of-fixture-page/orders.spec.ts",
+   "dir": "playwright__no-page-pause/-/true-b22-const-alias-of-fixture-page",
+   "tags": [
+    "b22"
+   ],
+   "note": "B2.2 matrix row E1-alias: const alias of fixture page"
+  },
+  {
+   "id": "no-page-pause/true-b22-js-const-alias-of-fixture-page",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/-/true-b22-js-const-alias-of-fixture-page/orders.spec.js",
+   "dir": "playwright__no-page-pause/-/true-b22-js-const-alias-of-fixture-page",
+   "tags": [
+    "b22",
+    "js"
+   ],
+   "note": "B2.2 matrix row E1-alias: const alias of fixture page"
   }
  ]
 }
