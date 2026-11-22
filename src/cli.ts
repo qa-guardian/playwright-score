@@ -13,7 +13,8 @@ import { formatReport } from './formatters/report.js';
 import { makeSourceReader } from './report-source.js';
 import { suiteLabel } from './suite-name.js';
 import { resolveDotSlashAbsolute } from './fs-util.js';
-import { DEFAULT_MAX_HEAP_MB, MIN_MAX_HEAP_MB } from './isolate.js';
+import { DEFAULT_MAX_HEAP_MB } from './isolate.js';
+import { limitProblem } from './limits.js';
 import type { ProfileName } from './types.js';
 
 function printHelp(): void {
@@ -173,15 +174,17 @@ async function main(): Promise<void> {
       }
     } else if (a === '--max-seconds') {
       maxSeconds = Number(args[++i]);
-      if (!Number.isFinite(maxSeconds) || maxSeconds <= 0) {
-        console.error('--max-seconds must be a number above 0');
+      const problem = limitProblem('maxSeconds', maxSeconds);
+      if (problem !== undefined) {
+        console.error(`--max-seconds ${problem}`);
         process.exitCode = 2;
         return;
       }
     } else if (a === '--max-heap-mb') {
       maxHeapMb = Number(args[++i]);
-      if (!Number.isInteger(maxHeapMb) || maxHeapMb < MIN_MAX_HEAP_MB) {
-        console.error(`--max-heap-mb must be a whole number, ${MIN_MAX_HEAP_MB} or more`);
+      const problem = limitProblem('maxHeapMb', maxHeapMb);
+      if (problem !== undefined) {
+        console.error(`--max-heap-mb ${problem}`);
         process.exitCode = 2;
         return;
       }

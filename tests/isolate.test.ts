@@ -10,7 +10,7 @@ import { formatText } from '../src/formatters/text.js';
 import { execFile } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
-import { analyzeIsolated, BATCH_SIZE, clock, MAX_TIMER_MS, startTimeLimit, toBatches, type AnalysisInput } from '../src/isolate.js';
+import { analyzeIsolated, BATCH_SIZE, clock, MAX_TIMER_MS, MIN_MAX_HEAP_MB, startTimeLimit, toBatches, type AnalysisInput } from '../src/isolate.js';
 import { MAX_SOURCE_BYTES } from '../src/fs-util.js';
 import type { ScoreResult } from '../src/types.js';
 
@@ -230,10 +230,35 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
     assert.ok(!r.coverage?.skipped.some((s) => s.reason === 'deadline' || s.reason === 'worker-died'));
   });
 
-  it('a heap limit no worker can start under: no throw; the files are skipped as worker-died, not-scored', async () => {
+  it('a heap limit no worker can start under (analyzeIsolated, below what scorePaths accepts): no throw; every file is skipped as worker-died', async () => {
     const dir = mixedSuite();
-    const reference = await scorePaths({ paths: [dir], cwd: dir });
-    const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxHeapMb: 4 });
+    const abs = fs.readdirSync(dir).filter((f) => f.endsWith('.spec.ts')).sort().map((f) => path.join(dir, f));
+    const input: AnalysisInput = {
+      files: abs,
+      sources: new Map(abs.map((f) => [f, fs.readFileSync(f, 'utf8')])),
+      importedFiles: new Map(),
+      filesBase: dir,
+      importBoundary: dir,
+      profile: 'standard',
+      cwd: dir,
+      assertFunctionNamesByFile: new Map(abs.map((f) => [f, []])),
+      testAliasNames: [],
+    };
+    const out = await analyzeIsolated(input, { maxHeapMb: 4, time: startTimeLimit(undefined) });
+    assert.deepEqual(out.batches, []);
+    assert.deepEqual(out.skipped.map((s) => s.file), abs);
+    assert.deepEqual([...new Set(out.skipped.map((s) => s.reason))], ['worker-died']);
+    assert.ok(out.skipped.every((s) => s.detail !== undefined && !s.detail.includes('/')), 'a detail carries a path');
+  });
+
+  it('the lowest heap limit scorePaths accepts, on a file no worker can analyse under it: no throw; worker-died, not-scored', async () => {
+    const head = good('dense');
+    const dir = suite({
+      'dense.spec.ts': head + 'a;\n'.repeat(Math.floor((MAX_SOURCE_BYTES - head.length) / 3)),
+      'unit/sum.test.ts': VITEST,
+    });
+    const reference = await scorePaths({ paths: [dir], cwd: dir, isolate: false });
+    const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxHeapMb: MIN_MAX_HEAP_MB });
     assert.equal(r.status, 'not-scored');
     assert.equal(r.reason, 'limit-reached');
     assert.equal(r.coverage?.filesScored, 0);
@@ -245,9 +270,40 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
     assert.match(formatText(r), /analysis ran out of memory or stopped/);
   });
 
+  for (const maxHeapMb of [0, -1, 0.5, 1, 4, MIN_MAX_HEAP_MB - 1, NaN, Infinity, '256' as unknown as number]) {
+    it(`scorePaths refuses maxHeapMb ${String(maxHeapMb)} (${typeof maxHeapMb}) with a RangeError, before any file is looked at`, async () => {
+      // The path does not exist: a call that got as far as looking for files would not throw a RangeError.
+      await assert.rejects(scorePaths({ paths: ['/no/such/dir'], maxHeapMb }), (e: unknown) => {
+        assert.ok(e instanceof RangeError);
+        assert.equal(e.message, `maxHeapMb must be a whole number, ${MIN_MAX_HEAP_MB} or more`);
+        return true;
+      });
+      await assert.rejects(scorePaths({ paths: ['/no/such/dir'], maxHeapMb, isolate: false }), RangeError);
+    });
+  }
+
+  for (const maxSeconds of [NaN, 0, -1, Infinity, '5' as unknown as number]) {
+    it(`scorePaths refuses maxSeconds ${String(maxSeconds)} (${typeof maxSeconds}) with a RangeError, before any file is looked at`, async () => {
+      await assert.rejects(scorePaths({ paths: ['/no/such/dir'], maxSeconds }), (e: unknown) => {
+        assert.ok(e instanceof RangeError);
+        assert.equal(e.message, 'maxSeconds must be a number above 0');
+        return true;
+      });
+    });
+  }
+
+  it('scorePaths accepts the lowest heap limit, and the limits left undefined', async () => {
+    const dir = suite({ 'a.spec.ts': good('a') });
+    const none = await scorePaths({ paths: [dir], cwd: dir, maxSeconds: undefined, maxHeapMb: undefined });
+    assert.equal(none.status, 'scored');
+    // Not a RangeError: the value is accepted, whatever the worker then manages under it.
+    const low = await scorePaths({ paths: [dir], cwd: dir, maxHeapMb: MIN_MAX_HEAP_MB });
+    assert.ok(low.status === 'scored' || low.coverage?.skipped.every((s) => s.reason === 'worker-died'));
+  });
+
   it('isolate: false ignores the limits and scores in the calling thread', async () => {
     const dir = suite({ 'a.spec.ts': good('a') });
-    const r = await scorePaths({ paths: [dir], cwd: dir, isolate: false, maxSeconds: 0.001, maxHeapMb: 4 });
+    const r = await scorePaths({ paths: [dir], cwd: dir, isolate: false, maxSeconds: 0.001, maxHeapMb: MIN_MAX_HEAP_MB });
     assert.equal(r.status, 'scored');
   });
 });

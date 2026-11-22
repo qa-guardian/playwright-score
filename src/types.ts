@@ -200,12 +200,15 @@ export interface ScoreOptions {
    * starts, and a batch being analysed is stopped. The files not analysed are
    * skipped (`deadline`) and the result is `partial`, or `not-scored` with
    * reason `limit-reached` when no test was counted in time. This is the only
-   * limit whose effect depends on the machine.
+   * limit whose effect depends on the machine. Must be a finite number above
+   * 0; any other value makes `scorePaths` throw a `RangeError`.
    */
   maxSeconds?: number;
   /**
    * Heap limit of the analysis worker, in MB. Defaults to a fixed constant
-   * (`DEFAULT_MAX_HEAP_MB`), never to a share of the host's memory.
+   * (`DEFAULT_MAX_HEAP_MB`), never to a share of the host's memory. Must be a
+   * whole number, 64 (`MIN_MAX_HEAP_MB`) or more; any other value makes
+   * `scorePaths` throw a `RangeError` before any file is looked at.
    */
   maxHeapMb?: number;
   /**

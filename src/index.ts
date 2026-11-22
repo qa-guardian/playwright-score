@@ -42,6 +42,7 @@ import {
   startTimeLimit,
   type AnalysisInput,
 } from './isolate.js';
+import { assertLimits } from './limits.js';
 import type { Coverage, Finding, ProfileName, ScoreOptions, ScoreResult } from './types.js';
 
 export type {
@@ -574,6 +575,8 @@ function hardFail(
  * Score Playwright spec files. Deterministic and AI-free.
  */
 export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
+  // A limit that is not usable is refused here, before any file is looked at.
+  assertLimits(options);
   resetRuleCrashes();
   const result = await scorePathsInner(options);
   decorateFindings(result.findings, result.baseDir);
