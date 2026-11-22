@@ -120,6 +120,26 @@ function configPath(env: RunnerEnv, from: string, name: string): string {
   return p;
 }
 
+// The lenient reader drops a comma before `]` or `}` inside string literals too,
+// where the runner's reader keeps it: such a config is read differently, so it is not modelled.
+function commaInsideString(text: string): boolean {
+  let i = 0;
+  while (i < text.length) {
+    if (text[i] === '"') {
+      let j = i + 1;
+      while (j < text.length && text[j] !== '"') j += text[j] === '\\' ? 2 : 1;
+      if (/,\s*[}\]]/.test(text.slice(i, j + 1))) return true;
+      i = j + 1;
+    } else if (text[i] === '/' && text[i + 1] === '/') {
+      while (i < text.length && text[i] !== '\n') i++;
+    } else if (text[i] === '/' && text[i + 1] === '*') {
+      const end = text.indexOf('*/', i + 2);
+      i = end === -1 ? text.length : end + 2;
+    } else i++;
+  }
+  return false;
+}
+
 // Step R3b: the runner's `innerLoadTsConfig`, line for line. A file that does
 // not parse to an object, or a field of the wrong type, is `runner-config`.
 function load(env: RunnerEnv, file: string, refs: RunnerConfig[], visited: Map<string, RunnerConfig>): RunnerConfig {
@@ -129,7 +149,7 @@ function load(env: RunnerEnv, file: string, refs: RunnerConfig[], visited: Map<s
   visited.set(file, result);
   if (!exists(env, file)) return result;
   const text = env.readText(file);
-  const json = text === undefined ? undefined : parseLenientJson(text);
+  const json = text === undefined || commaInsideString(text) ? undefined : parseLenientJson(text);
   if (!isPlainObject(json)) throw new Unknown('runner-config');
   const ext = json.extends;
   for (const e of Array.isArray(ext) ? ext : ext ? [ext] : []) {

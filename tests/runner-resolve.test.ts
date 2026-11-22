@@ -243,6 +243,23 @@ describe('runner-resolve: step R3, the config mapping', () => {
     };
     assert.deepEqual(run('@playwright/test', files, { legacy: 'support/fake.ts' }), CONFIG);
   });
+  it('R3-10b: a config string holding a comma before ] or } is runner-config (the lenient reader would drop the comma)', () => {
+    // The reviewer's tree: the runner maps to `x,]/fixtures.ts`; the lenient reader sees `x]/fixtures.ts`.
+    const tree = (cfg: string): Record<string, string> => ({ 'tsconfig.json': cfg, 'x]/fixtures.ts': REEXPORT, 'x,]/fixtures.ts': OWN });
+    const legacy = { legacy: 'x]/fixtures.ts' };
+    assert.deepEqual(run('@fx/fixtures', tree('{"compilerOptions": {"paths": {"@fx/*": ["./x,]/*"]}}}'), legacy), CONFIG);
+    assert.deepEqual(run('@fx/fixtures', tree('{"compilerOptions": {"paths": {"@fx/*": ["./x, }/*"]}}}'), legacy), CONFIG);
+    // In a key, behind an escaped quote, and in an extended or a referenced config.
+    assert.deepEqual(run('@fx/fixtures', tree('{"compilerOptions": {"paths": {"a,}": [], "@fx/*": ["./x]/*"]}}}'), legacy), CONFIG);
+    assert.deepEqual(run('@fx/fixtures', tree('{"note": "\\",]", "compilerOptions": {"paths": {"@fx/*": ["./x]/*"]}}}'), legacy), CONFIG);
+    const main = '{"extends": "./base.json", "compilerOptions": {"paths": {"@fx/*": ["./x]/*"]}}}';
+    assert.deepEqual(run('@fx/fixtures', { ...tree(main), 'base.json': '{"note": ",]"}' }, legacy), CONFIG);
+    const refs = '{"references": [{"path": "./ref.json"}], "compilerOptions": {"paths": {"@fx/*": ["./x]/*"]}}}';
+    assert.deepEqual(run('@fx/fixtures', { ...tree(refs), 'ref.json': '{"note": ",}"}' }, legacy), CONFIG);
+    // Controls: a real trailing comma, a comment holding the text, and a comma elsewhere in a string still resolve.
+    const ok = '{"compilerOptions": {"paths": {"@fx/*": ["./x]/*",], /* ",]" */ }, // ",}"\n "note": "a,b" }}';
+    assert.deepEqual(run('@fx/fixtures', tree(ok), legacy), file('x]/fixtures.ts'));
+  });
   it('R3-11: a referenced config with allowJs mapping to another file is ambiguous', () => {
     const files = {
       'tsconfig.json': JSON.stringify({
