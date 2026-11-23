@@ -83,7 +83,15 @@
   },
   {
    "id": "missing-playwright-await/false-void-expect",
-   "pending": "S4b"
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/foreign-expect-false-playwright-expect-unawaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/foreign-expect-true-vitest-dom-matcher",
+   "pending": null
   },
   {
    "id": "missing-playwright-await/true-action-aliased-test",
@@ -642,6 +650,14 @@
    "pending": null
   },
   {
+   "id": "no-trivial-assertion/foreign-expect-false-playwright-expect-literal",
+   "pending": null
+  },
+  {
+   "id": "no-trivial-assertion/foreign-expect-true-vitest-literal",
+   "pending": null
+  },
+  {
    "id": "no-trivial-assertion/true-literal-vs-literal",
    "pending": null
   },
@@ -735,6 +751,14 @@
   },
   {
    "id": "no-unawaited-expect-value/false-web-first",
+   "pending": null
+  },
+  {
+   "id": "no-unawaited-expect-value/foreign-expect-false-playwright-expect-title",
+   "pending": null
+  },
+  {
+   "id": "no-unawaited-expect-value/foreign-expect-true-expect-package-title",
    "pending": null
   },
   {
@@ -1806,6 +1830,14 @@
    "pending": null
   },
   {
+   "id": "no-weak-assertion/foreign-expect-false-playwright-expect-locator-truthy",
+   "pending": null
+  },
+  {
+   "id": "no-weak-assertion/foreign-expect-true-jest-globals-locator-truthy",
+   "pending": null
+  },
+  {
    "id": "no-weak-assertion/true-aliased-test",
    "pending": null
   },
@@ -1879,7 +1911,7 @@
   },
   {
    "id": "prefer-web-first-assertions/false-jest-expect-page-is-visible",
-   "pending": "S4b"
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/false-js-count-at-least-zero",
@@ -1947,6 +1979,14 @@
   },
   {
    "id": "prefer-web-first-assertions/false-web-first",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/foreign-expect-false-playwright-expect-is-visible",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/foreign-expect-true-jest-globals-is-visible",
    "pending": null
   },
   {
@@ -2051,7 +2091,7 @@
   },
   {
    "id": "valid-expect/false-chai-expect",
-   "pending": "S4b"
+   "pending": null
   },
   {
    "id": "valid-expect/false-js-matcher-called",
@@ -2079,7 +2119,19 @@
   },
   {
    "id": "valid-expect/false-vitest-expect-chai-style",
-   "pending": "S4b"
+   "pending": null
+  },
+  {
+   "id": "valid-expect/foreign-expect-false-playwright-expect-matcherless",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/foreign-expect-true-chai-property-assertion",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/foreign-expect-true-js-require-chai-property",
+   "pending": null
   },
   {
    "id": "valid-expect/true-aliased-test",

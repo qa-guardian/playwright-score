@@ -228,6 +228,30 @@
   {
    "rule": "pwscore/no-trivial-assertion",
    "form": "literal"
+  },
+  {
+   "rule": "playwright/missing-playwright-await",
+   "form": "foreign-expect"
+  },
+  {
+   "rule": "playwright/valid-expect",
+   "form": "foreign-expect"
+  },
+  {
+   "rule": "pwscore/no-unawaited-expect-value",
+   "form": "foreign-expect"
+  },
+  {
+   "rule": "pwscore/no-weak-assertion",
+   "form": "foreign-expect"
+  },
+  {
+   "rule": "pwscore/no-trivial-assertion",
+   "form": "foreign-expect"
+  },
+  {
+   "rule": "playwright/prefer-web-first-assertions",
+   "form": "foreign-expect"
   }
  ],
  "fixtures": [
@@ -680,7 +704,7 @@
    "tags": [
     "g10:foreign-expect"
    ],
-   "pending": "S4b"
+   "note": "expect comes from chai: the finding is reported with form foreign-expect, not as matcherless"
   },
   {
    "id": "valid-expect/false-vitest-called-matcher",
@@ -2221,8 +2245,7 @@
    "tags": [
     "g10:foreign-expect"
    ],
-   "pending": "S4b",
-   "note": "expect comes from jest, not from Playwright; the upstream rule still reports it"
+   "note": "expect comes from jest, not from Playwright; the upstream rule still reports it; the finding is reported with form foreign-expect"
   },
   {
    "id": "valid-expect/false-vitest-expect-chai-style",
@@ -2233,8 +2256,7 @@
    "tags": [
     "g10:foreign-expect"
    ],
-   "pending": "S4b",
-   "note": "expect comes from vitest, whose chai-style property assertions need no call"
+   "note": "expect comes from vitest, whose chai-style property assertions need no call; the finding is reported with form foreign-expect"
   },
   {
    "id": "missing-playwright-await/false-void-click",
@@ -2255,8 +2277,8 @@
    "tags": [
     "g10:void"
    ],
-   "pending": "S4b",
-   "note": "a void-ed expect is a deliberate, still unchecked assertion: it stays likely (ADR 5.3), so the certain tier must not report it. Reported as certain today"
+   "note": "a void-ed expect is a deliberate, still unchecked assertion: it is reported, and it is never certain. Judged on the certain tier",
+   "tierAtMost": "likely"
   },
   {
    "id": "no-networkidle/true-const-options-wait-until",
@@ -5329,6 +5351,113 @@
     "js"
    ],
    "note": "B2.2 matrix row E1-alias: const alias of fixture page"
+  },
+  {
+   "id": "valid-expect/foreign-expect-true-chai-property-assertion",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "playwright__valid-expect/foreign-expect/true-chai-property-assertion.ts",
+   "form": "foreign-expect",
+   "note": "expect is imported from chai, whose property assertions need no call"
+  },
+  {
+   "id": "valid-expect/foreign-expect-true-js-require-chai-property",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "playwright__valid-expect/foreign-expect/true-js-require-chai-property.js",
+   "form": "foreign-expect",
+   "tags": [
+    "js"
+   ],
+   "note": "expect comes from require('chai')"
+  },
+  {
+   "id": "valid-expect/foreign-expect-false-playwright-expect-matcherless",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "playwright__valid-expect/foreign-expect/false-playwright-expect-matcherless.ts",
+   "form": "foreign-expect",
+   "note": "expect is the one from @playwright/test: the finding keeps its shape form"
+  },
+  {
+   "id": "prefer-web-first-assertions/foreign-expect-true-jest-globals-is-visible",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/foreign-expect/true-jest-globals-is-visible.ts",
+   "form": "foreign-expect",
+   "note": "expect is imported from @jest/globals"
+  },
+  {
+   "id": "prefer-web-first-assertions/foreign-expect-false-playwright-expect-is-visible",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/foreign-expect/false-playwright-expect-is-visible.ts",
+   "form": "foreign-expect",
+   "note": "expect is the one from @playwright/test: the finding keeps its shape form"
+  },
+  {
+   "id": "missing-playwright-await/foreign-expect-true-vitest-dom-matcher",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/foreign-expect/true-vitest-dom-matcher.ts",
+   "form": "foreign-expect",
+   "note": "expect is imported from vitest; its DOM matcher is synchronous"
+  },
+  {
+   "id": "missing-playwright-await/foreign-expect-false-playwright-expect-unawaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/foreign-expect/false-playwright-expect-unawaited.ts",
+   "form": "foreign-expect",
+   "note": "expect is the one from @playwright/test: the finding keeps its shape form"
+  },
+  {
+   "id": "no-weak-assertion/foreign-expect-true-jest-globals-locator-truthy",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-weak-assertion/foreign-expect/true-jest-globals-locator-truthy.ts",
+   "form": "foreign-expect",
+   "note": "expect is imported from @jest/globals"
+  },
+  {
+   "id": "no-weak-assertion/foreign-expect-false-playwright-expect-locator-truthy",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-weak-assertion/foreign-expect/false-playwright-expect-locator-truthy.ts",
+   "form": "foreign-expect",
+   "note": "expect is the one from @playwright/test: the finding keeps form -"
+  },
+  {
+   "id": "no-unawaited-expect-value/foreign-expect-true-expect-package-title",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "true",
+   "entry": "pwscore__no-unawaited-expect-value/foreign-expect/true-expect-package-title.ts",
+   "form": "foreign-expect",
+   "note": "expect is the default export of the expect package"
+  },
+  {
+   "id": "no-unawaited-expect-value/foreign-expect-false-playwright-expect-title",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "false",
+   "entry": "pwscore__no-unawaited-expect-value/foreign-expect/false-playwright-expect-title.ts",
+   "form": "foreign-expect",
+   "note": "expect is the one from @playwright/test: the finding keeps form -"
+  },
+  {
+   "id": "no-trivial-assertion/foreign-expect-true-vitest-literal",
+   "rule": "pwscore/no-trivial-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-trivial-assertion/foreign-expect/true-vitest-literal.ts",
+   "form": "foreign-expect",
+   "note": "expect is imported from vitest"
+  },
+  {
+   "id": "no-trivial-assertion/foreign-expect-false-playwright-expect-literal",
+   "rule": "pwscore/no-trivial-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-trivial-assertion/foreign-expect/false-playwright-expect-literal.ts",
+   "form": "foreign-expect",
+   "note": "expect is the one from @playwright/test: the finding keeps its shape form"
   }
  ]
 }

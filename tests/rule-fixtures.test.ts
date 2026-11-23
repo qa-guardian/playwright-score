@@ -36,6 +36,8 @@ interface Fixture {
   tags?: string[];
   pending?: string;
   profile?: string;
+  /** The shape is reported and must never be certain (a `void`-ed expect, S4b): the fixture is judged on the certain tier only. */
+  tierAtMost?: 'likely';
   note?: string;
 }
 interface Manifest {
@@ -235,7 +237,9 @@ async function probeFixture(f: Fixture): Promise<Probe & { parseError: boolean; 
   // A FALSE fixture in a named form is judged on that form only: a finding of another form of the same rule
   // does not make it fire, so a pending fixture can flip when a later slice re-forms the finding.
   const formScoped = f.verdict === 'false' && f.form !== undefined && f.form !== '-';
-  const mine = result.findings.filter((x) => norm(x.rule) === target && (!formScoped || x.form === f.form || x.form === undefined));
+  const ofCell = result.findings.filter((x) => norm(x.rule) === target && (!formScoped || x.form === f.form || x.form === undefined));
+  if (f.tierAtMost && ofCell.length === 0) throw new Error(`${f.id}: a fixture judged on its tier must be reported`);
+  const mine = f.tierAtMost ? ofCell.filter((x) => x.tier === 'certain') : ofCell;
   return {
     fires: mine.length > 0,
     formSeen: mine.map((x) => x.form).filter((x): x is string => typeof x === 'string'),
@@ -294,12 +298,9 @@ describe('QAG-287 S3: fixture manifest', () => {
     const want: Array<[string, string]> = [
       ['true-aliased-page', 'S4a'],
       ['true-renamed-expect-const', 'S4b'],
-      ['false-chai-expect', 'S4b'],
       ['true-helper', 'S6b'],
       ['true-foreach-async', 'S7a'],
       ['true-not-catch-chain', 'S7b'],
-      ['false-vitest-expect', 'S4b'],
-      ['false-jest-expect', 'S4b'],
       ['false-api-under-test', 'S3c'],
     ];
     for (const [prefix, slice] of want) {

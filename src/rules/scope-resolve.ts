@@ -164,6 +164,15 @@ export function denotes(env: ResolveEnv, sf: ScopeFile, node: N | null | undefin
 }
 
 /**
+ * Which export of which package does `node` denote, also through local modules that re-export it (up to
+ * MAX_FILE_DEPTH files, each chosen by rule R)? The question an `expect` binding asks (S4b). Never follows a call.
+ */
+export function denotesThroughModules(env: ResolveEnv, sf: ScopeFile, node: N | null | undefined): Result<PackageExport> {
+  const walk: Walk = { maxDepth: MAX_FILE_DEPTH, stack: [], value: (file, expr, d, via) => denotes(env, file, expr, d, walk, via) };
+  return denotes(env, sf, node, 0, walk);
+}
+
+/**
  * Does `node` denote Playwright's `test`? B1: the export `test` of a test package, also through local modules that
  * re-export it (up to MAX_FILE_DEPTH files, each chosen by rule R). B2: `.extend(...)` of one. B3: `mergeTests(...)`
  * whose arguments are all such objects. A fixture override inside `.extend` is not examined (axiom A2).
