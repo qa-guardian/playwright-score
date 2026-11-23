@@ -5,7 +5,7 @@ import { RESOLVE_EXTENSIONS, INDEX_FILES, JS_TO_TS_SOURCE } from '../src/module-
 import { CLASSIFIER_ROWS, NEUTRAL_STATEMENTS, exportOf, exportTable } from '../src/rules/module-exports.js';
 import { PROOF_RULES, REASONS, type N, type ProofRule, type Reason, type ResolveEnv, type Result, type ScopeFile } from '../src/rules/proof.js';
 import { prove } from '../src/rules/receiver-proof.js';
-import { denotes, parseScopeFile, playwrightTest } from '../src/rules/scope-resolve.js';
+import { denotes, parseScopeFile, playwrightExpect, playwrightTest } from '../src/rules/scope-resolve.js';
 
 // QAG-287 B2.2, layer 1: the unit matrix of the export table, the binding resolver and the receiver proof.
 // Files are held in memory. Every row asserts "PROVEN" or the reason code. Invented names throughout:
@@ -497,6 +497,19 @@ describe('the walk', () => {
   });
   it('a module that cannot be read or parsed is not proven', () => {
     assert.equal(ask(fx(`export { test from ;;\n`)), 'module-unreadable');
+  });
+  it('B4, B5: an expect made by extend or configure, and by mergeExpects of such objects, is the export expect', () => {
+    const made = (init: string): Result<unknown> => {
+      const env = memEnv(sp(`import { expect as base, mergeExpects } from '${PW}';\nconst expect = ${init};\nexpect(1);\n`));
+      const sf = env.load(abs('a.spec.ts'))!;
+      return playwrightExpect(env, sf, (sf.ast.body as N[])[2].expression.callee);
+    };
+    for (const [init, rule] of [['base.extend({})', 'B4'], ['base.configure({ soft: true })', 'B4'], ['mergeExpects(base, base.extend({}))', 'B5']] as const) {
+      const r = made(init);
+      assert.equal(verdict(r), 'PROVEN', init);
+      assert.ok(r.ok && r.rules.includes(rule) && (r.value as { name: string }).name === 'expect', init);
+    }
+    assert.equal(verdict(made('mergeExpects(base, wrap(base))')), 'not-a-playwright-export');
   });
   it('PROOF_RULES: the rule ids seen in positive results over the whole matrix are exactly the list', () => {
     assert.deepEqual([...seen].sort(), [...PROOF_RULES].sort());

@@ -6,8 +6,8 @@
  * finding. It asks the binding resolver (rules/scope-resolve.ts) what the `expect`
  * of the finding denotes, and only then decides:
  *
- *  proven Playwright  `expect` of a Playwright test package, also through a local
- *                     re-export or a single-assignment `const` alias: unchanged.
+ *  proven Playwright  `expect` of a Playwright test package, also through a local re-export,
+ *                     a `const` alias, `.extend`, `.configure` or `mergeExpects`: unchanged.
  *  proven foreign     `expect` or `assert` of chai, @jest/globals, vitest, expect or
  *                     node:assert: form `foreign-expect` (advisory).
  *  anything else      a global, an unknown package, any shape the resolver does not
@@ -24,9 +24,9 @@ import { defaultRow, rowFor, rowsOf } from './catalogue/table.js';
 import { EXPECT_BOUND_RULES, FOREIGN_EXPECT_FORM } from './catalogue/foreign-expect.js';
 import { createEnv, type ReceiverContext } from './receiver-forms.js';
 import { exportTable } from './rules/module-exports.js';
-import { isTestPackage } from './rules/proof.js';
+import { isExpectExport } from './rules/proof.js';
 import type { N, PackageExport, ResolveEnv, Result, ScopeFile } from './rules/proof.js';
-import { denotesThroughModules, lookup } from './rules/scope-resolve.js';
+import { lookup, playwrightExpect } from './rules/scope-resolve.js';
 
 export { EXPECT_BOUND_RULES, FOREIGN_EXPECT_FORM };
 
@@ -199,11 +199,11 @@ function useOf(env: ResolveEnv, ctx: ReceiverContext, sf: ScopeFile, head: N, fi
   const variable = lookup(sf, head, head.name as string) as N | undefined;
   let d = variable ? proofs.get(variable) : undefined;
   if (!d) {
-    d = denotesThroughModules(env, sf, head);
+    d = playwrightExpect(env, sf, head);
     if (variable) proofs.set(variable, d);
   }
   if (!d.ok) return { binding: { kind: 'unresolved', at: d.at.file ? relative(ctx, d.at.file, d.at.line) : relative(ctx, file, line) }, voided };
-  if (d.value.playwright && isTestPackage(d.value.package) && d.value.name === 'expect') return { binding: { kind: 'playwright' }, voided };
+  if (isExpectExport(d.value)) return { binding: { kind: 'playwright' }, voided };
   if (!d.value.playwright && FOREIGN_PACKAGES.includes(d.value.package) && FOREIGN_EXPORTS.has(d.value.name)) return { binding: { kind: 'foreign', package: d.value.package }, voided };
   // A proven export that is neither Playwright's expect nor on the foreign list: the reason points at the declaration.
   const declared = (variable?.defs?.[0]?.node?.loc?.start?.line as number | undefined) ?? line;

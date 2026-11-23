@@ -18,9 +18,10 @@ export type N = { type: string; [k: string]: any };
  *  X1-X7   what a local module exports
  *  T       a type name bound by an import
  *  B1-B3   Playwright's `test`, `.extend(...)` of it, `mergeTests(...)` of such objects
+ *  B4-B5   `.extend(...)` or `.configure(...)` of Playwright's `expect`, `mergeExpects(...)` of such objects
  *  E1-E3   a receiver: fixture, type annotation, factory
  */
-export const PROOF_RULES = ['R', 'V1', 'V2', 'V3', 'V4', 'V5', 'X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'T', 'B1', 'B2', 'B3', 'E1', 'E2', 'E3'] as const;
+export const PROOF_RULES = ['R', 'V1', 'V2', 'V3', 'V4', 'V5', 'X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'T', 'B1', 'B2', 'B3', 'B4', 'B5', 'E1', 'E2', 'E3'] as const;
 export type ProofRule = (typeof PROOF_RULES)[number];
 
 /** Why something is not proven. Internal: never written to a finding or to any output. */
@@ -96,6 +97,11 @@ export const isTestPackage = (pkg: string): boolean => TEST_PACKAGE.test(pkg);
 /** B1: the export `test` of a test package (or `default`, where the package's default export is `test`). */
 export const isTestExport = (e: PackageExport): boolean =>
   e.playwright && TEST_PACKAGE.test(e.package) && (e.name === 'test' || (e.name === 'default' && DEFAULT_IS_TEST.test(e.package)));
+
+/** The export `expect` of a test package. */
+export const isExpectExport = (e: PackageExport): boolean => e.playwright && TEST_PACKAGE.test(e.package) && e.name === 'expect';
+/** `mergeExpects` of the two packages that are documented to export it. */
+export const isMergeExpects = (e: PackageExport): boolean => e.playwright && DEFAULT_IS_TEST.test(e.package) && e.name === 'mergeExpects';
 
 /** How far a question is followed, and how an expression inside a followed module is read. */
 export interface Walk {

@@ -10,14 +10,15 @@
  *  V4  `require('<literal>')`;
  *  V5  `<module object>.a`;
  *  T   a type name bound by an import (type position only);
- *  B1  the export `test` of a Playwright test package; B2 `.extend(...)` of one; B3 `mergeTests(...)` of such objects.
+ *  B1  the export `test` of a Playwright test package; B2 `.extend(...)` of one; B3 `mergeTests(...)` of such objects;
+ *  B4  `.extend(...)` or `.configure(...)` of Playwright's `expect`; B5 `mergeExpects(...)` of such objects.
  * Every other shape is "not proven", with a reason. Nothing here guesses.
  */
 import { parseForESLint } from '@typescript-eslint/parser';
 import { resolveConstInit, type N as AstNode } from './ast-util.js';
 import { sourceTypeFor } from '../source-type.js';
 import { specifier } from './module-exports.js';
-import { MAX_FILE_DEPTH, MAX_STEPS, isPlaywrightPackage, isTestExport, isTestPackage, notProven, proven } from './proof.js';
+import { MAX_FILE_DEPTH, MAX_STEPS, isExpectExport, isMergeExpects, isPlaywrightPackage, isTestExport, isTestPackage, notProven, proven } from './proof.js';
 import type { N, NotProven, PackageExport, ProofRule, Proven, ResolveEnv, Result, ScopeFile, Walk } from './proof.js';
 
 const SKIP_KEYS = new Set(['parent', 'loc', 'range', 'tokens', 'comments']);
@@ -163,13 +164,38 @@ export function denotes(env: ResolveEnv, sf: ScopeFile, node: N | null | undefin
   return o.ok === false ? o : notProven('not-a-playwright-export', sf.file, o.expr);
 }
 
+/** The methods of Playwright's `expect` that return an `expect` (playwright.dev/docs/test-assertions: `expect.extend`, `expect.configure`). */
+const EXPECT_MAKERS = new Set(['extend', 'configure']);
+
 /**
- * Which export of which package does `node` denote, also through local modules that re-export it (up to
- * MAX_FILE_DEPTH files, each chosen by rule R)? The question an `expect` binding asks (S4b). Never follows a call.
+ * Which export of which package does an `expect` denote, also through local modules that re-export it (up to
+ * MAX_FILE_DEPTH files, each chosen by rule R)? The question an `expect` binding asks (S4b). The only calls it
+ * reads: B4 `.extend(...)` or `.configure(...)` of an expect proven to be Playwright's, and B5 `mergeExpects(...)`
+ * of a Playwright test package whose arguments are all such objects. Both denote Playwright's `expect`. The same
+ * call on any other expect is "not proven", as every other call is.
  */
-export function denotesThroughModules(env: ResolveEnv, sf: ScopeFile, node: N | null | undefined): Result<PackageExport> {
-  const walk: Walk = { maxDepth: MAX_FILE_DEPTH, stack: [], value: (file, expr, d, via) => denotes(env, file, expr, d, walk, via) };
-  return denotes(env, sf, node, 0, walk);
+export function playwrightExpect(env: ResolveEnv, sf: ScopeFile, node: N | null | undefined, depth = 0, walk?: Walk, via: readonly ProofRule[] = [], steps = 0): Result<PackageExport> {
+  const w: Walk = walk ?? { maxDepth: MAX_FILE_DEPTH, stack: [], value: (file, expr, d, trail) => playwrightExpect(env, file, expr, d, w, trail) };
+  const o = origin(sf, node);
+  if (o.ok === false) return o;
+  if (o.ok === true) return specifier(env, sf, o.value.spec, o.value.name, o.value.at, depth, w, [...via, ...o.rules]);
+  const e = o.expr;
+  const trail = [...via, ...o.via];
+  const callee = e.type === 'CallExpression' && steps <= MAX_STEPS ? strip(e.callee) : undefined;
+  if (callee?.type === 'MemberExpression' && !callee.computed && callee.property?.type === 'Identifier' && EXPECT_MAKERS.has(callee.property.name)) {
+    const base = playwrightExpect(env, sf, callee.object, depth, w, trail, steps + 1);
+    if (base.ok && isExpectExport(base.value)) return proven('B4', base.value, base.rules);
+  } else if (callee) {
+    // `mergeExpects` itself must be the export of a test package: no local module is followed for it.
+    const fn = denotes(env, sf, callee, depth, shallow(env, depth), trail);
+    const args = (e.arguments ?? []) as N[];
+    if (fn.ok && isMergeExpects(fn.value) && args.length > 0 && !args.some((a) => a.type === 'SpreadElement')) {
+      const merged = args.map((a) => playwrightExpect(env, sf, a, depth, w, trail, steps + 1));
+      const first = merged[0];
+      if (first.ok && merged.every((m) => m.ok && isExpectExport(m.value))) return proven('B5', first.value, fn.rules, ...merged.map((m) => (m.ok ? m.rules : [])));
+    }
+  }
+  return notProven('not-a-playwright-export', sf.file, e);
 }
 
 /**
