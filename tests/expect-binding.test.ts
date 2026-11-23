@@ -254,6 +254,27 @@ describe('QAG-287 S4b: only findings about an expect move', () => {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('precedence: foreign-expect wins over form unresolved on a proven foreign expect', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-expect-'));
+    try {
+      const file = path.join(dir, 'a.spec.ts');
+      const source = `${T} import { expect } from 'chai';\n${BODY}`;
+      fs.writeFileSync(file, source);
+      // No rule of the slice has an `unresolved` cell today; the order must already hold for the day one does.
+      const findings = SIX.map((rule): Finding => ({ rule, severity: 'error', message: 'm', file: 'a.spec.ts', line: LINE[rule], column: 3, dimension: 'assertions', form: 'unresolved' }));
+      applyExpectBinding(findings, { filesBase: dir, sources: new Map([[file, source]]) });
+      settleExpectBinding(findings);
+      for (const f of findings) {
+        const foreign = rowFor(f.rule, 'foreign-expect')!;
+        assert.ok(foreign.family && foreign.basis, f.rule);
+        assert.deepEqual([f.form, f.family, f.basis], ['foreign-expect', foreign.family, foreign.basis], f.rule);
+        assert.notEqual(f.tier, 'needs-check', f.rule);
+      }
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('QAG-287 S4b: a void-ed expect is never certain', () => {
