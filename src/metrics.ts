@@ -1,9 +1,8 @@
-import { parseForESLint } from '@typescript-eslint/parser';
 import type { Finding, LocatorCounts } from './types.js';
 import { countSloc } from './sloc.js';
 import { factoryNamesOf, plainAliasNames } from './test-aliases.js';
 import { PLAYWRIGHT_API_METHODS } from './playwright-api-names.js';
-import { sourceTypeFor } from './source-type.js';
+import { parseAst } from './parse-cache.js';
 import { Tree, isFunction, returnedExpectIsEverMatched, returnedMatcherlessExpects, type N } from './eslint-postfilter.js';
 
 // A positive "this IS a Playwright spec" check turned out to be unsafe:
@@ -111,15 +110,7 @@ function walk(node: unknown, visit: (node: Record<string, unknown>) => void): vo
  */
 function parseSource(source: string, file?: string): unknown {
   try {
-    return parseForESLint(source, {
-      ecmaVersion: 2022,
-      sourceType: sourceTypeFor(file),
-      // JSX must be extension-driven, not always-on: a bare .ts file can
-      // legally use the old-style `<Type>value` cast syntax, which is
-      // ambiguous with — and would be misparsed as — a JSX element if JSX
-      // were enabled unconditionally.
-      ecmaFeatures: { jsx: /\.(tsx|jsx)$/.test(file ?? '') },
-    }).ast;
+    return parseAst(source, file);
   } catch {
     return undefined;
   }
@@ -744,11 +735,17 @@ export function findEslintDisableComments(source: string, file: string): Finding
   return findings;
 }
 
-export function analyzeSource(source: string, file: string, testAliasNames: readonly string[] = []) {
+export function analyzeSource(
+  source: string,
+  file: string,
+  testAliasNames: readonly string[] = [],
+  /** The path the source is parsed under (parse-cache.ts keys on it); findings still name `file`. */
+  parsedAs: string = file
+) {
   return {
     sloc: countSloc(source),
     tests: countTests(source, testAliasNames),
-    locators: countLocators(source, file),
+    locators: countLocators(source, parsedAs),
     // No homegrown "has no assertions" check here: playwright/expect-expect
     // (a real AST-based community rule, always enabled — see
     // eslint-runner.ts) already covers this correctly, including

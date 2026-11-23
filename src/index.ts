@@ -10,6 +10,7 @@ import {
   withCoverage,
 } from './coverage.js';
 import { collectLocallyImportedFiles, createModuleResolver } from './import-graph.js';
+import { clearParseCache } from './parse-cache.js';
 import { createSharedCollector, sharedCoverage, type SharedFiles } from './shared-files.js';
 import {
   attributeFindingScopes,
@@ -579,7 +580,12 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   // A limit that is not usable is refused here, before any file is looked at.
   assertLimits(options);
   resetRuleCrashes();
-  const result = await scorePathsInner(options);
+  let result: ScoreResult;
+  try {
+    result = await scorePathsInner(options);
+  } finally {
+    clearParseCache(); // nothing parsed for this run outlives it
+  }
   decorateFindings(result.findings, result.baseDir);
   const crashes = summarizeRuleCrashes();
   const withCrashes = crashes.length > 0 ? { ...result, ruleCrashes: crashes } : result;
@@ -706,6 +712,9 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   const isSpec = (f: string): boolean => candidates.has(f) || SPEC_NAME_RE.test(f);
   let shared: SharedFiles | undefined;
   let analysis: AnalysisInput | undefined;
+  /** Locator counts of the imported dependency files (they add to the suite totals, nothing else). */
+  let importedNative = 0;
+  let importedRaw = 0;
   prePass: {
     if (timeLimit.passed('helper-facts')) break prePass;
     for (const file of files) {
@@ -725,6 +734,10 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
     importedFiles = collectLocallyImportedFiles(sources, importBoundary, sharedCollector.observing, importEdges, specifierCache);
     for (const [file, source] of importedFiles) {
       helperFacts.push(...extractHelperFacts(source, file));
+      // Counted here, while the file's tree is still in the parse cache.
+      const counts = countLocators(source, file);
+      importedNative += counts.native;
+      importedRaw += counts.raw;
     }
     // One fixed point over every readable file, so delegation chains may cross
     // file boundaries (spec helper -> imported page object -> expect).
@@ -803,11 +816,8 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   }
   const scoredFiles = files.filter((f) => !skips.has(f));
 
-  for (const [file, source] of importedFiles) {
-    const counts = countLocators(source, file);
-    native += counts.native;
-    raw += counts.raw;
-  }
+  native += importedNative;
+  raw += importedRaw;
 
   const findings = [...eslintFindings, ...metricFindings];
 

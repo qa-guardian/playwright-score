@@ -19,8 +19,9 @@ import { Worker, isMainThread, parentPort, workerData } from 'node:worker_thread
 import { dropFindingsOfSkipped, parseErrorFiles } from './coverage.js';
 import { createTriage } from './finding-triage.js';
 import { commonAncestorDir } from './fs-util.js';
-import { HEAP_LIMIT_EXIT, heapCheckpoint, installHeapGuard } from './heap-guard.js';
+import { HEAP_LIMIT_EXIT, heapCheckpoint, installHeapGuard, releaseMemory } from './heap-guard.js';
 import { analyzeSource, getTestSpans, type TestSpans } from './metrics.js';
+import { clearParseCache, setParseCacheBudget, WORKER_MAX_CACHED_TOKENS } from './parse-cache.js';
 import { createModuleResolver, type ImportResolver } from './module-resolution.js';
 import { resetRuleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
 import type { Finding, ProfileName, SkipReason } from './types.js';
@@ -185,9 +186,10 @@ export function createAnalyzer(
         continue;
       }
       const source = sources.get(file) ?? '';
-      const m = analyzeSource(source, rel, testAliasNames);
+      // Parsed under the absolute path, as the lint filter and triage parsed it: one parse serves all.
+      const m = analyzeSource(source, rel, testAliasNames, file);
       result.metricFindings.push(...m.findings);
-      const spans = getTestSpans(source, rel, testAliasNames);
+      const spans = getTestSpans(source, file, testAliasNames);
       // AST spans are the authoritative test count (they are also the
       // attribution targets); the regex count is the fallback for a file
       // whose syntax tree shows no test declaration.
@@ -235,6 +237,10 @@ export async function analyzeIsolated(
   input: AnalysisInput,
   limits: IsolateLimits
 ): Promise<{ batches: BatchResult[]; skipped: WorkerSkip[] }> {
+  // The worker parses for itself: the trees the main thread parsed before the
+  // analysis are dropped here and their memory is handed back, so they are
+  // not held beside the worker's (heap-guard.ts, releaseMemory).
+  if (clearParseCache() > 0) releaseMemory();
   const batches = toBatches(input.files);
   const done: BatchResult[] = [];
   const skipped: WorkerSkip[] = [];
@@ -299,6 +305,7 @@ export async function analyzeIsolated(
 function serve(): void {
   const { input, maxHeapMb } = workerData as { input: AnalysisInput; maxHeapMb: number };
   installHeapGuard(maxHeapMb);
+  setParseCacheBudget(WORKER_MAX_CACHED_TOKENS);
   const analyze = createAnalyzer(input);
   parentPort!.on('message', (files: string[]) => {
     resetRuleCrashes();

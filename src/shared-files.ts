@@ -1,11 +1,10 @@
 import path from 'node:path';
-import { parseForESLint } from '@typescript-eslint/parser';
 import { collectLocallyImportedFiles } from './import-graph.js';
 import type { ImportResolver } from './module-resolution.js';
 import { createNestedPackageResolver } from './nested-packages.js';
 import { PLAYWRIGHT_API_METHODS } from './playwright-api-names.js';
 import { walk, FN_TYPES, type N } from './rules/ast-util.js';
-import { sourceTypeFor } from './source-type.js';
+import { parseAst } from './parse-cache.js';
 import type { SharedSkippedFile } from './types.js';
 
 /**
@@ -105,12 +104,8 @@ export function playwrightTies(source: string, file: string): PlaywrightTies {
   if (!MAY_BE_BOUND.test(source)) return none;
   let ast: { body?: unknown; comments?: Array<{ type: string; value: string }> };
   try {
-    ast = parseForESLint(source, {
-      ecmaVersion: 2022,
-      sourceType: sourceTypeFor(file),
-      ecmaFeatures: { jsx: /\.(tsx|jsx)$/.test(file) },
-      comment: true,
-    }).ast as unknown as typeof ast;
+    // Comments are on every tree the parser returns (parse-cache.ts).
+    ast = parseAst(source, file) as unknown as typeof ast;
   } catch {
     return none;
   }

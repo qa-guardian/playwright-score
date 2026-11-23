@@ -1,6 +1,5 @@
-import { parseForESLint } from '@typescript-eslint/parser';
 import { resolveRelativeImport } from './import-graph.js';
-import { sourceTypeFor } from './source-type.js';
+import { parseAst } from './parse-cache.js';
 
 // A `test.extend()` fixture bound to a custom name is a first-class,
 // Playwright-documented pattern (playwright.dev/docs/test-fixtures), not a
@@ -120,11 +119,7 @@ function isRelativeSpecifier(value: unknown): value is string {
 function parseFileInfo(source: string, file: string): ParsedFileInfo | undefined {
   let ast: { body?: Array<Record<string, unknown>> } | undefined;
   try {
-    ast = parseForESLint(source, {
-      ecmaVersion: 2022,
-      sourceType: sourceTypeFor(file),
-      ecmaFeatures: { jsx: /\.(tsx|jsx)$/.test(file) },
-    }).ast as unknown as { body?: Array<Record<string, unknown>> };
+    ast = parseAst(source, file) as unknown as { body?: Array<Record<string, unknown>> };
   } catch {
     return undefined;
   }

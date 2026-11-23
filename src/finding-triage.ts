@@ -20,11 +20,10 @@
  * resolved-by-name match is the same trade-off `assertFunctionNames` makes.
  */
 import path from 'node:path';
-import { parseForESLint } from '@typescript-eslint/parser';
 import { createModuleResolver, resolveImportSpecifier, type ImportResolver } from './import-graph.js';
 import { PLAYWRIGHT_API_METHODS } from './playwright-api-names.js';
 import type { Finding } from './types.js';
-import { sourceTypeFor } from './source-type.js';
+import { parseAst } from './parse-cache.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type N = any;
@@ -79,22 +78,13 @@ function walk(node: N, visit: (n: N, parent: N | undefined) => void, parent?: N)
   }
 }
 
-type AstCache = Map<string, N>;
-function parse(astCache: AstCache, source: string, file: string): N {
-  const hit = astCache.get(file);
-  if (hit && hit.source === source) return hit.ast;
-  let ast: N;
+/** The file's tree from the thread's parse cache (parse-cache.ts); undefined when it does not parse. */
+function parse(source: string, file: string): N {
   try {
-    ast = parseForESLint(source, {
-      ecmaVersion: 2022,
-      sourceType: sourceTypeFor(file),
-      ecmaFeatures: { jsx: /\.(tsx|jsx)$/.test(file) },
-    }).ast;
+    return parseAst(source, file);
   } catch {
-    ast = undefined;
+    return undefined;
   }
-  astCache.set(file, { source, ast });
-  return ast;
 }
 
 function isExpectCall(n: N): boolean {
@@ -148,7 +138,6 @@ interface Knowledge {
   assertingFixtures: Map<string, Set<string>>;
   /** Per file: every `test.extend({...})` fixture name, asserting or not. */
   fixtureKeys: Map<string, Set<string>>;
-  cache: AstCache;
 }
 
 /** Does the fixture function hand a function containing expect(...) to use(...)? */
@@ -163,13 +152,13 @@ function usesAssertingCallable(fixtureFn: N): boolean {
   return found;
 }
 
-function gather(ctx: TriageContext, cache: AstCache): Knowledge {
+function gather(ctx: TriageContext): Knowledge {
   const defined = new Set<string>();
   const assertingFixtures = new Map<string, Set<string>>();
   const fixtureKeys = new Map<string, Set<string>>();
   const all = [...ctx.sources, ...ctx.importedFiles];
   for (const [file, source] of all) {
-    const ast = parse(cache, source, file);
+    const ast = parse(source, file);
     if (!ast) continue;
     walk(ast, (n) => {
       if (n.type === 'FunctionDeclaration' && n.id?.name) defined.add(n.id.name);
@@ -202,7 +191,7 @@ function gather(ctx: TriageContext, cache: AstCache): Knowledge {
       }
     });
   }
-  return { defined, assertingFixtures, fixtureKeys, cache };
+  return { defined, assertingFixtures, fixtureKeys };
 }
 
 /** Names bound by an identifier, object or array pattern. */
@@ -305,7 +294,7 @@ function reachableFiles(spec: string, ctx: TriageContext, know: Knowledge): Set<
   while (queue.length) {
     const file = queue.pop()!;
     const source = ctx.sources.get(file) ?? ctx.importedFiles.get(file);
-    const ast = source === undefined ? undefined : parse(know.cache, source, file);
+    const ast = source === undefined ? undefined : parse(source, file);
     for (const stmt of ast?.body ?? []) {
       const spec2 = stmt.source?.value;
       if (typeof spec2 !== 'string') continue;
@@ -425,7 +414,6 @@ export function createTriage(context: TriageContext): (findings: Finding[]) => F
     ...context,
     moduleResolver: context.moduleResolver ?? createModuleResolver(context.importBoundary ?? context.filesBase),
   };
-  const cache: AstCache = new Map(); // per run: nothing leaks between scorePaths runs
   let know: Knowledge | undefined;
   return (findings) => {
     const wants = findings.some(
@@ -435,12 +423,12 @@ export function createTriage(context: TriageContext): (findings: Finding[]) => F
         f.rule === 'playwright/valid-expect'
     );
     if (!wants) return findings;
-    know ??= gather(ctx, cache);
-    return triageWith(findings, ctx, know, cache);
+    know ??= gather(ctx);
+    return triageWith(findings, ctx, know);
   };
 }
 
-function triageWith(findings: Finding[], ctx: TriageContext, know: Knowledge, cache: AstCache): Finding[] {
+function triageWith(findings: Finding[], ctx: TriageContext, know: Knowledge): Finding[] {
   const out: Finding[] = [];
   for (const f of findings) {
     if (
@@ -455,7 +443,7 @@ function triageWith(findings: Finding[], ctx: TriageContext, know: Knowledge, ca
     }
     const abs = path.resolve(ctx.filesBase, f.file);
     const source = ctx.sources.get(abs);
-    const ast = source === undefined ? undefined : parse(cache, source, abs);
+    const ast = source === undefined ? undefined : parse(source, abs);
     if (!ast) {
       out.push(f);
       continue;

@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { parseForESLint } from '@typescript-eslint/parser';
-import { sourceTypeFor } from './source-type.js';
+import { parseAst } from './parse-cache.js';
 import { createModuleResolver, firstExistingFile, type ImportResolver } from './module-resolution.js';
 
 export { createModuleResolver, type ImportResolver } from './module-resolution.js';
@@ -16,11 +15,7 @@ const MAX_FILES = 300;
 function extractImportSpecifiers(source: string, file: string): string[] {
   let ast: { body?: Array<Record<string, unknown>> } | undefined;
   try {
-    ast = parseForESLint(source, {
-      ecmaVersion: 2022,
-      sourceType: sourceTypeFor(file),
-      ecmaFeatures: { jsx: /\.(tsx|jsx)$/.test(file) },
-    }).ast as unknown as { body?: Array<Record<string, unknown>> };
+    ast = parseAst(source, file) as unknown as { body?: Array<Record<string, unknown>> };
   } catch {
     return [];
   }

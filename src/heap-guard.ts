@@ -46,13 +46,50 @@ export function oldGenerationUsedMb(): number {
   return bytes / MB;
 }
 
-/** One full collection, where the engine lets us ask for it; false where it does not. */
-function collect(): boolean {
+type Collector = (options?: { type: 'major'; execution: 'sync'; flavor: 'last-resort' }) => void;
+
+/** The engine's collector, where it lets us reach it; undefined where it does not. */
+function collector(): Collector | undefined {
   try {
     v8.setFlagsFromString('--expose-gc');
-    const gc = vm.runInNewContext('gc') as () => void;
+    const gc = vm.runInNewContext('gc') as unknown;
     v8.setFlagsFromString('--no-expose-gc');
+    return typeof gc === 'function' ? (gc as Collector) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** One full collection of this thread's heap; false where the engine does not let us ask for it. */
+function collect(): boolean {
+  try {
+    const gc = collector();
+    gc?.();
+    return gc !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Collects this thread's heap and hands the freed memory back to the system.
+ * For the main thread, right after it drops everything it parsed and before
+ * the analysis worker starts: left alone, the engine keeps those pages mapped
+ * while the main thread only waits, beside the worker's own heap.
+ *
+ * One collection frees the objects but keeps the pages; measured on the
+ * largest corpus suite, it took two plain collections and one that the
+ * engine treats as a last resort before the pages went back (resident size
+ * 1.7 GB -> 0.3 GB, about 0.1 s). Results never depend on this: where the
+ * engine does not let us ask, the memory simply stays mapped for longer.
+ */
+export function releaseMemory(): boolean {
+  try {
+    const gc = collector();
+    if (gc === undefined) return false;
     gc();
+    gc();
+    gc({ type: 'major', execution: 'sync', flavor: 'last-resort' });
     return true;
   } catch {
     return false;

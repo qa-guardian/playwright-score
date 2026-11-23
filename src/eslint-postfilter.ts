@@ -1,5 +1,4 @@
-import { parseForESLint } from '@typescript-eslint/parser';
-import { sourceTypeFor } from './source-type.js';
+import { parseAst } from './parse-cache.js';
 import type { Severity } from './types.js';
 
 // QAG-287 slice F: AST post-filters for upstream eslint-plugin-playwright
@@ -661,14 +660,8 @@ export type PostFilter = ((msg: PostFilterMessage) => Decision | undefined) & {
 
 function parse(source: string, file: string): Tree | undefined {
   try {
-    const ast = parseForESLint(source, {
-      ecmaVersion: 2022,
-      sourceType: sourceTypeFor(file),
-      ecmaFeatures: { jsx: /\.(tsx|jsx)$/.test(file) },
-      comment: true,
-      loc: true,
-      range: true,
-    }).ast as unknown as N;
+    // Comments, `loc` and `range` are on every tree the parser returns (parse-cache.ts).
+    const ast = parseAst(source, file) as unknown as N;
     return new Tree(ast);
   } catch {
     return undefined;
