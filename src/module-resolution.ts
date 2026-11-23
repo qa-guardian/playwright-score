@@ -40,7 +40,7 @@ export function fileCandidates(base: string): string[] {
   return out;
 }
 
-function isInside(boundaryDir: string, candidate: string): boolean {
+export function isInside(boundaryDir: string, candidate: string): boolean {
   const rel = path.relative(boundaryDir, candidate);
   return !(rel.startsWith('..') || path.isAbsolute(rel));
 }
@@ -89,7 +89,7 @@ export function parseLenientJson(text: string): unknown {
   }
 }
 
-function readJsonFile(file: string): Record<string, unknown> | undefined {
+export function readJsonFile(file: string): Record<string, unknown> | undefined {
   try {
     const v = parseLenientJson(fs.readFileSync(file, 'utf8'));
     return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : undefined;
@@ -151,12 +151,12 @@ function matchAlias(pattern: string, spec: string): string | undefined {
   return undefined;
 }
 
-interface WorkspacePackage {
+export interface WorkspacePackage {
   dir: string;
   manifest: Record<string, unknown>;
 }
 
-function listWorkspaceDirs(root: string, pattern: string): string[] {
+export function listWorkspaceDirs(root: string, pattern: string): string[] {
   const clean = pattern.replace(/^\.\//, '').replace(/\/+$/, '');
   if (clean.startsWith('!')) return [];
   const segs = clean.split('/');
@@ -181,7 +181,7 @@ function listWorkspaceDirs(root: string, pattern: string): string[] {
   return dirs;
 }
 
-function readWorkspacePatterns(root: string): string[] {
+export function readWorkspacePatterns(root: string): string[] {
   const patterns: string[] = [];
   const pkg = readJsonFile(path.join(root, 'package.json'));
   const ws = pkg?.workspaces;
@@ -216,6 +216,25 @@ function packageEntryCandidates(pkg: WorkspacePackage): string[] {
   for (const k of ['source', 'types', 'module', 'main']) if (typeof m[k] === 'string') out.push(m[k] as string);
   out.push('src/index', 'index');
   return out;
+}
+
+/** The file an import of an in-repo package (`sub` empty) or of a path inside it resolves to, inside `limit`. */
+export function resolveInPackage(pkg: WorkspacePackage, sub: string, limit: string): string | undefined {
+  const bases: string[] = [];
+  if (sub) bases.push(path.join(pkg.dir, sub), path.join(pkg.dir, 'src', sub));
+  else {
+    for (const e of packageEntryCandidates(pkg)) {
+      bases.push(path.join(pkg.dir, e));
+      // dist/foo.js -> src/foo.ts (built output is rarely checked in)
+      const m = /^\.?\/?(?:dist|build|lib)\/(.*)$/.exec(e);
+      if (m) bases.push(path.join(pkg.dir, 'src', m[1]));
+    }
+  }
+  for (const b of bases) {
+    const hit = firstExistingFile(b, limit);
+    if (hit) return hit;
+  }
+  return undefined;
 }
 
 export type ImportResolver = (fromFile: string, specifier: string) => string | undefined;
@@ -274,22 +293,7 @@ export function createModuleResolver(boundaryDir: string): ImportResolver {
     const nameLen = spec.startsWith('@') ? 2 : 1;
     const pkg = ws.get(parts.slice(0, nameLen).join('/'));
     if (!pkg) return undefined;
-    const sub = parts.slice(nameLen).join('/');
-    const bases: string[] = [];
-    if (sub) bases.push(path.join(pkg.dir, sub), path.join(pkg.dir, 'src', sub));
-    else {
-      for (const e of packageEntryCandidates(pkg)) {
-        bases.push(path.join(pkg.dir, e));
-        // dist/foo.js -> src/foo.ts (built output is rarely checked in)
-        const m = /^\.?\/?(?:dist|build|lib)\/(.*)$/.exec(e);
-        if (m) bases.push(path.join(pkg.dir, 'src', m[1]));
-      }
-    }
-    for (const b of bases) {
-      const hit = firstExistingFile(b, limit);
-      if (hit) return hit;
-    }
-    return undefined;
+    return resolveInPackage(pkg, parts.slice(nameLen).join('/'), limit);
   };
 
   return (fromFile, specifier) => {

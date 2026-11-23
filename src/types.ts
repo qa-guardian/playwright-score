@@ -128,6 +128,12 @@ export interface SkippedFile {
   detail?: string;
 }
 
+export interface SharedSkippedFile {
+  /** Relative to the result's `baseDir`. */
+  file: string;
+  reason: 'not-playwright-bound' | 'declaration-file';
+}
+
 export interface Coverage {
   /** Playwright spec files found (files of another test framework are in `skippedFiles`, not here). */
   filesFound: number;
@@ -137,6 +143,20 @@ export interface Coverage {
   testsCounted: number;
   /** Files found but left out of the score, in path order. */
   skipped: SkippedFile[];
+  /**
+   * Shared files (page objects, fixtures, helpers the specs import) that are
+   * Playwright code: the count, and the files in path order. Reported only;
+   * no rule runs on them, and they never change `status`, `pass` or the score.
+   */
+  sharedLinted?: number;
+  sharedLintedFiles?: string[];
+  /**
+   * Shared files that are not Playwright code (a plain utility, a
+   * declaration file): the count, and the files in path order. Never a
+   * reason for `partial`; `skipped` above is the list that is.
+   */
+  sharedSkipped?: number;
+  sharedSkippedFiles?: SharedSkippedFile[];
 }
 
 export interface ScoreResult {

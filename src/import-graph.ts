@@ -101,7 +101,9 @@ export function collectLocallyImportedFiles(
   boundaryDir: string,
   moduleResolver: ImportResolver = createModuleResolver(boundaryDir),
   /** Optional out-param: file -> files it imports/re-exports (resolved), for scoping helper names. */
-  edges?: Map<string, string[]>
+  edges?: Map<string, string[]>,
+  /** Optional: file -> its import specifiers, filled and reused so a second traversal of the same sources parses nothing twice. */
+  specifierCache?: Map<string, string[]>
 ): Map<string, string> {
   const collected = new Map<string, string>();
   const visited = new Set<string>(specSources.keys());
@@ -115,7 +117,12 @@ export function collectLocallyImportedFiles(
     if (!next) break;
     const { file, source, depth } = next;
     if (depth >= MAX_DEPTH) continue;
-    for (const specifier of extractImportSpecifiers(source, file)) {
+    let specifiers = specifierCache?.get(file);
+    if (!specifiers) {
+      specifiers = extractImportSpecifiers(source, file);
+      specifierCache?.set(file, specifiers);
+    }
+    for (const specifier of specifiers) {
       if (collected.size >= MAX_FILES) break;
       const resolved = resolveImportSpecifier(file, specifier, boundaryDir, moduleResolver);
       if (resolved && edges) {

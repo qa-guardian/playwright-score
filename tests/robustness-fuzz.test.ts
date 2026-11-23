@@ -115,6 +115,9 @@ function expectPartial(r: Run, skipped: Array<[string, string]>, scored: number)
   assert.equal(r.result.summary.files, scored);
 }
 
+// S6a: the shared-file keys of `coverage` for a suite whose specs import no local file.
+const NO_SHARED = { sharedLinted: 0, sharedSkipped: 0, sharedLintedFiles: [], sharedSkippedFiles: [] };
+
 const GOOD = `import { test, expect } from '@playwright/test';
 
 test('opens the orders page', async ({ page }) => {
@@ -413,7 +416,7 @@ test.fixme('imports a ledger', async ({ page }) => {
   it('no candidate, no files (an empty directory, a missing path): not-scored (no-files)', async () => {
     const empty = await run([suite({})]);
     expectNotScored(empty, 'no-files');
-    assert.deepEqual(empty.result.coverage, { filesFound: 0, filesScored: 0, testsCounted: 0, skipped: [] });
+    assert.deepEqual(empty.result.coverage, { filesFound: 0, filesScored: 0, testsCounted: 0, skipped: [], ...NO_SHARED });
     const missing = await run([path.join(suite({}), 'nowhere')]);
     expectNotScored(missing, 'no-files');
   });
@@ -441,7 +444,7 @@ describe('QAG-287 S5a.1: status, coverage and the single-file path', () => {
     const result = await scorePaths({ paths: [dir], profile: 'standard', threshold: 80, cwd: dir });
     assert.equal(result.status, 'scored');
     assert.ok(!('reason' in result));
-    assert.deepEqual(result.coverage, { filesFound: 1, filesScored: 1, testsCounted: 1, skipped: [] });
+    assert.deepEqual(result.coverage, { filesFound: 1, filesScored: 1, testsCounted: 1, skipped: [], ...NO_SHARED });
     assert.equal(result.pass, true);
   });
 
@@ -464,7 +467,7 @@ describe('QAG-287 S5a.1: status, coverage and the single-file path', () => {
     const result = await scorePaths({ paths: [dir], profile: 'standard', threshold: 80, cwd: dir });
     assert.equal(result.status, 'scored');
     assert.deepEqual(result.skippedFiles, ['widget.test.tsx']);
-    assert.deepEqual(result.coverage, { filesFound: 1, filesScored: 1, testsCounted: 1, skipped: [] });
+    assert.deepEqual(result.coverage, { filesFound: 1, filesScored: 1, testsCounted: 1, skipped: [], ...NO_SHARED });
   });
 
   it('coverage never holds an absolute path', async () => {

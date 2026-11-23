@@ -10,6 +10,7 @@ import {
   withCoverage,
 } from './coverage.js';
 import { collectLocallyImportedFiles, createModuleResolver } from './import-graph.js';
+import { createSharedCollector, sharedCoverage, type SharedFiles } from './shared-files.js';
 import {
   attributeFindingScopes,
   countLocators,
@@ -599,7 +600,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   const admission = new Admission();
   const { explicit, expanded, routes, scanRootDirs, inputDirs, configWarnings } = expandPaths(options.paths, cwd, admission);
 
-  const NO_FILES: Coverage = { filesFound: 0, filesScored: 0, testsCounted: 0, skipped: [] };
+  const NO_FILES: Coverage = { filesFound: 0, filesScored: 0, testsCounted: 0, skipped: [], ...sharedCoverage(undefined, cwd) };
   if (explicit.length === 0 && expanded.length === 0) {
     // Hard-fail: empty match must never look like a healthy suite (was ~99 PASS).
     return withCoverage(hardFail(
@@ -699,6 +700,11 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   const moduleResolver = createModuleResolver(importBoundary);
   const importEdges = new Map<string, string[]>();
   let importedFiles = new Map<string, string>();
+  // Shared files (shared-files.ts): reported in `coverage`, nothing else reads them.
+  const sharedCollector = createSharedCollector(importBoundary, moduleResolver);
+  const candidates = new Set([...explicit, ...expanded]);
+  const isSpec = (f: string): boolean => candidates.has(f) || SPEC_NAME_RE.test(f);
+  let shared: SharedFiles | undefined;
   let analysis: AnalysisInput | undefined;
   prePass: {
     if (timeLimit.passed('helper-facts')) break prePass;
@@ -715,7 +721,8 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
     // findings; they only contribute locator counts (and, the same way,
     // any assertion-helper names) to the suite-level totals below.
     if (timeLimit.passed('import-graph')) break prePass;
-    importedFiles = collectLocallyImportedFiles(sources, importBoundary, moduleResolver, importEdges);
+    const specifierCache = new Map<string, string[]>();
+    importedFiles = collectLocallyImportedFiles(sources, importBoundary, sharedCollector.observing, importEdges, specifierCache);
     for (const [file, source] of importedFiles) {
       helperFacts.push(...extractHelperFacts(source, file));
     }
@@ -735,6 +742,9 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
     // base-plugin.ts).
     if (timeLimit.passed('aliases')) break prePass;
     const testAliasNames = detectTestAliasNamesWithFactories(sources, importedFiles, importBoundary);
+
+    if (timeLimit.passed('shared-files')) break prePass;
+    shared = sharedCollector.collect(sources, importedFiles, importEdges, isSpec, specifierCache);
 
     if (timeLimit.passed('analysis-input')) break prePass;
     analysis = {
@@ -810,6 +820,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
     filesScored: scoredFiles.length,
     testsCounted: totalTests,
     skipped: skips.report(filesBase),
+    ...sharedCoverage(shared, filesBase),
   };
   if (totalTests === 0) {
     // Nothing counts toward a score (every file skipped, or the scored files

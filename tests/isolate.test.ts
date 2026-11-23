@@ -431,7 +431,7 @@ describe('QAG-287 S5b: the time limit passes mid-run, on an injected clock', () 
     assert.deepEqual(result.skippedFiles, ['unit/sum.test.ts']);
   });
 
-  for (const step of ['helper-facts', 'import-graph', 'aliases', 'analysis-input', 'batch:0']) {
+  for (const step of ['helper-facts', 'import-graph', 'aliases', 'shared-files', 'analysis-input', 'batch:0']) {
     it(`before the ${step} step: no later step starts; every file is skipped as deadline; not-scored, limit-reached`, async () => {
       const dir = mixedSuite();
       const asked = passAt(step);
@@ -454,7 +454,7 @@ describe('QAG-287 S5b: the time limit passes mid-run, on an injected clock', () 
     const r = await scorePaths({ paths: [dir], cwd: dir, maxSeconds: 1000 });
     clock.now = realNow;
     assert.equal(r.status, 'partial'); // s-33 only
-    assert.deepEqual(asked.filter((a) => a !== 'timer'), ['start', 'helper-facts', 'import-graph', 'aliases', 'analysis-input', 'batch:0', 'batch:1', 'batch:2']);
+    assert.deepEqual(asked.filter((a) => a !== 'timer'), ['start', 'helper-facts', 'import-graph', 'aliases', 'shared-files', 'analysis-input', 'batch:0', 'batch:1', 'batch:2']);
   });
 
   it('with no time limit the clock is never read, in the worker path or in process', async () => {
