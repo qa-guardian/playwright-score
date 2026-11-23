@@ -19,6 +19,7 @@ import { Worker, isMainThread, parentPort, workerData } from 'node:worker_thread
 import { dropFindingsOfSkipped, parseErrorFiles } from './coverage.js';
 import { createTriage } from './finding-triage.js';
 import { commonAncestorDir } from './fs-util.js';
+import { HEAP_LIMIT_EXIT, heapCheckpoint, installHeapGuard } from './heap-guard.js';
 import { analyzeSource, getTestSpans, type TestSpans } from './metrics.js';
 import { createModuleResolver, type ImportResolver } from './module-resolution.js';
 import { resetRuleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
@@ -164,7 +165,10 @@ export function createAnalyzer(
   };
 
   return async (files) => {
-    const lint = files.length === 0 ? [] : triage(await lintFiles(files));
+    const linted = files.length === 0 ? [] : await lintFiles(files);
+    heapCheckpoint();
+    const lint = triage(linted);
+    heapCheckpoint();
     // A file that is not valid JS/TS keeps its parse-error finding and nothing else.
     const unparsed = parseErrorFiles(lint);
     const result: BatchResult = {
@@ -189,6 +193,7 @@ export function createAnalyzer(
       // whose syntax tree shows no test declaration.
       const tests = spans.tests.length > 0 ? spans.tests.length : m.tests;
       result.facts.push({ rel, sloc: m.sloc, tests, native: m.locators.native, raw: m.locators.raw, spans });
+      heapCheckpoint();
     }
     return result;
   };
@@ -240,7 +245,7 @@ export async function analyzeIsolated(
   const runWorker = (): Promise<WorkerEnd> =>
     new Promise((resolve) => {
       const worker = new Worker(new URL(import.meta.url), {
-        workerData: { [WORKER_MARK]: true, input },
+        workerData: { [WORKER_MARK]: true, input, maxHeapMb: limits.maxHeapMb },
         resourceLimits: { maxOldGenerationSizeMb: limits.maxHeapMb },
       });
       let settled = false;
@@ -271,7 +276,10 @@ export async function analyzeIsolated(
         else worker.postMessage(batches[next]);
       });
       worker.on('error', (error) => settle({ kind: 'died', detail: deathDetail(error, limits.maxHeapMb) }));
-      worker.on('exit', () => settle({ kind: 'died', detail: 'worker error' }));
+      // HEAP_LIMIT_EXIT: the worker's own heap guard ended it (heap-guard.ts).
+      worker.on('exit', (code) =>
+        settle({ kind: 'died', detail: code === HEAP_LIMIT_EXIT ? `heap limit ${limits.maxHeapMb} MB` : 'worker error' })
+      );
       worker.postMessage(batches[next]);
     });
 
@@ -289,7 +297,9 @@ export async function analyzeIsolated(
 
 /** Worker side: one batch in, one result out. */
 function serve(): void {
-  const analyze = createAnalyzer((workerData as { input: AnalysisInput }).input);
+  const { input, maxHeapMb } = workerData as { input: AnalysisInput; maxHeapMb: number };
+  installHeapGuard(maxHeapMb);
+  const analyze = createAnalyzer(input);
   parentPort!.on('message', (files: string[]) => {
     resetRuleCrashes();
     // A rejection is left unhandled on purpose: it ends the worker, and the

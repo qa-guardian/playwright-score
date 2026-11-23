@@ -8,6 +8,7 @@ import { basePlugin } from './rules/base-plugin.js';
 import { mapRule } from './profiles.js';
 import { plainAliasNames } from './test-aliases.js';
 import { createPostFilter } from './eslint-postfilter.js';
+import { heapGuardArmed, withHeapCheckpoint } from './heap-guard.js';
 import { formOfReportedRead, urlCountReads } from './read-forms.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
@@ -289,7 +290,9 @@ export async function createLinter(
 
   // Try to attach typescript-eslint parser for .ts files
   try {
-    const tsParser = await import('@typescript-eslint/parser');
+    const loaded = await import('@typescript-eslint/parser');
+    // In a worker whose heap limit the engine does not hold, each parse is a checkpoint (heap-guard.ts).
+    const tsParser = heapGuardArmed() ? withHeapCheckpoint(loaded) : loaded;
     for (const cfg of overrideConfig) {
       if (cfg.files) {
         cfg.languageOptions = {
