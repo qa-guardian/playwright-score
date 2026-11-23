@@ -540,7 +540,6 @@ describe('QAG-287 S5b: forced limits give a labelled result and exit 1, never 2'
 
   it('--max-seconds 1 on the largest suite: exit 1, never 2; not-scored (limit-reached) when nothing was scored in time, partial otherwise; every skipped file is listed as deadline', async () => {
     const dir = largestSuite();
-    const started = Date.now();
     const r = await run([dir, '--max-seconds', '1']);
     assert.equal(r.code, 1);
     assert.equal(r.stderr, '');
@@ -561,18 +560,25 @@ describe('QAG-287 S5b: forced limits give a labelled result and exit 1, never 2'
     // Classification does not depend on the limit.
     assert.deepEqual(r.result.skippedFiles, ['unit/sum.test.ts']);
     assert.equal(cov.testsCounted, cov.filesScored);
-    // The limit is enforced: the run is cut off, it does not finish the suite first.
-    assert.ok(Date.now() - started < 20_000, `took ${Date.now() - started} ms`);
+    // The limit is enforced: the run is cut off, it does not finish the suite
+    // first. No wall-clock bound (it failed on a loaded host): the proof is in
+    // the result. The dense file takes a worker far longer than a second (see
+    // largestSuite), and it and every file after it carry the deadline reason
+    // with the limit's own value; a run that had finished the suite first
+    // would list none of them and would report 45 files scored.
+    assert.ok(cov.filesScored <= 20, `${cov.filesScored} files scored`);
+    assert.ok(!r.result.findings.some((f) => cov.skipped.some((s) => s.file === f.file)), 'a skipped file has a finding');
   });
 
   it('a limit that is not a usable number is a usage error (exit 2), and no limit is ever applied silently', async () => {
-    for (const args of [['--max-seconds', '0'], ['--max-seconds', 'soon'], ['--max-heap-mb', '12.5'], ['--max-heap-mb', '8'], ['--max-heap-mb']]) {
+    for (const args of [['--max-seconds', '0'], ['--max-seconds', 'soon'], ['--max-heap-mb', '12.5'], ['--max-heap-mb', '8'], ['--max-heap-mb'], ['--max-heap-mb', String(2 ** 44)], ['--max-heap-mb', String(Number.MAX_SAFE_INTEGER)], ['--max-heap-mb', '65537']]) {
       const e = await execFileAsync(process.execPath, [cli, suite({ 'orders.spec.ts': GOOD }), ...args]).then(
         () => undefined,
         (err: { code?: number; stderr?: string }) => err
       );
       assert.equal(e?.code, 2, args.join(' '));
       assert.match(e?.stderr ?? '', /--max-(seconds|heap-mb) must be/);
+      if (args[0] === '--max-heap-mb') assert.equal(e?.stderr, '--max-heap-mb must be a whole number from 64 to 65536\n', args.join(' '));
     }
   });
 });

@@ -4,13 +4,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DEFAULT_MAX_HEAP_MB, scorePaths } from '../src/index.js';
+import { DEFAULT_MAX_HEAP_MB, MAX_MAX_HEAP_MB as ENTRY_MAX, MIN_MAX_HEAP_MB as ENTRY_MIN, scorePaths } from '../src/index.js';
 import { formatJson } from '../src/formatters/json.js';
 import { formatText } from '../src/formatters/text.js';
 import { execFile } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
-import { analyzeIsolated, BATCH_SIZE, clock, MAX_TIMER_MS, MIN_MAX_HEAP_MB, startTimeLimit, toBatches, type AnalysisInput } from '../src/isolate.js';
+import { analyzeIsolated, BATCH_SIZE, clock, MAX_MAX_HEAP_MB, MAX_TIMER_MS, MIN_MAX_HEAP_MB, startTimeLimit, toBatches, type AnalysisInput } from '../src/isolate.js';
 import { MAX_SOURCE_BYTES } from '../src/fs-util.js';
 import type { ScoreResult } from '../src/types.js';
 
@@ -270,12 +270,12 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
     assert.match(formatText(r), /analysis ran out of memory or stopped/);
   });
 
-  for (const maxHeapMb of [0, -1, 0.5, 1, 4, MIN_MAX_HEAP_MB - 1, NaN, Infinity, '256' as unknown as number]) {
+  for (const maxHeapMb of [0, -1, 0.5, 1, 4, MIN_MAX_HEAP_MB - 1, MAX_MAX_HEAP_MB + 1, 2 ** 44, Number.MAX_SAFE_INTEGER, NaN, Infinity, '256' as unknown as number]) {
     it(`scorePaths refuses maxHeapMb ${String(maxHeapMb)} (${typeof maxHeapMb}) with a RangeError, before any file is looked at`, async () => {
       // The path does not exist: a call that got as far as looking for files would not throw a RangeError.
       await assert.rejects(scorePaths({ paths: ['/no/such/dir'], maxHeapMb }), (e: unknown) => {
         assert.ok(e instanceof RangeError);
-        assert.equal(e.message, `maxHeapMb must be a whole number, ${MIN_MAX_HEAP_MB} or more`);
+        assert.equal(e.message, `maxHeapMb must be a whole number from ${MIN_MAX_HEAP_MB} to ${MAX_MAX_HEAP_MB}`);
         return true;
       });
       await assert.rejects(scorePaths({ paths: ['/no/such/dir'], maxHeapMb, isolate: false }), RangeError);
@@ -291,6 +291,52 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
       });
     });
   }
+
+  // The refused calls above name a path that does not exist, so they would
+  // also pass if the check ran after the scoring. These run on a real suite
+  // and watch every file the library opens: a refused call opens none.
+  it('a refused limit on a real suite: RangeError, and no file of the suite is opened (the analysis never starts)', async () => {
+    const dir = suite({ 'a.spec.ts': good('a'), 'b.spec.ts': good('b') });
+    const opened: string[] = [];
+    const realOpen = fs.openSync;
+    const realRead = fs.readFileSync;
+    const roots = [dir, fs.realpathSync(dir)];
+    const inSuite = (p: unknown): boolean => typeof p === 'string' && roots.some((r) => path.resolve(p).startsWith(r));
+    // src/fs-util.ts (the one read of every candidate file) and the import graph go through these two.
+    (fs as { openSync: unknown }).openSync = (p: fs.PathLike, ...rest: unknown[]) => {
+      if (inSuite(p)) opened.push(String(p));
+      return (realOpen as (...a: unknown[]) => number)(p, ...rest);
+    };
+    (fs as { readFileSync: unknown }).readFileSync = (p: unknown, ...rest: unknown[]) => {
+      if (inSuite(p)) opened.push(String(p));
+      return (realRead as (...a: unknown[]) => unknown)(p, ...rest);
+    };
+    try {
+      for (const limits of [{ maxHeapMb: MIN_MAX_HEAP_MB - 1 }, { maxHeapMb: MAX_MAX_HEAP_MB + 1 }, { maxSeconds: -1 }, { maxSeconds: Number.NaN }]) {
+        for (const isolate of [undefined, false]) {
+          await assert.rejects(scorePaths({ paths: [dir], cwd: dir, ...limits, ...(isolate === false ? { isolate } : {}) }), RangeError, JSON.stringify(limits));
+        }
+      }
+      assert.equal(opened.length, 0, `a refused call opened a file of the suite: ${opened.join(', ')}`);
+      // The watch works: the same suite with usable limits is opened and scored.
+      const ok = await scorePaths({ paths: [dir], cwd: dir, isolate: false });
+      assert.equal(ok.status, 'scored');
+      assert.equal(ok.summary.files, 2);
+      assert.ok(opened.some((p) => p.endsWith('a.spec.ts')) && opened.some((p) => p.endsWith('b.spec.ts')), `opened: ${opened.join(', ')}`);
+    } finally {
+      (fs as { openSync: unknown }).openSync = realOpen;
+      (fs as { readFileSync: unknown }).readFileSync = realRead;
+    }
+  });
+
+  it('the heap bounds are exported from the package entry, and the highest accepted limit scores', async () => {
+    assert.equal(ENTRY_MIN, MIN_MAX_HEAP_MB);
+    assert.equal(ENTRY_MAX, MAX_MAX_HEAP_MB);
+    assert.ok(MAX_MAX_HEAP_MB <= 1048576 && MAX_MAX_HEAP_MB >= DEFAULT_MAX_HEAP_MB);
+    const dir = suite({ 'a.spec.ts': good('a') });
+    const r = await scorePaths({ paths: [dir], cwd: dir, maxHeapMb: MAX_MAX_HEAP_MB });
+    assert.equal(r.status, 'scored');
+  });
 
   it('scorePaths accepts the lowest heap limit, and the limits left undefined', async () => {
     const dir = suite({ 'a.spec.ts': good('a') });

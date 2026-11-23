@@ -70,7 +70,7 @@ export {
   attributeFindingScopes,
   getTestSpans,
 } from './metrics.js';
-export { DEFAULT_MAX_HEAP_MB } from './isolate.js';
+export { DEFAULT_MAX_HEAP_MB, MAX_MAX_HEAP_MB, MIN_MAX_HEAP_MB } from './isolate.js';
 export { formatJson } from './formatters/json.js';
 export { formatText } from './formatters/text.js';
 export { formatMarkdown } from './formatters/markdown.js';

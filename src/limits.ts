@@ -1,4 +1,4 @@
-import { MIN_MAX_HEAP_MB } from './isolate.js';
+import { MAX_MAX_HEAP_MB, MIN_MAX_HEAP_MB } from './isolate.js';
 
 /**
  * The one check of the two run limits, shared by the library (`scorePaths`)
@@ -6,7 +6,9 @@ import { MIN_MAX_HEAP_MB } from './isolate.js';
  *
  * A heap limit below `MIN_MAX_HEAP_MB` is refused rather than tried: under a
  * few MB the engine cannot start a worker at all and ends the whole calling
- * process, with no error to catch and no result.
+ * process, with no error to catch and no result. A limit above
+ * `MAX_MAX_HEAP_MB` is refused for the same reason: an absurdly large value
+ * (2^44 MB or more) ends the calling process in the same way.
  */
 export type LimitName = 'maxSeconds' | 'maxHeapMb';
 
@@ -16,9 +18,9 @@ export function limitProblem(name: LimitName, value: unknown): string | undefine
   if (name === 'maxSeconds') {
     return typeof value === 'number' && Number.isFinite(value) && value > 0 ? undefined : 'must be a number above 0';
   }
-  return typeof value === 'number' && Number.isInteger(value) && value >= MIN_MAX_HEAP_MB
+  return typeof value === 'number' && Number.isInteger(value) && value >= MIN_MAX_HEAP_MB && value <= MAX_MAX_HEAP_MB
     ? undefined
-    : `must be a whole number, ${MIN_MAX_HEAP_MB} or more`;
+    : `must be a whole number from ${MIN_MAX_HEAP_MB} to ${MAX_MAX_HEAP_MB}`;
 }
 
 /** Throws a `RangeError` for a limit that is not usable. Called before any file is looked at. */

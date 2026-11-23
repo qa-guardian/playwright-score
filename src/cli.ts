@@ -13,7 +13,7 @@ import { formatReport } from './formatters/report.js';
 import { makeSourceReader } from './report-source.js';
 import { suiteLabel } from './suite-name.js';
 import { resolveDotSlashAbsolute } from './fs-util.js';
-import { DEFAULT_MAX_HEAP_MB } from './isolate.js';
+import { DEFAULT_MAX_HEAP_MB, MAX_MAX_HEAP_MB, MIN_MAX_HEAP_MB } from './isolate.js';
 import { limitProblem } from './limits.js';
 import type { ProfileName } from './types.js';
 
@@ -44,7 +44,8 @@ Options:
                                   files always finishes; files not analysed
                                   when the limit passes are skipped.
   --max-heap-mb <n>               Heap limit of the analysis worker
-                                  (default: ${DEFAULT_MAX_HEAP_MB}, the same on every machine).
+                                  (default: ${DEFAULT_MAX_HEAP_MB}, the same on every machine;
+                                  ${MIN_MAX_HEAP_MB} to ${MAX_MAX_HEAP_MB}).
                                   Files in the batch that hits it are skipped.
   --version                       Print version
   --help                          Show help

@@ -37,6 +37,15 @@ export const DEFAULT_MAX_HEAP_MB = 4608;
 /** Lowest heap limit accepted: below this the worker cannot load the lint engine. */
 export const MIN_MAX_HEAP_MB = 64;
 
+/**
+ * Highest heap limit accepted, in MB (64 GB). A source constant on purpose,
+ * never derived from the host. An upper bound is needed because the engine
+ * does not refuse an absurd value: from 2^44 MB up it ends the whole calling
+ * process instead (no error to catch, no result). 65536 is far below that,
+ * and about 14 times the default.
+ */
+export const MAX_MAX_HEAP_MB = 65536;
+
 /** Files per batch. Fixed, so batch boundaries never depend on the machine. */
 export const BATCH_SIZE = 20;
 

@@ -510,7 +510,7 @@ describe('QAG-230 review round: an in-repo symlinked spec is not double-counted 
 // with glob's own `ignore.childrenIgnored` (RepoBoundaryIgnore in
 // src/index.ts) stops the walk from ever entering it.
 describe('QAG-230 review round: a symlinked directory outside the repo is pruned during the walk, not just filtered after', () => {
-  it('does not walk into a large symlinked directory whose realpath escapes the repo (bounded time)', async () => {
+  it('does not walk into a large symlinked directory whose realpath escapes the repo (nothing below the symlink is resolved)', async () => {
     const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-prune-repo-'));
     const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-qag230-prune-outside-'));
     try {
@@ -535,18 +535,39 @@ describe('QAG-230 review round: a symlinked directory outside the repo is pruned
       }
       fs.symlinkSync(outsideDir, path.join(repoDir, 'tests', 'evil'), 'dir');
 
-      const start = Date.now();
-      const result = await scorePaths({ paths: [repoDir], profile: 'standard', cwd: repoDir });
-      const elapsed = Date.now() - start;
+      // No wall-clock bound (it failed on a loaded host). The proof is what
+      // the scorer resolves: every match the walk returns is passed through
+      // fs.realpathSync for the containment check, so a walk that entered the
+      // symlinked directory would resolve paths below it. A pruned walk
+      // resolves the symlink itself and nothing below.
+      const evilLink = path.join(repoDir, 'tests', 'evil');
+      const realOutside = fs.realpathSync(outsideDir);
+      const resolved: string[] = [];
+      const realRealpath = fs.realpathSync;
+      const spy = ((p: fs.PathLike, ...rest: unknown[]) => {
+        resolved.push(String(p));
+        return (realRealpath as unknown as (...a: unknown[]) => string)(p, ...rest);
+      }) as unknown as typeof fs.realpathSync;
+      spy.native = realRealpath.native;
+      (fs as { realpathSync: unknown }).realpathSync = spy;
+      let result;
+      try {
+        result = await scorePaths({ paths: [repoDir], profile: 'standard', cwd: repoDir });
+      } finally {
+        (fs as { realpathSync: unknown }).realpathSync = realRealpath;
+      }
+      const below = (root: string): string[] => resolved.filter((p) => p.startsWith(root + path.sep));
 
       assert.ok(
         !result.findings.some((f) => f.file.includes('evil')),
         `must never score anything from the escaped directory: ${JSON.stringify(result.findings)}`
       );
       assert.equal(result.summary.files, 1, `expected only ok.spec.ts to be scored: ${JSON.stringify(result.summary)}`);
-      assert.ok(
-        elapsed < 3000,
-        `expected the walk to be pruned at the symlink, not descend into ~300 nested files (took ${elapsed}ms)`
+      assert.ok(resolved.includes(evilLink), 'the symlinked directory itself was never checked: the spy saw nothing');
+      assert.deepEqual(
+        [...below(evilLink), ...below(realOutside), ...below(outsideDir)],
+        [],
+        'expected the walk to be pruned at the symlink, not descend into ~300 nested files'
       );
     } finally {
       fs.rmSync(repoDir, { recursive: true, force: true });

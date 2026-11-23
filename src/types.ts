@@ -207,7 +207,7 @@ export interface ScoreOptions {
   /**
    * Heap limit of the analysis worker, in MB. Defaults to a fixed constant
    * (`DEFAULT_MAX_HEAP_MB`), never to a share of the host's memory. Must be a
-   * whole number, 64 (`MIN_MAX_HEAP_MB`) or more; any other value makes
+   * whole number from 64 (`MIN_MAX_HEAP_MB`) to 65536 (`MAX_MAX_HEAP_MB`); any other value makes
    * `scorePaths` throw a `RangeError` before any file is looked at.
    */
   maxHeapMb?: number;
