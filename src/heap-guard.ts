@@ -48,16 +48,38 @@ export function oldGenerationUsedMb(): number {
 
 type Collector = (options?: { type: 'major'; execution: 'sync'; flavor: 'last-resort' }) => void;
 
-/** The engine's collector, where it lets us reach it; undefined where it does not. */
+/** This thread's collector once looked up: a function, or null where the engine does not let us reach it. */
+let found: Collector | null | undefined;
+
+/**
+ * The engine's collector, where it lets us reach it; undefined where it does not.
+ *
+ * A process started with `--expose-gc` already has it, and nothing is changed
+ * then. Otherwise the engine flag is switched on for the one moment it takes
+ * to read the function out of a fresh, empty context, and off again: the
+ * function stays in this module, and no global of this or any other context
+ * is assigned. Looked up once per thread.
+ */
 function collector(): Collector | undefined {
+  if (found !== undefined) return found ?? undefined;
+  found = null;
   try {
-    v8.setFlagsFromString('--expose-gc');
-    const gc = vm.runInNewContext('gc') as unknown;
-    v8.setFlagsFromString('--no-expose-gc');
-    return typeof gc === 'function' ? (gc as Collector) : undefined;
+    const own = (globalThis as { gc?: unknown }).gc;
+    if (typeof own === 'function') {
+      found = own as Collector;
+    } else {
+      v8.setFlagsFromString('--expose-gc');
+      try {
+        const gc = vm.runInNewContext('gc') as unknown;
+        if (typeof gc === 'function') found = gc as Collector;
+      } finally {
+        v8.setFlagsFromString('--no-expose-gc');
+      }
+    }
   } catch {
-    return undefined;
+    found = null;
   }
+  return found ?? undefined;
 }
 
 /** One full collection of this thread's heap; false where the engine does not let us ask for it. */
@@ -94,6 +116,31 @@ export function releaseMemory(): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * The old-generation limit the engine really holds the worker to, in MB.
+ *
+ * `--max-old-space-size` (in `NODE_OPTIONS` or on the command line; the
+ * command line wins, and the last one given wins) applies to every thread. A
+ * value below `maxHeapMb` ends the worker at that value, so that value is the
+ * one a `worker-died` detail names. No flag, or one at or above `maxHeapMb`:
+ * `maxHeapMb` itself (heap guard above).
+ */
+export function effectiveHeapLimitMb(
+  maxHeapMb: number,
+  execArgv: readonly string[] = process.execArgv,
+  nodeOptions: string | undefined = process.env.NODE_OPTIONS
+): number {
+  const args = [...(nodeOptions ?? '').split(/\s+/), ...execArgv];
+  let flag: number | undefined;
+  for (let i = 0; i < args.length; i++) {
+    const m = /^--max[-_]old[-_]space[-_]size(?:=(.*))?$/.exec(args[i]);
+    if (!m) continue;
+    const value = Number(m[1] ?? args[i + 1]);
+    if (Number.isInteger(value) && value > 0) flag = value;
+  }
+  return flag !== undefined && flag < maxHeapMb ? flag : maxHeapMb;
 }
 
 export interface HeapGuard {

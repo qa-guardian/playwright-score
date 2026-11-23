@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MAX_SOURCE_BYTES } from '../src/fs-util.js';
-import { createHeapGuard } from '../src/heap-guard.js';
+import { createHeapGuard, effectiveHeapLimitMb } from '../src/heap-guard.js';
 import { BATCH_SIZE } from '../src/isolate.js';
 import type { ScoreResult } from '../src/types.js';
 
@@ -55,8 +55,13 @@ interface Run {
 }
 
 /** The CLI in a child process, with exactly the engine flags given (none inherited). */
-function cli(args: string[], nodeOptions: string | undefined, execArgv: string[] = []): Promise<Run> {
-  const env: NodeJS.ProcessEnv = { ...process.env };
+function cli(
+  args: string[],
+  nodeOptions: string | undefined,
+  execArgv: string[] = [],
+  extraEnv: Record<string, string> = {}
+): Promise<Run> {
+  const env: NodeJS.ProcessEnv = { ...process.env, ...extraEnv };
   delete env.NODE_OPTIONS;
   if (nodeOptions !== undefined) env.NODE_OPTIONS = nodeOptions;
   const argv = [...execArgv, path.join(packageRoot(), 'dist', 'cli.js'), ...args, '--format', 'json', '--threshold', '0'];
@@ -70,6 +75,15 @@ function cli(args: string[], nodeOptions: string | undefined, execArgv: string[]
 
 const skips = (run: Run): string[] =>
   ((JSON.parse(run.stdout) as ScoreResult).coverage?.skipped ?? []).map((s) => `${s.file}|${s.reason}|${s.detail}`);
+
+/**
+ * A flag below the limit, for the suite with the heavy file: the worker cannot
+ * hold that file under it, while the main thread, which parses the file too,
+ * can. Measured on node 22, each twice: flags of 704 to 1536 MB end the worker
+ * alone; 640 MB and below end the whole process, because the flag is the main
+ * thread's limit too.
+ */
+const FLAG_MB = 1024;
 
 describe('QAG-287 S5c: the heap limit holds under --max-old-space-size', () => {
   const heavy = ['b-00.spec.ts|worker-died|heap limit 256 MB', 'b-01.spec.ts|worker-died|heap limit 256 MB'];
@@ -134,5 +148,131 @@ describe('QAG-287 S5c: when the guard is armed, and when it ends the worker', ()
     assert.deepEqual(guard(256, 3120, [256]), { armed: true, ended: 0, read: 1 });
     assert.deepEqual(guard(256, 3120, [300, 290]), { armed: true, ended: 1, read: 2 });
     assert.deepEqual(guard(256, 3120, [300, 120]), { armed: true, ended: 0, read: 2 });
+  });
+});
+
+describe('QAG-287 S5c: a worker out of heap is reported with the limit the engine held it to', () => {
+  it('no flag, or a flag at or above the limit: the limit given; a lower flag: the flag', () => {
+    assert.equal(effectiveHeapLimitMb(4608, [], undefined), 4608);
+    assert.equal(effectiveHeapLimitMb(4608, [], ''), 4608);
+    assert.equal(effectiveHeapLimitMb(256, [], '--max-old-space-size=3072'), 256);
+    assert.equal(effectiveHeapLimitMb(256, ['--max-old-space-size=256'], undefined), 256);
+    assert.equal(effectiveHeapLimitMb(4608, [], '--max-old-space-size=3072'), 3072);
+    assert.equal(effectiveHeapLimitMb(4608, [], '--enable-source-maps  --max_old_space_size=2048 --no-warnings'), 2048);
+    assert.equal(effectiveHeapLimitMb(4608, ['--max-old-space-size=1024'], undefined), 1024);
+    assert.equal(effectiveHeapLimitMb(4608, ['--max-old-space-size', '1024'], undefined), 1024);
+    // The command line wins over the environment, and the last one given wins.
+    assert.equal(effectiveHeapLimitMb(4608, ['--max-old-space-size=1024'], '--max-old-space-size=512'), 1024);
+    assert.equal(effectiveHeapLimitMb(4608, ['--max-old-space-size=512', '--max-old-space-size=8192'], undefined), 4608);
+    // Not a flag value the engine takes: ignored.
+    assert.equal(effectiveHeapLimitMb(4608, ['--max-old-space-size=abc'], '--max-old-space-size=0'), 4608);
+    assert.equal(effectiveHeapLimitMb(4608, ['--max-semi-space-size=16'], undefined), 4608);
+  });
+
+  it('NODE_OPTIONS=--max-old-space-size=FLAG_MB below --max-heap-mb: the worker ends at the flag, and the detail names it', async () => {
+    const dir = suiteWithOneHeavyFile();
+    const run = await cli([dir, '--max-heap-mb', '2048'], `--max-old-space-size=${FLAG_MB}`);
+    assert.equal(run.code, 1, run.stderr);
+    assert.equal(run.stderr, '');
+    const result = JSON.parse(run.stdout) as ScoreResult;
+    assert.equal(result.status, 'partial');
+    assert.equal(result.coverage?.filesScored, BATCH_SIZE);
+    assert.deepEqual(skips(run), [
+      `b-00.spec.ts|worker-died|heap limit ${FLAG_MB} MB`,
+      `b-01.spec.ts|worker-died|heap limit ${FLAG_MB} MB`,
+    ]);
+    // On the command line, the same.
+    const onCommandLine = await cli([dir, '--max-heap-mb', '2048'], undefined, [`--max-old-space-size=${FLAG_MB}`]);
+    assert.equal(onCommandLine.stdout, run.stdout);
+  });
+});
+
+describe('QAG-287 S5c: the collector is optional, and reaching it leaves nothing behind', () => {
+  // Loaded into every thread of the child before anything else: it records each
+  // engine-flag change, can refuse them, and reports a `gc` global at exit.
+  const preload = (): string => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-gc-'));
+    tmpDirs.push(dir);
+    const file = path.join(dir, 'preload.mjs');
+    fs.writeFileSync(
+      file,
+      `import v8 from 'node:v8';
+import fs from 'node:fs';
+import { isMainThread } from 'node:worker_threads';
+const log = process.env.PWSCORE_TEST_GC_LOG;
+const who = isMainThread ? 'main' : 'worker';
+const real = v8.setFlagsFromString;
+v8.setFlagsFromString = (flag) => {
+  fs.appendFileSync(log, who + ' flag ' + flag + '\\n');
+  if (process.env.PWSCORE_TEST_GC_MODE === 'refuse') throw new Error('refused');
+  return real(flag);
+};
+process.on('exit', () => {
+  if (typeof globalThis.gc !== 'undefined') fs.appendFileSync(log, who + ' GLOBAL\\n');
+});
+`
+    );
+    return file;
+  };
+  const withPreload = async (
+    args: string[],
+    flags: string,
+    mode: 'record' | 'refuse',
+    execArgv: string[] = []
+  ): Promise<{ run: Run; log: string[] }> => {
+    const file = preload();
+    const log = path.join(path.dirname(file), 'gc.log');
+    fs.writeFileSync(log, '');
+    const env = { PWSCORE_TEST_GC_LOG: log, PWSCORE_TEST_GC_MODE: mode };
+    const run = await cli(args, `--import=${file} ${flags}`.trim(), execArgv, env);
+    return { run, log: fs.readFileSync(log, 'utf8').split('\n').filter(Boolean) };
+  };
+  const fits = (): string => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-heap-'));
+    tmpDirs.push(dir);
+    for (let i = 0; i < BATCH_SIZE + 3; i++) fs.writeFileSync(path.join(dir, `s-${two(i)}.spec.ts`), good(String(i)));
+    return dir;
+  };
+
+  it('reached: the flag is switched on and off again, and no gc global is left in any thread', async () => {
+    const dir = suiteWithOneHeavyFile();
+    const plain = await cli([dir, '--max-heap-mb', '256'], '--max-old-space-size=3072');
+    const { run, log } = await withPreload([dir, '--max-heap-mb', '256'], '--max-old-space-size=3072', 'record');
+    assert.equal(run.stderr, '');
+    assert.equal(run.stdout, plain.stdout);
+    // Main thread (memory handed back before the worker) and worker (the guard's second reading): once each, on then off.
+    assert.deepEqual(log.filter((l) => l.startsWith('main')), ['main flag --expose-gc', 'main flag --no-expose-gc']);
+    assert.ok(log.includes('worker flag --expose-gc') && log.includes('worker flag --no-expose-gc'), log.join(';'));
+    assert.equal(log.filter((l) => l.endsWith('GLOBAL')).length, 0, log.join(';'));
+    assert.equal(log.filter((l) => l.endsWith('--expose-gc')).length, log.filter((l) => l.endsWith('--no-expose-gc')).length);
+  });
+
+  it('not reachable (the engine refuses the flag): the JSON is the same, byte for byte, with and without a limit hit', async () => {
+    const small = fits();
+    const smallPlain = await cli([small], undefined);
+    const smallRefused = await withPreload([small], '', 'refuse');
+    assert.equal(smallRefused.run.code, 0, smallRefused.run.stderr);
+    assert.equal(smallRefused.run.stderr, '');
+    assert.equal(smallRefused.run.stdout, smallPlain.stdout);
+    assert.deepEqual(smallRefused.log, ['main flag --expose-gc']); // asked once, refused, never asked again
+
+    const heavy = suiteWithOneHeavyFile();
+    const heavyPlain = await cli([heavy, '--max-heap-mb', '256'], '--max-old-space-size=3072');
+    const heavyRefused = await withPreload([heavy, '--max-heap-mb', '256'], '--max-old-space-size=3072', 'refuse');
+    assert.equal(heavyRefused.run.code, 1, heavyRefused.run.stderr);
+    assert.equal(heavyRefused.run.stderr, '');
+    assert.equal((JSON.parse(heavyRefused.run.stdout) as ScoreResult).status, 'partial');
+    assert.equal(heavyRefused.run.stdout, heavyPlain.stdout);
+    assert.ok(heavyRefused.log.includes('worker flag --expose-gc'), heavyRefused.log.join(';'));
+    assert.ok(!heavyRefused.log.some((l) => l.endsWith('--no-expose-gc')), heavyRefused.log.join(';'));
+  });
+
+  it('a process started with --expose-gc: its collector is used, and no engine flag is touched', async () => {
+    const dir = suiteWithOneHeavyFile();
+    const plain = await cli([dir, '--max-heap-mb', '256'], '--max-old-space-size=3072');
+    const { run, log } = await withPreload([dir, '--max-heap-mb', '256'], '--max-old-space-size=3072', 'record', ['--expose-gc']);
+    assert.equal(run.stderr, '');
+    assert.equal(run.stdout, plain.stdout);
+    assert.deepEqual(log.filter((l) => l.includes(' flag ')), []);
   });
 });

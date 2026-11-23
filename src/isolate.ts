@@ -19,7 +19,7 @@ import { Worker, isMainThread, parentPort, workerData } from 'node:worker_thread
 import { dropFindingsOfSkipped, parseErrorFiles } from './coverage.js';
 import { createTriage } from './finding-triage.js';
 import { commonAncestorDir } from './fs-util.js';
-import { HEAP_LIMIT_EXIT, heapCheckpoint, installHeapGuard, releaseMemory } from './heap-guard.js';
+import { HEAP_LIMIT_EXIT, effectiveHeapLimitMb, heapCheckpoint, installHeapGuard, releaseMemory } from './heap-guard.js';
 import { analyzeSource, getTestSpans, type TestSpans } from './metrics.js';
 import { clearParseCache, setParseCacheBudget, WORKER_MAX_CACHED_TOKENS } from './parse-cache.js';
 import { createModuleResolver, type ImportResolver } from './module-resolution.js';
@@ -245,6 +245,8 @@ export async function analyzeIsolated(
   const done: BatchResult[] = [];
   const skipped: WorkerSkip[] = [];
   const { time } = limits;
+  // What a worker out of heap is reported with: the limit the engine really held it to.
+  const heapLimitMb = effectiveHeapLimitMb(limits.maxHeapMb);
 
   let next = 0;
   /** One worker: batches from `next` on, until all are done, the worker dies or the time limit passes. */
@@ -281,10 +283,10 @@ export async function analyzeIsolated(
         else if (time.passed(`batch:${next}`)) settle({ kind: 'deadline' });
         else worker.postMessage(batches[next]);
       });
-      worker.on('error', (error) => settle({ kind: 'died', detail: deathDetail(error, limits.maxHeapMb) }));
+      worker.on('error', (error) => settle({ kind: 'died', detail: deathDetail(error, heapLimitMb) }));
       // HEAP_LIMIT_EXIT: the worker's own heap guard ended it (heap-guard.ts).
       worker.on('exit', (code) =>
-        settle({ kind: 'died', detail: code === HEAP_LIMIT_EXIT ? `heap limit ${limits.maxHeapMb} MB` : 'worker error' })
+        settle({ kind: 'died', detail: code === HEAP_LIMIT_EXIT ? `heap limit ${heapLimitMb} MB` : 'worker error' })
       );
       worker.postMessage(batches[next]);
     });
