@@ -19,13 +19,7 @@ export const RECEIVER_TIERED_RULES: readonly string[] = [
 type Copy = Pick<RuleRow, 'title' | 'what' | 'why' | 'fix'>;
 
 /** Copy for the `unresolved` form. It never says the call is Playwright's, and the fix is conditional. */
-const UNRESOLVED_COPY: Record<string, Copy> = {
-  'playwright/no-wait-for-selector': {
-    title: 'Possible legacy selector wait',
-    what: 'The test calls waitForSelector() on an object the scorer could not confirm is a Playwright Page or Frame.',
-    why: 'If this is a Playwright page, a manual wait adds delay and random failures that locators already handle.',
-    fix: 'If this is a Playwright page, use a locator with an expect(...).toBeVisible() assertion in place of waitForSelector.',
-  },
+export const UNRESOLVED_COPY: Readonly<Record<string, Copy>> = {
   'playwright/no-wait-for-navigation': {
     title: 'Possible deprecated navigation wait',
     what: 'The test calls waitForNavigation() on an object the scorer could not confirm is a Playwright Page or Frame.',

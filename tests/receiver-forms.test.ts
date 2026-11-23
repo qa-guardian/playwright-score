@@ -6,6 +6,8 @@ import path from 'node:path';
 import { scorePaths } from '../src/index.js';
 import { applyReceiverForms, receiverForms, RECEIVER_TIERED_RULES } from '../src/receiver-forms.js';
 import { ROWS, rowFor, rowsOf, tierOf } from '../src/catalogue/index.js';
+import { UNRESOLVED_COPY } from '../src/catalogue/receiver-unresolved.js';
+import { REPORTED } from '../src/rules/receiver-proof.js';
 import type { Finding } from '../src/types.js';
 
 // QAG-287 B2: receiver forms. A finding of a receiver-tiered rule keeps form `-` only when its receiver is
@@ -52,6 +54,12 @@ describe('QAG-287 B2: the catalogue holds the unresolved cells as one data entry
   it('the list is the three pinned rules, with no-wait-for-selector first when it is in', () => {
     assert.deepEqual(RECEIVER_TIERED_RULES.filter((r) => r !== WFS), ['playwright/no-wait-for-navigation', 'playwright/no-element-handle', 'playwright/no-page-pause']);
     assert.ok(RECEIVER_TIERED_RULES.length === 3 || (RECEIVER_TIERED_RULES.length === 4 && RECEIVER_TIERED_RULES[0] === 'playwright/no-wait-for-selector'), JSON.stringify(RECEIVER_TIERED_RULES));
+  });
+
+  it('the unresolved copy and the method table hold exactly the receiver-tiered rules', () => {
+    // An entry for a rule outside the list is read by nothing; a listed rule without one has no copy or no reported method.
+    assert.deepEqual(Object.keys(UNRESOLVED_COPY).sort(), [...RECEIVER_TIERED_RULES].sort());
+    assert.deepEqual([...REPORTED.keys()].sort(), [...RECEIVER_TIERED_RULES].sort());
   });
 
   it('an unproven receiver of each pinned rule comes back unresolved and likely, with the conditional copy', async () => {

@@ -22,7 +22,6 @@ export type Kind = 'page' | 'frame' | 'context' | 'browser' | 'app' | 'launcher'
 
 /** Method names each rule reports, and the receivers that prove the finding. */
 export const REPORTED: ReadonlyMap<string, { methods: readonly string[]; on: readonly Kind[] }> = new Map([
-  ['playwright/no-wait-for-selector', { methods: ['waitForSelector'], on: ['page', 'frame'] }],
   ['playwright/no-wait-for-navigation', { methods: ['waitForNavigation'], on: ['page', 'frame'] }],
   ['playwright/no-element-handle', { methods: ['$', '$$'], on: ['page', 'frame'] }],
   ['playwright/no-page-pause', { methods: ['pause'], on: ['page'] }],
