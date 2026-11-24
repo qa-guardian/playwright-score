@@ -7,6 +7,9 @@
 #        TEST_GLOB    the consumer's compiled tests, run one file at a time with node
 #                     (default dist/app/**/__tests__/*.test.js)
 #        DOCKER_WRAP  optional command prefix for the docker run (for example a lock wrapper)
+#        SIBLINGS     optional space-separated dirs the consumer's tests look for next to it; each is
+#                     mounted read-only and copied beside the consumer's copy (without node_modules, .git)
+#        BROWSERS     optional Playwright browsers to install before the tests (for example chromium)
 #
 # This checkout must be built (dist/) with its bundled dependencies installed (node_modules/).
 # The consumer is mounted read-only and copied inside the container (without node_modules, dist and .git),
@@ -28,7 +31,8 @@ echo "$BEFORE" > "$OUT/consumer-status.before"
 
 ${DOCKER_WRAP:-} docker run --rm -i \
   -v "$ROOT:/pkg:ro" -v "$CONSUMER:/consumer:ro" -v "$OUT:/out" \
-  -e TEST_GLOB="${TEST_GLOB:-dist/app/**/__tests__/*.test.js}" \
+  $(for d in ${SIBLINGS:-}; do d="$(cd "$d" && pwd)"; printf -- '-v %s:/sib/%s:ro ' "$d" "$(basename "$d")"; done) \
+  -e TEST_GLOB="${TEST_GLOB:-dist/app/**/__tests__/*.test.js}" -e BROWSERS="${BROWSERS:-}" \
   "${NODE_IMAGE:-node:22}" bash -s <<'INNER'
 set -u
 shopt -s globstar nullglob
@@ -37,9 +41,11 @@ cd /tmp
 TGZ=$(cd /pkg && npm pack --silent --pack-destination /out 2>/out/pack.log | tail -1)
 echo -e "pack\tnpm pack\t$([ -n "$TGZ" ] && [ -f "/out/$TGZ" ] && echo 0 || echo 1)" >> "$R"
 echo "$TGZ" > /out/tarball.txt
-mkdir /tmp/c && (cd /consumer && tar --exclude=./node_modules --exclude=./dist --exclude=./.git -cf - .) | tar -C /tmp/c -xf -
-cd /tmp/c
+mkdir -p /tmp/ws/c && (cd /consumer && tar --exclude=./node_modules --exclude=./dist --exclude=./.git -cf - .) | tar -C /tmp/ws/c -xf -
+for d in /sib/*; do mkdir -p "/tmp/ws/${d##*/}" && (cd "$d" && tar --exclude=./node_modules --exclude=./.git --exclude=./.venv -cf - .) | tar -C "/tmp/ws/${d##*/}" -xf -; done
+cd /tmp/ws/c
 npm ci --no-audit --no-fund > /out/npm-ci.log 2>&1; echo -e "setup\tnpm ci\t$?" >> "$R"
+if [ -n "$BROWSERS" ]; then npx playwright install --with-deps $BROWSERS > /out/browsers.log 2>&1; echo -e "setup\tplaywright install $BROWSERS\t$?" >> "$R"; fi
 phase() {
   local p=$1
   rm -rf dist
@@ -50,7 +56,7 @@ phase() {
     timeout 600 node "$f" > "/out/$p-tests/$(echo "$f" | tr / _).log" 2>&1
     echo -e "$p\t$f\t$?" >> "$R"
   done
-  node -p "require('@qaguardian/playwright-score/package.json').version" > "/out/$p-version.txt" 2>&1
+  node -p "require('./node_modules/@qaguardian/playwright-score/package.json').version" > "/out/$p-version.txt" 2>&1
 }
 phase baseline
 npm install --no-save --no-audit --no-fund "/out/$TGZ" > /out/install-tarball.log 2>&1; echo -e "setup\tinstall tarball\t$?" >> "$R"
