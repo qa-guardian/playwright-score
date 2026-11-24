@@ -112,6 +112,7 @@ npx -p @qaguardian/playwright-score pwscore ./tests
 | `--advice` | Also show advisory findings and the reasons for findings not decided automatically (text, markdown, report). JSON always has every finding |
 | `--format text\|json\|markdown\|sarif\|report` | Output format (`report` is a self-contained one-page HTML suite report) |
 | `--out <file>` | Write report to file |
+| `--markdown-out <file>` | Also write the markdown report to file, from the same run (for example with `--format json --out <file>`) |
 | `--max-seconds <n>` | Time limit for the whole run, counted from the start. No default: without it a run is never cut short. Finding the files always finishes; after that no new step starts once the limit has passed. Files not analysed in time are skipped and the result is partial, or not scored (reason `limit-reached`) when no test was scored in time |
 | `--max-heap-mb <n>` | Heap limit of the analysis worker. Default 4608, the same on every machine; a whole number from 64 to 65536. Files in a batch that hits it are skipped |
 | `--no-shared` | Do not check the shared files the specs import (page objects, fixtures, helpers that are Playwright code). By default they are checked with the rules that hold outside a test body; their findings carry `scope: "shared"` and `usedBy` (the specs that reach the file) and never change the score. `--shared` restates the default |
@@ -139,25 +140,30 @@ console.log(result.score, result.grade, result.pass, result.gate.reasons, result
 
 ## GitHub Action
 
-Drop this into a workflow to gate PRs on the score, post a job summary, and
-keep a sticky PR comment with the full findings up to date:
+Drop this into a workflow to gate PRs, post a job summary, and keep a sticky
+PR comment with the full findings up to date. The gate is the CLI's: a result
+fails when a test would pass whatever the app does, when it is partial or not
+scored, or when the score is below a threshold you set (there is none by
+default):
 
 ```yaml
-- uses: qa-guardian/playwright-score@v1
+- uses: qa-guardian/playwright-score@v3
   with:
     paths: tests e2e
-    # threshold: 80        # defaults to 80
-    mode: gate              # gate: fail CI below threshold · warn: report only
+    # threshold: 80        # optional score bar; empty (default) = none
+    mode: gate              # gate: fail CI when the result does not pass · warn: report only
 ```
 
 | Input | Description | Default |
 |---|---|---|
 | `paths` | Space-separated paths/globs to score | `tests` |
 | `profile` | `standard` (default, and only, profile) | `standard` |
-| `threshold` | Pass bar 0–100 | `80` |
-| `mode` | `gate` (fail CI below threshold) \| `warn` (report only) | `gate` |
+| `threshold` | Optional score bar 0–100; empty means no score bar | empty |
+| `allow-partial` | `true`: a partial result (a file was skipped) can pass | `false` |
+| `max-seconds` | Optional time limit for the run; files not analysed in time are skipped | empty |
+| `mode` | `gate` (fail CI when the result does not pass) \| `warn` (report only) | `gate` |
 | `comment` | Post/update a sticky PR comment | `true` |
-| `version` | `@qaguardian/playwright-score` version to run | `latest` |
+| `version` | `@qaguardian/playwright-score` version to run | `3` |
 | `github-token` | Token for the PR comment | `${{ github.token }}` |
 
 Outputs: `score`, `grade`, `pass` — usable by downstream steps (e.g. a

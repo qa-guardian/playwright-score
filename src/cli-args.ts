@@ -18,6 +18,8 @@ export interface CliOptions {
   threshold?: number;
   format: Format;
   out?: string;
+  /** Also write the markdown report of the same run to this file. */
+  markdownOut?: string;
   name?: string;
   maxSeconds?: number;
   maxHeapMb?: number;
@@ -124,6 +126,16 @@ export const FLAGS: readonly Flag[] = [
     help: ['Write report to file'],
     apply(o, v) {
       o.out = v;
+      return undefined;
+    },
+  },
+  {
+    names: ['--markdown-out'],
+    value: '<file>',
+    help: ['Also write the markdown report to file,', 'from the same run (for example with', '--format json --out <file>).'],
+    apply(o, v) {
+      if (!v) return '--markdown-out requires a value';
+      o.markdownOut = v;
       return undefined;
     },
   },
