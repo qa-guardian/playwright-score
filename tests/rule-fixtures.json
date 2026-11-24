@@ -252,6 +252,10 @@
   {
    "rule": "pwscore/assertion-passes-anyway",
    "form": "empty-fallback"
+  },
+  {
+   "rule": "pwscore/assertion-passes-anyway",
+   "form": "form-control-text"
   }
  ],
  "fixtures": [
@@ -5724,6 +5728,147 @@
    "tags": [
     "js"
    ]
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-city-not-have-text",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/true-city-not-have-text.ts",
+   "form": "form-control-text"
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-const-email-have-text-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/true-const-email-have-text-empty.ts",
+   "form": "form-control-text",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-email-have-text-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/true-email-have-text-empty.ts",
+   "form": "form-control-text"
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-js-city-not-contain-text",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/true-js-city-not-contain-text.js",
+   "form": "form-control-text",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-js-email-have-text-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/true-js-email-have-text-empty.js",
+   "form": "form-control-text",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-page-const-not-have-text",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/true-page-const-not-have-text.ts",
+   "form": "form-control-text",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-soft-form-first",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/true-soft-form-first.ts",
+   "form": "form-control-text"
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-bare-input",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/false-bare-input.ts",
+   "form": "form-control-text"
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-have-value-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/false-have-value-empty.ts",
+   "form": "form-control-text"
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-js-reset-input",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/false-js-reset-input.js",
+   "form": "form-control-text",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-not-have-text-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/false-not-have-text-empty.ts",
+   "form": "form-control-text"
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-placeholder",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/false-placeholder.ts",
+   "form": "form-control-text"
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-select-have-text",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/false-select-have-text.ts",
+   "form": "form-control-text"
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-status-region",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/false-status-region.ts",
+   "form": "form-control-text"
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-submit-input",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/false-submit-input.ts",
+   "form": "form-control-text"
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-textarea-initial-text",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/false-textarea-initial-text.ts",
+   "form": "form-control-text"
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-textbox-role",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/false-textbox-role.ts",
+   "form": "form-control-text"
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-untyped-input-not-have-text",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/form-control-text/false-untyped-input-not-have-text.ts",
+   "form": "form-control-text"
   }
  ]
 }

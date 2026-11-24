@@ -46,6 +46,78 @@
    "pending": null
   },
   {
+   "id": "assertion-passes-anyway/form-control-text-false-bare-input",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-have-value-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-js-reset-input",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-not-have-text-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-placeholder",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-select-have-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-status-region",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-submit-input",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-textarea-initial-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-textbox-role",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-untyped-input-not-have-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-city-not-have-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-const-email-have-text-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-email-have-text-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-js-city-not-contain-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-js-email-have-text-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-page-const-not-have-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-soft-form-first",
+   "pending": null
+  },
+  {
    "id": "assertion-passes-anyway/match-anything-false-array-contain-empty",
    "pending": null
   },

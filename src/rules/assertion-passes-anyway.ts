@@ -1,5 +1,5 @@
 /**
- * Assertions that pass on almost any page. Three forms, each its own cell:
+ * Assertions that pass on almost any page. Four forms, each its own cell:
  *
  *  root-content    `expect(<root>).toBeVisible()` / `.toBeAttached()` / `.not.toBeEmpty()`, where <root> is
  *                  `x.locator('body' | 'html' | ':root')` with no options, directly or through a const. The
@@ -12,14 +12,20 @@
  *                  `toMatch(new RegExp(...))` is `X || ''` or `X ?? ''`: when X is null the check
  *                  contains the empty string, which every string does.
  *
- * Negated matchers, `expect.poll`, `.resolves` and `.rejects` are left alone, and so are `toBeVisible` and
+ *  form-control-text  `toHaveText('')`, or one `not` before `toHaveText` / `toContainText` with a non-blank
+ *                  expected text, on a locator that is statically an `<input>` with a `type` other than button,
+ *                  submit or reset (rules/input-selector.ts): `x.locator('<css>')`, through `first()`, `last()`,
+ *                  `nth(n)` or a const. An input has no text, so the check passes whatever was typed into it.
+ *
+ * Other negated matchers, `expect.poll`, `.resolves` and `.rejects` are left alone, and so are `toBeVisible` and
  * `toBeAttached` with an option other than `timeout`. Where the `expect` comes from is decided by the expect
  * binding (src/expect-binding.ts), not here.
  */
 import type { Rule } from 'eslint';
 import { memberName, parseMatcherCall, resolveConstInit, unwrap, type N } from './ast-util.js';
+import { isTextlessInputSelector } from './input-selector.js';
 
-export type PassesAnywayForm = 'root-content' | 'match-anything' | 'empty-fallback';
+export type PassesAnywayForm = 'root-content' | 'match-anything' | 'empty-fallback' | 'form-control-text';
 
 export interface PassesAnyway {
   form: PassesAnywayForm;
@@ -37,6 +43,7 @@ const MESSAGE_FORMS: Readonly<Record<string, PassesAnywayForm>> = {
   rootContent: 'root-content',
   matchAnything: 'match-anything',
   emptyFallback: 'empty-fallback',
+  formControlText: 'form-control-text',
 };
 const MESSAGE_OF = Object.fromEntries(Object.entries(MESSAGE_FORMS).map(([id, form]) => [form, id])) as Record<PassesAnywayForm, string>;
 
@@ -114,7 +121,48 @@ function isEmptyFallback(node: N | undefined): boolean {
   return staticText(bare(n.right)) === '' && !!left && left.type !== 'Literal' && staticText(left) === undefined;
 }
 
-/** What `call` is, if it is one of the three shapes. Works on a rule context and on a parsed scope file alike. */
+/** Calls on a locator that keep the element it points to. */
+const SAME_ELEMENT = new Set(['first', 'last', 'nth']);
+
+/** `x.locator('<input selector>')` with one argument, through `first()` / `last()` / `nth(n)` and consts. */
+function isTextlessInput(context: Ctx, node: N | undefined, depth = 0): boolean {
+  const n = bare(node);
+  if (!n || depth > 4) return false;
+  if (n.type === 'Identifier') {
+    const init = resolveConstInit(context, n);
+    return init ? isTextlessInput(context, init, depth + 1) : false;
+  }
+  if (n.type !== 'CallExpression') return false;
+  const name = memberName(n.callee);
+  if (name !== undefined && SAME_ELEMENT.has(name)) return isTextlessInput(context, n.callee!.object ?? undefined, depth + 1);
+  if (name !== 'locator' || (n.arguments ?? []).length !== 1) return false;
+  const selector = staticText(bare(n.arguments![0]));
+  return selector !== undefined && isTextlessInputSelector(selector);
+}
+
+/** A string literal, a template or a const of one, with text that is not only white space. */
+function isNonBlankText(context: Ctx, node: N | undefined, depth = 0): boolean {
+  const n = bare(node) as Loose | undefined;
+  if (!n || depth > 3) return false;
+  if (n.type === 'Identifier') {
+    const init = resolveConstInit(context, n as N);
+    return init ? isNonBlankText(context, init, depth + 1) : false;
+  }
+  if (n.type === 'TemplateLiteral') return (n.quasis ?? []).some((q: Loose) => String(q.value?.cooked ?? '').trim() !== '');
+  const text = staticText(n as N);
+  return text !== undefined && text.trim() !== '';
+}
+
+/** form-control-text: `toHaveText('')`, or one `not` and `toHaveText` / `toContainText` of a non-blank text, on a textless input. */
+function isFormControlText(context: Ctx, matcher: string, modifiers: string[], subject: N | undefined, args: N[]): boolean {
+  if (args.length === 0) return false;
+  const emptyText = modifiers.length === 0 && matcher === 'toHaveText' && staticText(bare(args[0])) === '';
+  const notText = modifiers.length === 1 && modifiers[0] === 'not' && (matcher === 'toHaveText' || matcher === 'toContainText') &&
+    isNonBlankText(context, args[0]);
+  return (emptyText || notText) && isTextlessInput(context, subject);
+}
+
+/** What `call` is, if it is one of the four shapes. Works on a rule context and on a parsed scope file alike. */
 export function classifyPassesAnyway(context: Ctx, call: N): PassesAnyway | undefined {
   const m = parseMatcherCall(call);
   if (!m || m.modifiers.some((x) => x !== 'not')) return undefined;
@@ -128,6 +176,7 @@ export function classifyPassesAnyway(context: Ctx, call: N): PassesAnyway | unde
     const receiver = rootReceiver(context, subject);
     return receiver ? { form: 'root-content', receiver } : undefined;
   }
+  if (isFormControlText(context, m.matcher, m.modifiers, subject, args)) return { form: 'form-control-text' };
   if (negated || args.length === 0) return undefined;
   const expected = bare(args[0]);
   const regex = (expected as Loose | undefined)?.regex as { pattern?: unknown } | undefined;
@@ -151,6 +200,7 @@ export const assertionPassesAnyway: Rule.RuleModule = {
       rootContent: 'The document root is attached, visible and non-empty on almost any page, so this assertion passes whatever the page shows. Assert on an element the test is about.',
       matchAnything: 'Every string satisfies this expected value, so the assertion passes whatever the page shows. Assert the text, URL or title you expect.',
       emptyFallback: 'When the value on the left is missing, this check contains the empty string, which every string does. Assert that the value is present first, or compare against a fixed expected text.',
+      formControlText: 'An input field has no text content, so this text check passes whatever was typed into it. Use toHaveValue to check what the field holds.',
     },
     schema: [],
   },

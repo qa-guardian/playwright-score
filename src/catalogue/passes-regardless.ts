@@ -134,6 +134,23 @@ export const passesRegardlessRows: readonly RuleRow[] = [
     dimension: 'assertions',
     label: 'medium',
   },
+  // "Ensures the Locator points to an element with the given input value." (toHaveValue), with
+  // "Returns the value for the matching <input> or <textarea> or <select> element." (locator.inputValue).
+  {
+    rule: 'pwscore/assertion-passes-anyway',
+    form: 'form-control-text',
+    family: 'passes-regardless',
+    design: 'likely',
+    basis: 'docs',
+    docs: 'https://playwright.dev/docs/api/class-locatorassertions#locator-assertions-to-have-value',
+    bcEligible: false,
+    title: 'Assertion that passes on almost any page',
+    what: 'A text check on an input field: it expects no text, or that some text is absent.',
+    why: 'An input field has no text content; what was typed is its value. So the check passes whatever the field holds.',
+    fix: 'Check the field with toHaveValue, or read it with inputValue, instead of a text matcher.',
+    dimension: 'assertions',
+    label: 'medium',
+  },
   {
     rule: 'pwscore/no-trivial-assertion',
     form: 'literal',
