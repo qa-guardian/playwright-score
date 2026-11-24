@@ -22,12 +22,14 @@
  * the trees of a large suite are not all held at once. Two steps, like the expect binding:
  * `stageTestStates` reads the code before the catalogue fields exist, `settleTestStates`
  * decides `issue` once the tiers are known and adds one `pwscore/unasserted` finding per
- * unasserted test. The score, the grade and every other finding are never touched.
+ * unasserted test. An `issue` entry names its findings (`chargedBy`). The score is computed from
+ * the states afterwards (src/state-score.ts); this step never touches it or any other finding.
  * Callees are resolved by src/test-callees.ts (syntax helpers in src/test-syntax.ts).
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { decorateFindings } from './catalogue/decorate.js';
+import { compareRefs, findingRef } from './finding-ref.js';
 import { KNOWN_PACKAGES } from './catalogue/table.js';
 import { EXPECT_BOUND_RULES, expectUse, type ExpectUse } from './expect-binding.js';
 import type { TestSpans } from './metrics.js';
@@ -273,11 +275,13 @@ export function stageTestStates<T extends object>(result: T, input: StateInput):
 export function settleTestStates(result: ScoreResult): void {
   if (!testStates.enabled) return;
   const added: Finding[] = [];
+  // A spec-cell finding: scope `test` or `hook` (a shared-file finding has scope `shared` and never charges a test).
   const certain = result.findings.filter((f) => f.tier === 'certain' && f.line !== undefined);
   const entries = (staged.get(result) ?? []).map((s) => {
     const { entry, facts } = s;
-    const issue = certain.some((f) => (f.scope === 'test' ? f.testKey === entry.testKey : f.scope === 'hook' && f.file === entry.file && s.hooks.some(([a, b]) => f.line! >= a && f.line! <= b)));
-    entry.state = s.excluded ?? (issue ? 'issue' : facts.asserts ? 'clean' : facts.unresolved.size > 0 ? 'unverified' : 'unasserted');
+    const by = certain.filter((f) => (f.scope === 'test' ? f.testKey === entry.testKey : f.scope === 'hook' && f.file === entry.file && s.hooks.some(([a, b]) => f.line! >= a && f.line! <= b)));
+    entry.state = s.excluded ?? (by.length > 0 ? 'issue' : facts.asserts ? 'clean' : facts.unresolved.size > 0 ? 'unverified' : 'unasserted');
+    if (entry.state === 'issue') entry.chargedBy = by.map(findingRef).sort(compareRefs);
     if (entry.state === 'unverified') entry.unresolved = [...facts.unresolved].sort().slice(0, MAX_NAMES);
     if (entry.state === 'unasserted') {
       added.push({

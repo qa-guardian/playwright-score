@@ -1,5 +1,4 @@
 import type { Finding, ScoreResult } from '../types.js';
-import { PROFILE_WEIGHTS } from '../profiles.js';
 import { CONFIDENCE_LABEL, compareFindings, isNeedsCheck, needsCheckIntro } from '../confidence.js';
 import { copyFor } from '../rule-copy.js';
 import { REPORT_CSS } from './report-css.js';
@@ -217,11 +216,9 @@ function nextSteps(groups: RuleGroup[], extra: string[] = []): string[] {
 }
 
 function renderBars(result: ScoreResult): string {
-  const weights = PROFILE_WEIGHTS[result.profile] ?? PROFILE_WEIGHTS.standard;
   const bars = DIMENSIONS.map((d) => {
     const v = result.dimensions[d.key] ?? 0;
-    const w = weights[d.key];
-    return `<div class="dim" title="${escapeHtml(d.meaning)}"><div class="dimhead"><span>${d.label}${w ? ` <span class="muted">${w}% of score</span>` : ''}</span><strong>${v}</strong></div>
+    return `<div class="dim" title="${escapeHtml(d.meaning)}"><div class="dimhead"><span>${d.label}</span><strong>${v}</strong></div>
 <div class="bar" role="img" aria-label="${d.label} ${v} out of 100"><span style="width:${Math.max(0, Math.min(100, v))}%"></span></div>
 <p class="muted sr-only">${escapeHtml(d.meaning)}</p></div>`;
   }).join('\n');
@@ -248,7 +245,7 @@ export function formatReport(result: ScoreResult, opts: ReportOptions): string {
     scoreBox = `<div class="score notscored" role="img" aria-label="Not scored"><span class="big">--</span><span class="grade">Not scored</span></div>`;
   } else {
     headline = `${clean} of ${summary.tests} ${summary.tests === 1 ? 'test has' : 'tests have'} no issues.`;
-    explain = `A weighted average of four areas below. ${gradeBandText(result.grade, result.pass)}${result.status === 'partial' ? '' : ` ${barText(result.threshold, opts.customThreshold === true, result.pass)}`}`;
+    explain = `The share of the counted tests with no confirmed issue; the areas below are for information. ${gradeBandText(result.grade, result.pass)}${result.status === 'partial' ? '' : ` ${barText(result.threshold, opts.customThreshold === true, result.pass)}`}`;
     scoreBox = `<div class="score g-${result.grade}" aria-hidden="true"><span class="big">${result.score}</span><span class="of">/100</span><span class="grade">${result.grade}</span></div>`;
   }
   const srScore = state ? '' : `<span class="sr-only">Score ${result.score} out of 100, grade ${result.grade}. </span>`;

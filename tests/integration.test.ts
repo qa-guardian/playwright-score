@@ -5,6 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scorePaths } from '../src/index.js';
+import { cellKey, tierOverrides } from '../src/catalogue/precision.js';
+import { v4Weighted } from './helpers/v4-weighted.js';
 
 function packageRoot(): string {
   let dir = path.dirname(fileURLToPath(import.meta.url));
@@ -43,7 +45,7 @@ describe('scorePaths integration', () => {
       threshold: 80,
       cwd: root,
     });
-    assert.equal(result.scoreVersion, 'v4');
+    assert.equal(result.scoreVersion, 'v5');
     assert.ok(result.score >= 80, `expected >=80 got ${result.score}: ${JSON.stringify(result.findings.slice(0, 5))}`);
     assert.equal(result.pass, true);
   });
@@ -59,7 +61,8 @@ describe('scorePaths integration', () => {
       result.findings.some((f) => f.rule.includes('wait-for-timeout') || f.rule.includes('force')),
       `expected wait/force findings, got: ${result.findings.map((f) => f.rule).join(', ')}`
     );
-    assert.ok(result.score < 100);
+    // v5: these findings are not certain, so they are listed and feed the dimensions, not the score.
+    assert.ok(v4Weighted(result) < 100);
   });
 
   it('catches the two remaining QAG-196 gameability tricks as real, scored findings under standard (model v4 — owner direction: public scores reflect quality, not a report-only compromise)', async () => {
@@ -85,9 +88,20 @@ describe('scorePaths integration', () => {
       assert.ok(!finding?.reportOnly, `expected ${rule} to be a scored (non-reportOnly) finding`);
     }
     assert.ok(
-      result.score < 100,
-      `expected a real score hit from both gameability tricks, got ${result.score}`
+      v4Weighted(result) < 100,
+      `expected a real dimension hit from both gameability tricks, got ${v4Weighted(result)}`
     );
+    // v5: the trivial-only test asserts nothing, so it is `unasserted`: listed and, while that
+    // cell is not certain, not charged. Once the cell is certain the trick costs its share.
+    assert.equal(result.summary.unassertedCharged, false);
+    assert.equal(result.summary.unassertedTests, 1);
+    tierOverrides.set(cellKey('pwscore/unasserted', '-', 'spec'), 'certain');
+    try {
+      const charged = await scorePaths({ paths: [path.join(fixtures, 'bad-gameable.spec.ts')], profile: 'standard', threshold: 80, cwd: root });
+      assert.ok(charged.score < result.score, `charging the unasserted test lowers the score: ${charged.score} vs ${result.score}`);
+    } finally {
+      tierOverrides.delete(cellKey('pwscore/unasserted', '-', 'spec'));
+    }
   });
 
   it('the fixed equivalents (real waits, locator clicks, real assertions, mixed hard+soft) score clean', async () => {
@@ -134,11 +148,17 @@ describe('scorePaths integration', () => {
         threshold: 0,
         cwd: root,
       });
+      // v5 (QAG-287 S9a): the table is the v4 number of the dimensions, which keep the v4 model.
       assert.equal(
-        result.score,
+        v4Weighted(result),
         expectedScore,
-        `${name}: expected standard score ${expectedScore}, got ${result.score}: ${JSON.stringify(result.findings)}`
+        `${name}: expected the v4 dimension score ${expectedScore}, got ${v4Weighted(result)}: ${JSON.stringify(result.findings)}`
       );
+      // The v5 score: no test in these fixtures carries a certain finding, so every scored one is 100;
+      // the blanket-skip fixture has no counted test and the syntax-error one no scored file.
+      const notScored = name === 'bad-standard-blanket-skip.spec.ts' || name === 'bad-syntax-error.spec.ts';
+      assert.equal(result.status === 'not-scored', notScored, `${name}: status ${result.status}`);
+      assert.equal(result.score, notScored ? 0 : 100, `${name}: v5 score ${result.score}`);
     }
   });
 
@@ -295,7 +315,7 @@ describe('scorePaths integration', () => {
         `expected only the suppression-comment finding, no rule-coverage noise: ${JSON.stringify(result.findings)}`
       );
       assert.ok(!result.findings[0].reportOnly);
-      assert.ok(result.score < 100, 'a scored (non-reportOnly) finding must cost points under standard');
+      assert.ok(v4Weighted(result) < 100, 'a scored (non-reportOnly) finding must cost points in the dimensions');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -510,7 +530,7 @@ describe('scorePaths integration', () => {
       result.findings.some((f) => f.rule.includes('wait-for-timeout') || f.rule.includes('force')),
       `expected wait/force findings even with unrelated cwd, got: ${result.findings.map((f) => f.rule).join(', ')}`
     );
-    assert.ok(result.score < 100);
+    assert.ok(v4Weighted(result) < 100);
   });
 
   it('a file with a syntax error hard-fails instead of scoring clean (regression: silent fatal-parse-error drop)', async () => {
@@ -740,7 +760,7 @@ describe('scorePaths integration', () => {
     assert.ok(rules.includes('playwright/no-page-pause'), `expected no-page-pause, got: ${rules.join(', ')}`);
     // All of these are hygiene findings and must actually move the score.
     assert.ok(result.dimensions.playwrightHygiene < 100, `hygiene should drop below 100, got ${result.dimensions.playwrightHygiene}`);
-    assert.ok(result.score < 100, `score should drop below 100, got ${result.score}`);
+    assert.ok(v4Weighted(result) < 100, `the dimension score should drop below 100, got ${v4Weighted(result)}`);
   });
 
   it('conditional runtime skip stays clean (test.skip(condition, reason) is idiomatic, not conditional logic)', async () => {
@@ -1135,15 +1155,15 @@ describe('2.0.0 MUST FIX: noInlineConfig — an inline eslint-disable can no lon
     const resultWithout = await scoreSource(without);
     const resultWith = await scoreSource(withDisable);
 
-    assert.equal(resultWithout.score, 35, `expected the undisabled baseline to stay 35/F: got ${resultWithout.score}`);
-    assert.equal(resultWithout.grade, 'F');
+    // v5: these findings feed the (informational) dimensions; the v4 number they make is pinned.
+    assert.equal(v4Weighted(resultWithout), 35, `expected the undisabled baseline to stay 35/F: got ${v4Weighted(resultWithout)}`);
+    assert.equal(resultWith.score, resultWithout.score);
     assert.equal(
-      resultWith.score,
-      resultWithout.score,
+      v4Weighted(resultWith),
+      v4Weighted(resultWithout),
       `expected the disable comment not to change the score (it adds one capped module-level demerit that a 100-test file absorbs): without=${resultWithout.score} with=${resultWith.score}`
     );
-    assert.equal(resultWith.grade, 'F');
-    assert.notEqual(resultWith.score, 99, 'pre-fix regression: the blanket disable comment silenced every finding and scored 99/A');
+    assert.notEqual(v4Weighted(resultWith), 99, 'pre-fix regression: the blanket disable comment silenced every finding and scored 99/A');
   });
 });
 

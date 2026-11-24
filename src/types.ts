@@ -1,7 +1,7 @@
 import type { EngineVersions } from './engine-versions.js';
 import type { Basis, Evidence, Family, Tier } from './catalogue/types.js';
 
-export type ScoreVersion = 'v3' | 'v4';
+export type ScoreVersion = 'v3' | 'v4' | 'v5';
 /**
  * `standard` is the only public profile, first published as of 2.0.0
  * (model v4). A separate `strict` profile was planned for 1.1.0 (never
@@ -34,7 +34,13 @@ export interface Finding {
    * inside a before/after hook ('hook' — affects every test in the file),
    * or at module level ('module' — counted once per file). Set during
    * attribution in index.ts; findings without it are treated as 'module'. */
-  scope?: 'test' | 'hook' | 'module';
+  scope?: 'test' | 'hook' | 'module' | 'shared';
+  /**
+   * Set when scope === 'shared' (a finding in a shared file, reported unless
+   * the `shared` option is false): the spec files that reach the file through
+   * imports, sorted, in the same form as `file`.
+   */
+  usedBy?: string[];
   /** `${file}#${testIndex}` when scope === 'test'. */
   testKey?: string;
   /**
@@ -64,6 +70,10 @@ export interface Finding {
   quotable?: boolean;
 }
 
+/**
+ * Four area scores, 0-100, computed as before (src/score-engine.ts).
+ * Informational since score model v5: they no longer feed the score.
+ */
 export interface ScoreDimensions {
   playwrightHygiene: number;
   assertions: number;
@@ -88,9 +98,24 @@ export interface ScoreSummary {
    * (`playwright-score/assertion-unverified`, report-only). They are NOT in
    * `unassertedTests` and not penalised, but they are not known to assert. */
   unverifiedTests: number;
-  /** Tests with no demerit in any dimension — the headline the score is
-   * built from: the weighted share of tests that are clean. */
+  /** Tests with no scored finding of any tier in any dimension (the
+   * `dimensions` model). Informational since score model v5: the score is
+   * built from `countedTests` and `chargedTests`, not from this count. */
   cleanTests: number;
+  /** Score model v5, always set by `scorePaths`: every test except the
+   * `excluded-empty` and `excluded-skipped` ones (see `testStates`). The
+   * score is `round(100 x (countedTests - chargedTests) / countedTests)`.
+   * (`coverage.testsCounted` keeps counting every declared test.) */
+  countedTests?: number;
+  /** Score model v5, always set by `scorePaths`: counted tests that are not
+   * clean for the score, the `issue` tests plus, when `unassertedCharged`,
+   * the `unasserted` tests. Each one names a finding or a state. */
+  chargedTests?: number;
+  /** Score model v5, always set by `scorePaths`: whether an `unasserted`
+   * test is charged. True only when the `pwscore/unasserted` cell is
+   * certain in the committed precision file; otherwise an unasserted test
+   * is listed and treated like an `unverified` one (clean for the score). */
+  unassertedCharged?: boolean;
 }
 
 /**
@@ -171,6 +196,15 @@ export interface Coverage {
  */
 export type TestState = 'excluded-empty' | 'excluded-skipped' | 'issue' | 'unasserted' | 'unverified' | 'clean';
 
+/** Points at one finding of `findings`: the same rule, form, file, line and column. */
+export interface FindingRef {
+  rule: string;
+  form?: string;
+  file: string;
+  line?: number;
+  column?: number;
+}
+
 export interface TestStateEntry {
   /** Relative to `baseDir`, like `Finding.file`. */
   file: string;
@@ -181,6 +215,9 @@ export interface TestStateEntry {
   state: TestState;
   /** State `unverified` only: the callees that were not resolved, sorted, at most eight. */
   unresolved?: string[];
+  /** State `issue` only: every certain spec-file finding in the test or in a
+   * hook in scope for it, sorted by line, column and rule. */
+  chargedBy?: FindingRef[];
 }
 
 export interface ScoreResult {
@@ -198,6 +235,20 @@ export interface ScoreResult {
    * feeds the score). See `TestState`.
    */
   testStates?: TestStateEntry[];
+  /**
+   * Score model v5, always set by `scorePaths`: every certain spec-file
+   * finding that sits outside every test and every hook (a describe body,
+   * the module top level, a spec-local `test.extend`), sorted by file, line,
+   * column and rule. Such a finding belongs to no test: it changes no test
+   * state and not the score.
+   */
+  outsideTests?: FindingRef[];
+  /**
+   * Score model v5, always set by `scorePaths`: the locator counts of
+   * `summary`, with `scored: false`. Locator usage is reported; it does not
+   * feed the score.
+   */
+  locators?: LocatorCounts;
   /**
    * Absolute directory that every `Finding.file` is relative to (the scored
    * files' common ancestor). Lets a consumer locate source for excerpts. Local
@@ -271,6 +322,8 @@ export interface ScoreOptions {
 export interface LocatorCounts {
   native: number;
   raw: number;
+  /** On `ScoreResult.locators` only: always false (score model v5). */
+  scored?: false;
 }
 
 export interface FileMetrics {

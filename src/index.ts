@@ -37,6 +37,7 @@ import { applyReceiverForms } from './receiver-forms.js';
 import { applyExpectBinding, settleExpectBinding } from './expect-binding.js';
 import { settleTestStates, stageTestStates } from './test-states.js';
 import { computeScore } from './score-engine.js';
+import { applyStateScore, SCORE_VERSION } from './state-score.js';
 import { getEngineVersions } from './engine-versions.js';
 import { resetRuleCrashes, ruleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
 import {
@@ -544,7 +545,7 @@ function hardFail(
   configWarnings?: string[]
 ): ScoreResult {
   return {
-    scoreVersion: 'v4',
+    scoreVersion: SCORE_VERSION,
     profile,
     score: 0,
     grade: 'F',
@@ -593,6 +594,8 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   settleExpectBinding(result.findings);
   // QAG-287 S12: one state per test; adds the report-only pwscore/unasserted findings.
   settleTestStates(result);
+  // QAG-287 S9a: score model v5, the share of counted tests that are clean, from those states.
+  applyStateScore(result);
   const crashes = summarizeRuleCrashes();
   const withCrashes = crashes.length > 0 ? { ...result, ruleCrashes: crashes } : result;
   return { ...withCrashes, engine: getEngineVersions() };

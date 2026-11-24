@@ -40,7 +40,14 @@ export function cellStats(rule: string, form: string, role: 'spec' | 'shared' = 
   return c && c.decided !== undefined && c.precision !== undefined && c.wilsonLow !== undefined ? (c as CellStats) : undefined;
 }
 
+/**
+ * Test seam: a tier set here, by `cellKey`, replaces the file's for that cell. Empty outside the
+ * unit tests; it is not an option, a flag or an environment variable, and the package does not export it.
+ */
+export const tierOverrides = new Map<string, Tier>();
+
 /** The tier the file gives one cell, or undefined when the cell is not listed. */
 export function cellTier(rule: string, form: string, role: 'spec' | 'shared' = 'spec'): Tier | undefined {
-  return load().byKey.get(cellKey(rule, form, role))?.tier;
+  const key = cellKey(rule, form, role);
+  return tierOverrides.get(key) ?? load().byKey.get(key)?.tier;
 }

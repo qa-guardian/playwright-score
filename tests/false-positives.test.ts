@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scorePaths } from '../src/index.js';
+import { v4Weighted } from './helpers/v4-weighted.js';
 
 // QAG-287 slice 1: findings the scorer got wrong on public suites. Every
 // "good" fixture must come out clean, every "bad" twin must still fire.
@@ -68,7 +69,9 @@ describe('QAG-287: expect-expect resolution', () => {
   it('twin: only goto/click on page still errors', async () => {
     const r = await score('bad-standard-actions-only.spec.ts');
     assert.equal(rules(r).filter((x) => x === 'playwright/expect-expect').length, 2, JSON.stringify(r.findings));
-    assert.ok(r.score < 100);
+    // v5 (QAG-287 S9a): both tests are `unasserted`, listed and not charged while that cell is not certain.
+    assert.ok(v4Weighted(r) < 100);
+    assert.equal(r.summary.unassertedCharged, false);
     assert.equal(r.summary.unassertedTests, 2);
   });
 

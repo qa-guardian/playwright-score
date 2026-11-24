@@ -327,7 +327,18 @@ describe('QAG-287 S4b: the step changes form, tier and copy only', () => {
         expectBinding.enabled = true;
       }
       assert.deepEqual(on.findings.map(key).sort(), off.findings.map(key).sort());
-      assert.deepEqual([on.score, on.grade, on.summary, on.dimensions], [off.score, off.grade, off.summary, off.dimensions]);
+      // Score model v5 (S9a) reads the score from the test states, and those follow the tiers this
+      // step sets: the v4 parts must match, and each v5 score is the share its own states give.
+      const v4 = (r: ScoreResult): unknown[] => {
+        const { chargedTests: _charged, ...summary } = r.summary;
+        return [summary, r.dimensions];
+      };
+      assert.deepEqual(v4(on), v4(off));
+      for (const r of [on, off]) {
+        const { countedTests: counted = 0, chargedTests: charged = 0 } = r.summary;
+        assert.ok(counted > 0, name);
+        assert.equal(r.score, Math.round((100 * (counted - charged)) / counted), name);
+      }
       const rest = (r: ScoreResult): unknown[] =>
         r.findings.map((f) => {
           const { form: _form, tier: _tier, title: _title, what: _what, why: _why, fix: _fix, confidence: _confidence, ...other } = f;

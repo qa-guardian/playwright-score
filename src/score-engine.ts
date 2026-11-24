@@ -43,6 +43,13 @@ import { PROFILE_WEIGHTS } from './profiles.js';
  * the fixed-coordinate click rule (since removed) was a warning (0.4), not
  * an error (1.0). See
  * METHODOLOGY.md's "Why v4" and CHANGELOG.md.
+ *
+ * v5 (3.0.0, QAG-287): `scorePaths` takes the score from the test states
+ * instead (src/state-score.ts: the share of counted tests that are clean).
+ * This module still computes the four `dimensions` and `summary.cleanTests`
+ * as before; they are informational. `computeScore` called on its own keeps
+ * returning the v4 number, labelled `v4` (MODEL.scoreVersion), and
+ * `scorePaths` replaces it.
  */
 export const MODEL = {
   scoreVersion: 'v4' as const,

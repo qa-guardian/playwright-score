@@ -84,8 +84,23 @@ describe('QAG-287 S12: test states', () => {
     assert.ok(testStateStats.parses >= a.summary.files);
   });
 
-  it('with the step off, everything but the registered additions is the same', async () => {
-    const strip = (r: ScoreResult) => ({ ...r, testStates: undefined, findings: r.findings.filter((f) => f.rule !== UNASSERTED_RULE), summary: { ...r.summary, unassertedTests: 0 } });
+  // Since S9a the score is read from the states (src/state-score.ts): with the step off there is
+  // nothing to read it from, and the result keeps the v4 numbers of src/score-engine.ts.
+  it('with the step off, everything but the registered additions and the v5 score fields is the same', async () => {
+    const strip = (r: ScoreResult) => ({
+      ...r,
+      testStates: undefined,
+      findings: r.findings.filter((f) => f.rule !== UNASSERTED_RULE),
+      summary: { ...r.summary, unassertedTests: 0, countedTests: undefined, chargedTests: undefined, unassertedCharged: undefined },
+      scoreVersion: undefined,
+      score: undefined,
+      grade: undefined,
+      pass: undefined,
+      status: undefined,
+      reason: undefined,
+      outsideTests: undefined,
+      locators: undefined,
+    });
     let added = 0;
     for (const entry of entries) {
       const on = await scored(entry);
@@ -99,7 +114,9 @@ describe('QAG-287 S12: test states', () => {
       assert.equal(off.testStates, undefined);
       assert.equal(unasserted(off).length, 0);
       assert.equal(JSON.stringify(strip(on)), JSON.stringify(strip(off)), entry);
-      for (const k of ['score', 'grade', 'pass', 'status'] as const) assert.deepEqual((on as never)[k], (off as never)[k], `${entry} ${k}`);
+      assert.equal(on.scoreVersion, 'v5');
+      assert.equal(off.scoreVersion, 'v4');
+      assert.equal(off.summary.countedTests, undefined);
       assert.deepEqual(on.dimensions, off.dimensions);
       added += unasserted(on).length;
     }

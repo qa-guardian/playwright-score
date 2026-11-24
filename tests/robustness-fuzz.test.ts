@@ -11,6 +11,7 @@ import { formatText } from '../src/formatters/text.js';
 import { formatMarkdown } from '../src/formatters/markdown.js';
 import { MAX_SOURCE_BYTES, readHead, resolveDotSlashAbsolute } from '../src/fs-util.js';
 import type { ScoreResult } from '../src/types.js';
+import { v4Weighted } from './helpers/v4-weighted.js';
 
 // QAG-287 S5a.1: hostile and odd inputs (the R9 fuzz list). Each title names
 // the row of the admission decision table (src/admission.ts) the case lands on. Each case runs the real CLI in its own
@@ -357,7 +358,9 @@ export default defineConfig({ testDir: './tests', testMatch: '**/*.ts' });
     expectPartial(r, [['b-broken.spec.ts', 'parse-error']], 2);
     assert.equal(r.result.summary.tests, 2);
     assert.equal(r.result.coverage?.testsCounted, 2);
-    assert.ok(r.result.score > 0 && r.result.score < 100, String(r.result.score));
+    // v5 (QAG-287 S9a): the wait finding is not certain, so the score is 100 here; the dimensions
+    // still take it, which keeps the comparison with the two files on their own non-trivial.
+    assert.ok(v4Weighted(r.result) > 0 && v4Weighted(r.result) < 100, String(v4Weighted(r.result)));
     const parse = r.result.findings.filter((f) => f.rule === PARSE_ERROR);
     assert.deepEqual(parse.map((f) => f.file), ['b-broken.spec.ts']);
     assert.ok(r.result.findings.some((f) => f.rule === 'playwright/no-wait-for-timeout' && f.file === 'c-invoices.spec.ts'));
@@ -389,10 +392,9 @@ export default defineConfig({ testDir: './tests', testMatch: '**/*.ts' });
     assert.equal(r.result.findings.filter((f) => f.rule === PARSE_ERROR).length, 2);
   });
 
-  // Owned by slice S9a, which changes this result to not-scored
-  // (no-counted-tests). Until then a declared test counts whether or not it
-  // can run, and this pins the result this suite had before S5a.1.
-  it('row 08, every test skipped: no crash, exit code not 2, and today\'s result (scored; S9a makes it not-scored)', async () => {
+  // S9a: a skipped test is excluded, so with every test skipped nothing counts and the suite is
+  // not-scored (no-counted-tests). The declared tests and the findings are as before S5a.1.
+  it('row 08, every test skipped: no crash, exit code 1, not-scored (no-counted-tests)', async () => {
     const skipped = `import { test, expect } from '@playwright/test';
 
 test.skip('exports the ledger', async ({ page }) => {
@@ -406,10 +408,12 @@ test.fixme('imports a ledger', async ({ page }) => {
 });
 `;
     const r = await run([suite({ 'ledger.spec.ts': skipped })]);
-    expectScored(r, 1);
+    expectNotScored(r, 'no-counted-tests');
     assert.equal(r.result.summary.tests, 2);
     assert.equal(r.result.coverage?.testsCounted, 2);
-    assert.equal(r.result.score, EVERY_TEST_SKIPPED_PARENT_SCORE);
+    assert.equal(r.result.summary.countedTests, 0);
+    assert.deepEqual(r.result.testStates?.map((t) => t.state), ['excluded-skipped', 'excluded-skipped']);
+    assert.equal(v4Weighted(r.result), EVERY_TEST_SKIPPED_PARENT_SCORE);
     assert.equal(r.result.summary.findings, EVERY_TEST_SKIPPED_PARENT_FINDINGS);
   });
 

@@ -5,7 +5,7 @@
 [![license](https://img.shields.io/npm/l/@qaguardian/playwright-score.svg)](https://github.com/qa-guardian/playwright-score/blob/main/LICENSE)
 
 **Deterministic, AI-free quality score for Playwright specs** — the
-weighted share of your tests that are clean.
+share of your tests that are clean.
 
 **Website:** [qaguardian.com/open-source/playwright-score](https://qaguardian.com/open-source/playwright-score)  
 **Built by:** [QA Guardian](https://qaguardian.com) — managed Playwright E2E (AI drafts, engineers verify, you own the code)

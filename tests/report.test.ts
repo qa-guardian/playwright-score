@@ -301,11 +301,12 @@ describe('report polish (QAG-288 slice 3b)', () => {
   });
 
   it('explains the score and uses plain labels', () => {
-    assert.match(html, /<p class="explain">A weighted average of four areas below\. D means 60-69; C starts at 70\. Below the default bar of 80\.<\/p>/);
+    assert.match(html, /<p class="explain">The share of the counted tests with no confirmed issue; the areas below are for information\. D means 60-69; C starts at 70\. Below the default bar of 80\.<\/p>/);
     assert.ok(html.includes('tests have no issues.'));
     assert.ok(!html.includes('are clean'));
     assert.ok(html.includes('<span class="sr-only">Score 61 out of 100, grade D. </span>'));
-    assert.ok(html.includes('Resilience to UI changes') && html.includes('40% of score'));
+    // QAG-287 S9a: the areas no longer feed the score (model v5), so no bar claims a share of it.
+    assert.ok(html.includes('Resilience to UI changes') && !html.includes('% of score'));
     assert.equal(gradeBandText('B', true), 'B means 80-89; A is 90 and up.');
     assert.equal(gradeBandText('A', true), 'A means 90-100.');
     assert.equal(gradeBandText('F', false), 'F means below 60; D starts at 60.');
@@ -342,7 +343,7 @@ describe('report polish (QAG-288 slice 3b)', () => {
     assert.ok(h.includes('Not scored') && h.includes('<span class="big">--</span>'));
     assert.ok(!h.includes('Score by area') && !h.includes('class="bar"'));
     assert.ok(!/0\/100|>F</.test(h) && !h.includes('0 tests') && h.includes('49 files'));
-    assert.ok(!h.includes('weighted average'));
+    assert.ok(!h.includes('weighted average') && !h.includes('share of the counted tests'));
     const t = formatText(r, { suiteName: 's' });
     assert.ok(t.includes('Not scored: 1 file has a syntax error.') && !t.includes('0/100') && !t.includes('0 tests'));
   });

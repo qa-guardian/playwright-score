@@ -1,6 +1,6 @@
 # Playwright Spec Score Methodology
 
-**Scoring model:** v4 (2026-09-23)  
+**Scoring model:** v5 (3.0.0, unreleased; v4 from 2026-09-23 until then)  
 **Package:** `playwright-score`  
 **Landing page:** https://qaguardian.com/open-source/playwright-score  
 **Maintainer:** [QA Guardian](https://qaguardian.com)  
@@ -18,11 +18,52 @@ see "Why v4" below.
 
 ## The model in one sentence
 
-**Your score is the weighted share of your tests that are clean.**
+**Your score is the share of your counted tests that are clean.**
 
 ---
 
-## How it works
+## v5: the score from test states
+
+Every test gets one state, first match wins (the JSON `testStates` list):
+`excluded-empty` (the test makes no call), `excluded-skipped` (declared
+with `skip` or `fixme`, inside a skipped `describe`, or skipped
+unconditionally by its first statement), `issue` (a certain finding in
+the test or in a hook in scope for it), `unasserted` (no assertion is
+reachable and every call was followed), `unverified` (no assertion was
+found and some call could not be followed), `clean`.
+
+```
+counted = every test except excluded-empty and excluded-skipped
+charged = issue tests, plus unasserted tests when that check is certain
+score   = round(100 x (counted - charged) / counted)
+grade   = A >=90 · B >=80 · C >=70 · D >=60 · F <60
+pass    = score >= threshold on a fully scored suite   // CLI default 80
+```
+
+- Only **certain** findings charge a test. Likely and advisory findings
+  are listed and never cost points.
+- `unverified` counts as clean and is always listed.
+- An `unasserted` test is charged only once that check is measured as
+  certain. Until then it is listed and counts as clean, and the JSON says
+  so: `summary.unassertedCharged` is `false`.
+- A finding in a shared file (a page object, a fixture, a helper) never
+  charges a test.
+- A certain finding outside every test and hook (a describe body, the
+  module top level, a spec-local `test.extend`) belongs to no test. It is
+  listed in `outsideTests` and does not change the score.
+- Every point lost names a finding or a state: an `issue` entry lists its
+  findings in `chargedBy`; `summary.countedTests` and
+  `summary.chargedTests` give the two numbers of the formula.
+- With no file found, or no counted test, the suite is `not-scored`:
+  score 0, grade F, no pass, exit code 1.
+
+The four dimensions below, `summary.cleanTests` and locator usage
+(`locators`, with `scored: false`) are still computed as before. They are
+for information and no longer feed the score.
+
+---
+
+## How it works (v4, the dimensions)
 
 ### 1. Findings are attributed to tests
 
