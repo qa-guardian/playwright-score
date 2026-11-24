@@ -360,5 +360,75 @@
     "states": [
       "unasserted"
     ]
+  },
+  "pwscore__unasserted/-/true-named-handler.ts": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-js-named-handler.js": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-member-handler.ts": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-js-member-handler.js": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/false-named-handler-assert.ts": {
+    "states": [
+      "clean",
+      "clean",
+      "excluded-skipped"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-named-handler-assert.js": {
+    "states": [
+      "clean",
+      "clean",
+      "excluded-skipped"
+    ]
+  },
+  "pwscore__unasserted/-/false-unresolved-handler.ts": {
+    "states": [
+      "unverified"
+    ],
+    "unresolved": [
+      [
+        "checkoutFlow"
+      ]
+    ]
+  },
+  "pwscore__unasserted/-/false-js-unresolved-handler.js": {
+    "states": [
+      "unverified"
+    ],
+    "unresolved": [
+      [
+        "checkoutFlow"
+      ]
+    ]
+  },
+  "pwscore__unasserted/-/false-describe-named-body.ts": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-describe-named-body.js": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-fake-runner-forward.ts": {
+    "states": []
+  },
+  "pwscore__unasserted/-/false-js-fake-runner-forward.js": {
+    "states": []
   }
 }

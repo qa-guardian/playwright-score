@@ -35,11 +35,11 @@ import { decorateFindings, type SourceTexts } from './catalogue/decorate.js';
 import { compareRefs, findingRef } from './finding-ref.js';
 import { KNOWN_PACKAGES } from './catalogue/table.js';
 import { EXPECT_BOUND_RULES, expectUse, type ExpectUse } from './expect-binding.js';
-import type { TestSpans } from './metrics.js';
+import { hasNamedCallback, type TestSpans } from './metrics.js';
 import { createEnv, type ReceiverContext } from './receiver-forms.js';
 import type { N, ScopeFile } from './rules/proof.js';
 import { strip } from './rules/scope-resolve.js';
-import { valueOf, type CalleeCtx } from './test-callees.js';
+import { valueOf, type CalleeCtx, type Val } from './test-callees.js';
 import { chain, isFunction, text, walk } from './test-syntax.js';
 import { loopFinding, loopOnlyAssertions, type LoopHit } from './rules/loop-only-assertions.js';
 import type { Finding, ScoreResult, TestState, TestStateEntry } from './types.js';
@@ -193,8 +193,11 @@ function hasAnyCall(body: N | null | undefined): boolean {
   return found;
 }
 
-function stageFile(sf: ScopeFile, rel: string, spans: TestSpans, factsOf: (sf: ScopeFile, fn: N) => Facts): Staged[] {
-  const calls = [...sf.parents.keys()].filter((n) => n.type === 'CallExpression' && functionArg(n));
+/** A test's callback: inline, or named (`test('t', handler)`, getTestSpans' hasNamedCallback) and read where it is declared. */
+const callbackArg = (call: N): N | undefined => functionArg(call) ?? (hasNamedCallback(call) ? (call.arguments as N[])[call.arguments.length - 1] : undefined);
+
+function stageFile(sf: ScopeFile, rel: string, spans: TestSpans, factsOf: (sf: ScopeFile, fn: N) => Facts, resolve: (sf: ScopeFile, n: N) => Val): Staged[] {
+  const calls = [...sf.parents.keys()].filter((n) => n.type === 'CallExpression' && callbackArg(n));
   const size = (n: N): number => n.range[1] - n.range[0];
   const describesOf = (node: N): N[] => {
     const out: N[] = [];
@@ -206,31 +209,39 @@ function stageFile(sf: ScopeFile, rel: string, spans: TestSpans, factsOf: (sf: S
     return out;
   };
   const hooks = calls
-    .filter((n) => HOOKS.has(chain(n.callee).props.slice(-1)[0] ?? (n.callee.type === 'Identifier' ? n.callee.name : '')))
+    .filter((n) => functionArg(n) && HOOKS.has(chain(n.callee).props.slice(-1)[0] ?? (n.callee.type === 'Identifier' ? n.callee.name : '')))
     .map((node) => ({ node, scope: describesOf(node)[0] as N | undefined }));
   return spans.tests.map((span, index) => {
     const entry: TestStateEntry = { file: rel, testKey: `${rel}#${index}`, line: span.startLine, state: 'unverified' };
     const node = calls.filter((n) => n.loc.start.line === span.startLine && n.loc.end.line === span.endLine && !chain(n.callee).props.includes('describe')).sort((a, b) => size(b) - size(a))[0];
-    const fn = node ? functionArg(node) : undefined;
-    if (!node || !fn) return { entry, column: 1, facts: none('(test not located)'), hooks: [] };
+    const arg = node ? callbackArg(node) : undefined;
+    if (!node || !arg) return { entry, column: 1, facts: none('(test not located)'), hooks: [] };
+    // A named callback is read where it is declared (this file or a relative import); one that does not
+    // resolve to a function leaves the test unverified, under that name.
+    const named = isFunction(arg) ? undefined : resolve(sf, arg);
+    const target = named?.k === 'fn' && isFunction(named.node) ? { sf: named.sf, fn: named.node } : named ? undefined : { sf, fn: arg };
+    const fn = target?.fn;
     const { root, props } = chain(node.callee);
     const describes = describesOf(node);
-    const first = fn.body?.type === 'BlockStatement' ? (fn.body.body[0] as N | undefined) : undefined;
+    const first = fn?.body?.type === 'BlockStatement' ? (fn.body.body[0] as N | undefined) : undefined;
     const lead = first?.type === 'ExpressionStatement' ? strip(first.expression?.type === 'AwaitExpression' ? first.expression.argument : first.expression) : undefined;
     const leadChain = lead?.type === 'CallExpression' ? chain(lead.callee) : undefined;
     // Unconditional: no argument, or a literal `true` (`test.skip(true, 'reason')`).
     const always = lead?.type === 'CallExpression' && (lead.arguments.length === 0 || strip(lead.arguments[0])?.value === true);
     const skipsFirst = !!leadChain && always && leadChain.props.length === 1 && SKIPS.includes(leadChain.props[0]) && !!root && leadChain.root?.name === root.name;
     let excluded: TestState | undefined;
-    if (!hasAnyCall(fn.body)) excluded = 'excluded-empty';
+    if (fn && !hasAnyCall(fn.body)) excluded = 'excluded-empty';
     else if (props.some((p) => SKIPS.includes(p)) || describes.some((d) => chain(d.callee).props.some((p) => SKIPS.includes(p))) || skipsFirst) excluded = 'excluded-skipped';
     const scoped = hooks.filter((h) => !h.scope || describes.includes(h.scope));
-    const facts = none();
+    const facts = target ? none() : none(text(arg));
     const parts: TestAssertions['parts'] = [];
     if (!excluded) {
-      const callbacks: Array<{ f: N; hook?: string }> = [{ f: fn }, ...scoped.map((h) => ({ f: functionArg(h.node)!, hook: chain(h.node.callee).props.slice(-1)[0] ?? text(h.node.callee) }))];
-      for (const { f, hook } of callbacks) {
-        const part = factsOf(sf, f);
+      const callbacks: Array<{ f: N; at: ScopeFile; hook?: string }> = [
+        ...(target ? [{ f: target.fn, at: target.sf }] : []),
+        ...scoped.map((h) => ({ f: functionArg(h.node)!, at: sf, hook: chain(h.node.callee).props.slice(-1)[0] ?? text(h.node.callee) })),
+      ];
+      for (const { f, at, hook } of callbacks) {
+        const part = factsOf(at, f);
         facts.asserts ||= part.asserts;
         for (const name of part.unresolved) facts.unresolved.add(name);
         parts.push({ fn: f, hook, sites: part.sites, open: part.open });
@@ -238,7 +249,8 @@ function stageFile(sf: ScopeFile, rel: string, spans: TestSpans, factsOf: (sf: S
     }
     let loops: LoopHit[] | undefined;
     try {
-      loops = excluded ? undefined : loopOnlyAssertions({ sf, parts });
+      // The N3 check reads one file's syntax tree: a callback declared in another file is not looked at.
+      loops = excluded || (target && target.sf !== sf) ? undefined : loopOnlyAssertions({ sf, parts });
     } catch {
       loops = undefined; // the N3 check never changes a state
     }
@@ -282,13 +294,15 @@ export function stageTestStates<T extends object>(result: T, input: StateInput):
         return inner.load(file);
       },
     };
-    const factsOf = analyzer({ env, boundary: ctx.importBoundary ?? ctx.filesBase, moduleResolver: ctx.moduleResolver }, mine, discounts);
+    const calleeCtx: CalleeCtx = { env, boundary: ctx.importBoundary ?? ctx.filesBase, moduleResolver: ctx.moduleResolver };
+    const factsOf = analyzer(calleeCtx, mine, discounts);
+    const resolve = (sf: ScopeFile, n: N): Val => valueOf(calleeCtx, sf, n);
     for (const rel of rels.slice(at, at + FILES_PER_ENV)) {
       const spans = fileSpans.get(rel)!;
       try {
         const sf = env.load(path.resolve(ctx.filesBase, rel));
         if (!sf) throw new Error('not parsed');
-        all.push(...stageFile(sf, rel, spans, factsOf));
+        all.push(...stageFile(sf, rel, spans, factsOf, resolve));
       } catch {
         spans.tests.forEach((span, index) =>
           all.push({ entry: { file: rel, testKey: `${rel}#${index}`, line: span.startLine, state: 'unverified' }, column: 1, facts: none('(analysis error)'), hooks: [] })

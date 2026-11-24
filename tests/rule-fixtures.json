@@ -5961,6 +5961,96 @@
    "dir": "pwscore__unasserted/-/true-typed-page-param"
   },
   {
+   "id": "unasserted/true-named-handler",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-named-handler.ts"
+  },
+  {
+   "id": "unasserted/true-js-named-handler",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-js-named-handler.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/true-member-handler",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-member-handler.ts"
+  },
+  {
+   "id": "unasserted/true-js-member-handler",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-js-member-handler.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-named-handler-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-named-handler-assert.ts"
+  },
+  {
+   "id": "unasserted/false-js-named-handler-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-named-handler-assert.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-unresolved-handler",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-unresolved-handler.ts"
+  },
+  {
+   "id": "unasserted/false-js-unresolved-handler",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-unresolved-handler.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-describe-named-body",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-describe-named-body.ts"
+  },
+  {
+   "id": "unasserted/false-js-describe-named-body",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-describe-named-body.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-fake-runner-forward",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-fake-runner-forward.ts"
+  },
+  {
+   "id": "unasserted/false-js-fake-runner-forward",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-fake-runner-forward.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
    "id": "missing-playwright-await/true-fixture-unawaited-assert",
    "rule": "playwright/missing-playwright-await",
    "verdict": "true",

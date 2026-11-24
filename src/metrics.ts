@@ -525,6 +525,32 @@ function hasFunctionArg(node: Record<string, unknown>): boolean {
   );
 }
 
+type Arg = { type?: string; computed?: boolean; object?: Arg; value?: unknown };
+
+/** `handler`, `flows.login`, `this.flows.login`: a name that can stand for a function. */
+function isNamedCallback(a: Arg | undefined): boolean {
+  for (let n = a, i = 0; n && i < 16; n = n.object, i++) {
+    if (n.type === 'Identifier' || n.type === 'ThisExpression') return n !== a || n.type === 'Identifier';
+    if (n.type !== 'MemberExpression' || n.computed) return false;
+  }
+  return false;
+}
+
+/**
+ * A test declared with a named callback: `test('t', handler)`, `test('t', flows.login)`,
+ * `test.skip('t', handler)`. The title must be a string or a template literal, so the
+ * runtime forms `test.skip(condition, reason)` and a runner forwarding
+ * `test(title, body)` stay out. Exported for the test-state step, which pairs each
+ * span with its call.
+ */
+export function hasNamedCallback(node: Record<string, unknown>): boolean {
+  const args = (node as { arguments?: Arg[] }).arguments ?? [];
+  if (args.length < 2) return false;
+  const title = args[0];
+  const titled = title?.type === 'TemplateLiteral' || (title?.type === 'Literal' && typeof title.value === 'string');
+  return titled && isNamedCallback(args[args.length - 1]);
+}
+
 /**
  * AST spans of test declarations and hooks, for attributing findings to
  * the test they actually sit in. Only calls carrying a function argument
@@ -599,7 +625,8 @@ export function getTestSpans(
       }
     }
     if (!isTest && !isHook) return;
-    if (!hasFunctionArg(node)) return;
+    // Hooks keep the inline form only; a test may name its callback (it is read where it is declared).
+    if (!hasFunctionArg(node) && !(isTest && hasNamedCallback(node))) return;
     if (isTest) tests.push(span);
     else hooks.push(span);
   });
