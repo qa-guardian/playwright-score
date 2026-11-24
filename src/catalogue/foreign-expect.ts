@@ -19,9 +19,6 @@ export const EXPECT_BOUND_RULES: readonly string[] = [
   'pwscore/assertion-passes-anyway',
 ];
 
-/** Expect-bound rules that report nothing on a proven foreign `expect` (src/passes-anyway-forms.ts removes the finding), so they have no `foreign-expect` cell. */
-export const NO_FOREIGN_CELL: readonly string[] = ['pwscore/assertion-passes-anyway'];
-
 /** Form of a finding whose `expect` or `assert` is proven to come from another assertion library. */
 export const FOREIGN_EXPECT_FORM = 'foreign-expect';
 
@@ -34,14 +31,14 @@ export const FOREIGN_EXPECT_COPY: Pick<RuleRow, 'title' | 'what' | 'why' | 'fix'
 };
 
 /**
- * Expect-bound rules with no `foreign-expect` cell (QAG-287 S7a): their finding on a proven foreign `expect` is
- * dropped, not re-formed (src/expect-binding.ts, dropForeignWithoutCell).
+ * Expect-bound rules with no `foreign-expect` cell. Their finding on a proven foreign `expect` is never reported:
+ * `no-floating-callback-assertion`'s is dropped, not re-formed (src/expect-binding.ts, dropForeignWithoutCell), and
+ * `assertion-passes-anyway` reports nothing there (src/passes-anyway-forms.ts removes the finding).
  */
-export const NO_FOREIGN_EXPECT_CELL: readonly string[] = ['pwscore/no-floating-callback-assertion'];
+export const NO_FOREIGN_EXPECT_CELL: readonly string[] = ['pwscore/no-floating-callback-assertion', 'pwscore/assertion-passes-anyway'];
 
 /** The `foreign-expect` cell of every expect-bound rule that has a row: the rule's first row with the neutral copy, advisory by design. */
 export const foreignExpectRows: readonly RuleRow[] = EXPECT_BOUND_RULES.filter((rule) => !NO_FOREIGN_EXPECT_CELL.includes(rule)).flatMap((rule) => {
-  if (NO_FOREIGN_CELL.includes(rule)) return [];
   const base = [...passesRegardlessRows, ...flakeRiskRows].find((r) => r.rule === rule);
   if (!base) return [];
   // Not `onShared`: a foreign assertion in a shared file is never reported.
