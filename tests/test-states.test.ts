@@ -90,7 +90,7 @@ describe('QAG-287 S12: test states', () => {
     const strip = (r: ScoreResult) => ({
       ...r,
       testStates: undefined,
-      findings: r.findings.filter((f) => f.rule !== UNASSERTED_RULE && f.rule !== 'pwscore/loop-only-assertions'),
+      findings: r.findings.filter((f) => f.rule !== UNASSERTED_RULE && f.rule !== 'pwscore/loop-only-assertions' && f.rule !== 'pwscore/negative-only-test'),
       summary: { ...r.summary, unassertedTests: 0, countedTests: undefined, chargedTests: undefined, unassertedCharged: undefined },
       scoreVersion: undefined,
       score: undefined,

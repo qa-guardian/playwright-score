@@ -642,6 +642,102 @@
    "pending": null
   },
   {
+   "id": "negative-only-test/false-count-after-positive",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/false-js-positive-in-hook",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/false-negated-visible-false",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/false-no-action-first",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/false-not-to-have-text",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/false-positive-assertion",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/false-to-have-url",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/false-visible-true-option",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/false-wait-for-url",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-action-in-before-each",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-alias-attached-false",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-alias-count-zero",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-alias-hidden",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-alias-not-visible",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-attached-false",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-count-zero",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-hidden",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-js-count-zero",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-js-hidden",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-js-not-attached",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-js-not-visible",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-not-attached",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-not-visible",
+   "pending": null
+  },
+  {
+   "id": "negative-only-test/true-visible-false",
+   "pending": null
+  },
+  {
    "id": "no-brittle-selector/false-role-and-test-id",
    "pending": null
   },

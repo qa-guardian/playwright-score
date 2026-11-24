@@ -27,7 +27,8 @@
  * Callees are resolved by src/test-callees.ts (syntax helpers in src/test-syntax.ts).
  * N3: while a file's tree is alive, each counted test's assertion sites and in-scope hooks are
  * handed to src/rules/loop-only-assertions.ts (`TestAssertions`); its report-only findings are
- * added in `settleTestStates`.
+ * added in `settleTestStates`. N4: the same view, with the resolver's probe, goes to
+ * src/rules/negative-only-test.ts; a `clean` or `issue` test it accepts gets one report-only finding.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -42,6 +43,7 @@ import { strip } from './rules/scope-resolve.js';
 import { valueOf, type CalleeCtx } from './test-callees.js';
 import { chain, isFunction, text, walk } from './test-syntax.js';
 import { loopFinding, loopOnlyAssertions, type LoopHit } from './rules/loop-only-assertions.js';
+import { negativeOnlyFinding, negativeOnlyTest } from './rules/negative-only-test.js';
 import type { Finding, ScoreResult, TestState, TestStateEntry } from './types.js';
 
 /** Switch for the unit test that compares a run with the step on and off. */
@@ -80,6 +82,7 @@ interface Staged {
   /** Line spans of the hooks in scope for the test. */
   hooks: Array<[number, number]>;
   loops?: LoopHit[];
+  negativeOnly?: boolean;
 }
 export interface StateInput {
   ctx: ReceiverContext;
@@ -172,7 +175,7 @@ function analyzer(c: CalleeCtx, ctx: ReceiverContext, discounts: ReadonlyMap<str
     memo.set(fn, out);
     return out;
   }
-  return factsOf;
+  return Object.assign(factsOf, { probe: { use: useOf, callee: (sf: ScopeFile, n: N) => valueOf(c, sf, n) } });
 }
 
 /** Is there a call below this callee (`expect(x)` below `.toBe`)? */
@@ -193,7 +196,7 @@ function hasAnyCall(body: N | null | undefined): boolean {
   return found;
 }
 
-function stageFile(sf: ScopeFile, rel: string, spans: TestSpans, factsOf: (sf: ScopeFile, fn: N) => Facts): Staged[] {
+function stageFile(sf: ScopeFile, rel: string, spans: TestSpans, factsOf: ReturnType<typeof analyzer>): Staged[] {
   const calls = [...sf.parents.keys()].filter((n) => n.type === 'CallExpression' && functionArg(n));
   const size = (n: N): number => n.range[1] - n.range[0];
   const describesOf = (node: N): N[] => {
@@ -242,7 +245,13 @@ function stageFile(sf: ScopeFile, rel: string, spans: TestSpans, factsOf: (sf: S
     } catch {
       loops = undefined; // the N3 check never changes a state
     }
-    return { entry, column: node.loc.start.column + 1, excluded, facts, hooks: scoped.map((h) => [h.node.loc.start.line, h.node.loc.end.line] as [number, number]), loops };
+    let negativeOnly = false;
+    try {
+      negativeOnly = !excluded && negativeOnlyTest({ sf, parts }, factsOf.probe);
+    } catch {
+      negativeOnly = false; // nor does the N4 check
+    }
+    return { entry, column: node.loc.start.column + 1, excluded, facts, hooks: scoped.map((h) => [h.node.loc.start.line, h.node.loc.end.line] as [number, number]), loops, negativeOnly };
   });
 }
 
@@ -309,6 +318,7 @@ export function settleTestStates(result: ScoreResult, texts?: SourceTexts): void
   if (!testStates.enabled) return;
   const added: Finding[] = [];
   const loops = new Map<string, Finding>();
+  const negatives: Finding[] = [];
   // A spec-cell finding: scope `test` or `hook` (a shared-file finding has scope `shared` and never charges a test).
   const certain = result.findings.filter((f) => f.tier === 'certain' && f.line !== undefined);
   const entries = (staged.get(result) ?? []).map((s) => {
@@ -322,6 +332,7 @@ export function settleTestStates(result: ScoreResult, texts?: SourceTexts): void
       const key = `${entry.file}:${hit.line}:${hit.column}`;
       if (!loops.has(key)) loops.set(key, loopFinding(entry, hit));
     }
+    if (s.negativeOnly && (entry.state === 'clean' || entry.state === 'issue')) negatives.push(negativeOnlyFinding(entry, s.column));
     if (entry.state === 'unasserted') {
       added.push({
         rule: UNASSERTED_RULE,
@@ -341,7 +352,7 @@ export function settleTestStates(result: ScoreResult, texts?: SourceTexts): void
   entries.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : a.line - b.line));
   result.testStates = entries;
   result.summary.unassertedTests = added.length;
-  added.push(...loops.values());
+  added.push(...loops.values(), ...negatives);
   decorateFindings(added, result.baseDir, texts);
   result.findings.push(...added);
 }

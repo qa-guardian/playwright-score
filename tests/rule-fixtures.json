@@ -324,6 +324,10 @@
   {
    "rule": "pwscore/loop-only-assertions",
    "form": "-"
+  },
+  {
+   "rule": "pwscore/negative-only-test",
+   "form": "-"
   }
  ],
  "fixtures": [
@@ -9205,6 +9209,177 @@
    "tags": [
     "js"
    ]
+  },
+  {
+   "id": "negative-only-test/false-count-after-positive",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "false",
+   "entry": "pwscore__negative-only-test/-/false-count-after-positive.ts"
+  },
+  {
+   "id": "negative-only-test/false-js-positive-in-hook",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "false",
+   "entry": "pwscore__negative-only-test/-/false-js-positive-in-hook.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "negative-only-test/false-negated-visible-false",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "false",
+   "entry": "pwscore__negative-only-test/-/false-negated-visible-false.ts"
+  },
+  {
+   "id": "negative-only-test/false-no-action-first",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "false",
+   "entry": "pwscore__negative-only-test/-/false-no-action-first.ts"
+  },
+  {
+   "id": "negative-only-test/false-not-to-have-text",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "false",
+   "entry": "pwscore__negative-only-test/-/false-not-to-have-text.ts"
+  },
+  {
+   "id": "negative-only-test/false-positive-assertion",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "false",
+   "entry": "pwscore__negative-only-test/-/false-positive-assertion.ts"
+  },
+  {
+   "id": "negative-only-test/false-to-have-url",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "false",
+   "entry": "pwscore__negative-only-test/-/false-to-have-url.ts"
+  },
+  {
+   "id": "negative-only-test/false-visible-true-option",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "false",
+   "entry": "pwscore__negative-only-test/-/false-visible-true-option.ts"
+  },
+  {
+   "id": "negative-only-test/false-wait-for-url",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "false",
+   "entry": "pwscore__negative-only-test/-/false-wait-for-url.ts"
+  },
+  {
+   "id": "negative-only-test/true-action-in-before-each",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-action-in-before-each.ts"
+  },
+  {
+   "id": "negative-only-test/true-alias-attached-false",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-alias-attached-false.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "negative-only-test/true-alias-count-zero",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-alias-count-zero.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "negative-only-test/true-alias-hidden",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-alias-hidden.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "negative-only-test/true-alias-not-visible",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-alias-not-visible.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "negative-only-test/true-attached-false",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-attached-false.ts"
+  },
+  {
+   "id": "negative-only-test/true-count-zero",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-count-zero.ts"
+  },
+  {
+   "id": "negative-only-test/true-hidden",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-hidden.ts"
+  },
+  {
+   "id": "negative-only-test/true-js-count-zero",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-js-count-zero.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "negative-only-test/true-js-hidden",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-js-hidden.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "negative-only-test/true-js-not-attached",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-js-not-attached.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "negative-only-test/true-js-not-visible",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-js-not-visible.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "negative-only-test/true-not-attached",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-not-attached.ts"
+  },
+  {
+   "id": "negative-only-test/true-not-visible",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-not-visible.ts"
+  },
+  {
+   "id": "negative-only-test/true-visible-false",
+   "rule": "pwscore/negative-only-test",
+   "verdict": "true",
+   "entry": "pwscore__negative-only-test/-/true-visible-false.ts"
   }
  ]
 }
