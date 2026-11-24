@@ -78,16 +78,34 @@ export function memberName(callee: N | undefined): string | undefined {
   return callee.property?.type === 'Identifier' ? callee.property.name : undefined;
 }
 
-/** `expect(...)`, `expect.soft(...)`, `expect.poll(...)`. */
-export function isExpectCall(node: N | undefined): boolean {
+const NO_ALIASES: ReadonlySet<string> = new Set();
+
+/**
+ * The names a rule reads as `expect` besides `expect` itself (QAG-287 S4b.2): the
+ * `const` aliases of Playwright's expect that the file proves (src/expect-alias.ts).
+ * Only the alias lint pass sets them, in `settings.playwright.globalAliases.expect`;
+ * every other lint has none.
+ */
+export function expectAliasNames(context: { settings?: unknown }): ReadonlySet<string> {
+  const list = (context.settings as { playwright?: { globalAliases?: { expect?: unknown } } } | undefined)?.playwright?.globalAliases?.expect;
+  return Array.isArray(list) ? new Set(list.filter((n): n is string => typeof n === 'string')) : NO_ALIASES;
+}
+
+/** `expect`, or one of the alias names given. */
+export function isExpectName(name: unknown, aliases?: ReadonlySet<string>): boolean {
+  return name === 'expect' || (typeof name === 'string' && aliases !== undefined && aliases.has(name));
+}
+
+/** `expect(...)`, `expect.soft(...)`, `expect.poll(...)`; with `aliases`, also through one of those names. */
+export function isExpectCall(node: N | undefined, aliases?: ReadonlySet<string>): boolean {
   if (!node || node.type !== 'CallExpression') return false;
   const c = node.callee;
-  if (c?.type === 'Identifier' && c.name === 'expect') return true;
+  if (c?.type === 'Identifier' && isExpectName(c.name, aliases)) return true;
   return (
     c?.type === 'MemberExpression' &&
     !c.computed &&
     c.object?.type === 'Identifier' &&
-    c.object.name === 'expect' &&
+    isExpectName(c.object.name, aliases) &&
     (c.property?.name === 'soft' || c.property?.name === 'poll')
   );
 }
@@ -99,8 +117,8 @@ export interface MatcherChain {
   call: N;
 }
 
-/** If `call` is `expect(x).[not.]matcher(...)`, describe it. */
-export function parseMatcherCall(call: N): MatcherChain | undefined {
+/** If `call` is `expect(x).[not.]matcher(...)`, describe it (`aliases`: see isExpectCall). */
+export function parseMatcherCall(call: N, aliases?: ReadonlySet<string>): MatcherChain | undefined {
   if (call.type !== 'CallExpression') return undefined;
   const matcher = memberName(call.callee);
   if (!matcher) return undefined;
@@ -110,7 +128,7 @@ export function parseMatcherCall(call: N): MatcherChain | undefined {
     modifiers.push(obj.property.name ?? '');
     obj = obj.object;
   }
-  if (!obj || !isExpectCall(obj)) return undefined;
+  if (!obj || !isExpectCall(obj, aliases)) return undefined;
   if (!modifiers.every((m) => m === 'not' || m === 'resolves' || m === 'rejects')) return undefined;
   return { expectCall: obj, matcher, modifiers, call };
 }

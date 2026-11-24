@@ -61,7 +61,7 @@ function propertyName(callee: N): string | undefined {
 const callIndex = new WeakMap<ScopeFile, Map<string, N[]>>();
 
 /** Calls of one of `methods` that start at the reported position. The rules report the call, or its callee, which starts where the receiver starts. */
-function reportedCalls(sf: ScopeFile, line: number, column: number, methods: readonly string[]): N[] {
+export function reportedCalls(sf: ScopeFile, line: number, column: number, methods: readonly string[]): N[] {
   let index = callIndex.get(sf);
   if (!index) {
     index = new Map();

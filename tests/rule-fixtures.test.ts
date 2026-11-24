@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scorePaths } from '../src/index.js';
@@ -38,6 +39,8 @@ interface Fixture {
   profile?: string;
   /** The shape is reported and must never be certain (a `void`-ed expect, S4b): the fixture is judged on the certain tier only. */
   tierAtMost?: 'likely';
+  /** The shape is still reported, in this advisory form of the rule (S3c): the fixture is FALSE for its own cell and must be reported in exactly this form. */
+  movedTo?: string;
   note?: string;
 }
 interface Manifest {
@@ -88,7 +91,7 @@ const MIN_OTHER = 1;
 /** Catalogue rules the runner keeps switched off on purpose; the test below checks that it still does. */
 const NOT_ENABLED = ['playwright/require-top-level-describe'];
 /** Slices already closed: a fixture cannot wait for them (ADR 0.E E-3). Add a slice here when it lands. */
-const LANDED = ['S1', 'S2', 'S3', 'S3b', 'S7c', 'S6b'];
+const LANDED = ['S1', 'S2', 'S3', 'S3b', 'S3c', 'S4a', 'S4b', 'S7c', 'S6b'];
 const isPending = (f: Fixture): boolean => f.pending !== undefined;
 
 function allFiles(dir: string, base = dir): string[] {
@@ -256,7 +259,12 @@ async function probeFixture(f: Fixture): Promise<Probe & { parseError: boolean; 
   const formScoped = f.verdict === 'false' && f.form !== undefined && f.form !== '-';
   const ofCell = result.findings.filter((x) => norm(x.rule) === target && (!formScoped || x.form === f.form || x.form === undefined));
   if (f.tierAtMost && ofCell.length === 0) throw new Error(`${f.id}: a fixture judged on its tier must be reported`);
-  const mine = f.tierAtMost ? ofCell.filter((x) => x.tier === 'certain') : ofCell;
+  if (f.movedTo) {
+    const moved = ofCell.filter((x) => x.form === f.movedTo);
+    if (moved.length === 0) throw new Error(`${f.id}: the finding must still be reported, with form ${f.movedTo}`);
+    if (moved.some((x) => x.tier !== 'advisory')) throw new Error(`${f.id}: a finding of form ${f.movedTo} must be advisory`);
+  }
+  const mine = f.tierAtMost ? ofCell.filter((x) => x.tier === 'certain') : f.movedTo ? ofCell.filter((x) => x.form !== f.movedTo) : ofCell;
   return {
     fires: mine.length > 0,
     formSeen: mine.map((x) => x.form).filter((x): x is string => typeof x === 'string'),
@@ -307,22 +315,71 @@ describe('QAG-287 S3: fixture manifest', () => {
 
   it('pending marks only name slices of the plan', () => {
     const pending = new Set(manifest.fixtures.filter(isPending).map((f) => f.pending));
-    const known = new Set(['S3c', 'S4a', 'S4b', 'S7a', 'S7b']);
+    const known = new Set(['S4a', 'S4b', 'S7a', 'S7b']);
     for (const p of pending) assert.ok(known.has(p as string), `unknown pending slice ${p}`);
   });
 
   it('keeps the fixture shapes the ADR names as pending, with their slice', () => {
     const want: Array<[string, string]> = [
-      ['true-aliased-page', 'S4a'],
-      ['true-renamed-expect-const', 'S4b'],
       ['true-foreach-async', 'S7a'],
       ['true-not-catch-chain', 'S7b'],
-      ['false-api-under-test', 'S3c'],
     ];
     for (const [prefix, slice] of want) {
       const hit = manifest.fixtures.filter((f) => path.posix.basename(f.dir ?? f.entry).startsWith(prefix) || f.id.split('/')[1]?.startsWith(prefix));
       assert.ok(hit.length > 0, `no fixture named ${prefix}-*`);
       for (const f of hit) assert.equal(f.pending, slice, `${f.id} should be pending ${slice}`);
+    }
+  });
+});
+
+describe('QAG-287 S3c: the api-under-test fixtures are live', () => {
+  const FIVE = ['playwright/no-networkidle', 'playwright/no-wait-for-selector', 'playwright/no-wait-for-navigation', 'playwright/no-element-handle', 'playwright/no-page-pause'];
+  const PROJECTS = ['engine-named-package', 'lockfile-link-only'];
+
+  it('each of the five rules has, per Playwright project, a FALSE fixture of its own cell that moves and a TRUE fixture of the api-under-test cell', () => {
+    for (const rule of FIVE) {
+      for (const project of PROJECTS) {
+        const here = manifest.fixtures.filter((f) => f.rule === rule && f.dir === `_projects/${project}`);
+        const gone = here.filter((f) => f.verdict === 'false' && f.form === undefined);
+        assert.equal(gone.length, 1, `${rule} ${project}`);
+        assert.deepEqual([gone[0].pending, gone[0].movedTo, (gone[0].tags ?? []).includes('g10:api-under-test')], [undefined, 'api-under-test', true], gone[0].id);
+        assert.equal(here.filter((f) => f.verdict === 'true' && f.form === 'api-under-test' && !isPending(f)).length, 1, `${rule} ${project}`);
+      }
+      const customer = manifest.fixtures.filter((f) => f.rule === rule && f.dir === '_projects/customer-registry-deps' && !isPending(f));
+      assert.deepEqual(customer.map((f) => `${f.verdict}:${f.form}`).sort(), ['false:api-under-test', 'true:-'], rule);
+    }
+    assert.equal(manifest.fixtures.filter((f) => f.pending === 'S3c').length, 0);
+  });
+
+  it('every project has a TS and a JS spec', () => {
+    for (const project of [...PROJECTS, 'customer-registry-deps', 'engine-unresolved-receiver']) {
+      const files = allFiles(path.join(fixtureRoot, '_projects', project, 'tests'));
+      assert.ok(files.some((p) => p.endsWith('.ts')) && files.some((p) => p.endsWith('.js')), project);
+    }
+  });
+
+  it('a fixture whose finding moves fails when the finding is dropped, keeps its form, or is not advisory', async () => {
+    const moved = manifest.fixtures.find((f) => f.movedTo === 'api-under-test' && f.rule === 'playwright/no-page-pause')!;
+    assert.equal(judge(moved, await probeFixture(moved)), null);
+    await assert.rejects(probeFixture({ ...moved, movedTo: 'no-such-form' }), /must still be reported/);
+    const customer = { ...moved, entry: '_projects/customer-registry-deps/tests', dir: '_projects/customer-registry-deps' };
+    await assert.rejects(probeFixture(customer), /must still be reported/, 'in a customer project the finding keeps form -');
+    assert.equal((await probeFixture({ ...customer, movedTo: undefined })).fires, true);
+  });
+
+  it('precedence: the api-under-test fixture over an unproven receiver is reported as api-under-test only', async () => {
+    const f = manifest.fixtures.find((x) => x.id === 'no-page-pause/api-under-test-true-over-unresolved-receiver')!;
+    const probe = await probeFixture(f);
+    assert.deepEqual([...new Set(probe.formSeen)], ['api-under-test']);
+    assert.equal(probe.formSeen.length, 2, 'the TS and the JS spec');
+    // The same files in a directory with no Playwright manifest: the receiver is not proven, so the form is unresolved.
+    const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-s3c-'));
+    try {
+      fs.cpSync(path.join(fixtureRoot, f.entry), path.join(copy, 'tests'), { recursive: true });
+      const result = await scorePaths({ paths: [path.join(copy, 'tests')], profile: 'standard', threshold: 0, cwd: copy });
+      assert.deepEqual(result.findings.filter((x) => x.rule === f.rule).map((x) => x.form), ['unresolved', 'unresolved']);
+    } finally {
+      fs.rmSync(copy, { recursive: true, force: true });
     }
   });
 });

@@ -16,7 +16,7 @@
  * dropped by eslint-runner in favour of this message.
  */
 import type { Rule } from 'eslint';
-import { isPlaywrightReceiver, memberName, parseMatcherCall, resolveConstInit, type N } from './ast-util.js';
+import { expectAliasNames, isPlaywrightReceiver, memberName, parseMatcherCall, resolveConstInit, type N } from './ast-util.js';
 
 export const PROMISE_METHODS = new Set([
   'innerText', 'innerHTML', 'textContent', 'inputValue', 'getAttribute', 'isVisible', 'isHidden',
@@ -37,6 +37,7 @@ export const noUnawaitedExpectValue: Rule.RuleModule = {
     schema: [],
   },
   create(context) {
+    const aliases = expectAliasNames(context);
     function bareCall(n0: N | undefined): string | undefined {
       // `const t = page.title(); expect(t)...`: a const initialised from an un-awaited call.
       const n = n0?.type === 'Identifier' ? resolveConstInit(context, n0) : n0;
@@ -48,7 +49,7 @@ export const noUnawaitedExpectValue: Rule.RuleModule = {
     return {
       CallExpression(raw) {
         const node = raw as unknown as N;
-        const m = parseMatcherCall(node);
+        const m = parseMatcherCall(node, aliases);
         if (!m || m.modifiers.some((x) => x === 'resolves' || x === 'rejects')) return;
         if (WEB_FIRST.test(m.matcher)) return;
         const isPoll = m.expectCall.callee?.type === 'MemberExpression' && m.expectCall.callee.property?.name === 'poll';

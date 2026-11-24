@@ -11,6 +11,7 @@ import { noFixmeTest } from './no-fixme-test.js';
 import { noSwallowedAssertion } from './no-swallowed-assertion.js';
 import { noWeakAssertion } from './no-weak-assertion.js';
 import { noUnawaitedExpectValue } from './no-unawaited-expect-value.js';
+import { expectAliasNames, isExpectName } from './ast-util.js';
 
 type Node = {
   type: string;
@@ -886,16 +887,16 @@ function matcherAlwaysPasses(
   }
 }
 
-/** `expect(...)` / `expect.soft(...)` / `expect.poll(...)`. */
-function isExpectCallNode(node: Node | undefined): boolean {
+/** `expect(...)` / `expect.soft(...)` / `expect.poll(...)`; with `aliases`, also through one of those names (S4b.2). */
+function isExpectCallNode(node: Node | undefined, aliases?: ReadonlySet<string>): boolean {
   if (!node || node.type !== 'CallExpression') return false;
   const callee = node.callee;
-  if (callee?.type === 'Identifier' && callee.name === 'expect') return true;
+  if (callee?.type === 'Identifier' && isExpectName(callee.name, aliases)) return true;
   return (
     callee?.type === 'MemberExpression' &&
     !callee.computed &&
     callee.object?.type === 'Identifier' &&
-    callee.object.name === 'expect' &&
+    isExpectName(callee.object.name, aliases) &&
     callee.property?.type === 'Identifier' &&
     (callee.property.name === 'soft' || callee.property.name === 'poll')
   );
@@ -907,21 +908,21 @@ function isExpectCallNode(node: Node | undefined): boolean {
  * subject and expected value may be literals or `const` bindings of literals
  * within the enclosing function.
  */
-function constAssertionOutcome(context: Rule.RuleContext, node: Node): boolean | undefined {
+function constAssertionOutcome(context: Rule.RuleContext, node: Node, aliases?: ReadonlySet<string>): boolean | undefined {
   const callee = node.callee;
   if (!callee || callee.type !== 'MemberExpression' || callee.computed) return undefined;
   const matcherName = callee.property?.type === 'Identifier' ? callee.property.name : undefined;
   if (!matcherName) return undefined;
   let expectCall: Node | undefined;
   let hasNot = false;
-  if (isExpectCallNode(callee.object)) {
+  if (isExpectCallNode(callee.object, aliases)) {
     expectCall = callee.object;
   } else if (
     callee.object?.type === 'MemberExpression' &&
     !callee.object.computed &&
     callee.object.property?.type === 'Identifier' &&
     callee.object.property.name === 'not' &&
-    isExpectCallNode(callee.object.object)
+    isExpectCallNode(callee.object.object, aliases)
   ) {
     expectCall = callee.object.object;
     hasNot = true;
@@ -1067,6 +1068,7 @@ const noTrivialAssertion: Rule.RuleModule = {
     schema: [],
   },
   create(context) {
+    const aliases = expectAliasNames(context);
     return {
       CallExpression(node: Node) {
         const callee = node.callee;
@@ -1074,14 +1076,14 @@ const noTrivialAssertion: Rule.RuleModule = {
         const matcherName = callee.property?.type === 'Identifier' ? callee.property.name : undefined;
         if (!matcherName) return;
 
-        const expectCall = isExpectCallNode(callee.object)
+        const expectCall = isExpectCallNode(callee.object, aliases)
           ? callee.object
-          : callee.object?.type === 'MemberExpression' && isExpectCallNode(callee.object.object)
+          : callee.object?.type === 'MemberExpression' && isExpectCallNode(callee.object.object, aliases)
             ? callee.object.object
             : undefined;
         if (!expectCall) return;
 
-        const alwaysPasses = constAssertionOutcome(context, node);
+        const alwaysPasses = constAssertionOutcome(context, node, aliases);
         if (alwaysPasses === undefined) return;
 
         if (alwaysPasses) {

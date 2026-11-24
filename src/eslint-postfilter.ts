@@ -1,4 +1,6 @@
 import { parseAst } from './parse-cache.js';
+import { isExpectName } from './rules/ast-util.js';
+import { matcherlessForm } from './use-forms.js';
 import type { Severity } from './types.js';
 
 // QAG-287 slice F: AST post-filters for upstream eslint-plugin-playwright
@@ -483,16 +485,16 @@ function conditionIsLive(t: Tree, cond: N, awaited: () => Set<string>): boolean 
  * retried as a whole, so reading a value and asserting on it is the retrying
  * form already.
  */
-export function insideRetryingBlock(t: Tree, node: N): boolean {
+export function insideRetryingBlock(t: Tree, node: N, aliases?: ReadonlySet<string>): boolean {
   let cur: N | undefined = t.parent(node);
   let child: N = node;
   while (cur) {
     if (cur.type === 'CallExpression' && (cur.arguments as N[]).includes(child) && isFunction(child)) {
       const callee = cur.callee as N;
-      if (callee.type === 'MemberExpression' && callee.object?.name === 'expect' && callee.property?.name === 'poll') {
+      if (callee.type === 'MemberExpression' && isExpectName(callee.object?.name, aliases) && callee.property?.name === 'poll') {
         return true;
       }
-      if (callee.type === 'Identifier' && callee.name === 'expect') {
+      if (callee.type === 'Identifier' && isExpectName(callee.name, aliases)) {
         const outer = t.parent(cur);
         if (outer?.type === 'MemberExpression' && outer.object === cur && outer.property?.name === 'toPass') return true;
       }
@@ -625,7 +627,7 @@ function receiverIsNotPage(t: Tree, node: N): boolean {
  * assertion when the chain starts at `expect`, goes through `.step`, or ends
  * in a `to...` matcher or `.poll`; any other chain is an action.
  */
-function missingAwaitForm(t: Tree, node: N): 'assertion' | 'action' {
+function missingAwaitForm(t: Tree, node: N, aliases?: ReadonlySet<string>): 'assertion' | 'action' {
   const names: string[] = [];
   let cur: N | undefined = t.chainTop(node);
   let last: string | undefined;
@@ -641,7 +643,7 @@ function missingAwaitForm(t: Tree, node: N): 'assertion' | 'action' {
     else break;
   }
   const root = cur && cur.type === 'Identifier' ? (cur.name as string) : undefined;
-  if (root === 'expect' || names[0] === 'step' || names.includes('poll')) return 'assertion';
+  if (isExpectName(root, aliases) || names[0] === 'step' || names.includes('poll')) return 'assertion';
   return last !== undefined && /^to[A-Z]/.test(last) ? 'assertion' : 'action';
 }
 
@@ -668,8 +670,11 @@ function parse(source: string, file: string): Tree | undefined {
   }
 }
 
-/** Parses lazily, once per file; a file that does not parse gets no decisions (all findings kept). */
-export function createPostFilter(source: () => string, file: string): PostFilter {
+/**
+ * Parses lazily, once per file; a file that does not parse gets no decisions (all findings kept).
+ * `aliases`: the names the alias lint pass reads as `expect` in this file (S4b.2, src/expect-alias.ts).
+ */
+export function createPostFilter(source: () => string, file: string, aliases?: ReadonlySet<string>): PostFilter {
   let tree: Tree | undefined;
   let tried = false;
   let awaited: Set<string> | undefined;
@@ -708,7 +713,7 @@ export function createPostFilter(source: () => string, file: string): PostFilter
       case 'playwright/no-wait-for-selector':
         return waitIsSwallowed(tree, node) ? { severity: 'error' } : undefined;
       case 'playwright/prefer-web-first-assertions':
-        return insideRetryingBlock(tree, node) ? { drop: true } : undefined;
+        return insideRetryingBlock(tree, node, aliases) ? { drop: true } : undefined;
       case 'playwright/missing-playwright-await':
         return collectedAndAwaited(tree, node) ? { drop: true } : undefined;
       case 'playwright/no-conditional-expect':
@@ -719,12 +724,17 @@ export function createPostFilter(source: () => string, file: string): PostFilter
   };
   const formOf = (msg: PostFilterMessage): string | undefined => {
     switch (msg.ruleId) {
-      case 'playwright/valid-expect':
-        return msg.messageId === 'matcherNotFound' || msg.messageId === 'matcherNotCalled' ? 'matcherless' : 'other';
+      case 'playwright/valid-expect': {
+        if (msg.messageId !== 'matcherNotFound' && msg.messageId !== 'matcherNotCalled') return 'other';
+        // QAG-287 B3b: a matcherless expect that is returned, assigned, passed on or stored is `escaped`.
+        const t = ensureTree();
+        const node = t?.nodeAt(msg.line, msg.column);
+        return t && node ? matcherlessForm(t, node) : 'matcherless';
+      }
       case 'playwright/missing-playwright-await': {
         const t = ensureTree();
         const node = t?.nodeAt(msg.line, msg.column);
-        return t && node ? missingAwaitForm(t, node) : undefined;
+        return t && node ? missingAwaitForm(t, node, aliases) : undefined;
       }
       default:
         return undefined;

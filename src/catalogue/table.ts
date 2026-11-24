@@ -6,6 +6,9 @@ import { suiteRows } from './suite.js';
 import { maintainabilityRows } from './maintainability.js';
 import { receiverUnresolvedRows } from './receiver-unresolved.js';
 import { foreignExpectRows } from './foreign-expect.js';
+import { apiUnderTestRows } from './api-under-test.js';
+import { locatorHandleRows } from './locator-handle.js';
+import { useFormRows } from './use-forms.js';
 import { readCatalogueJson } from './data.js';
 
 export type { Basis, CellStats, Design, Evidence, Family, RuleRow, Tier, VerdictCounts } from './types.js';
@@ -21,6 +24,9 @@ export const ROWS: readonly RuleRow[] = [
   ...maintainabilityRows,
   ...receiverUnresolvedRows,
   ...foreignExpectRows,
+  ...apiUnderTestRows,
+  ...locatorHandleRows,
+  ...useFormRows,
 ];
 
 const byCell = new Map<string, RuleRow>();
