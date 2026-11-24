@@ -240,10 +240,13 @@ export function createAnalyzer(
       const m = analyzeSource(source, rel, testAliasNames, file);
       result.metricFindings.push(...m.findings);
       const spans = getTestSpans(source, file, testAliasNames);
-      // AST spans are the authoritative test count (they are also the
-      // attribution targets); the regex count is the fallback for a file
-      // whose syntax tree shows no test declaration.
-      const tests = spans.tests.length > 0 ? spans.tests.length : m.tests;
+      // The syntax tree's test declarations are the test count: they are the
+      // attribution targets, and each gets one test state (test-states.ts).
+      // A parse error was skipped above, so a file whose tree shows no test
+      // declares none. No text count: `\btest\s*\(` also matches a function
+      // named `test` (a fake runner) or `/re/.test(s)`, and such a "test"
+      // had no state while summary.tests counted it.
+      const tests = spans.tests.length;
       result.facts.push({ rel, sloc: m.sloc, tests, native: m.locators.native, raw: m.locators.raw, spans });
       heapCheckpoint();
     }

@@ -125,6 +125,28 @@ describe('QAG-287 S12: test states', () => {
     assert.ok(added >= 15, 'the fixtures do add findings with the step on');
   });
 
+  it('one run over a spec and its fake runner counts as many tests as it has states', async () => {
+    // runner.ts / runner.js declare `function test(title, body)`: text a regex reads as a test call,
+    // but no test. Named on the command line, the runner is a scored file of its own.
+    for (const dir of ['playwright__no-wait-for-selector/-/true-b22-pin-require-cache', 'playwright__no-wait-for-selector/-/true-b22-js-pin-wrapper-arguments']) {
+      const files = fs.readdirSync(path.join(cells, dir)).sort().map((f) => path.join(cells, dir, f));
+      const r = await scorePaths({ paths: files, profile: 'standard', threshold: 0, cwd: cells });
+      assert.equal(r.summary.files, 3, dir);
+      assert.deepEqual((r.testStates ?? []).map((s) => path.basename(s.file)), [files.find((f) => f.includes('.spec.'))!.split(path.sep).pop()], dir);
+      assert.equal(r.summary.tests, 1, dir);
+      assert.equal(r.coverage?.testsCounted, 1, dir);
+    }
+  });
+
+  it('a fake runner scored alone declares no test', async () => {
+    const file = path.join(cells, 'playwright__no-wait-for-selector/-/true-b22-pin-require-cache/runner.ts');
+    const r = await scorePaths({ paths: [file], profile: 'standard', threshold: 0, cwd: cells });
+    assert.equal(r.summary.tests, 0);
+    assert.deepEqual(r.testStates ?? [], []);
+    assert.equal(r.status, 'not-scored');
+    assert.equal(r.reason, 'no-counted-tests');
+  });
+
   it('the catalogue cell is report-only and not certain', () => {
     const row = defaultRow(UNASSERTED_RULE);
     assert.ok(row);
