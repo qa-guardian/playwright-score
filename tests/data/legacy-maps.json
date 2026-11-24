@@ -468,6 +468,14 @@
     "fix": "Use await expect(locator).toBeVisible() or toBeHidden(), which waits for the state and fails the test when it is wrong."
    },
    "conf": "medium"
+  },
+  "pwscore/loop-only-assertions": {
+   "copy": {
+    "title": "Assertions only inside a loop over a list",
+    "why": "locator.all() does not wait for elements: it returns whatever is on the page at that moment. If the list is empty, the loop runs zero times, nothing is checked and the test passes.",
+    "fix": "Before the loop, assert the list itself, for example await expect(items).toHaveCount(3) or await expect(items.first()).toBeVisible()."
+   },
+   "conf": null
   }
  }
 }
