@@ -609,6 +609,8 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   settleExpectBinding(result.findings);
   // QAG-287 S12: one state per test; adds the report-only pwscore/unasserted findings.
   settleTestStates(result, texts);
+  // summary.findings counts every listed finding, the report-only ones the states add included.
+  result.summary.findings = result.findings.length;
   // QAG-287 S9a: score model v5, the share of counted tests that are clean, from those states.
   applyStateScore(result);
   settleQuotable(result.findings);

@@ -51,6 +51,7 @@ describe('QAG-287 S12: test states', () => {
       const states = r.testStates ?? [];
       assert.deepEqual(states.map((s) => s.state), expected[entry].states);
       assert.equal(states.length, r.summary.tests, 'one entry per counted test');
+      assert.equal(r.summary.findings, r.findings.length, 'summary.findings counts the report-only findings too');
       const unverified = states.filter((s) => s.state === 'unverified');
       if (expected[entry].unresolved) assert.deepEqual(unverified.map((s) => s.unresolved), expected[entry].unresolved);
       for (const s of states) assert.equal(s.unresolved !== undefined, s.state === 'unverified', 'only an unverified test names callees');
@@ -91,7 +92,7 @@ describe('QAG-287 S12: test states', () => {
       ...r,
       testStates: undefined,
       findings: r.findings.filter((f) => f.rule !== UNASSERTED_RULE && f.rule !== 'pwscore/loop-only-assertions'),
-      summary: { ...r.summary, unassertedTests: 0, countedTests: undefined, chargedTests: undefined, unassertedCharged: undefined },
+      summary: { ...r.summary, findings: r.findings.filter((f) => f.rule !== UNASSERTED_RULE && f.rule !== 'pwscore/loop-only-assertions').length, unassertedTests: 0, countedTests: undefined, chargedTests: undefined, unassertedCharged: undefined },
       scoreVersion: undefined,
       score: undefined,
       grade: undefined,
