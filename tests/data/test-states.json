@@ -1,0 +1,364 @@
+{
+  "pwscore__unasserted/-/true-action-only.ts": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-js-action-only.js": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-alias-action-only.ts": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-js-alias-action-only.js": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-trivial-only.ts": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-js-trivial-only.js": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-known-package.ts": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-js-known-package.js": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-conditional-skip.ts": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-js-conditional-skip.js": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-hook-out-of-scope.ts": {
+    "states": [
+      "clean",
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-js-hook-out-of-scope.js": {
+    "states": [
+      "clean",
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/false-body-assert.ts": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-body-assert.js": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-alias-locator-assert.ts": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-alias-locator-assert.js": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-local-helper-assert.ts": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-local-helper-assert.js": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-before-each.ts": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-before-each.js": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-to-pass-poll.ts": {
+    "states": [
+      "clean",
+      "clean",
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-to-pass-poll.js": {
+    "states": [
+      "clean",
+      "clean",
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-node-assert.ts": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-node-assert.js": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-chai.ts": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-chai.js": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-throw-guard.ts": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-throw-guard.js": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-unknown-npm.ts": {
+    "states": [
+      "unverified"
+    ],
+    "unresolved": [
+      [
+        "acme-a11y-checks"
+      ]
+    ]
+  },
+  "pwscore__unasserted/-/false-js-unknown-npm.js": {
+    "states": [
+      "unverified"
+    ],
+    "unresolved": [
+      [
+        "acme-a11y-checks"
+      ]
+    ]
+  },
+  "pwscore__unasserted/-/false-unresolved-callee.ts": {
+    "states": [
+      "unverified"
+    ],
+    "unresolved": [
+      [
+        "seedOrders"
+      ]
+    ]
+  },
+  "pwscore__unasserted/-/false-js-unresolved-callee.js": {
+    "states": [
+      "unverified"
+    ],
+    "unresolved": [
+      [
+        "seedOrders"
+      ]
+    ]
+  },
+  "pwscore__unasserted/-/false-aliased-expect.ts": {
+    "states": [
+      "unverified"
+    ],
+    "unresolved": [
+      [
+        "expect"
+      ]
+    ]
+  },
+  "pwscore__unasserted/-/false-js-aliased-expect.js": {
+    "states": [
+      "unverified"
+    ],
+    "unresolved": [
+      [
+        "expect"
+      ]
+    ]
+  },
+  "pwscore__unasserted/-/false-excluded-empty.ts": {
+    "states": [
+      "excluded-empty"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-excluded-empty.js": {
+    "states": [
+      "excluded-empty"
+    ]
+  },
+  "pwscore__unasserted/-/false-excluded-skipped.ts": {
+    "states": [
+      "excluded-skipped",
+      "excluded-skipped",
+      "excluded-skipped"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-excluded-skipped.js": {
+    "states": [
+      "excluded-skipped",
+      "excluded-skipped",
+      "excluded-skipped"
+    ]
+  },
+  "pwscore__unasserted/-/false-excluded-no-call.ts": {
+    "states": [
+      "excluded-empty"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-excluded-no-call.js": {
+    "states": [
+      "excluded-empty"
+    ]
+  },
+  "pwscore__unasserted/-/false-excluded-skip-true.ts": {
+    "states": [
+      "excluded-skipped"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-excluded-skip-true.js": {
+    "states": [
+      "excluded-skipped"
+    ]
+  },
+  "pwscore__unasserted/-/false-callback-param.ts": {
+    "states": [
+      "unverified"
+    ],
+    "unresolved": [
+      [
+        "route.fulfill"
+      ]
+    ]
+  },
+  "pwscore__unasserted/-/false-js-callback-param.js": {
+    "states": [
+      "unverified"
+    ],
+    "unresolved": [
+      [
+        "route.fulfill"
+      ]
+    ]
+  },
+  "pwscore__unasserted/-/true-page-param-helper.ts": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-js-helper-page-param.js": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/false-issue-in-span.ts": {
+    "states": [
+      "issue",
+      "issue"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-issue-in-span.js": {
+    "states": [
+      "issue",
+      "issue"
+    ]
+  },
+  "pwscore__unasserted/-/false-issue-in-hook.ts": {
+    "states": [
+      "issue"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-issue-in-hook.js": {
+    "states": [
+      "issue"
+    ]
+  },
+  "pwscore__unasserted/-/false-weak-certain-is-issue.ts": {
+    "states": [
+      "issue"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-weak-certain-is-issue.js": {
+    "states": [
+      "issue"
+    ]
+  },
+  "pwscore__unasserted/-/false-page-object-assert/checkout.spec.ts": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-page-object-assert/checkout.spec.js": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/true-page-object-actions/checkout.spec.ts": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-js-page-object-actions/checkout.spec.js": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/false-helper-assert/cart.spec.ts": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-helper-assert/cart.spec.js": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-fixture-page-object-assert/inbox.spec.ts": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/false-js-fixture-page-object-assert/inbox.spec.js": {
+    "states": [
+      "clean"
+    ]
+  },
+  "pwscore__unasserted/-/true-fixture-page-object-actions/inbox.spec.ts": {
+    "states": [
+      "unasserted"
+    ]
+  },
+  "pwscore__unasserted/-/true-typed-page-param/billing.spec.ts": {
+    "states": [
+      "unasserted"
+    ]
+  }
+}

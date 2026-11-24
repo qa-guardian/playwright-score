@@ -240,6 +240,10 @@
   {
    "rule": "playwright/prefer-web-first-assertions",
    "form": "foreign-expect"
+  },
+  {
+   "rule": "pwscore/unasserted",
+   "form": "-"
   }
  ],
  "fixtures": [
@@ -5389,6 +5393,486 @@
    "entry": "pwscore__no-trivial-assertion/foreign-expect/false-playwright-expect-literal.ts",
    "form": "foreign-expect",
    "note": "expect is the one from @playwright/test: the finding keeps its shape form"
+  },
+  {
+   "id": "unasserted/true-action-only",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-action-only.ts"
+  },
+  {
+   "id": "unasserted/true-js-action-only",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-js-action-only.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/true-alias-action-only",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-alias-action-only.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "unasserted/true-js-alias-action-only",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-js-alias-action-only.js",
+   "tags": [
+    "alias",
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/true-trivial-only",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-trivial-only.ts"
+  },
+  {
+   "id": "unasserted/true-js-trivial-only",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-js-trivial-only.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/true-known-package",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-known-package.ts"
+  },
+  {
+   "id": "unasserted/true-js-known-package",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-js-known-package.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/true-conditional-skip",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-conditional-skip.ts"
+  },
+  {
+   "id": "unasserted/true-js-conditional-skip",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-js-conditional-skip.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/true-hook-out-of-scope",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-hook-out-of-scope.ts"
+  },
+  {
+   "id": "unasserted/true-js-hook-out-of-scope",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-js-hook-out-of-scope.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-body-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-body-assert.ts"
+  },
+  {
+   "id": "unasserted/false-js-body-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-body-assert.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-alias-locator-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-alias-locator-assert.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "unasserted/false-js-alias-locator-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-alias-locator-assert.js",
+   "tags": [
+    "alias",
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-local-helper-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-local-helper-assert.ts"
+  },
+  {
+   "id": "unasserted/false-js-local-helper-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-local-helper-assert.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-before-each",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-before-each.ts"
+  },
+  {
+   "id": "unasserted/false-js-before-each",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-before-each.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-to-pass-poll",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-to-pass-poll.ts"
+  },
+  {
+   "id": "unasserted/false-js-to-pass-poll",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-to-pass-poll.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-node-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-node-assert.ts"
+  },
+  {
+   "id": "unasserted/false-js-node-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-node-assert.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-chai",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-chai.ts"
+  },
+  {
+   "id": "unasserted/false-js-chai",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-chai.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-throw-guard",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-throw-guard.ts"
+  },
+  {
+   "id": "unasserted/false-js-throw-guard",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-throw-guard.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-unknown-npm",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-unknown-npm.ts"
+  },
+  {
+   "id": "unasserted/false-js-unknown-npm",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-unknown-npm.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-unresolved-callee",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-unresolved-callee.ts"
+  },
+  {
+   "id": "unasserted/false-js-unresolved-callee",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-unresolved-callee.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-aliased-expect",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-aliased-expect.ts"
+  },
+  {
+   "id": "unasserted/false-js-aliased-expect",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-aliased-expect.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-excluded-empty",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-excluded-empty.ts"
+  },
+  {
+   "id": "unasserted/false-js-excluded-empty",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-excluded-empty.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-excluded-skipped",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-excluded-skipped.ts"
+  },
+  {
+   "id": "unasserted/false-js-excluded-skipped",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-excluded-skipped.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-excluded-no-call",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-excluded-no-call.ts"
+  },
+  {
+   "id": "unasserted/false-js-excluded-no-call",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-excluded-no-call.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-excluded-skip-true",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-excluded-skip-true.ts"
+  },
+  {
+   "id": "unasserted/false-js-excluded-skip-true",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-excluded-skip-true.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-callback-param",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-callback-param.ts"
+  },
+  {
+   "id": "unasserted/false-js-callback-param",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-callback-param.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/true-page-param-helper",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-page-param-helper.ts"
+  },
+  {
+   "id": "unasserted/true-js-helper-page-param",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-js-helper-page-param.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-issue-in-span",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-issue-in-span.ts"
+  },
+  {
+   "id": "unasserted/false-js-issue-in-span",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-issue-in-span.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-issue-in-hook",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-issue-in-hook.ts"
+  },
+  {
+   "id": "unasserted/false-js-issue-in-hook",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-issue-in-hook.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-weak-certain-is-issue",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-weak-certain-is-issue.ts"
+  },
+  {
+   "id": "unasserted/false-js-weak-certain-is-issue",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-weak-certain-is-issue.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-page-object-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-page-object-assert/checkout.spec.ts",
+   "dir": "pwscore__unasserted/-/false-page-object-assert"
+  },
+  {
+   "id": "unasserted/false-js-page-object-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-page-object-assert/checkout.spec.js",
+   "dir": "pwscore__unasserted/-/false-js-page-object-assert",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/true-page-object-actions",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-page-object-actions/checkout.spec.ts",
+   "dir": "pwscore__unasserted/-/true-page-object-actions"
+  },
+  {
+   "id": "unasserted/true-js-page-object-actions",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-js-page-object-actions/checkout.spec.js",
+   "dir": "pwscore__unasserted/-/true-js-page-object-actions",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-helper-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-helper-assert/cart.spec.ts",
+   "dir": "pwscore__unasserted/-/false-helper-assert"
+  },
+  {
+   "id": "unasserted/false-js-helper-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-helper-assert/cart.spec.js",
+   "dir": "pwscore__unasserted/-/false-js-helper-assert",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/false-fixture-page-object-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-fixture-page-object-assert/inbox.spec.ts",
+   "dir": "pwscore__unasserted/-/false-fixture-page-object-assert"
+  },
+  {
+   "id": "unasserted/false-js-fixture-page-object-assert",
+   "rule": "pwscore/unasserted",
+   "verdict": "false",
+   "entry": "pwscore__unasserted/-/false-js-fixture-page-object-assert/inbox.spec.js",
+   "dir": "pwscore__unasserted/-/false-js-fixture-page-object-assert",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "unasserted/true-fixture-page-object-actions",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-fixture-page-object-actions/inbox.spec.ts",
+   "dir": "pwscore__unasserted/-/true-fixture-page-object-actions"
+  },
+  {
+   "id": "unasserted/true-typed-page-param",
+   "rule": "pwscore/unasserted",
+   "verdict": "true",
+   "entry": "pwscore__unasserted/-/true-typed-page-param/billing.spec.ts",
+   "dir": "pwscore__unasserted/-/true-typed-page-param"
   }
  ]
 }

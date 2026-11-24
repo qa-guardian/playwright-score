@@ -427,6 +427,14 @@
     "fix": "Make each test independent, or keep serial mode only where the flow truly needs it."
    },
    "conf": "needs-check"
+  },
+  "pwscore/unasserted": {
+   "copy": {
+    "title": "Test with no assertion",
+    "why": "A test that checks nothing can only fail when an action cannot be performed, so a wrong result on the page goes unnoticed.",
+    "fix": "Add an expect() on what the user should see after the last action."
+   },
+   "conf": null
   }
  }
 }

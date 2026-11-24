@@ -80,8 +80,9 @@ export interface ScoreSummary {
   warnings: number;
   nativeLocators: number;
   rawLocators: number;
-  /** Tests with no recognized assertion (uncapped playwright/expect-expect
-   * census, after delegation resolution). */
+  /** Tests in state `unasserted` (see `testStates`): no assertion is reachable
+   * and every call in the test was resolved. One `pwscore/unasserted` finding
+   * each. (Before 3.0.0 this was the playwright/expect-expect census.) */
   unassertedTests: number;
   /** Tests with no expect(...) that call something this scan cannot read
    * (`playwright-score/assertion-unverified`, report-only). They are NOT in
@@ -159,6 +160,29 @@ export interface Coverage {
   sharedSkippedFiles?: SharedSkippedFile[];
 }
 
+/**
+ * The state of one test, first match wins: `excluded-empty` (no call
+ * expression in the test callback), `excluded-skipped` (declared with
+ * skip/fixme, inside a skipped describe, or skipped by its first statement,
+ * a `test.skip()`/`test.fixme()` with no argument or a literal `true`), `issue` (a
+ * certain finding in the test or in a hook in scope for it), `unasserted` (no
+ * assertion reachable, every callee resolved), `unverified` (no assertion
+ * found, at least one callee not resolved), `clean`.
+ */
+export type TestState = 'excluded-empty' | 'excluded-skipped' | 'issue' | 'unasserted' | 'unverified' | 'clean';
+
+export interface TestStateEntry {
+  /** Relative to `baseDir`, like `Finding.file`. */
+  file: string;
+  /** `${file}#${testIndex}`, the key findings carry in `testKey`. */
+  testKey: string;
+  /** Line of the test declaration. */
+  line: number;
+  state: TestState;
+  /** State `unverified` only: the callees that were not resolved, sorted, at most eight. */
+  unresolved?: string[];
+}
+
 export interface ScoreResult {
   scoreVersion: ScoreVersion;
   profile: ProfileName;
@@ -169,6 +193,11 @@ export interface ScoreResult {
   summary: ScoreSummary;
   dimensions: ScoreDimensions;
   findings: Finding[];
+  /**
+   * One entry per counted test, sorted by file, then line (additive; it never
+   * feeds the score). See `TestState`.
+   */
+  testStates?: TestStateEntry[];
   /**
    * Absolute directory that every `Finding.file` is relative to (the scored
    * files' common ancestor). Lets a consumer locate source for excerpts. Local

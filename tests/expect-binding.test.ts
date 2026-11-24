@@ -232,7 +232,8 @@ describe('QAG-287 S4b: only findings about an expect move', () => {
 
   it('rules that fire the same way for any assertion library are untouched', async () => {
     const body = `test('orders', async ({ page }) => {\n  if (await page.isVisible('#a')) {\n    expect(1).toBe(1);\n  }\n});\nexpect(2).toBe(2);\ntest('empty', async ({ page }) => {\n  await page.goto('/orders');\n});\n`;
-    const others = (fs_: Finding[]): string[] => fs_.filter((f) => !SIX.includes(f.rule)).map((f) => `${f.rule}:${f.line}:${f.form}:${f.tier}:${f.title}`).sort();
+    // pwscore/unasserted (S12) is left out: a test's state depends on which library its expect binds to, by design.
+    const others = (fs_: Finding[]): string[] => fs_.filter((f) => !SIX.includes(f.rule) && f.rule !== 'pwscore/unasserted').map((f) => `${f.rule}:${f.line}:${f.form}:${f.tier}:${f.title}`).sort();
     const pw = others(await score(PW + body));
     assert.ok(pw.some((x) => x.startsWith('playwright/no-conditional-expect:')) && pw.some((x) => x.startsWith('playwright/expect-expect:')), JSON.stringify(pw));
     assert.deepEqual(others(await score(`${T} import { expect } from 'chai';\n${body}`)), pw);

@@ -35,6 +35,7 @@ import { DEFAULT_THRESHOLDS } from './profiles.js';
 import { decorateFindings } from './catalogue/decorate.js';
 import { applyReceiverForms } from './receiver-forms.js';
 import { applyExpectBinding, settleExpectBinding } from './expect-binding.js';
+import { settleTestStates, stageTestStates } from './test-states.js';
 import { computeScore } from './score-engine.js';
 import { getEngineVersions } from './engine-versions.js';
 import { resetRuleCrashes, ruleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
@@ -590,6 +591,8 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   }
   decorateFindings(result.findings, result.baseDir);
   settleExpectBinding(result.findings);
+  // QAG-287 S12: one state per test; adds the report-only pwscore/unasserted findings.
+  settleTestStates(result);
   const crashes = summarizeRuleCrashes();
   const withCrashes = crashes.length > 0 ? { ...result, ruleCrashes: crashes } : result;
   return { ...withCrashes, engine: getEngineVersions() };
@@ -876,7 +879,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
     rawLocators: raw,
   });
 
-  return withCoverage(
+  const scored = withCoverage(
     {
       ...result,
       baseDir: filesBase,
@@ -886,4 +889,5 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
     coverage,
     findings
   );
+  return stageTestStates(scored, { ctx: { filesBase, sources, importedFiles, importBoundary, moduleResolver }, fileSpans, findings });
 }

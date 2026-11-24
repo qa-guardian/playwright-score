@@ -147,4 +147,22 @@ export const passesRegardlessRows: readonly RuleRow[] = [
     dimension: 'assertions',
     label: 'medium',
   },
+  // S12: a test in state `unasserted` (src/test-states.ts). Not in labels/precision.json, so never certain; report-only.
+  {
+    rule: 'pwscore/unasserted',
+    form: '-',
+    family: 'passes-regardless',
+    design: 'likely',
+    basis: 'convention',
+    bcEligible: false,
+    title: 'Test with no assertion',
+    what: 'The test performs actions but never checks a result: no assertion was found in the test, its hooks or the code it calls.',
+    why: 'A test that checks nothing can only fail when an action cannot be performed, so a wrong result on the page goes unnoticed.',
+    fix: 'Add an expect() on what the user should see after the last action.',
+    dimension: 'assertions',
+    severityOverride: 'info',
+    reportOnly: true,
+    label: 'medium',
+    noMapping: true,
+  },
 ];
