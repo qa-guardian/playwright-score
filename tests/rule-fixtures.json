@@ -264,6 +264,18 @@
   {
    "rule": "playwright/no-page-pause",
    "form": "api-under-test"
+  },
+  {
+   "rule": "playwright/no-element-handle",
+   "form": "handle-argument"
+  },
+  {
+   "rule": "playwright/valid-expect",
+   "form": "escaped"
+  },
+  {
+   "rule": "playwright/no-page-pause",
+   "form": "gated"
   }
  ],
  "fixtures": [
@@ -6113,6 +6125,345 @@
     "alias"
    ],
    "note": "S4a: a const alias of the page fixture in a project named playwright-core"
+  },
+  {
+   "id": "no-element-handle/handle-argument-true-handle-passed-to-audit-helper",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/handle-argument/true-handle-passed-to-audit-helper.ts",
+   "form": "handle-argument",
+   "note": "B3b: a page dollar handle held in a const and only passed to a helper from an npm package"
+  },
+  {
+   "id": "no-element-handle/handle-argument-true-js-npm-helper-argument",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/handle-argument/true-js-npm-helper-argument.js",
+   "form": "handle-argument",
+   "tags": [
+    "js"
+   ],
+   "note": "B3b: a page dollar handle only passed to analyzeNode from a required package"
+  },
+  {
+   "id": "no-element-handle/handle-argument-true-locator-handle-to-audit-helper",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/handle-argument/true-locator-handle-to-audit-helper.ts",
+   "form": "handle-argument",
+   "note": "B3b precedence (handle-argument, locator-handle): a locator's elementHandle() only passed to a helper takes handle-argument"
+  },
+  {
+   "id": "no-element-handle/handle-argument-true-aliased-test-direct-argument",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/handle-argument/true-aliased-test-direct-argument.ts",
+   "form": "handle-argument",
+   "tags": [
+    "alias"
+   ],
+   "note": "B3b: the awaited page dollar result passed straight to a helper, in a test called through a const alias"
+  },
+  {
+   "id": "no-element-handle/handle-argument-false-handle-clicked",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "playwright__no-element-handle/handle-argument/false-handle-clicked.ts",
+   "form": "handle-argument",
+   "note": "B3b: the handle is clicked, so the finding stays in form -"
+  },
+  {
+   "id": "no-element-handle/handle-argument-false-handle-dollar-eval",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "playwright__no-element-handle/handle-argument/false-handle-dollar-eval.ts",
+   "form": "handle-argument",
+   "note": "B3b: the handle's own dollar-eval is called, so the finding stays in form -"
+  },
+  {
+   "id": "no-element-handle/handle-argument-false-expect-dollar-dollar-length",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "playwright__no-element-handle/handle-argument/false-expect-dollar-dollar-length.ts",
+   "form": "handle-argument",
+   "note": "B3b: the page double-dollar result is passed to expect, so the finding stays in form -"
+  },
+  {
+   "id": "no-element-handle/handle-argument-false-js-passed-to-page-evaluate",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "playwright__no-element-handle/handle-argument/false-js-passed-to-page-evaluate.js",
+   "form": "handle-argument",
+   "tags": [
+    "js"
+   ],
+   "note": "B3b: the handle is passed to page.evaluate, a Playwright API, so the finding stays in form -"
+  },
+  {
+   "id": "no-element-handle/handle-argument-false-argument-and-clicked",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "playwright__no-element-handle/handle-argument/false-argument-and-clicked.ts",
+   "form": "handle-argument",
+   "note": "B3b: the handle is passed to a helper and also clicked, so the finding stays in form -"
+  },
+  {
+   "id": "no-element-handle/locator-handle-false-handle-argument-precedence",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "playwright__no-element-handle/locator-handle/false-handle-argument-precedence.ts",
+   "form": "locator-handle",
+   "note": "B3b precedence (handle-argument, locator-handle): reported as handle-argument, not locator-handle"
+  },
+  {
+   "id": "no-element-handle/unresolved-true-handle-argument-untyped-helper",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/unresolved/true-handle-argument-untyped-helper.ts",
+   "form": "unresolved",
+   "note": "B3b precedence (unresolved, handle-argument): an untyped helper parameter keeps unresolved"
+  },
+  {
+   "id": "no-page-pause/gated-true-if-env-step-through",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/gated/true-if-env-step-through.ts",
+   "form": "gated",
+   "note": "B3b: the pause runs only when an environment flag is set"
+  },
+  {
+   "id": "no-page-pause/gated-true-logical-and-debug-run",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/gated/true-logical-and-debug-run.ts",
+   "form": "gated",
+   "note": "B3b: the pause is the right side of &&"
+  },
+  {
+   "id": "no-page-pause/gated-true-js-if-block",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/gated/true-js-if-block.js",
+   "form": "gated",
+   "tags": [
+    "js"
+   ],
+   "note": "B3b: the pause sits in the block of an if"
+  },
+  {
+   "id": "no-page-pause/gated-true-ternary-branch",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/gated/true-ternary-branch.ts",
+   "form": "gated",
+   "note": "B3b: the pause is a branch of ?:"
+  },
+  {
+   "id": "no-page-pause/gated-true-aliased-test-else-branch",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/gated/true-aliased-test-else-branch.ts",
+   "form": "gated",
+   "tags": [
+    "alias"
+   ],
+   "note": "B3b: the pause is the else branch of an if, in a test called through a const alias"
+  },
+  {
+   "id": "no-page-pause/gated-false-unconditional-pause",
+   "rule": "playwright/no-page-pause",
+   "verdict": "false",
+   "entry": "playwright__no-page-pause/gated/false-unconditional-pause.ts",
+   "form": "gated",
+   "note": "B3b: an unconditional pause stays in form -"
+  },
+  {
+   "id": "no-page-pause/gated-false-js-unconditional-pause",
+   "rule": "playwright/no-page-pause",
+   "verdict": "false",
+   "entry": "playwright__no-page-pause/gated/false-js-unconditional-pause.js",
+   "form": "gated",
+   "tags": [
+    "js"
+   ],
+   "note": "B3b: an unconditional pause stays in form -"
+  },
+  {
+   "id": "no-page-pause/gated-false-pause-after-if-block",
+   "rule": "playwright/no-page-pause",
+   "verdict": "false",
+   "entry": "playwright__no-page-pause/gated/false-pause-after-if-block.ts",
+   "form": "gated",
+   "note": "B3b: the if before the pause does not decide whether it runs"
+  },
+  {
+   "id": "no-page-pause/unresolved-true-gated-untyped-helper",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/unresolved/true-gated-untyped-helper.js",
+   "form": "unresolved",
+   "tags": [
+    "js"
+   ],
+   "note": "B3b precedence (unresolved, gated): an untyped helper parameter keeps unresolved"
+  },
+  {
+   "id": "valid-expect/escaped-true-passed-to-tracker",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "playwright__valid-expect/escaped/true-passed-to-tracker.ts",
+   "form": "escaped",
+   "note": "B3b: the matcherless expect is passed as an argument"
+  },
+  {
+   "id": "valid-expect/escaped-true-stored-in-object",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "playwright__valid-expect/escaped/true-stored-in-object.ts",
+   "form": "escaped",
+   "note": "B3b: the matcherless expect is stored in an object literal"
+  },
+  {
+   "id": "valid-expect/escaped-true-assigned-then-matched",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "playwright__valid-expect/escaped/true-assigned-then-matched.ts",
+   "form": "escaped",
+   "note": "B3b: the matcherless expect is assigned to a variable"
+  },
+  {
+   "id": "valid-expect/escaped-true-returned-to-tracker",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "playwright__valid-expect/escaped/true-returned-to-tracker.ts",
+   "form": "escaped",
+   "note": "B3b: the matcherless expect is returned from a helper whose caller passes it on"
+  },
+  {
+   "id": "valid-expect/escaped-true-js-pushed-to-queue",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "playwright__valid-expect/escaped/true-js-pushed-to-queue.js",
+   "form": "escaped",
+   "tags": [
+    "js"
+   ],
+   "note": "B3b: the matcherless expect is passed to push"
+  },
+  {
+   "id": "valid-expect/escaped-true-aliased-test-passed-on",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "playwright__valid-expect/escaped/true-aliased-test-passed-on.ts",
+   "form": "escaped",
+   "tags": [
+    "alias"
+   ],
+   "note": "B3b: the matcherless expect is passed as an argument, in a test called through a const alias"
+  },
+  {
+   "id": "valid-expect/escaped-false-bare-expect",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "playwright__valid-expect/escaped/false-bare-expect.ts",
+   "form": "escaped",
+   "note": "B3b: a bare expect statement stays matcherless"
+  },
+  {
+   "id": "valid-expect/escaped-false-js-bare-expect",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "playwright__valid-expect/escaped/false-js-bare-expect.js",
+   "form": "escaped",
+   "tags": [
+    "js"
+   ],
+   "note": "B3b: a bare expect statement stays matcherless"
+  },
+  {
+   "id": "valid-expect/escaped-false-const-alias-bare",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "playwright__valid-expect/escaped/false-const-alias-bare.ts",
+   "form": "escaped",
+   "tags": [
+    "alias"
+   ],
+   "note": "B3b: a bare call of a const alias of expect (S4b.2) stays matcherless"
+  },
+  {
+   "id": "valid-expect/escaped-false-helper-matched-by-caller",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "playwright__valid-expect/escaped/false-helper-matched-by-caller.ts",
+   "form": "escaped",
+   "note": "B3b: no finding at all: the caller chains the matcher, and the filter already drops it"
+  },
+  {
+   "id": "valid-expect/escaped-false-const-then-matched",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "playwright__valid-expect/escaped/false-const-then-matched.ts",
+   "form": "escaped",
+   "note": "B3b: no finding at all: a const read with a matcher later, which the filter already drops"
+  },
+  {
+   "id": "valid-expect/matcherless-false-escaped-passed-to-tracker",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "playwright__valid-expect/matcherless/false-escaped-passed-to-tracker.ts",
+   "form": "matcherless",
+   "note": "B3b: passed as an argument, the finding moves to escaped"
+  },
+  {
+   "id": "valid-expect/foreign-expect-true-chai-expect-returned",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "playwright__valid-expect/foreign-expect/true-chai-expect-returned.ts",
+   "form": "foreign-expect",
+   "note": "B3b precedence (foreign-expect, escaped): a returned chai expect keeps foreign-expect"
+  },
+  {
+   "id": "no-element-handle/api-under-test-true-b3b-use-engine",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "_projects/b3b-use-engine/tests",
+   "dir": "_projects/b3b-use-engine",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "project"
+   ],
+   "note": "B3b precedence (api-under-test, handle-argument): a handle only passed to a helper, in a project named playwright-core"
+  },
+  {
+   "id": "no-page-pause/api-under-test-true-b3b-use-engine",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "_projects/b3b-use-engine/tests",
+   "dir": "_projects/b3b-use-engine",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "project"
+   ],
+   "note": "B3b precedence (api-under-test, gated): an env-gated pause in a project named playwright-core"
+  },
+  {
+   "id": "valid-expect/escaped-false-test-callback-arrow-body",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "playwright__valid-expect/escaped/false-test-callback-arrow-body.ts",
+   "form": "escaped",
+   "note": "B3b: returned from a test callback, which drops the value: stays matcherless"
+  },
+  {
+   "id": "valid-expect/escaped-false-never-read-const",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "playwright__valid-expect/escaped/false-never-read-const.ts",
+   "form": "escaped",
+   "note": "B3b: assigned to a const that is never read: stays matcherless"
   }
  ]
 }

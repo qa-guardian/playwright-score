@@ -1,5 +1,6 @@
 import { parseAst } from './parse-cache.js';
 import { isExpectName } from './rules/ast-util.js';
+import { matcherlessForm } from './use-forms.js';
 import type { Severity } from './types.js';
 
 // QAG-287 slice F: AST post-filters for upstream eslint-plugin-playwright
@@ -723,8 +724,13 @@ export function createPostFilter(source: () => string, file: string, aliases?: R
   };
   const formOf = (msg: PostFilterMessage): string | undefined => {
     switch (msg.ruleId) {
-      case 'playwright/valid-expect':
-        return msg.messageId === 'matcherNotFound' || msg.messageId === 'matcherNotCalled' ? 'matcherless' : 'other';
+      case 'playwright/valid-expect': {
+        if (msg.messageId !== 'matcherNotFound' && msg.messageId !== 'matcherNotCalled') return 'other';
+        // QAG-287 B3b: a matcherless expect that is returned, assigned, passed on or stored is `escaped`.
+        const t = ensureTree();
+        const node = t?.nodeAt(msg.line, msg.column);
+        return t && node ? matcherlessForm(t, node) : 'matcherless';
+      }
       case 'playwright/missing-playwright-await': {
         const t = ensureTree();
         const node = t?.nodeAt(msg.line, msg.column);

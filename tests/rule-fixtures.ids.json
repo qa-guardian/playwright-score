@@ -206,6 +206,10 @@
    "pending": null
   },
   {
+   "id": "no-element-handle/api-under-test-true-b3b-use-engine",
+   "pending": null
+  },
+  {
    "id": "no-element-handle/api-under-test-true-engine-named-package",
    "pending": null
   },
@@ -247,6 +251,46 @@
   },
   {
    "id": "no-element-handle/false-s4a-alias-shadowed-by-parameter",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/handle-argument-false-argument-and-clicked",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/handle-argument-false-expect-dollar-dollar-length",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/handle-argument-false-handle-clicked",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/handle-argument-false-handle-dollar-eval",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/handle-argument-false-js-passed-to-page-evaluate",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/handle-argument-true-aliased-test-direct-argument",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/handle-argument-true-handle-passed-to-audit-helper",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/handle-argument-true-js-npm-helper-argument",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/handle-argument-true-locator-handle-to-audit-helper",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/locator-handle-false-handle-argument-precedence",
    "pending": null
   },
   {
@@ -379,6 +423,10 @@
   },
   {
    "id": "no-element-handle/true-typed-class-field-this",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/unresolved-true-handle-argument-untyped-helper",
    "pending": null
   },
   {
@@ -610,6 +658,10 @@
    "pending": null
   },
   {
+   "id": "no-page-pause/api-under-test-true-b3b-use-engine",
+   "pending": null
+  },
+  {
    "id": "no-page-pause/api-under-test-true-engine-named-package",
    "pending": null
   },
@@ -647,6 +699,38 @@
   },
   {
    "id": "no-page-pause/false-video-pause",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/gated-false-js-unconditional-pause",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/gated-false-pause-after-if-block",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/gated-false-unconditional-pause",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/gated-true-aliased-test-else-branch",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/gated-true-if-env-step-through",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/gated-true-js-if-block",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/gated-true-logical-and-debug-run",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/gated-true-ternary-branch",
    "pending": null
   },
   {
@@ -719,6 +803,10 @@
   },
   {
    "id": "no-page-pause/true-s4a-js-const-alias",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/unresolved-true-gated-untyped-helper",
    "pending": null
   },
   {
@@ -2310,6 +2398,58 @@
    "pending": null
   },
   {
+   "id": "valid-expect/escaped-false-bare-expect",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/escaped-false-const-alias-bare",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/escaped-false-const-then-matched",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/escaped-false-helper-matched-by-caller",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/escaped-false-js-bare-expect",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/escaped-false-never-read-const",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/escaped-false-test-callback-arrow-body",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/escaped-true-aliased-test-passed-on",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/escaped-true-assigned-then-matched",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/escaped-true-js-pushed-to-queue",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/escaped-true-passed-to-tracker",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/escaped-true-returned-to-tracker",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/escaped-true-stored-in-object",
+   "pending": null
+  },
+  {
    "id": "valid-expect/false-chai-expect",
    "pending": null
   },
@@ -2346,11 +2486,19 @@
    "pending": null
   },
   {
+   "id": "valid-expect/foreign-expect-true-chai-expect-returned",
+   "pending": null
+  },
+  {
    "id": "valid-expect/foreign-expect-true-chai-property-assertion",
    "pending": null
   },
   {
    "id": "valid-expect/foreign-expect-true-js-require-chai-property",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/matcherless-false-escaped-passed-to-tracker",
    "pending": null
   },
   {

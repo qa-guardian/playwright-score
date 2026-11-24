@@ -39,6 +39,7 @@ import { findExpectAliases, keepProvenAliasFindings } from './expect-alias.js';
 import { SCOPE_RULES, findScopeAliases, keepScopeAliasFindings } from './rules/aliased-page-api.js';
 import { findLocatorHandles } from './rules/locator-handle.js';
 import { applyApiUnderTest } from './project-identity.js';
+import { applyUseForms } from './use-forms.js';
 import { computeScore } from './score-engine.js';
 import { getEngineVersions } from './engine-versions.js';
 import { resetRuleCrashes, ruleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
@@ -840,6 +841,8 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   applyReceiverForms(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
   // QAG-287 S4b: where the `expect` of an assertion-rule finding comes from (Playwright, another library, or not resolved).
   applyExpectBinding(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver }, aliasAdded);
+  // QAG-287 B3b: a handle used only as an argument, a pause behind a condition (the valid-expect form is set in the lint).
+  applyUseForms(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
   // QAG-287 S3c: in a project that is the Playwright implementation, the discouraged-API findings are advisory.
   applyApiUnderTest(eslintFindings, { filesBase, scanRoots: [...inputDirs] });
   const scoredFiles = files.filter((f) => !skips.has(f));
