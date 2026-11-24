@@ -898,22 +898,19 @@
    "id": "no-floating-callback-assertion/true-foreach-async",
    "rule": "pwscore/no-floating-callback-assertion",
    "verdict": "true",
-   "entry": "pwscore__no-floating-callback-assertion/-/true-foreach-async.ts",
-   "pending": "S7a"
+   "entry": "pwscore__no-floating-callback-assertion/-/true-foreach-async.ts"
   },
   {
    "id": "no-floating-callback-assertion/true-map-async-statement",
    "rule": "pwscore/no-floating-callback-assertion",
    "verdict": "true",
-   "entry": "pwscore__no-floating-callback-assertion/-/true-map-async-statement.ts",
-   "pending": "S7a"
+   "entry": "pwscore__no-floating-callback-assertion/-/true-map-async-statement.ts"
   },
   {
    "id": "no-floating-callback-assertion/true-locator-all-foreach",
    "rule": "pwscore/no-floating-callback-assertion",
    "verdict": "true",
-   "entry": "pwscore__no-floating-callback-assertion/-/true-locator-all-foreach.ts",
-   "pending": "S7a"
+   "entry": "pwscore__no-floating-callback-assertion/-/true-locator-all-foreach.ts"
   },
   {
    "id": "no-floating-callback-assertion/true-js-foreach-async",
@@ -922,8 +919,7 @@
    "entry": "pwscore__no-floating-callback-assertion/-/true-js-foreach-async.js",
    "tags": [
     "js"
-   ],
-   "pending": "S7a"
+   ]
   },
   {
    "id": "no-floating-callback-assertion/true-aliased-test",
@@ -932,8 +928,7 @@
    "entry": "pwscore__no-floating-callback-assertion/-/true-aliased-test.ts",
    "tags": [
     "alias"
-   ],
-   "pending": "S7a"
+   ]
   },
   {
    "id": "no-floating-callback-assertion/false-for-of-awaited",
@@ -964,6 +959,96 @@
    "tags": [
     "js"
    ]
+  },
+  {
+   "id": "no-floating-callback-assertion/true-alias-const-locator",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-floating-callback-assertion/-/true-alias-const-locator.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-floating-callback-assertion/true-alias-const-page",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-floating-callback-assertion/-/true-alias-const-page.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-floating-callback-assertion/true-js-map-async-statement",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-floating-callback-assertion/-/true-js-map-async-statement.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-floating-callback-assertion/true-poll-foreach",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-floating-callback-assertion/-/true-poll-foreach.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/true-to-pass-map-statement",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-floating-callback-assertion/-/true-to-pass-map-statement.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/true-function-expression-callback",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-floating-callback-assertion/-/true-function-expression-callback.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-foreach-custom-awaiting-collection",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-foreach-custom-awaiting-collection.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-foreach-custom-awaiting-js",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-foreach-custom-awaiting-js.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-floating-callback-assertion/false-for-of-awaited-locator-all",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-for-of-awaited-locator-all.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-promise-all-items-map",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-promise-all-items-map.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-map-assigned-then-awaited",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-map-assigned-then-awaited.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-map-returned-from-helper",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-map-returned-from-helper.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-chai-expect-foreach-async",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-chai-expect-foreach-async.ts"
   },
   {
    "id": "prefer-web-first-assertions/true-awaited-is-visible",
@@ -2082,8 +2167,8 @@
    "tags": [
     "shared"
    ],
-   "pending": "S7a",
-   "note": "needs the rule (S7a) and shared-file linting (S6b); S7a is the later slice, so the mark flips there"
+   "pending": "S6b",
+   "note": "needs shared-file linting (S6b); the rule landed in S7a, and no rule runs on a shared file before S6b"
   },
   {
    "id": "prefer-web-first-assertions/true-helper-awaited-is-visible",

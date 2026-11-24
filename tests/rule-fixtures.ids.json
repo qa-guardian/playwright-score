@@ -430,11 +430,39 @@
    "pending": null
   },
   {
+   "id": "no-floating-callback-assertion/false-chai-expect-foreach-async",
+   "pending": null
+  },
+  {
    "id": "no-floating-callback-assertion/false-for-of-awaited",
    "pending": null
   },
   {
+   "id": "no-floating-callback-assertion/false-for-of-awaited-locator-all",
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/false-foreach-custom-awaiting-collection",
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/false-foreach-custom-awaiting-js",
+   "pending": null
+  },
+  {
    "id": "no-floating-callback-assertion/false-js-for-of",
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/false-map-assigned-then-awaited",
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/false-map-returned-from-helper",
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/false-promise-all-items-map",
    "pending": null
   },
   {
@@ -446,28 +474,52 @@
    "pending": null
   },
   {
+   "id": "no-floating-callback-assertion/true-alias-const-locator",
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/true-alias-const-page",
+   "pending": null
+  },
+  {
    "id": "no-floating-callback-assertion/true-aliased-test",
-   "pending": "S7a"
+   "pending": null
   },
   {
    "id": "no-floating-callback-assertion/true-foreach-async",
-   "pending": "S7a"
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/true-function-expression-callback",
+   "pending": null
   },
   {
    "id": "no-floating-callback-assertion/true-js-foreach-async",
-   "pending": "S7a"
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/true-js-map-async-statement",
+   "pending": null
   },
   {
    "id": "no-floating-callback-assertion/true-locator-all-foreach",
-   "pending": "S7a"
+   "pending": null
   },
   {
    "id": "no-floating-callback-assertion/true-map-async-statement",
-   "pending": "S7a"
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/true-poll-foreach",
+   "pending": null
   },
   {
    "id": "no-floating-callback-assertion/true-shared-foreach-async",
-   "pending": "S7a"
+   "pending": "S6b"
+  },
+  {
+   "id": "no-floating-callback-assertion/true-to-pass-map-statement",
+   "pending": null
   },
   {
    "id": "no-focused-test/false-custom-only-method",

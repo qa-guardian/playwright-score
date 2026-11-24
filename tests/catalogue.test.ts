@@ -109,7 +109,8 @@ describe('QAG-287 S2: certain-candidate rows and the by-construction path', () =
   const candidates = ROWS.filter((r) => r.design === 'candidate');
 
   it('every certain-candidate row rests on the docs and carries a known docs URL', () => {
-    assert.equal(candidates.length, 14);
+    // 15 since QAG-287 S7a added pwscore/no-floating-callback-assertion (a BC-eligible cell in cell-forms.json).
+    assert.equal(candidates.length, 15);
     for (const r of candidates) {
       assert.equal(r.basis, 'docs', `${r.rule} ${r.form}: basis`);
       assert.ok(r.docs, `${r.rule} ${r.form}: no docs URL`);
@@ -145,7 +146,7 @@ describe('QAG-287 S2: certain-candidate rows and the by-construction path', () =
       if (r.bcEligible) assert.equal(r.design, 'candidate', `${key}: eligible but not a candidate`);
       if (inelig.has(key)) assert.equal(r.design, 'candidate', `${key}: ineligible candidate must still be a candidate`);
     }
-    // Every eligible cell whose rule exists today has its row (the floating-callback rule arrives in a later slice).
+    // Every eligible cell whose rule exists today has its row.
     for (const key of eligible) {
       const [rule, form] = key.split('|');
       if (defaultRow(rule)) assert.ok(rowFor(rule, form), `no row for eligible cell ${key}`);

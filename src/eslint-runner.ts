@@ -198,6 +198,8 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
         'pwscore/no-swallowed-assertion': 'warn',
         'pwscore/no-weak-assertion': 'error',
         'pwscore/no-unawaited-expect-value': 'error',
+        // QAG-287 S7a: an awaited assertion in an async forEach/map callback that is never awaited.
+        'pwscore/no-floating-callback-assertion': 'error',
       },
     },
     // .cjs/.cts are always CommonJS (top-level `return`, `require`, no

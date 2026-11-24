@@ -104,6 +104,25 @@ export const passesRegardlessRows: readonly RuleRow[] = [
     label: 'high',
   },
   {
+    // QAG-287 S7a (src/rules/no-floating-callback-assertion.ts). No precision row yet: likely until measured.
+    rule: 'pwscore/no-floating-callback-assertion',
+    form: '-',
+    family: 'passes-regardless',
+    design: 'candidate',
+    cls: 'C5',
+    basis: 'docs',
+    docs: 'https://playwright.dev/docs/test-assertions',
+    bcEligible: true,
+    docsSentence:
+      'Note that retrying assertions are async, so you must await them. forEach and map never await the promises their callback returns, so an assertion awaited inside an async callback is not awaited by the test.',
+    title: 'Assertion in a callback that is never awaited',
+    what: 'An assertion is awaited inside an async forEach or map callback, but nothing awaits the callback itself.',
+    why: 'The test can finish before the assertion runs, so it passes while the feature is broken.',
+    fix: 'Loop with for...of and await each assertion, or await Promise.all(items.map(async ...)).',
+    dimension: 'assertions',
+    label: 'high',
+  },
+  {
     rule: 'pwscore/no-trivial-assertion',
     form: 'literal',
     family: 'passes-regardless',

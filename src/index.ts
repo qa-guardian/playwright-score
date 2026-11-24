@@ -34,7 +34,7 @@ import { SPEC_EXTENSION_RE } from './source-type.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
 import { decorateFindings } from './catalogue/decorate.js';
 import { applyReceiverForms } from './receiver-forms.js';
-import { applyExpectBinding, settleExpectBinding } from './expect-binding.js';
+import { applyExpectBinding, dropForeignWithoutCell, settleExpectBinding } from './expect-binding.js';
 import { computeScore } from './score-engine.js';
 import { getEngineVersions } from './engine-versions.js';
 import { resetRuleCrashes, ruleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
@@ -821,6 +821,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   applyReceiverForms(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
   // QAG-287 S4b: where the `expect` of an assertion-rule finding comes from (Playwright, another library, or not resolved).
   applyExpectBinding(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
+  dropForeignWithoutCell(eslintFindings);
   const scoredFiles = files.filter((f) => !skips.has(f));
 
   native += importedNative;

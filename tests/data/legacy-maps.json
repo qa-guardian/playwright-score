@@ -325,6 +325,17 @@
    },
    "conf": "high"
   },
+  "pwscore/no-floating-callback-assertion": {
+   "map": {
+    "dimension": "assertions"
+   },
+   "copy": {
+    "title": "Assertion in a callback that is never awaited",
+    "why": "The test can finish before the assertion runs, so it passes while the feature is broken.",
+    "fix": "Loop with for...of and await each assertion, or await Promise.all(items.map(async ...))."
+   },
+   "conf": "high"
+  },
   "pwscore/no-shared-mutable-state": {
    "map": {
     "dimension": "structure",
