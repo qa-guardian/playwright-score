@@ -76,7 +76,12 @@ describe('QAG-287 N3: pwscore/loop-only-assertions', () => {
         testStates.enabled = true;
       }
       assert.equal(loopsOf(off).length, 0);
-      for (const k of ['score', 'grade', 'pass', 'status', 'dimensions'] as const) assert.deepEqual((on as never)[k], (off as never)[k], k);
+      // Since S9a the score is read from the test states: with the step off the result keeps the v4 numbers of
+      // src/score-engine.ts (tests/test-states.test.ts), so score, grade, pass and status are compared through the
+      // states instead: the loop finding charges no test.
+      assert.deepEqual(on.dimensions, off.dimensions, 'dimensions');
+      assert.ok((on.testStates ?? []).length > 0, 'the step ran');
+      for (const s of on.testStates ?? []) assert.ok(!(s.chargedBy ?? []).some((r) => r.rule === LOOP_RULE), `${s.file}:${s.line} is charged by the loop finding`);
       const rest = (r: ScoreResult) => JSON.stringify(r.findings.filter((x) => x.rule !== LOOP_RULE && x.rule !== UNASSERTED_RULE));
       assert.equal(rest(on), rest(off));
     });

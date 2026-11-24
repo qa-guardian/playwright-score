@@ -117,7 +117,7 @@ describe('QAG-287 S6b: the shared rule list is a catalogue property', () => {
   it('every C1-C12 cell in the build carries onShared, and a cell that lost it is reported', () => {
     assert.deepEqual(lacking(ROWS), []);
     const classes = new Set(ROWS.filter((r) => r.onShared && r.cls).map((r) => r.cls));
-    for (const c of ['C1', 'C2', 'C3', 'C4', 'C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12']) assert.ok(classes.has(c), `${c} is on the shared list`);
+    for (const c of ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10', 'C11', 'C12']) assert.ok(classes.has(c), `${c} is on the shared list`);
     const first = ROWS.find((r) => r.cls === 'C8')!;
     const stripped = ROWS.map((r) => (r === first ? { ...r, onShared: undefined } : r));
     assert.deepEqual(lacking(stripped), [`${first.rule}|${first.form}`]);
@@ -154,6 +154,8 @@ describe('QAG-287 S6b: the shared rule list is a catalogue property', () => {
         'playwright/no-wait-for-navigation',
         'playwright/no-element-handle',
         'playwright/no-page-pause',
+        // C5, built by S7a on lane R2: joins the list through its catalogue row at merge-all.
+        'pwscore/no-floating-callback-assertion',
       ].sort()
     );
   });

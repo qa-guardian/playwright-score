@@ -1,5 +1,6 @@
 import type { RuleRow } from './types.js';
 import { passesRegardlessRows } from './passes-regardless.js';
+import { passesRegardlessReadRows } from './passes-regardless-reads.js';
 import { flakeRiskRows } from './flake-risk.js';
 import { flakeRiskAdvisoryRows } from './flake-risk-advisory.js';
 import { suiteRows } from './suite.js';
@@ -18,6 +19,7 @@ export { tierOf, confidenceOfRow, MIN_DECIDED } from './tiers.js';
 /** Every cell, in a fixed order. The first row of a rule is its default form. */
 export const ROWS: readonly RuleRow[] = [
   ...passesRegardlessRows,
+  ...passesRegardlessReadRows,
   ...flakeRiskRows,
   ...flakeRiskAdvisoryRows,
   ...suiteRows,
