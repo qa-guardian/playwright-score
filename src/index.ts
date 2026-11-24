@@ -35,6 +35,7 @@ import { DEFAULT_THRESHOLDS } from './profiles.js';
 import { decorateFindings } from './catalogue/decorate.js';
 import { applyReceiverForms } from './receiver-forms.js';
 import { applyExpectBinding, settleExpectBinding } from './expect-binding.js';
+import { applyPassesAnyway } from './passes-anyway-forms.js';
 import { computeScore } from './score-engine.js';
 import { getEngineVersions } from './engine-versions.js';
 import { resetRuleCrashes, ruleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
@@ -819,6 +820,8 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   }
   // QAG-287 B2: form of the Page/Frame-method findings, from what the receiver is proven to be.
   applyReceiverForms(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
+  // QAG-287 N1: assertion-passes-anyway keeps a document-root finding only on a proven Page or Frame, and none on a foreign expect.
+  applyPassesAnyway(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
   // QAG-287 S4b: where the `expect` of an assertion-rule finding comes from (Playwright, another library, or not resolved).
   applyExpectBinding(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
   const scoredFiles = files.filter((f) => !skips.has(f));

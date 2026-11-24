@@ -1,5 +1,6 @@
 import { parseAst } from './parse-cache.js';
 import type { Severity } from './types.js';
+import { passesAnywayForm } from './rules/assertion-passes-anyway.js';
 
 // QAG-287 slice F: AST post-filters for upstream eslint-plugin-playwright
 // messages. A hand-check of real findings showed several upstream rules fire on
@@ -726,6 +727,8 @@ export function createPostFilter(source: () => string, file: string): PostFilter
         const node = t?.nodeAt(msg.line, msg.column);
         return t && node ? missingAwaitForm(t, node) : undefined;
       }
+      case 'pwscore/assertion-passes-anyway':
+        return passesAnywayForm(msg.messageId);
       default:
         return undefined;
     }

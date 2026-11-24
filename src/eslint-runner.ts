@@ -197,6 +197,8 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
         'pwscore/no-swallowed-assertion': 'warn',
         'pwscore/no-weak-assertion': 'error',
         'pwscore/no-unawaited-expect-value': 'error',
+        // QAG-287 N1: assertions that pass on almost any page (three forms).
+        'pwscore/assertion-passes-anyway': 'warn',
       },
     },
     // .cjs/.cts are always CommonJS (top-level `return`, `require`, no

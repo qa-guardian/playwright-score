@@ -240,6 +240,18 @@
   {
    "rule": "playwright/prefer-web-first-assertions",
    "form": "foreign-expect"
+  },
+  {
+   "rule": "pwscore/assertion-passes-anyway",
+   "form": "root-content"
+  },
+  {
+   "rule": "pwscore/assertion-passes-anyway",
+   "form": "match-anything"
+  },
+  {
+   "rule": "pwscore/assertion-passes-anyway",
+   "form": "empty-fallback"
   }
  ],
  "fixtures": [
@@ -5389,6 +5401,329 @@
    "entry": "pwscore__no-trivial-assertion/foreign-expect/false-playwright-expect-literal.ts",
    "form": "foreign-expect",
    "note": "expect is the one from @playwright/test: the finding keeps its shape form"
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-html-visible",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/root-content/true-html-visible.ts",
+   "form": "root-content"
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-root-attached",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/root-content/true-root-attached.ts",
+   "form": "root-content"
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-const-root-not-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/root-content/true-const-root-not-empty.ts",
+   "form": "root-content",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-frame-locator-root",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/root-content/true-frame-locator-root.ts",
+   "form": "root-content"
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-const-frame-locator-root",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/root-content/true-const-frame-locator-root.ts",
+   "form": "root-content",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-js-body-visible",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/root-content/true-js-body-visible.js",
+   "form": "root-content",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-soft-body-attached",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/root-content/true-soft-body-attached.ts",
+   "form": "root-content"
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-page-const",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/root-content/true-page-const.ts",
+   "form": "root-content",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-has-class",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/root-content/false-root-has-class.ts",
+   "form": "root-content"
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-has-attribute",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/root-content/false-root-has-attribute.ts",
+   "form": "root-content"
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-region-not-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/root-content/false-region-not-empty.ts",
+   "form": "root-content"
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-has-text-pattern",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/root-content/false-root-has-text-pattern.ts",
+   "form": "root-content"
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-not-contain-text",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/root-content/false-root-not-contain-text.ts",
+   "form": "root-content"
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-hidden-option",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/root-content/false-root-hidden-option.ts",
+   "form": "root-content"
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-js-root-has-class",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/root-content/false-js-root-has-class.js",
+   "form": "root-content",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-untyped-helper-receiver",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/root-content/false-untyped-helper-receiver.ts",
+   "form": "root-content"
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-url-match-all",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/true-url-match-all.ts",
+   "form": "match-anything"
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-title-match-all",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/true-title-match-all.ts",
+   "form": "match-anything"
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-contain-empty-text",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/true-contain-empty-text.ts",
+   "form": "match-anything"
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-js-text-any-chars",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/true-js-text-any-chars.js",
+   "form": "match-anything",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-const-locator-contain-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/true-const-locator-contain-empty.ts",
+   "form": "match-anything",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-string-contain-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/true-string-contain-empty.ts",
+   "form": "match-anything"
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-one-or-more",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/false-one-or-more.ts",
+   "form": "match-anything"
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-have-text-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/false-have-text-empty.ts",
+   "form": "match-anything"
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-empty-only-pattern",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/false-empty-only-pattern.ts",
+   "form": "match-anything"
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-contain-variable",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/false-contain-variable.ts",
+   "form": "match-anything"
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-array-contain-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/false-array-contain-empty.ts",
+   "form": "match-anything"
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-negated-match-all",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/false-negated-match-all.ts",
+   "form": "match-anything"
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-js-one-or-more",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/false-js-one-or-more.js",
+   "form": "match-anything",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-vitest-contain-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/match-anything/false-vitest-contain-empty.ts",
+   "form": "match-anything",
+   "tags": [
+    "foreign"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-heading-nullish",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/empty-fallback/true-heading-nullish.ts",
+   "form": "empty-fallback"
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-attribute-or-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/empty-fallback/true-attribute-or-empty.ts",
+   "form": "empty-fallback"
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-regexp-or-empty",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/empty-fallback/true-regexp-or-empty.ts",
+   "form": "empty-fallback"
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-js-heading-nullish",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/empty-fallback/true-js-heading-nullish.js",
+   "form": "empty-fallback",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-const-locator-fallback",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "true",
+   "entry": "pwscore__assertion-passes-anyway/empty-fallback/true-const-locator-fallback.ts",
+   "form": "empty-fallback",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-non-empty-fallback",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/empty-fallback/false-non-empty-fallback.ts",
+   "form": "empty-fallback"
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-have-text-fallback",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/empty-fallback/false-have-text-fallback.ts",
+   "form": "empty-fallback"
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-literal-left",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/empty-fallback/false-literal-left.ts",
+   "form": "empty-fallback"
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-string-cast",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/empty-fallback/false-string-cast.ts",
+   "form": "empty-fallback"
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-array-contain-fallback",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/empty-fallback/false-array-contain-fallback.ts",
+   "form": "empty-fallback"
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-js-non-empty-fallback",
+   "rule": "pwscore/assertion-passes-anyway",
+   "verdict": "false",
+   "entry": "pwscore__assertion-passes-anyway/empty-fallback/false-js-non-empty-fallback.js",
+   "form": "empty-fallback",
+   "tags": [
+    "js"
+   ]
   }
  ]
 }

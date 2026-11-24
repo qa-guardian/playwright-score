@@ -2,6 +2,170 @@
  "note": "Frozen list of fixture (id, pending) pairs (tests/rule-fixtures.test.ts). pending is the slice that will fix the fixture, or null for a fixture that runs against current behaviour. Change it in the same commit as any fixture you add, remove, or whose pending mark you change; a mark naming a landed slice (S1, S2, S3) is rejected.",
  "fixtures": [
   {
+   "id": "assertion-passes-anyway/empty-fallback-false-array-contain-fallback",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-have-text-fallback",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-js-non-empty-fallback",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-literal-left",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-non-empty-fallback",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-string-cast",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-attribute-or-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-const-locator-fallback",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-heading-nullish",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-js-heading-nullish",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-regexp-or-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-array-contain-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-contain-variable",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-empty-only-pattern",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-have-text-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-js-one-or-more",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-negated-match-all",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-one-or-more",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-vitest-contain-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-const-locator-contain-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-contain-empty-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-js-text-any-chars",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-string-contain-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-title-match-all",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-url-match-all",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-js-root-has-class",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-region-not-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-has-attribute",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-has-class",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-has-text-pattern",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-hidden-option",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-not-contain-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-untyped-helper-receiver",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-const-frame-locator-root",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-const-root-not-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-frame-locator-root",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-html-visible",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-js-body-visible",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-page-const",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-root-attached",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-soft-body-attached",
+   "pending": null
+  },
+  {
    "id": "assertion-unverified/false-direct-assertion",
    "pending": null
   },
