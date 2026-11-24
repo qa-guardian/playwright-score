@@ -1,6 +1,7 @@
 import { parseAst } from './parse-cache.js';
 import { isExpectName } from './rules/ast-util.js';
 import { matcherlessForm } from './use-forms.js';
+import { callArgumentForm, isAwaitedPosition } from './awaited-call-argument.js';
 import type { Severity } from './types.js';
 
 // QAG-287 slice F: AST post-filters for upstream eslint-plugin-playwright
@@ -509,11 +510,6 @@ export function insideRetryingBlock(t: Tree, node: N, aliases?: ReadonlySet<stri
 
 const PROMISE_COMBINATORS = new Set(['all', 'allSettled', 'race', 'any']);
 
-function isAwaitedPosition(t: Tree, n: N): boolean {
-  const p = t.parent(n);
-  return !!p && (p.type === 'AwaitExpression' || p.type === 'ReturnStatement' || (p.type === 'ArrowFunctionExpression' && p.body === n));
-}
-
 /** Is the array bound to `name` awaited after `afterLine`: `await Promise.all(name)`, `await name[i]`, or `for (p of name) await p`? */
 function arrayAwaitedLater(t: Tree, scope: N, name: string, afterLine: number): boolean {
   const mentions = (e: N | undefined): boolean =>
@@ -734,7 +730,7 @@ export function createPostFilter(source: () => string, file: string, aliases?: R
       case 'playwright/missing-playwright-await': {
         const t = ensureTree();
         const node = t?.nodeAt(msg.line, msg.column);
-        return t && node ? missingAwaitForm(t, node, aliases) : undefined;
+        return t && node ? callArgumentForm(t, node, missingAwaitForm(t, node, aliases)) : undefined;
       }
       default:
         return undefined;

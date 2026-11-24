@@ -280,6 +280,22 @@
   {
    "rule": "playwright/no-page-pause",
    "form": "gated"
+  },
+  {
+   "rule": "playwright/prefer-web-first-assertions",
+   "form": "read-handle"
+  },
+  {
+   "rule": "playwright/prefer-web-first-assertions",
+   "form": "read-compare"
+  },
+  {
+   "rule": "playwright/no-networkidle",
+   "form": "capture-window"
+  },
+  {
+   "rule": "playwright/missing-playwright-await",
+   "form": "awaited-call-argument"
   }
  ],
  "fixtures": [
@@ -918,22 +934,19 @@
    "id": "no-floating-callback-assertion/true-foreach-async",
    "rule": "pwscore/no-floating-callback-assertion",
    "verdict": "true",
-   "entry": "pwscore__no-floating-callback-assertion/-/true-foreach-async.ts",
-   "pending": "S7a"
+   "entry": "pwscore__no-floating-callback-assertion/-/true-foreach-async.ts"
   },
   {
    "id": "no-floating-callback-assertion/true-map-async-statement",
    "rule": "pwscore/no-floating-callback-assertion",
    "verdict": "true",
-   "entry": "pwscore__no-floating-callback-assertion/-/true-map-async-statement.ts",
-   "pending": "S7a"
+   "entry": "pwscore__no-floating-callback-assertion/-/true-map-async-statement.ts"
   },
   {
    "id": "no-floating-callback-assertion/true-locator-all-foreach",
    "rule": "pwscore/no-floating-callback-assertion",
    "verdict": "true",
-   "entry": "pwscore__no-floating-callback-assertion/-/true-locator-all-foreach.ts",
-   "pending": "S7a"
+   "entry": "pwscore__no-floating-callback-assertion/-/true-locator-all-foreach.ts"
   },
   {
    "id": "no-floating-callback-assertion/true-js-foreach-async",
@@ -942,8 +955,7 @@
    "entry": "pwscore__no-floating-callback-assertion/-/true-js-foreach-async.js",
    "tags": [
     "js"
-   ],
-   "pending": "S7a"
+   ]
   },
   {
    "id": "no-floating-callback-assertion/true-aliased-test",
@@ -952,8 +964,7 @@
    "entry": "pwscore__no-floating-callback-assertion/-/true-aliased-test.ts",
    "tags": [
     "alias"
-   ],
-   "pending": "S7a"
+   ]
   },
   {
    "id": "no-floating-callback-assertion/false-for-of-awaited",
@@ -2126,8 +2137,8 @@
    "tags": [
     "shared"
    ],
-   "pending": "S7a",
-   "note": "needs the rule (S7a) and shared-file linting (S6b); S7a is the later slice, so the mark flips there"
+   "pending": "S6b",
+   "note": "needs shared-file linting (S6b); the rule landed in S7a, and no rule runs on a shared file before S6b"
   },
   {
    "id": "prefer-web-first-assertions/true-helper-awaited-is-visible",
@@ -2218,8 +2229,7 @@
    "rule": "pwscore/no-swallowed-assertion",
    "verdict": "true",
    "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-status-after-click.ts",
-   "pending": "S7b",
-   "note": "a negated matcher with a discarded catch, a click in between, then a later assertion on the same subject. The later-assertion exemption hides the swallowed first assertion today. A bare .not chain with no later assertion is already reported, see true-negated-catch-alone"
+   "note": "a negated matcher with a discarded catch, a click in between, then a later positive assertion on the same subject: the later assertion says nothing about the swallowed not condition, so it is reported (S7b). A bare .not chain with no later assertion is reported too, see true-negated-catch-alone"
   },
   {
    "id": "prefer-web-first-assertions/false-jest-expect-page-is-visible",
@@ -7659,6 +7669,766 @@
    "entry": "playwright__valid-expect/escaped/false-never-read-const.ts",
    "form": "escaped",
    "note": "B3b: assigned to a const that is never read: stays matcherless"
+  },
+  {
+   "id": "no-floating-callback-assertion/true-alias-const-locator",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-floating-callback-assertion/-/true-alias-const-locator.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-floating-callback-assertion/true-alias-const-page",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-floating-callback-assertion/-/true-alias-const-page.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-floating-callback-assertion/true-js-map-async-statement",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-floating-callback-assertion/-/true-js-map-async-statement.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-floating-callback-assertion/true-poll-foreach",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-floating-callback-assertion/-/true-poll-foreach.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/true-to-pass-map-statement",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-floating-callback-assertion/-/true-to-pass-map-statement.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/true-function-expression-callback",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-floating-callback-assertion/-/true-function-expression-callback.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-foreach-custom-awaiting-collection",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-foreach-custom-awaiting-collection.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-foreach-custom-awaiting-js",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-foreach-custom-awaiting-js.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-floating-callback-assertion/false-for-of-awaited-locator-all",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-for-of-awaited-locator-all.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-promise-all-items-map",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-promise-all-items-map.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-map-assigned-then-awaited",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-map-assigned-then-awaited.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-map-returned-from-helper",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-map-returned-from-helper.ts"
+  },
+  {
+   "id": "no-floating-callback-assertion/false-chai-expect-foreach-async",
+   "rule": "pwscore/no-floating-callback-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-floating-callback-assertion/-/false-chai-expect-foreach-async.ts"
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-banner-text",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-banner-text.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "a const-bound locator: the swallowed .not.toBeVisible() is followed by a positive toHaveText on the same locator"
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-banner-text-js",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-banner-text-js.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-inline-locator",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-inline-locator.ts",
+   "note": "the same subject written inline twice"
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-local-noop",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-local-noop.ts",
+   "note": ".catch(noop) with an empty local function discards the rejection like .catch(() => {})"
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-undefined-handler",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-undefined-handler.ts",
+   "note": ".catch(() => undefined) discards the rejection"
+  },
+  {
+   "id": "no-swallowed-assertion/false-positive-catch-then-same-subject",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-swallowed-assertion/-/false-positive-catch-then-same-subject.ts",
+   "note": "a positive timed probe followed by a hard assertion on the same subject: the later check still fails the test (E1 exemption, unchanged)"
+  },
+  {
+   "id": "no-swallowed-assertion/false-positive-catch-then-same-subject-js",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-swallowed-assertion/-/false-positive-catch-then-same-subject-js.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-without-catch",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-swallowed-assertion/-/false-not-without-catch.ts",
+   "note": "the negated assertion is awaited without .catch, so its failure fails the test"
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-catch-rethrows",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-swallowed-assertion/-/false-not-catch-rethrows.ts",
+   "note": "the catch logs and rethrows"
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-catch-records-error",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-swallowed-assertion/-/false-not-catch-records-error.ts",
+   "note": "the catch records the error and the test asserts on the record"
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-catch-same-negated-recheck",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-swallowed-assertion/-/false-not-catch-same-negated-recheck.ts",
+   "note": "a timed negated probe followed by the same negated check as a hard assertion (a timeout-only options object aside)"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-true-text-content-literal-expected",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/true-text-content-literal-expected.ts",
+   "form": "read-direct"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-true-js-attribute-literal-expected",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/true-js-attribute-literal-expected.js",
+   "form": "read-direct",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-true-aliased-test-expected-from-test-data",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/true-aliased-test-expected-from-test-data.ts",
+   "form": "read-direct",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-read-compare-attribute-changed",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/false-read-compare-attribute-changed.ts",
+   "form": "read-direct",
+   "note": "the expected value is an earlier read: form read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-js-read-compare-second-read",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/false-js-read-compare-second-read.js",
+   "form": "read-direct",
+   "tags": [
+    "js"
+   ],
+   "note": "the expected value is a second read: form read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-read-handle-input-value",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/false-read-handle-input-value.ts",
+   "form": "read-direct",
+   "note": "the receiver is an ElementHandle: form read-handle"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-js-read-handle-text-content",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/false-js-read-handle-text-content.js",
+   "form": "read-direct",
+   "tags": [
+    "js"
+   ],
+   "note": "the receiver is an ElementHandle: form read-handle"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-attribute-differs-from-prior",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/true-attribute-differs-from-prior.ts",
+   "form": "read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-js-expected-from-second-read",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/true-js-expected-from-second-read.js",
+   "form": "read-compare",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-aliased-test-text-changed",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/true-aliased-test-text-changed.ts",
+   "form": "read-compare",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-expected-derived-from-read",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/true-expected-derived-from-read.ts",
+   "form": "read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-js-prior-assigned-later",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/true-js-prior-assigned-later.js",
+   "form": "read-compare",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-literal-expected",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/false-literal-expected.ts",
+   "form": "read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-js-literal-expected",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/false-js-literal-expected.js",
+   "form": "read-compare",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-expected-from-test-data",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/false-expected-from-test-data.ts",
+   "form": "read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-read-reused-precedence",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/false-read-reused-precedence.ts",
+   "form": "read-compare",
+   "note": "the subject is used twice: read-reused wins"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-read-handle-precedence",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/false-read-handle-precedence.ts",
+   "form": "read-compare",
+   "note": "the receiver is an ElementHandle: read-handle wins"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-page-dollar-input-value",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-page-dollar-input-value.ts",
+   "form": "read-handle"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-js-page-dollar-text-content",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-js-page-dollar-text-content.js",
+   "form": "read-handle",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-aliased-test-locator-element-handle",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-aliased-test-locator-element-handle.ts",
+   "form": "read-handle",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-dollar-dollar-item",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-dollar-dollar-item.ts",
+   "form": "read-handle"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-js-for-of-handles",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-js-for-of-handles.js",
+   "form": "read-handle",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-compared-with-prior-read-precedence",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-compared-with-prior-read-precedence.ts",
+   "form": "read-handle",
+   "note": "also compared with an earlier read: read-handle wins over read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-false-locator-read-literal",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/false-locator-read-literal.ts",
+   "form": "read-handle"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-false-js-locator-read-literal",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/false-js-locator-read-literal.js",
+   "form": "read-handle",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-false-handle-read-reused-precedence",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/false-handle-read-reused-precedence.ts",
+   "form": "read-handle",
+   "note": "the read is used twice: read-reused wins"
+  },
+  {
+   "id": "prefer-web-first-assertions/foreign-expect-true-jest-globals-read-compare",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/foreign-expect/true-jest-globals-read-compare.ts",
+   "form": "foreign-expect",
+   "note": "read-compare shape with expect from @jest/globals: foreign-expect wins"
+  },
+  {
+   "id": "no-networkidle/capture-window-true-response-statuses-idle-goto",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/capture-window/true-response-statuses-idle-goto.ts",
+   "form": "capture-window"
+  },
+  {
+   "id": "no-networkidle/capture-window-true-js-console-warnings-idle-wait",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/capture-window/true-js-console-warnings-idle-wait.js",
+   "form": "capture-window",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-networkidle/capture-window-true-aliased-test-requestfinished-set",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/capture-window/true-aliased-test-requestfinished-set.ts",
+   "form": "capture-window",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-networkidle/capture-window-true-named-handler-derived-list",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/capture-window/true-named-handler-derived-list.ts",
+   "form": "capture-window"
+  },
+  {
+   "id": "no-networkidle/capture-window-true-failed-response-counter",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/capture-window/true-failed-response-counter.ts",
+   "form": "capture-window"
+  },
+  {
+   "id": "no-networkidle/capture-window-false-idle-goto-then-click",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/capture-window/false-idle-goto-then-click.ts",
+   "form": "capture-window",
+   "note": "a readiness wait: the finding keeps form -"
+  },
+  {
+   "id": "no-networkidle/capture-window-false-js-idle-wait-then-assertion",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/capture-window/false-js-idle-wait-then-assertion.js",
+   "form": "capture-window",
+   "tags": [
+    "js"
+   ],
+   "note": "a readiness wait: the finding keeps form -"
+  },
+  {
+   "id": "no-networkidle/capture-window-false-listener-registered-after-the-wait",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/capture-window/false-listener-registered-after-the-wait.ts",
+   "form": "capture-window",
+   "note": "the listener is registered after the wait"
+  },
+  {
+   "id": "no-networkidle/capture-window-false-collection-never-asserted",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/capture-window/false-collection-never-asserted.ts",
+   "form": "capture-window",
+   "note": "no assertion uses what the listener collected"
+  },
+  {
+   "id": "no-networkidle/capture-window-false-pageerror-listener",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/capture-window/false-pageerror-listener.ts",
+   "form": "capture-window",
+   "note": "pageerror is not one of the four capture events"
+  },
+  {
+   "id": "no-networkidle/capture-window-false-js-listener-with-load-wait",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/capture-window/false-js-listener-with-load-wait.js",
+   "form": "capture-window",
+   "tags": [
+    "js"
+   ],
+   "note": "no networkidle wait at all"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-step-helper-argument-precedence",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-step-helper-argument-precedence.ts",
+   "form": "awaited-call-argument",
+   "note": "precedence pair (awaited-call-argument over assertion)"
+  },
+  {
+   "id": "missing-playwright-await/false-step-helper-argument-precedence",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-step-helper-argument-precedence.ts",
+   "form": "assertion",
+   "note": "precedence pair (awaited-call-argument over assertion)"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-js-cjs-returned-helper-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-js-cjs-returned-helper-argument.js",
+   "form": "awaited-call-argument",
+   "tags": [
+    "js",
+    "cjs"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-js-cjs-returned-helper-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-js-cjs-returned-helper-argument.js",
+   "form": "assertion",
+   "tags": [
+    "js",
+    "cjs"
+   ],
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-aliased-locator-helper-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-aliased-locator-helper-argument.ts",
+   "form": "awaited-call-argument",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-aliased-locator-helper-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-aliased-locator-helper-argument.ts",
+   "form": "assertion",
+   "tags": [
+    "alias"
+   ],
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-arrow-body-helper-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-arrow-body-helper-argument.ts",
+   "form": "awaited-call-argument",
+   "tags": [
+    "arrow-body"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-arrow-body-helper-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-arrow-body-helper-argument.ts",
+   "form": "assertion",
+   "tags": [
+    "arrow-body"
+   ],
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-step-passed-to-helper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-step-passed-to-helper.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/false-step-passed-to-helper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-step-passed-to-helper.ts",
+   "form": "assertion",
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-poll-passed-to-helper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-poll-passed-to-helper.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/false-poll-passed-to-helper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-poll-passed-to-helper.ts",
+   "form": "assertion",
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-as-type-wrapper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-as-type-wrapper.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/false-as-type-wrapper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-as-type-wrapper.ts",
+   "form": "assertion",
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-satisfies-type-wrapper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-satisfies-type-wrapper.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/false-satisfies-type-wrapper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-satisfies-type-wrapper.ts",
+   "form": "assertion",
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-arrow-body-in-callback",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-arrow-body-in-callback.ts",
+   "form": "awaited-call-argument",
+   "tags": [
+    "arrow-body"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-arrow-body-in-callback",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-arrow-body-in-callback.ts",
+   "form": "assertion",
+   "tags": [
+    "arrow-body"
+   ],
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-step-bare-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-step-bare-argument.ts",
+   "form": "awaited-call-argument",
+   "note": "no finding: upstream does not treat a test.step whose parent is a call as a step call"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-stored-then-passed",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-stored-then-passed.ts",
+   "form": "awaited-call-argument",
+   "note": "no finding: upstream counts a stored promise read by an awaited call as consumed"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-array-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-array-argument.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-object-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-object-argument.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-outer-call-not-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-outer-call-not-awaited.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-js-outer-call-stored-never-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-js-outer-call-stored-never-awaited.js",
+   "form": "awaited-call-argument",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-aliased-locator-outer-call-not-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-aliased-locator-outer-call-not-awaited.ts",
+   "form": "awaited-call-argument",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-callback-body",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-callback-body.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-pushed-never-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-pushed-never-awaited.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-expect-rejects-control",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-expect-rejects-control.ts",
+   "form": "awaited-call-argument",
+   "note": "control: no finding"
+  },
+  {
+   "id": "missing-playwright-await/foreign-expect-true-vitest-awaited-helper-precedence",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/foreign-expect/true-vitest-awaited-helper-precedence.ts",
+   "form": "foreign-expect",
+   "note": "precedence pair (foreign-expect over awaited-call-argument)"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-foreign-expect-precedence",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-foreign-expect-precedence.ts",
+   "form": "awaited-call-argument",
+   "note": "precedence pair (foreign-expect over awaited-call-argument)"
   }
  ]
 }

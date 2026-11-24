@@ -34,6 +34,86 @@
    "pending": null
   },
   {
+   "id": "missing-playwright-await/awaited-call-argument-false-aliased-locator-outer-call-not-awaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-array-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-callback-body",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-expect-rejects-control",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-foreign-expect-precedence",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-js-outer-call-stored-never-awaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-object-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-outer-call-not-awaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-pushed-never-awaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-step-bare-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-stored-then-passed",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-aliased-locator-helper-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-arrow-body-helper-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-arrow-body-in-callback",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-as-type-wrapper",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-js-cjs-returned-helper-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-poll-passed-to-helper",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-satisfies-type-wrapper",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-step-helper-argument-precedence",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-step-passed-to-helper",
+   "pending": null
+  },
+  {
    "id": "missing-playwright-await/false-action-awaited-wait",
    "pending": null
   },
@@ -66,6 +146,22 @@
    "pending": null
   },
   {
+   "id": "missing-playwright-await/false-aliased-locator-helper-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-arrow-body-helper-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-arrow-body-in-callback",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-as-type-wrapper",
+   "pending": null
+  },
+  {
    "id": "missing-playwright-await/false-awaited",
    "pending": null
   },
@@ -94,7 +190,15 @@
    "pending": null
   },
   {
+   "id": "missing-playwright-await/false-js-cjs-returned-helper-argument",
+   "pending": null
+  },
+  {
    "id": "missing-playwright-await/false-let-alias-reassigned",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-poll-passed-to-helper",
    "pending": null
   },
   {
@@ -106,7 +210,19 @@
    "pending": null
   },
   {
+   "id": "missing-playwright-await/false-satisfies-type-wrapper",
+   "pending": null
+  },
+  {
    "id": "missing-playwright-await/false-step-awaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-step-helper-argument-precedence",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-step-passed-to-helper",
    "pending": null
   },
   {
@@ -123,6 +239,10 @@
   },
   {
    "id": "missing-playwright-await/foreign-expect-false-playwright-expect-unawaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/foreign-expect-true-vitest-awaited-helper-precedence",
    "pending": null
   },
   {
@@ -518,11 +638,39 @@
    "pending": null
   },
   {
+   "id": "no-floating-callback-assertion/false-chai-expect-foreach-async",
+   "pending": null
+  },
+  {
    "id": "no-floating-callback-assertion/false-for-of-awaited",
    "pending": null
   },
   {
+   "id": "no-floating-callback-assertion/false-for-of-awaited-locator-all",
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/false-foreach-custom-awaiting-collection",
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/false-foreach-custom-awaiting-js",
+   "pending": null
+  },
+  {
    "id": "no-floating-callback-assertion/false-js-for-of",
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/false-map-assigned-then-awaited",
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/false-map-returned-from-helper",
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/false-promise-all-items-map",
    "pending": null
   },
   {
@@ -534,28 +682,52 @@
    "pending": null
   },
   {
+   "id": "no-floating-callback-assertion/true-alias-const-locator",
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/true-alias-const-page",
+   "pending": null
+  },
+  {
    "id": "no-floating-callback-assertion/true-aliased-test",
-   "pending": "S7a"
+   "pending": null
   },
   {
    "id": "no-floating-callback-assertion/true-foreach-async",
-   "pending": "S7a"
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/true-function-expression-callback",
+   "pending": null
   },
   {
    "id": "no-floating-callback-assertion/true-js-foreach-async",
-   "pending": "S7a"
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/true-js-map-async-statement",
+   "pending": null
   },
   {
    "id": "no-floating-callback-assertion/true-locator-all-foreach",
-   "pending": "S7a"
+   "pending": null
   },
   {
    "id": "no-floating-callback-assertion/true-map-async-statement",
-   "pending": "S7a"
+   "pending": null
+  },
+  {
+   "id": "no-floating-callback-assertion/true-poll-foreach",
+   "pending": null
   },
   {
    "id": "no-floating-callback-assertion/true-shared-foreach-async",
-   "pending": "S7a"
+   "pending": "S6b"
+  },
+  {
+   "id": "no-floating-callback-assertion/true-to-pass-map-statement",
+   "pending": null
   },
   {
    "id": "no-focused-test/false-custom-only-method",
@@ -623,6 +795,50 @@
   },
   {
    "id": "no-networkidle/api-under-test-true-lockfile-link-only",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-false-collection-never-asserted",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-false-idle-goto-then-click",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-false-js-idle-wait-then-assertion",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-false-js-listener-with-load-wait",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-false-listener-registered-after-the-wait",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-false-pageerror-listener",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-true-aliased-test-requestfinished-set",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-true-failed-response-counter",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-true-js-console-warnings-idle-wait",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-true-named-handler-derived-list",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-true-response-statuses-idle-goto",
    "pending": null
   },
   {
@@ -922,6 +1138,30 @@
    "pending": null
   },
   {
+   "id": "no-swallowed-assertion/false-not-catch-records-error",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-catch-rethrows",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-catch-same-negated-recheck",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-without-catch",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/false-positive-catch-then-same-subject",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/false-positive-catch-then-same-subject-js",
+   "pending": null
+  },
+  {
    "id": "no-swallowed-assertion/false-rethrown",
    "pending": null
   },
@@ -950,8 +1190,28 @@
    "pending": null
   },
   {
+   "id": "no-swallowed-assertion/true-not-catch-chain-banner-text",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-banner-text-js",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-inline-locator",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-local-noop",
+   "pending": null
+  },
+  {
    "id": "no-swallowed-assertion/true-not-catch-chain-status-after-click",
-   "pending": "S7b"
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-undefined-handler",
+   "pending": null
   },
   {
    "id": "no-swallowed-assertion/true-try-catch-log",
@@ -2487,6 +2747,114 @@
   },
   {
    "id": "prefer-web-first-assertions/foreign-expect-true-jest-globals-is-visible",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/foreign-expect-true-jest-globals-read-compare",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-expected-from-test-data",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-js-literal-expected",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-literal-expected",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-read-handle-precedence",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-read-reused-precedence",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-aliased-test-text-changed",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-attribute-differs-from-prior",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-expected-derived-from-read",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-js-expected-from-second-read",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-js-prior-assigned-later",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-js-read-compare-second-read",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-js-read-handle-text-content",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-read-compare-attribute-changed",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-read-handle-input-value",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-true-aliased-test-expected-from-test-data",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-true-js-attribute-literal-expected",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-true-text-content-literal-expected",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-false-handle-read-reused-precedence",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-false-js-locator-read-literal",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-false-locator-read-literal",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-aliased-test-locator-element-handle",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-compared-with-prior-read-precedence",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-dollar-dollar-item",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-js-for-of-handles",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-js-page-dollar-text-content",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-page-dollar-input-value",
    "pending": null
   },
   {

@@ -109,7 +109,8 @@ describe('QAG-287 S2: certain-candidate rows and the by-construction path', () =
   const candidates = ROWS.filter((r) => r.design === 'candidate');
 
   it('every certain-candidate row rests on the docs and carries a known docs URL', () => {
-    assert.equal(candidates.length, 14);
+    // 15 since QAG-287 S7a added pwscore/no-floating-callback-assertion (a BC-eligible cell in cell-forms.json).
+    assert.equal(candidates.length, 15);
     for (const r of candidates) {
       assert.equal(r.basis, 'docs', `${r.rule} ${r.form}: basis`);
       assert.ok(r.docs, `${r.rule} ${r.form}: no docs URL`);
@@ -145,7 +146,7 @@ describe('QAG-287 S2: certain-candidate rows and the by-construction path', () =
       if (r.bcEligible) assert.equal(r.design, 'candidate', `${key}: eligible but not a candidate`);
       if (inelig.has(key)) assert.equal(r.design, 'candidate', `${key}: ineligible candidate must still be a candidate`);
     }
-    // Every eligible cell whose rule exists today has its row (the floating-callback rule arrives in a later slice).
+    // Every eligible cell whose rule exists today has its row.
     for (const key of eligible) {
       const [rule, form] = key.split('|');
       if (defaultRow(rule)) assert.ok(rowFor(rule, form), `no row for eligible cell ${key}`);
@@ -293,8 +294,9 @@ describe('QAG-287 S2: the catalogue replaces the hand-kept maps without changing
 
 describe('QAG-287 S2: decorateFindings only adds keys', () => {
   it('leaves every existing key as it was and adds the catalogue fields', () => {
+    // A rule with one shape: decorateFindings gives its form-less finding the form of its only row.
     const f: Finding = {
-      rule: 'playwright/no-networkidle',
+      rule: 'playwright/no-wait-for-timeout',
       severity: 'error',
       message: 'm',
       file: 'a.spec.ts',
@@ -308,7 +310,7 @@ describe('QAG-287 S2: decorateFindings only adds keys', () => {
     const before = JSON.parse(JSON.stringify(f));
     decorateFindings([f], undefined);
     for (const [k, v] of Object.entries(before)) assert.deepEqual((f as unknown as Record<string, unknown>)[k], v, k);
-    assert.equal(f.tier, 'likely', 'the file lists no-networkidle as likely');
+    assert.equal(f.tier, 'likely', 'the file lists no-wait-for-timeout as likely');
     assert.equal(f.family, 'flake-risk');
     assert.equal(f.form, '-');
     assert.equal(f.basis, 'docs');
@@ -417,7 +419,7 @@ test('mix', async ({ page }) => {
     assert.equal(v?.family, 'passes-regardless');
   });
 
-  it('a rule with one shape carries form "-"', async () => {
+  it('a plain finding carries form "-"', async () => {
     const r = await scoreSource(SPEC);
     const n = r.findings.find((f) => f.rule === 'playwright/no-networkidle');
     assert.equal(n?.form, '-');

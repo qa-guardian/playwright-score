@@ -13,6 +13,7 @@ import { formOfReportedRead, urlCountReads } from './read-forms.js';
 import { sharedRules } from './shared-lint.js';
 import { expectAliasConfig, newFindings } from './expect-alias.js';
 import { scopeAliasConfig, type ScopeAliases } from './rules/aliased-page-api.js';
+import { captureWindowForm } from './capture-window.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
 const ASSERT_FUNCTION_PATTERNS = [
@@ -202,6 +203,8 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
         'pwscore/no-swallowed-assertion': 'warn',
         'pwscore/no-weak-assertion': 'error',
         'pwscore/no-unawaited-expect-value': 'error',
+        // QAG-287 S7a: an awaited assertion in an async forEach/map callback that is never awaited.
+        'pwscore/no-floating-callback-assertion': 'error',
       },
     },
     // .cjs/.cts are always CommonJS (top-level `return`, `require`, no
@@ -427,6 +430,8 @@ async function lintWith(eslint: ESLint, files: string[], reportBase: string, ali
       const form =
         msg.ruleId === 'playwright/prefer-web-first-assertions'
           ? formOfReportedRead(postFilter.tree(), msg.line, msg.column, aliases)
+          : msg.ruleId === 'playwright/no-networkidle'
+          ? captureWindowForm(postFilter.tree(), msg.line, msg.column)
           : postFilter.formOf({ ruleId: msg.ruleId, messageId: msg.messageId, line: msg.line, column: msg.column });
       findings.push({
         rule: msg.ruleId,

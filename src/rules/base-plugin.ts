@@ -12,6 +12,7 @@ import { noSwallowedAssertion } from './no-swallowed-assertion.js';
 import { noWeakAssertion } from './no-weak-assertion.js';
 import { noUnawaitedExpectValue } from './no-unawaited-expect-value.js';
 import { expectAliasNames, isExpectName } from './ast-util.js';
+import { noFloatingCallbackAssertion } from './no-floating-callback-assertion.js';
 
 type Node = {
   type: string;
@@ -1108,6 +1109,7 @@ const rawRules: Record<string, Rule.RuleModule> = {
   'no-swallowed-assertion': noSwallowedAssertion,
   'no-weak-assertion': noWeakAssertion,
   'no-unawaited-expect-value': noUnawaitedExpectValue,
+  'no-floating-callback-assertion': noFloatingCallbackAssertion,
 };
 
 /**

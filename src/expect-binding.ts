@@ -27,6 +27,7 @@ import { exportTable } from './rules/module-exports.js';
 import { isExpectExport } from './rules/proof.js';
 import type { N, PackageExport, ResolveEnv, Result, ScopeFile } from './rules/proof.js';
 import { lookup, playwrightExpect } from './rules/scope-resolve.js';
+import { awaitedAssertionRoots, FLOATING_CALLBACK_RULE } from './rules/no-floating-callback-assertion.js';
 
 export { EXPECT_BOUND_RULES, FOREIGN_EXPECT_FORM };
 
@@ -166,6 +167,19 @@ function expectHeads(sf: ScopeFile, line: number, column: number, also?: AlsoExp
   return [];
 }
 
+/**
+ * QAG-287 S7a: a floating-callback finding sits on the `forEach` / `map` name. Its `expect`s are those of the awaited
+ * assertions in the call's async callback.
+ */
+function callbackHeads(sf: ScopeFile, line: number, column: number): N[] {
+  const name = nodeAt(sf, line, column);
+  const member = name ? sf.parents.get(name) : undefined;
+  const call = member ? sf.parents.get(member) : undefined;
+  if (member?.type !== 'MemberExpression' || member.property !== name || call?.type !== 'CallExpression' || call.callee !== member) return [];
+  const callback = (call.arguments as N[])[0];
+  return callback ? awaitedAssertionRoots(callback, (id) => readAsExpect(sf, id)) : [];
+}
+
 /** The `expect` identifier of every call the variable declared by `id` is passed to as an argument. */
 function expectsOf(sf: ScopeFile, id: N, also?: AlsoExpect): N[] {
   const heads: N[] = [];
@@ -236,9 +250,11 @@ export function expectUse(env: ResolveEnv, ctx: ReceiverContext, f: Located, als
   const file = path.resolve(ctx.filesBase, f.file);
   const here: Binding = { kind: 'unresolved', at: relative(ctx, file, f.line) };
   try {
-    const found = findingHeads(env, ctx, f, also);
-    if (!found) return undefined;
-    const { sf, heads } = found;
+    // The spec file is the text that was scored: never a second read from disk.
+    const sf = typeof ctx.sources.get(file) === 'string' ? env.load(file) : undefined;
+    if (!sf) return undefined;
+    const heads = f.rule === FLOATING_CALLBACK_RULE ? callbackHeads(sf, f.line, f.column) : expectHeads(sf, f.line, f.column, also);
+    if (heads.length === 0) return undefined;
     if (exportTable(sf).reflection) return { binding: here, voided: heads.every((h) => isVoided(sf, h)) };
     // Several expects (a stored read passed to more than one): Playwright's if any is, else not resolved if any is not, else foreign.
     const uses = heads.map((head) => useOf(env, ctx, sf, head, file, f.line as number));
@@ -288,6 +304,18 @@ export function applyExpectBinding(findings: Finding[], ctx: ReceiverContext, ad
     if (!use || (use.binding.kind === 'playwright' && !use.voided)) continue;
     marks.set(f, { use, form: f.form });
     if (use.binding.kind === 'foreign') f.form = FOREIGN_EXPECT_FORM;
+  }
+}
+
+/**
+ * Right after applyExpectBinding: a finding moved to form `foreign-expect` whose rule has no such cell is dropped, in
+ * place (QAG-287 S7a: an async callback whose assertions all come from another library is not a floating Playwright
+ * assertion). Every other finding stays.
+ */
+export function dropForeignWithoutCell(findings: Finding[]): void {
+  for (let i = findings.length - 1; i >= 0; i--) {
+    const f = findings[i];
+    if (f.form === FOREIGN_EXPECT_FORM && marks.has(f) && !rowFor(f.rule, FOREIGN_EXPECT_FORM)) findings.splice(i, 1);
   }
 }
 

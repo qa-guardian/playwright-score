@@ -30,8 +30,14 @@ export const FOREIGN_EXPECT_COPY: Pick<RuleRow, 'title' | 'what' | 'why' | 'fix'
   fix: 'Nothing to change if the other library is intended. For checks on the page, use expect from @playwright/test.',
 };
 
+/**
+ * Expect-bound rules with no `foreign-expect` cell (QAG-287 S7a): their finding on a proven foreign `expect` is
+ * dropped, not re-formed (src/expect-binding.ts, dropForeignWithoutCell).
+ */
+export const NO_FOREIGN_EXPECT_CELL: readonly string[] = ['pwscore/no-floating-callback-assertion'];
+
 /** The `foreign-expect` cell of every expect-bound rule that has a row: the rule's first row with the neutral copy, advisory by design. */
-export const foreignExpectRows: readonly RuleRow[] = EXPECT_BOUND_RULES.flatMap((rule) => {
+export const foreignExpectRows: readonly RuleRow[] = EXPECT_BOUND_RULES.filter((rule) => !NO_FOREIGN_EXPECT_CELL.includes(rule)).flatMap((rule) => {
   const base = [...passesRegardlessRows, ...flakeRiskRows].find((r) => r.rule === rule);
   if (!base) return [];
   // Not `onShared`: a foreign assertion in a shared file is never reported.

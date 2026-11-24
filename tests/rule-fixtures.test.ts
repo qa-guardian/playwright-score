@@ -91,7 +91,7 @@ const MIN_OTHER = 1;
 /** Catalogue rules the runner keeps switched off on purpose; the test below checks that it still does. */
 const NOT_ENABLED = ['playwright/require-top-level-describe'];
 /** Slices already closed: a fixture cannot wait for them (ADR 0.E E-3). Add a slice here when it lands. */
-const LANDED = ['S1', 'S2', 'S3', 'S3b', 'S3c', 'S4a', 'S4b', 'S7c', 'S6b'];
+const LANDED = ['S1', 'S2', 'S3', 'S3b', 'S3c', 'S4a', 'S4b', 'S7a', 'S7b', 'S7c', 'S6b'];
 const isPending = (f: Fixture): boolean => f.pending !== undefined;
 
 function allFiles(dir: string, base = dir): string[] {
@@ -321,8 +321,6 @@ describe('QAG-287 S3: fixture manifest', () => {
 
   it('keeps the fixture shapes the ADR names as pending, with their slice', () => {
     const want: Array<[string, string]> = [
-      ['true-foreach-async', 'S7a'],
-      ['true-not-catch-chain', 'S7b'],
     ];
     for (const [prefix, slice] of want) {
       const hit = manifest.fixtures.filter((f) => path.posix.basename(f.dir ?? f.entry).startsWith(prefix) || f.id.split('/')[1]?.startsWith(prefix));

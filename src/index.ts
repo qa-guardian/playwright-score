@@ -35,7 +35,7 @@ import { SPEC_EXTENSION_RE } from './source-type.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
 import { decorateFindings, settleQuotable } from './catalogue/decorate.js';
 import { applyReceiverForms } from './receiver-forms.js';
-import { applyExpectBinding, settleExpectBinding } from './expect-binding.js';
+import { applyExpectBinding, dropForeignWithoutCell, settleExpectBinding } from './expect-binding.js';
 import { settleTestStates, stageTestStates } from './test-states.js';
 import { findExpectAliases, keepProvenAliasFindings } from './expect-alias.js';
 import { SCOPE_RULES, findScopeAliases, keepScopeAliasFindings } from './rules/aliased-page-api.js';
@@ -868,6 +868,7 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
   applyReceiverForms(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
   // QAG-287 S4b: where the `expect` of an assertion-rule finding comes from (Playwright, another library, or not resolved).
   applyExpectBinding(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver }, aliasAdded);
+  dropForeignWithoutCell(eslintFindings);
   // QAG-287 B3b: a handle used only as an argument, a pause behind a condition (the valid-expect form is set in the lint).
   applyUseForms(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
   // QAG-287 S3c: in a project that is the Playwright implementation, the discouraged-API findings are advisory.

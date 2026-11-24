@@ -198,15 +198,16 @@ code scores identically regardless of which plugin version npm resolves.
 
 ### Tests that would miss a real bug
 
-Four rules (QAG-287) target tests that pass whatever the app does. Each
+Five rules (QAG-287) target tests that pass whatever the app does. Each
 matches one exact syntactic shape and stays silent when unsure.
 
 | Rule | Dimension, severity | Exact shape |
 |---|---|---|
 | `pwscore/no-fixme-test` | structure, warning (info when a reason is given or the body is empty) | `test.fixme('t', fn)` / `test.describe.fixme(...)` declarations; in-body or describe-level `test.fixme()` or `test.fixme(true, ...)`. Conditional `test.fixme(cond, 'why')` is clean. Warning when nothing says why. Info, with a different message, when `test.fixme(true, 'reason')` carries a reason, a comment directly above names a tracker reference (`ABC-123`, an issue URL, `#1234`) or a re-enable condition, or an annotation was pushed earlier in the same body; and for an empty-body `test.fixme('t', () => {})`, which is a to-do placeholder rather than a broken test. |
-| `pwscore/no-swallowed-assertion` | assertions, warning | `expect(...)` in a `try` whose `catch` has no throw, expect, fail-ish call, returned value or assignment (not inside a loop); or `await expect(...).catch(fn)` as a statement where `fn` does not throw. |
+| `pwscore/no-swallowed-assertion` | assertions, warning | `expect(...)` in a `try` whose `catch` has no throw, expect, fail-ish call, returned value or assignment (not inside a loop); or `await expect(...).catch(fn)` as a statement where `fn` does not throw. A negated chain whose `.catch` discards the rejection (`() => {}`, `() => undefined`, or a local empty function) is reported even when a later assertion checks the same subject, unless that assertion repeats the same negated check. |
 | `pwscore/no-weak-assertion` | assertions, error | `.count()`/`.length` `toBeGreaterThanOrEqual(0)`; a syntactic Locator (`page.locator`, `getBy*`, or a const from one) asserted `toBeTruthy`/`toBeDefined`/`not.toBeNull`; `isVisible()`-style and `count()` results asserted `toBeDefined`. `toBeTruthy()` on other values is not flagged. |
 | `pwscore/no-unawaited-expect-value` | assertions, error | `expect(<promise call>)` without `await`, receiver syntactically a Page/Locator, matcher not web-first (also an un-awaited promise call as the expected value of `toBe`/`toEqual`). `.resolves`/`.rejects` are exempt. |
+| `pwscore/no-floating-callback-assertion` | assertions, error | An awaited assertion (an `expect(...)` matcher chain, `expect.soft`, `expect.poll` or `toPass`) inside an async callback of `forEach`, or of `map` whose result is discarded (an expression statement). Neither method awaits the promises its callback returns, so the test can finish before the assertion runs. Not flagged: `for...of` with `await`, `await Promise.all(items.map(async ...))`, a `map` or `forEach` whose result is awaited, assigned, returned or passed on, a callback that is not async, an assertion in a function nested in the callback. A proven non-Playwright `expect` gives no finding; an `expect` whose origin is not resolved gives the finding with tier `needs-check`. |
 
 
 ---
