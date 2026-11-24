@@ -177,6 +177,11 @@ export function installHeapGuard(maxHeapMb: number): HeapGuard {
   return installed;
 }
 
+/** Whether this thread has a heap guard at all, armed or not. */
+export function heapGuardInstalled(): boolean {
+  return installed !== undefined;
+}
+
 export function heapGuardArmed(): boolean {
   return installed?.armed === true;
 }
