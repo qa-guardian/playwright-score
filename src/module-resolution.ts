@@ -19,7 +19,7 @@ export const INDEX_FILES = ['index.ts', 'index.tsx', 'index.js', 'index.jsx', 'i
 
 // TypeScript ESM convention: `import './helper.js'` names the emitted file, the
 // source on disk is helper.ts / helper.tsx (`.mjs` -> `.mts`, `.cjs` -> `.cts`).
-const JS_TO_TS_SOURCE: Record<string, string[]> = {
+export const JS_TO_TS_SOURCE: Record<string, string[]> = {
   '.js': ['.ts', '.tsx'],
   '.jsx': ['.tsx'],
   '.mjs': ['.mts'],

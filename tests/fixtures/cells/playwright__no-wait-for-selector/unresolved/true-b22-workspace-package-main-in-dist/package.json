@@ -1,0 +1,1 @@
+{ "name": "orders-suite", "private": true, "workspaces": ["packages/*"] }

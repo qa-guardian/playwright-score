@@ -33,6 +33,8 @@ import {
 import { SPEC_EXTENSION_RE } from './source-type.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
 import { decorateFindings } from './catalogue/decorate.js';
+import { applyReceiverForms } from './receiver-forms.js';
+import { applyExpectBinding, settleExpectBinding } from './expect-binding.js';
 import { computeScore } from './score-engine.js';
 import { getEngineVersions } from './engine-versions.js';
 import { resetRuleCrashes, ruleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
@@ -587,6 +589,7 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
     clearParseCache(); // nothing parsed for this run outlives it
   }
   decorateFindings(result.findings, result.baseDir);
+  settleExpectBinding(result.findings);
   const crashes = summarizeRuleCrashes();
   const withCrashes = crashes.length > 0 ? { ...result, ruleCrashes: crashes } : result;
   return { ...withCrashes, engine: getEngineVersions() };
@@ -814,6 +817,10 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
       for (let i = 0; i < c.count; i++) ruleCrashes.push({ rule: c.rule, error: new Error('rule crashed in the analysis worker') });
     }
   }
+  // QAG-287 B2: form of the Page/Frame-method findings, from what the receiver is proven to be.
+  applyReceiverForms(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
+  // QAG-287 S4b: where the `expect` of an assertion-rule finding comes from (Playwright, another library, or not resolved).
+  applyExpectBinding(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
   const scoredFiles = files.filter((f) => !skips.has(f));
 
   native += importedNative;

@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@fx/fixtures": [
+        "./support/fixtures.ts",
+        "./support/own.ts"
+      ]
+    }
+  }
+}

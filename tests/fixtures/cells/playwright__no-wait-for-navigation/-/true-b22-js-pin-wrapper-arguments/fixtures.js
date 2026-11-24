@@ -1,0 +1,4 @@
+const { test: base } = require('@playwright/test');
+const { fake, createRunner } = require('./runner');
+exports.test = base;
+arguments[0].test = require('./runner').test;

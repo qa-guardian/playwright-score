@@ -1,0 +1,2165 @@
+{
+ "note": "QAG-287 B2.2 layer 2: one row per on-disk fixture of the proof matrix. expect PROVEN: form \"-\"; NOT: form \"unresolved\", tier likely. line is the reported call in entry.",
+ "fixtures": [
+  {
+   "id": "no-wait-for-selector/true-b22-reexport-named",
+   "row": "X1+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-reexport-named",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-reexport-named",
+   "row": "X1+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-reexport-named",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-type-reexport-then-star-of-runner",
+   "row": "X1-4",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-type-reexport-then-star-of-runner",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-extend-then-export-list",
+   "row": "X2+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-extend-then-export-list",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-extend-then-export-list",
+   "row": "X2+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-extend-then-export-list",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-export-const-extend",
+   "row": "X3+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-export-const-extend",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-export-const-extend",
+   "row": "X3+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-export-const-extend",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-export-const-pattern-of-runner",
+   "row": "X3-2",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-export-const-pattern-of-runner",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-export-const-pattern-of-runner",
+   "row": "X3-2",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-export-const-pattern-of-runner",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-star-of-playwright",
+   "row": "X5+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-star-of-playwright",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-star-of-playwright",
+   "row": "X5+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-star-of-playwright",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-star-plus-own-function",
+   "row": "X5-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-star-plus-own-function",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-star-plus-own-function",
+   "row": "X5-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-star-plus-own-function",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-star-plus-star-as-test",
+   "row": "X5-4",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-star-plus-star-as-test",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-star-plus-star-as-test",
+   "row": "X5-4",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-star-plus-star-as-test",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-star-plus-export-assignment",
+   "row": "X5-6",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-star-plus-export-assignment",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-four-star-links",
+   "row": "X-chain+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-four-star-links",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-middle-link-adds-own-test",
+   "row": "X-chain-2",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-middle-link-adds-own-test",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-four-star-links",
+   "row": "X-chain+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-four-star-links",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-middle-link-adds-own-test",
+   "row": "X-chain-2",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-middle-link-adds-own-test",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-module-exports-literal",
+   "row": "C-A+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-module-exports-literal",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-literal-then-reassigned",
+   "row": "C-A-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-literal-then-reassigned",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-proto-literal",
+   "row": "C-A-7",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-proto-literal",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-literal-then-object-assign",
+   "row": "C-A-9",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-literal-then-object-assign",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-exports-property",
+   "row": "C-B+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-exports-property",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-this-in-a-loop",
+   "row": "C-B-3",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-this-in-a-loop",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-this-property",
+   "row": "C-B-3",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-this-property",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-import-from-playwright",
+   "row": "V1+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-import-from-playwright",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-import-from-playwright",
+   "row": "V1+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-import-from-playwright",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-require-destructured",
+   "row": "V3+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-require-destructured",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-paths-alias-of-the-package",
+   "row": "V1-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-paths-alias-of-the-package",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-js-spec-two-candidate-files",
+   "row": "V1-5",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-js-spec-two-candidate-files",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-ts-spec-two-candidate-files",
+   "row": "V1-5",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-ts-spec-two-candidate-files",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-directory-with-package-main",
+   "row": "V1-8",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-directory-with-package-main",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-workspace-package-main-in-dist",
+   "row": "V1-10",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-workspace-package-main-in-dist",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-specifier-ts-and-jsx-files",
+   "row": "RD-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-specifier-ts-and-jsx-files",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-specifier-ts-file-only",
+   "row": "RD-1c",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-specifier-ts-file-only",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-js-spec-alias-without-allowjs",
+   "row": "RD-2",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-js-spec-alias-without-allowjs",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-js-spec-alias-with-allowjs",
+   "row": "RD-2c",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-js-spec-alias-with-allowjs",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-nearer-jsconfig-maps-elsewhere",
+   "row": "RD-3",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-nearer-jsconfig-maps-elsewhere",
+   "entry": "tests/orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-extends-without-leading-dot",
+   "row": "RD-4",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-extends-without-leading-dot",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-referenced-config-maps-the-package",
+   "row": "RD-5",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-referenced-config-maps-the-package",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-child-config-sets-another-base-url",
+   "row": "RD-7",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-child-config-sets-another-base-url",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-paths-key-with-two-values",
+   "row": "RD-8",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-paths-key-with-two-values",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-jsconfig-maps-the-package",
+   "row": "RD-9",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-jsconfig-maps-the-package",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-jsconfig-maps-nothing",
+   "row": "RD-9",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-jsconfig-maps-nothing",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-alias-with-js-suffix-to-js-ts-file",
+   "row": "RD-13",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-alias-with-js-suffix-to-js-ts-file",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-local-function-test",
+   "row": "V1-6",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-local-function-test",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-local-function-test",
+   "row": "V1-6",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-local-function-test",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-import-shadowed-in-inner-scope",
+   "row": "V1-6",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-import-shadowed-in-inner-scope",
+   "entry": "orders.spec.ts",
+   "line": 8,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-const-alias-of-test",
+   "row": "V2+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-const-alias-of-test",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-extend-with-a-fixture",
+   "row": "B2+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-extend-with-a-fixture",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-merge-tests-of-two-proven",
+   "row": "B3+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-merge-tests-of-two-proven",
+   "entry": "orders.spec.ts",
+   "line": 8,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-extend-overrides-page",
+   "row": "A2-pin-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-extend-overrides-page",
+   "entry": "orders.spec.ts",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-use-overrides-page",
+   "row": "A2-pin-2",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-use-overrides-page",
+   "entry": "orders.spec.ts",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-const-alias-of-test",
+   "row": "V2+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-const-alias-of-test",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-extend-with-a-fixture",
+   "row": "B2+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-extend-with-a-fixture",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-merge-tests-of-two-proven",
+   "row": "B3+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-merge-tests-of-two-proven",
+   "entry": "orders.spec.js",
+   "line": 8,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-pin-extend-overrides-page",
+   "row": "A2-pin-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-pin-extend-overrides-page",
+   "entry": "orders.spec.js",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-pin-use-overrides-page",
+   "row": "A2-pin-2",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-pin-use-overrides-page",
+   "entry": "orders.spec.js",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-npm-alias-of-the-package",
+   "row": "A1-pin-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-npm-alias-of-the-package",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-config-tsconfig-option",
+   "row": "A7-pin-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-config-tsconfig-option",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-pin-wrapper-arguments",
+   "row": "A5-pin-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-pin-wrapper-arguments",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-require-cache",
+   "row": "A5-pin-2",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-require-cache",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-extend-patched",
+   "row": "A6-pin",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-extend-patched",
+   "entry": "orders.spec.ts",
+   "line": 8,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-annotation-not-checked",
+   "row": "A3-pin",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-annotation-not-checked",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-export-changed-by-importer",
+   "row": "A5-pin-3",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-export-changed-by-importer",
+   "entry": "orders.spec.ts",
+   "line": 8,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-config-tsconfig-option-local-alias",
+   "row": "A7-pin-2",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-config-tsconfig-option-local-alias",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-pin-build-external",
+   "row": "A7-pin-3",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-pin-build-external",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-import-type-page",
+   "row": "T+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-import-type-page",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-renamed-page-type",
+   "row": "T+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-renamed-page-type",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-namespace-page-type",
+   "row": "T+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-namespace-page-type",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-import-type-query",
+   "row": "T+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-import-type-query",
+   "entry": "orders.spec.ts",
+   "line": 3,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-typed-let",
+   "row": "T+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-typed-let",
+   "entry": "orders.spec.ts",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-inner-value-named-like-the-type",
+   "row": "T-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-inner-value-named-like-the-type",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-in-a-test",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-fixture-page-in-a-test",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-in-a-hook",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-fixture-page-in-a-hook",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-in-a-step",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-fixture-page-in-a-step",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-renamed",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-fixture-page-renamed",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-const-alias-of-fixture-page",
+   "row": "E1-alias",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-const-alias-of-fixture-page",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-reassigned",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-fixture-page-reassigned",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-fixture-page-with-default",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-fixture-page-with-default",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-nested-pattern",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-nested-pattern",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-second-parameter",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-second-parameter",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-context-new-page",
+   "row": "E3+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-context-new-page",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-electron-first-window",
+   "row": "E3+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-electron-first-window",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-in-a-test",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-fixture-page-in-a-test",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-in-a-hook",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-fixture-page-in-a-hook",
+   "entry": "orders.spec.js",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-in-a-step",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-fixture-page-in-a-step",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-renamed",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-fixture-page-renamed",
+   "entry": "orders.spec.js",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-const-alias-of-fixture-page",
+   "row": "E1-alias",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-const-alias-of-fixture-page",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-reassigned",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-fixture-page-reassigned",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-fixture-page-with-default",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-fixture-page-with-default",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-nested-pattern",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-nested-pattern",
+   "entry": "orders.spec.js",
+   "line": 4,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-second-parameter",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-js-second-parameter",
+   "entry": "orders.spec.js",
+   "line": 4,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-context-new-page",
+   "row": "E3+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-context-new-page",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-electron-first-window",
+   "row": "E3+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-electron-first-window",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-typed-module-level-let",
+   "row": "E2+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-typed-module-level-let",
+   "entry": "orders.spec.ts",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-typed-class-field",
+   "row": "E2+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-typed-class-field",
+   "entry": "orders.spec.ts",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-constructor-parameter-property",
+   "row": "E2+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-constructor-parameter-property",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-js-launcher-chain",
+   "row": "E3+",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/-/true-b22-js-launcher-chain",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "certain"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-page-from-another-launcher-helper",
+   "row": "E3-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-page-from-another-launcher-helper",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-launcher-reexported-by-a-local-file",
+   "row": "E3-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-launcher-reexported-by-a-local-file",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-selector/true-b22-two-launchers-in-one-helper",
+   "row": "E3-1",
+   "rule": "playwright/no-wait-for-selector",
+   "dir": "playwright__no-wait-for-selector/unresolved/true-b22-two-launchers-in-one-helper",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-reexport-named",
+   "row": "X1+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-reexport-named",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-reexport-named",
+   "row": "X1+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-reexport-named",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-type-reexport-then-star-of-runner",
+   "row": "X1-4",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-type-reexport-then-star-of-runner",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-extend-then-export-list",
+   "row": "X2+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-extend-then-export-list",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-extend-then-export-list",
+   "row": "X2+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-extend-then-export-list",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-export-const-extend",
+   "row": "X3+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-export-const-extend",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-export-const-extend",
+   "row": "X3+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-export-const-extend",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-export-const-pattern-of-runner",
+   "row": "X3-2",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-export-const-pattern-of-runner",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-export-const-pattern-of-runner",
+   "row": "X3-2",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-export-const-pattern-of-runner",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-star-of-playwright",
+   "row": "X5+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-star-of-playwright",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-star-of-playwright",
+   "row": "X5+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-star-of-playwright",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-star-plus-own-function",
+   "row": "X5-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-star-plus-own-function",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-star-plus-own-function",
+   "row": "X5-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-star-plus-own-function",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-star-plus-star-as-test",
+   "row": "X5-4",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-star-plus-star-as-test",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-star-plus-star-as-test",
+   "row": "X5-4",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-star-plus-star-as-test",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-star-plus-export-assignment",
+   "row": "X5-6",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-star-plus-export-assignment",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-four-star-links",
+   "row": "X-chain+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-four-star-links",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-middle-link-adds-own-test",
+   "row": "X-chain-2",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-middle-link-adds-own-test",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-four-star-links",
+   "row": "X-chain+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-four-star-links",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-middle-link-adds-own-test",
+   "row": "X-chain-2",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-middle-link-adds-own-test",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-module-exports-literal",
+   "row": "C-A+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-module-exports-literal",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-literal-then-reassigned",
+   "row": "C-A-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-literal-then-reassigned",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-proto-literal",
+   "row": "C-A-7",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-proto-literal",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-literal-then-object-assign",
+   "row": "C-A-9",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-literal-then-object-assign",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-exports-property",
+   "row": "C-B+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-exports-property",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-this-in-a-loop",
+   "row": "C-B-3",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-this-in-a-loop",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-this-property",
+   "row": "C-B-3",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-this-property",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-import-from-playwright",
+   "row": "V1+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-import-from-playwright",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-import-from-playwright",
+   "row": "V1+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-import-from-playwright",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-require-destructured",
+   "row": "V3+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-require-destructured",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-paths-alias-of-the-package",
+   "row": "V1-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-paths-alias-of-the-package",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-js-spec-two-candidate-files",
+   "row": "V1-5",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-js-spec-two-candidate-files",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-ts-spec-two-candidate-files",
+   "row": "V1-5",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-ts-spec-two-candidate-files",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-directory-with-package-main",
+   "row": "V1-8",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-directory-with-package-main",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-workspace-package-main-in-dist",
+   "row": "V1-10",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-workspace-package-main-in-dist",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-specifier-ts-and-jsx-files",
+   "row": "RD-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-specifier-ts-and-jsx-files",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-specifier-ts-file-only",
+   "row": "RD-1c",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-specifier-ts-file-only",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-js-spec-alias-without-allowjs",
+   "row": "RD-2",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-js-spec-alias-without-allowjs",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-js-spec-alias-with-allowjs",
+   "row": "RD-2c",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-js-spec-alias-with-allowjs",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-nearer-jsconfig-maps-elsewhere",
+   "row": "RD-3",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-nearer-jsconfig-maps-elsewhere",
+   "entry": "tests/orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-extends-without-leading-dot",
+   "row": "RD-4",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-extends-without-leading-dot",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-referenced-config-maps-the-package",
+   "row": "RD-5",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-referenced-config-maps-the-package",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-child-config-sets-another-base-url",
+   "row": "RD-7",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-child-config-sets-another-base-url",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-paths-key-with-two-values",
+   "row": "RD-8",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-paths-key-with-two-values",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-jsconfig-maps-the-package",
+   "row": "RD-9",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-jsconfig-maps-the-package",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-jsconfig-maps-nothing",
+   "row": "RD-9",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-jsconfig-maps-nothing",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-alias-with-js-suffix-to-js-ts-file",
+   "row": "RD-13",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-alias-with-js-suffix-to-js-ts-file",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-local-function-test",
+   "row": "V1-6",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-local-function-test",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-local-function-test",
+   "row": "V1-6",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-local-function-test",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-import-shadowed-in-inner-scope",
+   "row": "V1-6",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-import-shadowed-in-inner-scope",
+   "entry": "orders.spec.ts",
+   "line": 8,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-const-alias-of-test",
+   "row": "V2+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-const-alias-of-test",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-extend-with-a-fixture",
+   "row": "B2+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-extend-with-a-fixture",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-merge-tests-of-two-proven",
+   "row": "B3+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-merge-tests-of-two-proven",
+   "entry": "orders.spec.ts",
+   "line": 8,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-extend-overrides-page",
+   "row": "A2-pin-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-extend-overrides-page",
+   "entry": "orders.spec.ts",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-use-overrides-page",
+   "row": "A2-pin-2",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-use-overrides-page",
+   "entry": "orders.spec.ts",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-const-alias-of-test",
+   "row": "V2+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-const-alias-of-test",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-extend-with-a-fixture",
+   "row": "B2+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-extend-with-a-fixture",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-merge-tests-of-two-proven",
+   "row": "B3+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-merge-tests-of-two-proven",
+   "entry": "orders.spec.js",
+   "line": 8,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-pin-extend-overrides-page",
+   "row": "A2-pin-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-pin-extend-overrides-page",
+   "entry": "orders.spec.js",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-pin-use-overrides-page",
+   "row": "A2-pin-2",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-pin-use-overrides-page",
+   "entry": "orders.spec.js",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-npm-alias-of-the-package",
+   "row": "A1-pin-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-npm-alias-of-the-package",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-config-tsconfig-option",
+   "row": "A7-pin-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-config-tsconfig-option",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-pin-wrapper-arguments",
+   "row": "A5-pin-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-pin-wrapper-arguments",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-require-cache",
+   "row": "A5-pin-2",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-require-cache",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-extend-patched",
+   "row": "A6-pin",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-extend-patched",
+   "entry": "orders.spec.ts",
+   "line": 8,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-annotation-not-checked",
+   "row": "A3-pin",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-annotation-not-checked",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-export-changed-by-importer",
+   "row": "A5-pin-3",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-export-changed-by-importer",
+   "entry": "orders.spec.ts",
+   "line": 8,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-config-tsconfig-option-local-alias",
+   "row": "A7-pin-2",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-config-tsconfig-option-local-alias",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-pin-build-external",
+   "row": "A7-pin-3",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-pin-build-external",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-import-type-page",
+   "row": "T+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-import-type-page",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-renamed-page-type",
+   "row": "T+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-renamed-page-type",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-namespace-page-type",
+   "row": "T+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-namespace-page-type",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-import-type-query",
+   "row": "T+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-import-type-query",
+   "entry": "orders.spec.ts",
+   "line": 3,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-typed-let",
+   "row": "T+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-typed-let",
+   "entry": "orders.spec.ts",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-inner-value-named-like-the-type",
+   "row": "T-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-inner-value-named-like-the-type",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-in-a-test",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-fixture-page-in-a-test",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-in-a-hook",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-fixture-page-in-a-hook",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-in-a-step",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-fixture-page-in-a-step",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-renamed",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-fixture-page-renamed",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-const-alias-of-fixture-page",
+   "row": "E1-alias",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-const-alias-of-fixture-page",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-reassigned",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-fixture-page-reassigned",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-fixture-page-with-default",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-fixture-page-with-default",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-nested-pattern",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-nested-pattern",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-second-parameter",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-second-parameter",
+   "entry": "orders.spec.ts",
+   "line": 4,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-context-new-page",
+   "row": "E3+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-context-new-page",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-electron-first-window",
+   "row": "E3+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-electron-first-window",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-in-a-test",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-fixture-page-in-a-test",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-in-a-hook",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-fixture-page-in-a-hook",
+   "entry": "orders.spec.js",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-in-a-step",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-fixture-page-in-a-step",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-renamed",
+   "row": "E1+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-fixture-page-renamed",
+   "entry": "orders.spec.js",
+   "line": 4,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-const-alias-of-fixture-page",
+   "row": "E1-alias",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-const-alias-of-fixture-page",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-reassigned",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-fixture-page-reassigned",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-fixture-page-with-default",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-fixture-page-with-default",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-nested-pattern",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-nested-pattern",
+   "entry": "orders.spec.js",
+   "line": 4,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-second-parameter",
+   "row": "E1-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-js-second-parameter",
+   "entry": "orders.spec.js",
+   "line": 4,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-context-new-page",
+   "row": "E3+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-context-new-page",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-electron-first-window",
+   "row": "E3+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-electron-first-window",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-typed-module-level-let",
+   "row": "E2+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-typed-module-level-let",
+   "entry": "orders.spec.ts",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-typed-class-field",
+   "row": "E2+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-typed-class-field",
+   "entry": "orders.spec.ts",
+   "line": 7,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-constructor-parameter-property",
+   "row": "E2+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-constructor-parameter-property",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-js-launcher-chain",
+   "row": "E3+",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/-/true-b22-js-launcher-chain",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-page-from-another-launcher-helper",
+   "row": "E3-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-page-from-another-launcher-helper",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-launcher-reexported-by-a-local-file",
+   "row": "E3-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-launcher-reexported-by-a-local-file",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-wait-for-navigation/true-b22-two-launchers-in-one-helper",
+   "row": "E3-1",
+   "rule": "playwright/no-wait-for-navigation",
+   "dir": "playwright__no-wait-for-navigation/unresolved/true-b22-two-launchers-in-one-helper",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "NOT",
+   "tier": "likely"
+  },
+  {
+   "id": "no-element-handle/true-b22-const-alias-of-test",
+   "row": "V2+",
+   "rule": "playwright/no-element-handle",
+   "dir": "playwright__no-element-handle/-/true-b22-const-alias-of-test",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-element-handle/true-b22-js-const-alias-of-test",
+   "row": "V2+",
+   "rule": "playwright/no-element-handle",
+   "dir": "playwright__no-element-handle/-/true-b22-js-const-alias-of-test",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-element-handle/true-b22-const-alias-of-fixture-page",
+   "row": "E1-alias",
+   "rule": "playwright/no-element-handle",
+   "dir": "playwright__no-element-handle/-/true-b22-const-alias-of-fixture-page",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-element-handle/true-b22-js-const-alias-of-fixture-page",
+   "row": "E1-alias",
+   "rule": "playwright/no-element-handle",
+   "dir": "playwright__no-element-handle/-/true-b22-js-const-alias-of-fixture-page",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-page-pause/true-b22-const-alias-of-test",
+   "row": "V2+",
+   "rule": "playwright/no-page-pause",
+   "dir": "playwright__no-page-pause/-/true-b22-const-alias-of-test",
+   "entry": "orders.spec.ts",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-page-pause/true-b22-js-const-alias-of-test",
+   "row": "V2+",
+   "rule": "playwright/no-page-pause",
+   "dir": "playwright__no-page-pause/-/true-b22-js-const-alias-of-test",
+   "entry": "orders.spec.js",
+   "line": 6,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-page-pause/true-b22-const-alias-of-fixture-page",
+   "row": "E1-alias",
+   "rule": "playwright/no-page-pause",
+   "dir": "playwright__no-page-pause/-/true-b22-const-alias-of-fixture-page",
+   "entry": "orders.spec.ts",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  },
+  {
+   "id": "no-page-pause/true-b22-js-const-alias-of-fixture-page",
+   "row": "E1-alias",
+   "rule": "playwright/no-page-pause",
+   "dir": "playwright__no-page-pause/-/true-b22-js-const-alias-of-fixture-page",
+   "entry": "orders.spec.js",
+   "line": 5,
+   "expect": "PROVEN",
+   "tier": "likely"
+  }
+ ]
+}

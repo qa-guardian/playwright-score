@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scorePaths } from '../src/index.js';
 import { catalogueRules } from '../src/catalogue/index.js';
+import { RECEIVER_TIERED_RULES } from '../src/receiver-forms.js';
 import type { ProfileName } from '../src/types.js';
 
 // QAG-287 S3: the per-rule fixture gate (ADR section 6.0 R2).
@@ -35,6 +36,8 @@ interface Fixture {
   tags?: string[];
   pending?: string;
   profile?: string;
+  /** The shape is reported and must never be certain (a `void`-ed expect, S4b): the fixture is judged on the certain tier only. */
+  tierAtMost?: 'likely';
   note?: string;
 }
 interface Manifest {
@@ -199,10 +202,27 @@ export function judge(f: Fixture, probe: Probe & { parseError: boolean }): strin
     return null;
   }
   if (probe.fires !== wantFires) return `${f.id}: ${wantFires ? 'expected a finding' : 'expected no finding'} for ${target} and got ${probe.fires ? 'one' : 'none'}`;
-  if (wantFires && f.form && probe.formSeen.length > 0 && !probe.formSeen.includes(f.form)) {
-    return `${f.id}: finding form is ${probe.formSeen.join(',')}, fixture says ${f.form}`;
+  const form = expectedForm(f);
+  if (wantFires && form && probe.formSeen.length > 0 && !probe.formSeen.includes(form)) {
+    return `${f.id}: finding form is ${probe.formSeen.join(',')}, fixture says ${form}`;
   }
   return null;
+}
+
+/** Receiver-tiered whatever the list holds: written out, so a fixture of their `unresolved` cell fails if the step or the list drops one. */
+const RECEIVER_PINNED_RULES = ['playwright/no-wait-for-navigation', 'playwright/no-element-handle', 'playwright/no-page-pause'];
+/** The one rule that may be taken out of RECEIVER_TIERED_RULES; its fixtures follow the list. */
+const RECEIVER_OPTIONAL_RULE = 'playwright/no-wait-for-selector';
+
+/**
+ * The form a TRUE fixture's finding must carry. A receiver-tiered rule (B2) gives every finding a form, so a fixture
+ * of its `-` cell must come back as `-` and not as `unresolved`. Only no-wait-for-selector may be out of
+ * RECEIVER_TIERED_RULES: it then has no `unresolved` form and the same shapes are still reported, as `-`.
+ */
+export function expectedForm(f: Fixture): string | undefined {
+  const tiered = RECEIVER_PINNED_RULES.includes(f.rule) || (f.rule === RECEIVER_OPTIONAL_RULE && RECEIVER_TIERED_RULES.includes(f.rule));
+  if (f.form === 'unresolved' && !tiered) return '-';
+  return tiered && !f.project ? (f.form ?? '-') : f.form;
 }
 
 async function probeFixture(f: Fixture): Promise<Probe & { parseError: boolean; unexpectedNoFiles: boolean }> {
@@ -217,7 +237,9 @@ async function probeFixture(f: Fixture): Promise<Probe & { parseError: boolean; 
   // A FALSE fixture in a named form is judged on that form only: a finding of another form of the same rule
   // does not make it fire, so a pending fixture can flip when a later slice re-forms the finding.
   const formScoped = f.verdict === 'false' && f.form !== undefined && f.form !== '-';
-  const mine = result.findings.filter((x) => norm(x.rule) === target && (!formScoped || x.form === f.form || x.form === undefined));
+  const ofCell = result.findings.filter((x) => norm(x.rule) === target && (!formScoped || x.form === f.form || x.form === undefined));
+  if (f.tierAtMost && ofCell.length === 0) throw new Error(`${f.id}: a fixture judged on its tier must be reported`);
+  const mine = f.tierAtMost ? ofCell.filter((x) => x.tier === 'certain') : ofCell;
   return {
     fires: mine.length > 0,
     formSeen: mine.map((x) => x.form).filter((x): x is string => typeof x === 'string'),
@@ -276,12 +298,9 @@ describe('QAG-287 S3: fixture manifest', () => {
     const want: Array<[string, string]> = [
       ['true-aliased-page', 'S4a'],
       ['true-renamed-expect-const', 'S4b'],
-      ['false-chai-expect', 'S4b'],
       ['true-helper', 'S6b'],
       ['true-foreach-async', 'S7a'],
       ['true-not-catch-chain', 'S7b'],
-      ['false-vitest-expect', 'S4b'],
-      ['false-jest-expect', 'S4b'],
       ['false-api-under-test', 'S3c'],
     ];
     for (const [prefix, slice] of want) {

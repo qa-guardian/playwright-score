@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@fx/*": [
+        "./support/*"
+      ]
+    },
+    "allowJs": true
+  }
+}
