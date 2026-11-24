@@ -10,6 +10,7 @@ import { plainAliasNames } from './test-aliases.js';
 import { createPostFilter } from './eslint-postfilter.js';
 import { heapGuardArmed, withHeapCheckpoint } from './heap-guard.js';
 import { formOfReportedRead, urlCountReads } from './read-forms.js';
+import { sharedRules } from './shared-lint.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
 const ASSERT_FUNCTION_PATTERNS = [
@@ -253,6 +254,8 @@ export interface LintOptions {
    * ancestor of ALL its files, so every batch is linted under the same base.
    */
   basePath?: string;
+  /** The engine is for shared files: only the rules the catalogue marks `onShared` run (shared-lint.ts). */
+  shared?: boolean;
 }
 
 /**
@@ -287,6 +290,8 @@ export async function createLinter(
     options.basePath ??
     (allFiles.length > 0 ? commonAncestorDir([...allFiles]) : (options.cwd ?? process.cwd()));
   const overrideConfig = buildConfig(options.assertFunctionNames ?? [], options.testAliasNames ?? []);
+  // The second config block: the same settings and parser, with the shared rule list in place of the full one.
+  if (options.shared) overrideConfig[0].rules = sharedRules(overrideConfig[0].rules ?? {});
 
   // Try to attach typescript-eslint parser for .ts files
   try {

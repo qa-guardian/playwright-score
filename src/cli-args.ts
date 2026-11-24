@@ -21,6 +21,7 @@ export interface CliOptions {
   name?: string;
   maxSeconds?: number;
   maxHeapMb?: number;
+  shared: boolean;
   failOn?: FailOn[];
   allowPartial: boolean;
   advice: boolean;
@@ -166,6 +167,28 @@ export const FLAGS: readonly Flag[] = [
       return problem === undefined ? undefined : `--max-heap-mb ${problem}`;
     },
   },
+  {
+    names: ['--no-shared'],
+    help: [
+      'Do not check the shared files the specs',
+      'import. By default the shared files (page',
+      'objects, fixtures, helpers) are checked too;',
+      'their findings are listed and never change',
+      'the score. --shared restates the default.',
+    ],
+    apply(o) {
+      o.shared = false;
+      return undefined;
+    },
+  },
+  {
+    names: ['--shared'],
+    help: ['Check the shared files (the default).'],
+    apply(o) {
+      o.shared = true;
+      return undefined;
+    },
+  },
   { names: ['--version', '-v'], help: ['Print version'], apply: () => undefined },
   { names: ['--help', '-h'], help: ['Show help'], apply: () => undefined },
 ];
@@ -191,6 +214,7 @@ export function parseArgs(args: readonly string[]): { options: CliOptions } | { 
     paths: [],
     profile: 'standard',
     format: 'text',
+    shared: true,
     allowPartial: false,
     advice: false,
     failOnRaw: [],

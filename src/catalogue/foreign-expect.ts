@@ -34,6 +34,7 @@ export const FOREIGN_EXPECT_COPY: Pick<RuleRow, 'title' | 'what' | 'why' | 'fix'
 export const foreignExpectRows: readonly RuleRow[] = EXPECT_BOUND_RULES.flatMap((rule) => {
   const base = [...passesRegardlessRows, ...flakeRiskRows].find((r) => r.rule === rule);
   if (!base) return [];
-  const { cls: _cls, docsSentence: _docsSentence, ...rest } = base;
+  // Not `onShared`: a foreign assertion in a shared file is never reported.
+  const { cls: _cls, docsSentence: _docsSentence, onShared: _onShared, ...rest } = base;
   return [{ ...rest, form: FOREIGN_EXPECT_FORM, design: 'advisory', bcEligible: false, ...FOREIGN_EXPECT_COPY }];
 });

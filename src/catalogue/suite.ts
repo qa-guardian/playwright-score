@@ -7,6 +7,7 @@ export const suiteRows: readonly RuleRow[] = [
     form: '-',
     family: 'suite',
     design: 'candidate',
+    onShared: true,
     cls: 'C12',
     basis: 'docs',
     docs: 'https://playwright.dev/docs/api/class-page#page-pause',

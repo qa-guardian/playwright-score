@@ -58,6 +58,26 @@
    "pending": null
   },
   {
+   "id": "missing-playwright-await/false-helper-js-returned-promise",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-helper-js-returned-promise-action",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-helper-returned-promise",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-helper-returned-promise-action",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-helper-route-handler",
+   "pending": null
+  },
+  {
    "id": "missing-playwright-await/false-js-awaited",
    "pending": null
   },
@@ -118,12 +138,36 @@
    "pending": null
   },
   {
+   "id": "missing-playwright-await/true-fixture-js-unawaited-assert",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/true-fixture-js-unawaited-wait",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/true-fixture-unawaited-assert",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/true-fixture-unawaited-wait",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/true-helper-js-unawaited-assert",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/true-helper-js-unawaited-wait",
+   "pending": null
+  },
+  {
    "id": "missing-playwright-await/true-helper-unawaited-assert",
-   "pending": "S6b"
+   "pending": null
   },
   {
    "id": "missing-playwright-await/true-helper-unawaited-wait",
-   "pending": "S6b"
+   "pending": null
   },
   {
    "id": "missing-playwright-await/true-js-cjs-unawaited",
@@ -234,8 +278,20 @@
    "pending": null
   },
   {
+   "id": "no-element-handle/true-fixture-js-page-dollar",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-fixture-page-dollar",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-helper-js-page-dollar",
+   "pending": null
+  },
+  {
    "id": "no-element-handle/true-helper-page-dollar",
-   "pending": "S6b"
+   "pending": null
   },
   {
    "id": "no-element-handle/true-js-exports-changed-by-object-assign",
@@ -446,12 +502,24 @@
    "pending": null
   },
   {
+   "id": "no-networkidle/true-fixture-js-network-idle",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/true-fixture-network-idle",
+   "pending": null
+  },
+  {
    "id": "no-networkidle/true-goto-wait-until",
    "pending": null
   },
   {
+   "id": "no-networkidle/true-helper-js-network-idle",
+   "pending": null
+  },
+  {
    "id": "no-networkidle/true-helper-network-idle",
-   "pending": "S6b"
+   "pending": null
   },
   {
    "id": "no-networkidle/true-js-wait-for-load-state",
@@ -475,6 +543,10 @@
   },
   {
    "id": "no-page-pause/false-fixture-page",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/false-helper-not-playwright-bound",
    "pending": null
   },
   {
@@ -526,8 +598,20 @@
    "pending": null
   },
   {
+   "id": "no-page-pause/true-fixture-js-page-pause",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/true-fixture-page-pause",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/true-helper-js-page-pause",
+   "pending": null
+  },
+  {
    "id": "no-page-pause/true-helper-page-pause",
-   "pending": "S6b"
+   "pending": null
   },
   {
    "id": "no-page-pause/true-js-launcher-new-page",
@@ -590,6 +674,22 @@
    "pending": null
   },
   {
+   "id": "no-swallowed-assertion/true-fixture-js-swallowed-catch",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/true-fixture-swallowed-catch",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/true-helper-js-swallowed-catch",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/true-helper-swallowed-catch",
+   "pending": null
+  },
+  {
    "id": "no-swallowed-assertion/true-negated-catch-alone",
    "pending": null
   },
@@ -627,6 +727,18 @@
   },
   {
    "id": "no-unawaited-action/false-awaited",
+   "pending": null
+  },
+  {
+   "id": "no-unawaited-action/false-helper-js-returned-promise",
+   "pending": null
+  },
+  {
+   "id": "no-unawaited-action/false-helper-returned-promise",
+   "pending": null
+  },
+  {
+   "id": "no-unawaited-action/false-helper-route-handler",
    "pending": null
   },
   {
@@ -678,12 +790,24 @@
    "pending": null
   },
   {
+   "id": "no-unawaited-action/true-fixture-js-unawaited-click",
+   "pending": null
+  },
+  {
+   "id": "no-unawaited-action/true-fixture-unawaited-click",
+   "pending": null
+  },
+  {
    "id": "no-unawaited-action/true-goto",
    "pending": null
   },
   {
+   "id": "no-unawaited-action/true-helper-js-unawaited-click",
+   "pending": null
+  },
+  {
    "id": "no-unawaited-action/true-helper-unawaited-click",
-   "pending": "S6b"
+   "pending": null
   },
   {
    "id": "no-unawaited-action/true-js-unawaited-click",
@@ -730,8 +854,20 @@
    "pending": null
   },
   {
+   "id": "no-unawaited-expect-value/true-fixture-js-promise-subject",
+   "pending": null
+  },
+  {
+   "id": "no-unawaited-expect-value/true-fixture-promise-subject",
+   "pending": null
+  },
+  {
+   "id": "no-unawaited-expect-value/true-helper-js-promise-subject",
+   "pending": null
+  },
+  {
    "id": "no-unawaited-expect-value/true-helper-promise-subject",
-   "pending": "S6b"
+   "pending": null
   },
   {
    "id": "no-unawaited-expect-value/true-is-visible-subject",
@@ -1210,8 +1346,20 @@
    "pending": null
   },
   {
+   "id": "no-wait-for-navigation/true-fixture-js-wait-for-navigation",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-fixture-wait-for-navigation",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-helper-js-wait-for-navigation",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-navigation/true-helper-wait-for-navigation",
-   "pending": "S6b"
+   "pending": null
   },
   {
    "id": "no-wait-for-navigation/true-js-promise-all-click",
@@ -1702,12 +1850,24 @@
    "pending": null
   },
   {
+   "id": "no-wait-for-selector/true-fixture-js-wait-for-selector",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-fixture-wait-for-selector",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-selector/true-frame-wait-for-selector",
    "pending": null
   },
   {
+   "id": "no-wait-for-selector/true-helper-js-wait-for-selector",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-selector/true-helper-wait-for-selector",
-   "pending": "S6b"
+   "pending": null
   },
   {
    "id": "no-wait-for-selector/true-js-const-page-alias",
@@ -1762,11 +1922,31 @@
    "pending": null
   },
   {
+   "id": "no-wait-for-timeout/false-helper-not-playwright-bound",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-timeout/false-web-first-wait",
    "pending": null
   },
   {
    "id": "no-wait-for-timeout/true-fixed-wait",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-timeout/true-fixture-js-wait-for-timeout",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-timeout/true-fixture-wait-for-timeout",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-timeout/true-helper-js-wait-for-timeout",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-timeout/true-helper-wait-for-timeout",
    "pending": null
   },
   {
@@ -1818,8 +1998,20 @@
    "pending": null
   },
   {
+   "id": "no-weak-assertion/true-fixture-js-locator-truthy",
+   "pending": null
+  },
+  {
+   "id": "no-weak-assertion/true-fixture-locator-truthy",
+   "pending": null
+  },
+  {
+   "id": "no-weak-assertion/true-helper-js-locator-truthy",
+   "pending": null
+  },
+  {
    "id": "no-weak-assertion/true-helper-locator-truthy",
-   "pending": "S6b"
+   "pending": null
   },
   {
    "id": "no-weak-assertion/true-js-count-at-least-zero",
@@ -1986,8 +2178,32 @@
    "pending": null
   },
   {
+   "id": "prefer-web-first-assertions/true-fixture-awaited-is-visible",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/true-fixture-js-awaited-is-visible",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/true-fixture-js-read-url",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/true-fixture-read-url",
+   "pending": null
+  },
+  {
    "id": "prefer-web-first-assertions/true-helper-awaited-is-visible",
-   "pending": "S6b"
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/true-helper-js-awaited-is-visible",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/true-helper-js-read-url",
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/true-js-all-texts-reused",
@@ -2027,7 +2243,7 @@
   },
   {
    "id": "prefer-web-first-assertions/true-shared-read-url",
-   "pending": "S6b"
+   "pending": null
   },
   {
    "id": "prefer-web-first-assertions/true-soft-expect-reused",
@@ -2306,6 +2522,14 @@
    "pending": null
   },
   {
+   "id": "valid-expect/false-helper-js-returned-promise",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/false-helper-returned-promise",
+   "pending": null
+  },
+  {
    "id": "valid-expect/false-js-matcher-called",
    "pending": null
   },
@@ -2358,8 +2582,20 @@
    "pending": null
   },
   {
+   "id": "valid-expect/true-fixture-js-matcherless",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/true-fixture-matcherless",
+   "pending": null
+  },
+  {
+   "id": "valid-expect/true-helper-js-matcherless",
+   "pending": null
+  },
+  {
    "id": "valid-expect/true-helper-matcherless",
-   "pending": "S6b"
+   "pending": null
   },
   {
    "id": "valid-expect/true-js-bare-expect",

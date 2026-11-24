@@ -11,8 +11,9 @@ import type { SharedSkippedFile } from './types.js';
  * The shared files of a run: the files the specs reach through imports (page
  * objects, fixtures, helpers), minus specs, split into the ones that are
  * Playwright code and the ones that are not. This module only computes and
- * reports the two sets. No rule runs on a shared file here, and nothing in a
- * result other than `coverage.shared*` depends on them.
+ * reports the two sets. No rule runs on a shared file here; shared-lint.ts
+ * lints the bound set unless the `shared` option is false. With `shared:
+ * false` nothing in a result other than `coverage.shared*` depends on them.
  *
  * A shared file is Playwright-bound when one of these holds:
  * - it imports `@playwright/test`, `playwright` or `playwright-core` (or a
@@ -204,22 +205,28 @@ export interface SharedCollector {
     isSpec: (file: string) => boolean,
     specifierCache?: Map<string, string[]>
   ): SharedFiles;
+  /** The closure and the edges the last `collect` classified (shared-lint.ts reads sources and `usedBy` from them). */
+  graph(): { closure: ReadonlyMap<string, string>; edges: ReadonlyMap<string, readonly string[]> } | undefined;
 }
 
 export function createSharedCollector(importBoundary: string, moduleResolver: ImportResolver): SharedCollector {
   const nested = createNestedPackageResolver(importBoundary);
   let nestedSeen = false;
+  let last: ReturnType<SharedCollector['graph']>;
   return {
+    graph: () => last,
     observing: (from, specifier) => {
       const hit = moduleResolver(from, specifier);
       if (hit === undefined && !nestedSeen && nested(from, specifier) !== undefined) nestedSeen = true;
       return hit;
     },
     collect(sources, closure, edges, isSpec, specifierCache) {
+      last = { closure, edges };
       if (!nestedSeen) return classifyShared(closure, edges, isSpec);
       const withNested: ImportResolver = (from, specifier) => moduleResolver(from, specifier) ?? nested(from, specifier);
       const ownEdges = new Map<string, string[]>();
       const own = collectLocallyImportedFiles(sources, importBoundary, withNested, ownEdges, specifierCache);
+      last = { closure: own, edges: ownEdges };
       return classifyShared(own, ownEdges, isSpec);
     },
   };

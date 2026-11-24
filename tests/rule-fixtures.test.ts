@@ -88,7 +88,7 @@ const MIN_OTHER = 1;
 /** Catalogue rules the runner keeps switched off on purpose; the test below checks that it still does. */
 const NOT_ENABLED = ['playwright/require-top-level-describe'];
 /** Slices already closed: a fixture cannot wait for them (ADR 0.E E-3). Add a slice here when it lands. */
-const LANDED = ['S1', 'S2', 'S3', 'S3b', 'S7c'];
+const LANDED = ['S1', 'S2', 'S3', 'S3b', 'S7c', 'S6b'];
 const isPending = (f: Fixture): boolean => f.pending !== undefined;
 
 function allFiles(dir: string, base = dir): string[] {
@@ -190,6 +190,7 @@ export function r2Counts(fixtures: Fixture[]): { live: { true: number; false: nu
 }
 
 type Probe = { fires: boolean; formSeen: string[] };
+const isShared = (f: Fixture): boolean => (f.tags ?? []).includes('shared');
 
 /** What a fixture's behaviour says about its label. Returns a problem string or null. Pure. */
 export function judge(f: Fixture, probe: Probe & { parseError: boolean }): string | null {
@@ -233,7 +234,23 @@ async function probeFixture(f: Fixture): Promise<Probe & { parseError: boolean; 
     profile: (f.profile as ProfileName | undefined) ?? 'standard',
     threshold: 0,
     cwd,
+    // A shared fixture holds its shape in a file the spec imports: it is judged with shared-file linting on (S6b).
+    shared: isShared(f),
   });
+  const base = path.dirname(path.join(fixtureRoot, f.entry));
+  const entryRel = path.basename(f.entry);
+  if (isShared(f)) {
+    // The contract of a shared finding: outside the entry spec, scope `shared`, used by that spec, tier likely.
+    for (const x of result.findings.filter((y) => norm(y.rule) === target && y.file !== entryRel)) {
+      assert.equal(x.scope, 'shared', `${f.id}: a finding outside the spec has scope shared`);
+      assert.deepEqual(x.usedBy, [entryRel], `${f.id}: usedBy names the spec`);
+      assert.equal(x.tier, 'likely', `${f.id}: a shared finding is likely`);
+      assert.ok(fs.existsSync(path.join(base, x.file)), `${f.id}: file resolves from the scored directory`);
+    }
+    if (f.verdict === 'true' && !isPending(f)) {
+      assert.ok(result.findings.some((y) => norm(y.rule) === target && y.scope === 'shared'), `${f.id}: the finding sits in the shared file`);
+    }
+  }
   // A FALSE fixture in a named form is judged on that form only: a finding of another form of the same rule
   // does not make it fire, so a pending fixture can flip when a later slice re-forms the finding.
   const formScoped = f.verdict === 'false' && f.form !== undefined && f.form !== '-';
@@ -290,7 +307,7 @@ describe('QAG-287 S3: fixture manifest', () => {
 
   it('pending marks only name slices of the plan', () => {
     const pending = new Set(manifest.fixtures.filter(isPending).map((f) => f.pending));
-    const known = new Set(['S3c', 'S4a', 'S4b', 'S6b', 'S7a', 'S7b']);
+    const known = new Set(['S3c', 'S4a', 'S4b', 'S7a', 'S7b']);
     for (const p of pending) assert.ok(known.has(p as string), `unknown pending slice ${p}`);
   });
 
@@ -298,7 +315,6 @@ describe('QAG-287 S3: fixture manifest', () => {
     const want: Array<[string, string]> = [
       ['true-aliased-page', 'S4a'],
       ['true-renamed-expect-const', 'S4b'],
-      ['true-helper', 'S6b'],
       ['true-foreach-async', 'S7a'],
       ['true-not-catch-chain', 'S7b'],
       ['false-api-under-test', 'S3c'],
@@ -365,6 +381,21 @@ describe('QAG-287 S3: the gate fails when a fixture goes missing or flips', () =
     assert.equal((await probeFixture({ ...t, verdict: 'false', form: 'other' })).fires, false, 'other form: not counted');
     assert.equal((await probeFixture({ ...t, verdict: 'false', form: '-' })).fires, true, 'form - counts every finding');
   });
+});
+
+describe('QAG-287 S6b: a shared fixture with shared: false (--no-shared)', () => {
+  for (const f of manifest.fixtures.filter((x) => isShared(x) && !isPending(x))) {
+    it(`${f.id}: no finding outside the spec, and the spec findings are the same with the option on`, async () => {
+      const run = (shared: boolean) => scorePaths({ paths: [path.join(fixtureRoot, f.entry)], threshold: 0, cwd: fixtureRoot, shared });
+      const [off, on] = [await run(false), await run(true)];
+      const entryRel = path.basename(f.entry);
+      assert.deepEqual(off.findings.filter((x) => x.file !== entryRel), [], 'shared: false: every finding is in the spec');
+      assert.ok(off.findings.every((x) => x.scope !== 'shared' && x.usedBy === undefined));
+      assert.deepEqual(on.findings.filter((x) => x.scope !== 'shared'), off.findings, 'the spec findings do not depend on the option');
+      assert.deepEqual(on.coverage, off.coverage);
+      if (f.verdict === 'true') assert.ok(on.findings.length > off.findings.length, 'the option adds the shared finding');
+    });
+  }
 });
 
 describe('QAG-287 S3: every fixture behaves as labelled', () => {

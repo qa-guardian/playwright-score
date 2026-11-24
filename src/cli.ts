@@ -103,10 +103,10 @@ async function main(): Promise<void> {
     process.exitCode = 2;
     return;
   }
-  const { paths, profile, threshold, format, out, name, maxSeconds, maxHeapMb, failOn, allowPartial, advice } = parsed.options;
+  const { paths, profile, threshold, format, out, name, maxSeconds, maxHeapMb, shared, failOn, allowPartial, advice } = parsed.options;
 
   try {
-    const result = await scorePaths({ paths, profile, threshold, maxSeconds, maxHeapMb, failOn, allowPartial, advice });
+    const result = await scorePaths({ paths, profile, threshold, maxSeconds, maxHeapMb, shared, failOn, allowPartial, advice });
     for (const c of result.ruleCrashes ?? []) {
       console.error(`warning: rule ${c.rule} crashed on ${c.count} node(s); results may be incomplete`);
     }

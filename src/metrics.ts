@@ -620,7 +620,9 @@ export function getTestSpans(
  * test span belongs to that test (`scope: 'test'` + a stable
  * `file#index` testKey); inside a hook span it affects every test in the
  * file (`scope: 'hook'`); anything else — imports, describe bodies,
- * file-level metrics — is `scope: 'module'`, counted once per file.
+ * file-level metrics — is `scope: 'module'`, counted once per file. A finding
+ * in a file listed in `sharedUsedBy` (relative shared file -> the specs that
+ * reach it) is `scope: 'shared'` with `usedBy`.
  * Exported so layers composing extra rules on top (e.g. a private
  * house-rules dimension) attribute their own findings with the same
  * logic the package itself uses, rather than reimplementing it.
@@ -628,9 +630,17 @@ export function getTestSpans(
  */
 export function attributeFindingScopes(
   findings: Finding[],
-  spansByFile: Map<string, TestSpans>
+  spansByFile: Map<string, TestSpans>,
+  sharedUsedBy?: ReadonlyMap<string, readonly string[]>
 ): Finding[] {
   for (const f of findings) {
+    // A shared file (shared-lint.ts) holds no test: its findings name the specs that reach it.
+    const usedBy = sharedUsedBy?.get(f.file);
+    if (usedBy !== undefined) {
+      f.scope = 'shared';
+      f.usedBy = [...usedBy];
+      continue;
+    }
     const spans = spansByFile.get(f.file);
     if (!spans || f.line === undefined) {
       f.scope = 'module';

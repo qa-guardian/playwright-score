@@ -171,8 +171,9 @@ describe('QAG-287 S5b: the worker gives the in-process result', () => {
 describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () => {
   it('the time limit has passed before the analysis starts: every file is skipped as deadline, not-scored', async () => {
     const dir = mixedSuite();
-    const reference = await scorePaths({ paths: [dir], cwd: dir });
-    const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxSeconds: 0.001 });
+    // The spec batches only (shared: false): tests/shared-lint.test.ts covers a shared file under the limit.
+    const reference = await scorePaths({ paths: [dir], cwd: dir, shared: false });
+    const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxSeconds: 0.001, shared: false });
     assert.equal(r.status, 'not-scored');
     assert.equal(r.reason, 'limit-reached');
     assert.equal(r.pass, false);
@@ -386,10 +387,12 @@ describe('QAG-287 S5b: the time limit passes mid-run, on an injected clock', () 
     it(`after batch ${k} of 3: partial; batches ${k + 1} to 3 are skipped as deadline; the kept findings are the in-process ones`, async () => {
       const dir = mixedSuite();
       clock.now = realNow;
-      const reference = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, isolate: false });
+      // The spec batches only (shared: false, S6c): support/cart.ts would join the last batch. tests/shared-lint.test.ts
+      // covers a shared file the limit cuts off.
+      const reference = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, isolate: false, shared: false });
       assert.deepEqual(reference.coverage?.skipped.map((s) => `${s.file}|${s.reason}`), ['s-33.spec.ts|parse-error']);
       passAt(`batch:${k}`);
-      const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxSeconds: 1000 });
+      const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxSeconds: 1000, shared: false });
       clock.now = realNow;
 
       const names = specNames();
@@ -425,7 +428,7 @@ describe('QAG-287 S5b: the time limit passes mid-run, on an injected clock', () 
       `import { clock } from ${JSON.stringify(pathToFileURL(path.join(root, 'dist', 'isolate.js')).href)};\n` +
         `let t = 0;\nclock.now = (at) => { if (at === 'batch:1') t = 1e12; return t; };\n`
     );
-    const args = ['--import', pathToFileURL(preload).href, path.join(root, 'dist', 'cli.js'), dir, '--format', 'json', '--threshold', '0', '--max-seconds', '1000'];
+    const args = ['--import', pathToFileURL(preload).href, path.join(root, 'dist', 'cli.js'), dir, '--format', 'json', '--threshold', '0', '--max-seconds', '1000', '--no-shared'];
     const e = await promisify(execFile)(process.execPath, args, { maxBuffer: 64 * 1024 * 1024 }).then(
       () => undefined,
       (err: { code?: number; stdout?: string; stderr?: string }) => err
@@ -442,7 +445,8 @@ describe('QAG-287 S5b: the time limit passes mid-run, on an injected clock', () 
     it(`before the ${step} step: no later step starts; every file is skipped as deadline; not-scored, limit-reached`, async () => {
       const dir = mixedSuite();
       const asked = passAt(step);
-      const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxSeconds: 1000 });
+      // The spec files only (shared: false, S6c); tests/shared-lint.test.ts covers the shared files under the limit.
+      const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxSeconds: 1000, shared: false });
       clock.now = realNow;
       // The clock is not read again once the limit has passed.
       assert.equal(asked[asked.length - 1], step);

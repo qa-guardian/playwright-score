@@ -14,6 +14,7 @@
  * merged in batch order, so the output equals the in-process analysis
  * whenever no limit is hit.
  */
+import { analysisFiles, createSharedLinter } from './shared-lint.js';
 import path from 'node:path';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { dropFindingsOfSkipped, parseErrorFiles } from './coverage.js';
@@ -66,6 +67,8 @@ export interface AnalysisInput {
   cwd: string;
   assertFunctionNamesByFile: Map<string, string[]>;
   testAliasNames: string[];
+  /** Shared files to lint (the `shared` option; shared-lint.ts), absolute and sorted. Absent: none. */
+  sharedFiles?: string[];
 }
 
 /** What the analysis says about one file that parsed. */
@@ -82,6 +85,8 @@ export interface FileFacts {
 export interface BatchResult {
   /** Lint findings after triage; a file that did not parse keeps only its parse-error finding. */
   lintFindings: Finding[];
+  /** Findings of the batch's shared files (shared-lint.ts). Absent when the batch holds none. */
+  sharedFindings?: Finding[];
   metricFindings: Finding[];
   /** One entry per scored file, in file order. */
   facts: FileFacts[];
@@ -192,7 +197,11 @@ export function createAnalyzer(
     return (await linter)(files);
   };
 
-  return async (files) => {
+  const lintShared = createSharedLinter(input, moduleResolver);
+
+  return async (batch) => {
+    // A batch may hold shared files (the `shared` option): they are linted with their own rule list, after the specs.
+    const { files, shared } = lintShared.split(batch);
     const linted = files.length === 0 ? [] : await lintFiles(files);
     heapCheckpoint();
     const lint = triage(linted);
@@ -222,6 +231,12 @@ export function createAnalyzer(
       // whose syntax tree shows no test declaration.
       const tests = spans.tests.length > 0 ? spans.tests.length : m.tests;
       result.facts.push({ rel, sloc: m.sloc, tests, native: m.locators.native, raw: m.locators.raw, spans });
+      heapCheckpoint();
+    }
+    if (shared.length > 0) {
+      const s = await lintShared(shared);
+      result.sharedFindings = s.findings;
+      result.parseErrors.push(...s.parseErrors);
       heapCheckpoint();
     }
     return result;
@@ -268,7 +283,7 @@ export async function analyzeIsolated(
   // analysis are dropped here and their memory is handed back, so they are
   // not held beside the worker's (heap-guard.ts, releaseMemory).
   if (clearParseCache() > 0) releaseMemory();
-  const batches = toBatches(input.files);
+  const batches = toBatches(analysisFiles(input));
   const done: BatchResult[] = [];
   const skipped: WorkerSkip[] = [];
   const { time } = limits;

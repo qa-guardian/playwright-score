@@ -371,6 +371,14 @@ export interface ScoreOptions {
    * thread. Both give the same result when no limit is hit.
    */
   isolate?: boolean;
+  /**
+   * Whether the shared files the specs import (page objects, fixtures,
+   * helpers that are Playwright code; `coverage.sharedLintedFiles`) are also
+   * checked, with the rules that hold outside a test body. Their findings
+   * carry `scope: 'shared'` and `usedBy` and never change the score.
+   * Default: true; `false` lists spec findings only.
+   */
+  shared?: boolean;
 }
 
 export interface LocatorCounts {
