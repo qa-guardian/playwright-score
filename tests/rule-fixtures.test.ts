@@ -309,8 +309,9 @@ describe('QAG-287 S3: fixture manifest', () => {
     const marked = manifest.fixtures.map((f) => (f === live ? { ...f, pending: 'S3' } : f));
     assert.ok(manifestProblems({ ...manifest, fixtures: marked }, []).some((p) => p.includes('already landed')));
     assert.ok(guardProblems(pairsOf(marked), guard).some((p) => p.startsWith(live.id) && p.includes('pending mark')));
-    const cleared = manifest.fixtures.map((f) => (isPending(f) ? { ...f, pending: undefined } : f));
-    assert.ok(guardProblems(pairsOf(cleared), guard).length > 0, 'clearing a mark without updating the guard is reported');
+    // Every 3.0.0 slice has landed, so the manifest may hold no pending fixture: the guard records a mark on a live one.
+    const frozenMark = guard.map((p) => (p.id === live.id ? { ...p, pending: 'S99' } : p));
+    assert.ok(guardProblems(pairsOf(manifest.fixtures), frozenMark).some((p) => p.startsWith(live.id) && p.includes('pending mark')), 'clearing a mark without updating the guard is reported');
   });
 
   it('pending marks only name slices of the plan', () => {

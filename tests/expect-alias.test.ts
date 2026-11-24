@@ -28,6 +28,7 @@ const SIX = [
   'pwscore/no-weak-assertion', 'pwscore/no-trivial-assertion', 'pwscore/no-unawaited-expect-value',
   'playwright/prefer-web-first-assertions', 'playwright/missing-playwright-await', 'playwright/valid-expect',
 ];
+const UNASSERTED = 'pwscore/unasserted';
 const MATCHER = `{ toHaveAmount(received: unknown, amount: number) { return { pass: received === amount, message: () => 'amount' }; } }`;
 
 async function score(files: Record<string, string>, spec: string, aliases = true): Promise<Finding[]> {
@@ -112,7 +113,11 @@ describe('S4b.2: a const alias of Playwright expect is checked like expect', () 
         assert.equal(on.filter((f) => f.rule === rule && f.line === 4 + i).length, 1, `${rule} on line ${4 + i}`);
       }
       assert.deepEqual(seen(on), seen(renamed), 'the oracle: same rule, line, column, message, form, tier and copy');
-      const extra = added(on, off);
+      // pwscore/unasserted (S12) reads the test as a whole: without the step a test whose checks all go through the
+      // alias can be unasserted, so the step may remove that finding. With the step it matches the rename to expect.
+      const unasserted = (all: Finding[]): string[] => all.filter((f) => f.rule === UNASSERTED).map(full).sort();
+      assert.deepEqual(unasserted(on), unasserted(renamed), 'pwscore/unasserted: same as the rename to expect');
+      const extra = added(on, off.filter((f) => f.rule !== UNASSERTED));
       assert.equal(extra.length, seen(renamed).length);
       for (const f of extra) assert.ok(SIX.includes(f.rule) && (f.line as number) >= 4 && (f.line as number) <= 9, full(f));
       assert.equal(seen(off).length, 0, 'without the step no rule reads the alias');

@@ -291,9 +291,10 @@ describe('QAG-287 S3c: the findings of the five rules move to form api-under-tes
     });
     assert.deepEqual(five(all, 'a.spec.ts').map((f) => f.form), FIVE.map(() => '-'));
   });
+  // no-networkidle has two shapes since B3 (`-` and capture-window), so the form-less examples below use no-wait-for-selector.
   it('decorating a finding of a one-shape rule that carries no form still gives it form -', async () => {
     const { decorateFindings } = await import('../src/catalogue/index.js');
-    const f: Finding = { rule: IDLE, severity: 'warning', message: 'm', file: 'a.spec.ts', line: 1, column: 1, dimension: 'playwrightHygiene' };
+    const f: Finding = { rule: SELECTOR, severity: 'warning', message: 'm', file: 'a.spec.ts', line: 1, column: 1, dimension: 'playwrightHygiene' };
     decorateFindings([f], undefined);
     assert.deepEqual([f.form, f.tier === 'needs-check' || f.tier === 'advisory'], ['-', false]);
   });
@@ -312,7 +313,7 @@ describe('QAG-287 S3c: the step itself', () => {
         make(IDLE, 'engine/tests/a.spec.ts'),
         make('playwright/no-wait-for-timeout', 'engine/tests/a.spec.ts'),
         make('pwscore/no-weak-assertion', 'engine/tests/a.spec.ts', 'foreign-expect'),
-        make(IDLE, 'shop/tests/b.spec.ts'),
+        make(SELECTOR, 'shop/tests/b.spec.ts'),
         make(SELECTOR, 'shop/tests/b.spec.ts'),
         make(PAUSE, 'shop/tests/b.spec.ts', 'unresolved'),
         make(NAVIGATION, 'shop/tests/b.spec.ts'),
@@ -330,7 +331,7 @@ describe('QAG-287 S3c: the step itself', () => {
       const one = [make(IDLE, 'lib/helper.ts')];
       applyApiUnderTest(one, { filesBase: dir, scanRoots: [engine] });
       assert.equal(one[0].form, 'api-under-test');
-      const mixed = [make(IDLE, 'lib/helper.ts')];
+      const mixed = [make(SELECTOR, 'lib/helper.ts')];
       applyApiUnderTest(mixed, { filesBase: dir, scanRoots: [engine, shop] });
       assert.equal(mixed[0].form, '-', 'one root is a customer project: the finding stays');
     });
@@ -340,13 +341,13 @@ describe('QAG-287 S3c: the step itself', () => {
     withTree({ 'package.json': pkg('playwright'), 'tests/': '' }, (dir) => {
       apiUnderTest.enabled = false;
       try {
-        const off = [make(IDLE, 'tests/a.spec.ts'), make(PAUSE, 'tests/a.spec.ts', 'unresolved')];
+        const off = [make(SELECTOR, 'tests/a.spec.ts'), make(PAUSE, 'tests/a.spec.ts', 'unresolved')];
         applyApiUnderTest(off, { filesBase: dir, scanRoots: [path.join(dir, 'tests')] });
         assert.deepEqual(off.map((f) => f.form), ['-', 'unresolved']);
       } finally {
         apiUnderTest.enabled = true;
       }
-      const none = [make(IDLE, 'tests/a.spec.ts')];
+      const none = [make(SELECTOR, 'tests/a.spec.ts')];
       applyApiUnderTest(none, { filesBase: dir, scanRoots: [] });
       assert.equal(none[0].form, '-', 'no scanned root: no match');
       const hostile = [make(IDLE, '\u0000'), { ...make(PAUSE, 'x'), file: undefined as unknown as string }, make(IDLE, '../../../../etc/passwd')];
