@@ -1,6 +1,6 @@
 import { isFunction, insideRetryingBlock, patternNames, PAGE_OR_FRAME_NAME } from './eslint-postfilter.js';
 import type { N, Tree } from './eslint-postfilter.js';
-import { unwrap as unwrapNode, memberName, parseMatcherCall } from './rules/ast-util.js';
+import { unwrap as unwrapNode, isExpectName, memberName, parseMatcherCall } from './rules/ast-util.js';
 
 // QAG-287 B1 (S3b, S7c): forms of `playwright/prefer-web-first-assertions`.
 //
@@ -31,11 +31,11 @@ const MAX_ALIAS_DEPTH = 3;
 const unwrap = (n: N | undefined): N | undefined => unwrapNode(n) as N | undefined;
 
 /** `expect(<subject>)` or `expect.soft(<subject>)`: a call whose first argument is the value under test (`expect.poll` takes a function, so it is not one). */
-function isExpectSubjectCall(n: N | undefined): boolean {
+function isExpectSubjectCall(n: N | undefined, aliases?: ReadonlySet<string>): boolean {
   if (n?.type !== 'CallExpression') return false;
   const c = n.callee as N | undefined;
-  if (c?.type === 'Identifier') return c.name === 'expect';
-  return c?.type === 'MemberExpression' && c.object?.type === 'Identifier' && c.object.name === 'expect' && memberName(c) === 'soft';
+  if (c?.type === 'Identifier') return isExpectName(c.name, aliases);
+  return c?.type === 'MemberExpression' && c.object?.type === 'Identifier' && isExpectName(c.object.name, aliases) && memberName(c) === 'soft';
 }
 
 interface Binding {
@@ -154,9 +154,9 @@ function reusedVariable(t: Tree, expectCall: N): boolean {
  * follows into a declaration (`const names = await list.allTextContents()`), the read inside the
  * declarator. In the second case the declared variable is what is asked about.
  */
-function reportedReadReused(t: Tree, node: N): boolean {
+function reportedReadReused(t: Tree, node: N, aliases?: ReadonlySet<string>): boolean {
   for (let c: N | undefined = node; c; c = t.parent(c)) {
-    if (isExpectSubjectCall(c)) return reusedVariable(t, c);
+    if (isExpectSubjectCall(c, aliases)) return reusedVariable(t, c);
     if (c.type === 'VariableDeclarator' && c.id?.type === 'Identifier' && c.init) return reusedName(t, c.id as N, c.id.name as string);
     if (isFunction(c)) return false;
   }
@@ -243,10 +243,10 @@ function matcherOf(t: Tree, expectCall: N): string | undefined {
 export const readForms = { enabled: true };
 
 /** Form of an upstream finding reported at (line, column): read-reused when the read is reused, else read-direct. */
-export function formOfReportedRead(t: Tree | undefined, line: number, column: number): ReadForm | undefined {
+export function formOfReportedRead(t: Tree | undefined, line: number, column: number, aliases?: ReadonlySet<string>): ReadForm | undefined {
   const node = t?.nodeAt(line, column);
   if (!t || !node || !readForms.enabled) return undefined;
-  return reportedReadReused(t, node) ? 'read-reused' : 'read-direct';
+  return reportedReadReused(t, node, aliases) ? 'read-reused' : 'read-direct';
 }
 
 /** The url/count reads upstream does not report: `expect(<read>).toX()` with an equivalent web-first matcher, outside a retrying block. */

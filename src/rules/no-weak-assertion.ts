@@ -16,7 +16,7 @@
  * `toBeTruthy()` on any other value is NOT flagged.
  */
 import type { Rule } from 'eslint';
-import { FN_TYPES, isLocatorExpr, memberName, parseMatcherCall, resolveConstInit, unwrap, type N } from './ast-util.js';
+import { expectAliasNames, FN_TYPES, isLocatorExpr, memberName, parseMatcherCall, resolveConstInit, unwrap, type N } from './ast-util.js';
 
 const ALWAYS_VALUE = new Set([
   'isVisible', 'isHidden', 'isEnabled', 'isDisabled', 'isChecked', 'isEditable',
@@ -54,10 +54,11 @@ export const noWeakAssertion: Rule.RuleModule = {
     schema: [],
   },
   create(context) {
+    const aliases = expectAliasNames(context);
     return {
       CallExpression(raw) {
         const node = raw as unknown as N;
-        const m = parseMatcherCall(node);
+        const m = parseMatcherCall(node, aliases);
         if (!m || m.modifiers.some((x) => x === 'resolves' || x === 'rejects')) return;
         const not = m.modifiers.includes('not');
         const arg0 = (m.expectCall.arguments ?? [])[0];

@@ -56,6 +56,14 @@ const norm = (rule: string): string => rule.replace(/^playwright-score\//, 'pwsc
 const isExpectBound = (f: Pick<Finding, 'rule' | 'form'>): boolean =>
   EXPECT_BOUND_RULES.includes(norm(f.rule)) && !(f.rule === 'playwright/missing-playwright-await' && f.form === 'action');
 
+/** Another identifier read as `expect` at a finding: a proven alias, for an alias finding only (S4b.2). */
+type AlsoExpect = (sf: ScopeFile, id: N) => boolean;
+/** The findings the alias pass added (src/expect-alias.ts), and its proof that an identifier is an alias. */
+export interface AddedAliasFindings {
+  findings: ReadonlySet<Finding>;
+  isAlias(env: ResolveEnv, sf: ScopeFile, id: N): boolean;
+}
+
 const positions = new WeakMap<ScopeFile, Map<string, N[]>>();
 const proofs = new WeakMap<object, Result<PackageExport>>();
 const FUNCTIONS = new Set(['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression']);
@@ -130,7 +138,7 @@ function chainRoot(node: N | null | undefined): N | undefined {
  * Is this identifier one the rules read as `expect`? The upstream plugin reads `expect`, any name that ends in
  * `Expect`, and a named import of `expect` under another local name; the scorer's own rules read `expect` only.
  */
-function readAsExpect(sf: ScopeFile, id: N): boolean {
+export function readAsExpect(sf: ScopeFile, id: N): boolean {
   const name = id.name as string;
   if (/(^expect|Expect)$/.test(name)) return true;
   const defs = (lookup(sf, id, name)?.defs ?? []) as N[];
@@ -141,17 +149,17 @@ function readAsExpect(sf: ScopeFile, id: N): boolean {
  * The `expect` identifier of the finding at this position: the root of the chain that starts there, of the chain
  * the reported matcher belongs to, or of the nearest enclosing chain inside the same function.
  */
-function expectHeads(sf: ScopeFile, line: number, column: number): N[] {
+function expectHeads(sf: ScopeFile, line: number, column: number, also?: AlsoExpect): N[] {
   let n = nodeAt(sf, line, column);
   for (let i = 0; n && i < 64; i++) {
     const root = chainRoot(n);
-    if (root && readAsExpect(sf, root)) {
+    if (root && (readAsExpect(sf, root) || also?.(sf, root))) {
       // An identifier that is only a property (`x.expect`) is not the start of a chain.
       const p = sf.parents.get(root);
       if (!(p?.type === 'MemberExpression' && p.property === root && !p.computed)) return [root];
     }
     // The plugin reports a stored read (`const shown = await row.isVisible()`) at the read: its expects are the ones the name is passed to.
-    if (n.type === 'VariableDeclarator') return n.id?.type === 'Identifier' ? expectsOf(sf, n.id) : [];
+    if (n.type === 'VariableDeclarator') return n.id?.type === 'Identifier' ? expectsOf(sf, n.id, also) : [];
     if (FUNCTIONS.has(n.type)) return [];
     n = sf.parents.get(n);
   }
@@ -159,7 +167,7 @@ function expectHeads(sf: ScopeFile, line: number, column: number): N[] {
 }
 
 /** The `expect` identifier of every call the variable declared by `id` is passed to as an argument. */
-function expectsOf(sf: ScopeFile, id: N): N[] {
+function expectsOf(sf: ScopeFile, id: N, also?: AlsoExpect): N[] {
   const heads: N[] = [];
   const variable = lookup(sf, id, id.name as string);
   for (const ref of (variable?.references ?? []) as N[]) {
@@ -167,7 +175,7 @@ function expectsOf(sf: ScopeFile, id: N): N[] {
     const call = use === id ? undefined : sf.parents.get(use);
     if (call?.type !== 'CallExpression' || !(call.arguments as N[]).includes(use)) continue;
     const root = chainRoot(call);
-    if (root && readAsExpect(sf, root) && !heads.includes(root)) heads.push(root);
+    if (root && (readAsExpect(sf, root) || also?.(sf, root)) && !heads.includes(root)) heads.push(root);
   }
   return heads;
 }
@@ -210,17 +218,27 @@ function useOf(env: ResolveEnv, ctx: ReceiverContext, sf: ScopeFile, head: N, fi
   return { binding: { kind: 'unresolved', at: relative(ctx, file, declared) }, voided };
 }
 
+type Located = Pick<Finding, 'rule' | 'file' | 'line' | 'column' | 'form'>;
+
+/** The parsed spec file and the `expect` identifiers of a finding, or undefined when it has none. May throw. */
+export function findingHeads(env: ResolveEnv, ctx: ReceiverContext, f: Located, also?: AlsoExpect): { sf: ScopeFile; heads: N[] } | undefined {
+  if (!isExpectBound(f) || typeof f.file !== 'string' || typeof f.line !== 'number' || typeof f.column !== 'number') return undefined;
+  const file = path.resolve(ctx.filesBase, f.file);
+  // The spec file is the text that was scored: never a second read from disk.
+  const sf = typeof ctx.sources.get(file) === 'string' ? env.load(file) : undefined;
+  const heads = sf ? expectHeads(sf, f.line, f.column, also) : [];
+  return sf && heads.length > 0 ? { sf, heads } : undefined;
+}
+
 /** What the `expect` of a finding denotes, or undefined when the finding has no `expect` at its position. Never throws. */
-export function expectUse(env: ResolveEnv, ctx: ReceiverContext, f: Pick<Finding, 'rule' | 'file' | 'line' | 'column' | 'form'>): ExpectUse | undefined {
+export function expectUse(env: ResolveEnv, ctx: ReceiverContext, f: Located, also?: AlsoExpect): ExpectUse | undefined {
   if (!isExpectBound(f) || typeof f.file !== 'string' || typeof f.line !== 'number' || typeof f.column !== 'number') return undefined;
   const file = path.resolve(ctx.filesBase, f.file);
   const here: Binding = { kind: 'unresolved', at: relative(ctx, file, f.line) };
   try {
-    // The spec file is the text that was scored: never a second read from disk.
-    const sf = typeof ctx.sources.get(file) === 'string' ? env.load(file) : undefined;
-    if (!sf) return undefined;
-    const heads = expectHeads(sf, f.line, f.column);
-    if (heads.length === 0) return undefined;
+    const found = findingHeads(env, ctx, f, also);
+    if (!found) return undefined;
+    const { sf, heads } = found;
     if (exportTable(sf).reflection) return { binding: here, voided: heads.every((h) => isVoided(sf, h)) };
     // Several expects (a stored read passed to more than one): Playwright's if any is, else not resolved if any is not, else foreign.
     const uses = heads.map((head) => useOf(env, ctx, sf, head, file, f.line as number));
@@ -248,8 +266,9 @@ export const voidedTier = <T extends string>(tier: T): T | 'likely' => (tier ===
  * and remembers the findings whose binding is not resolved or whose expect is `void`-ed. In place; no finding is
  * added, removed or otherwise changed, and nothing here throws.
  */
-export function applyExpectBinding(findings: Finding[], ctx: ReceiverContext): void {
+export function applyExpectBinding(findings: Finding[], ctx: ReceiverContext, added?: AddedAliasFindings): void {
   if (!expectBinding.enabled) return;
+  const isAlias = added?.isAlias;
   let env: ResolveEnv | undefined;
   for (const f of findings) {
     if (!isExpectBound(f) || (f.form !== undefined && STRONGER_FORMS.has(f.form))) continue;
@@ -260,8 +279,9 @@ export function applyExpectBinding(findings: Finding[], ctx: ReceiverContext): v
     }
     let use: ExpectUse | undefined;
     try {
-      env ??= createEnv(ctx);
-      use = expectUse(env, ctx, f);
+      const e = (env ??= createEnv(ctx));
+      // An alias finding (S4b.2) also reads the proven alias at its position as `expect`; every other finding is as before.
+      use = expectUse(e, ctx, f, isAlias && added?.findings.has(f) ? (sf, id) => isAlias(e, sf, id) : undefined);
     } catch {
       use = undefined;
     }

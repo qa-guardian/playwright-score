@@ -666,8 +666,7 @@
    "form": "matcherless",
    "tags": [
     "alias"
-   ],
-   "pending": "S4b"
+   ]
   },
   {
    "id": "valid-expect/false-matcher-called",
@@ -2260,6 +2259,61 @@
    ],
    "note": "a void-ed expect is a deliberate, still unchecked assertion: it is reported, and it is never certain. Judged on the certain tier",
    "tierAtMost": "likely"
+  },
+  {
+   "id": "missing-playwright-await/true-const-alias-unawaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/assertion/true-const-alias-unawaited.ts",
+   "form": "assertion"
+  },
+  {
+   "id": "missing-playwright-await/true-js-const-alias-unawaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/assertion/true-js-const-alias-unawaited.js",
+   "form": "assertion",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/true-alias-of-alias-unawaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/assertion/true-alias-of-alias-unawaited.ts",
+   "form": "assertion",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-alias-of-chai-expect",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-alias-of-chai-expect.ts",
+   "form": "assertion"
+  },
+  {
+   "id": "missing-playwright-await/false-let-alias-reassigned",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-let-alias-reassigned.ts",
+   "form": "assertion"
+  },
+  {
+   "id": "missing-playwright-await/false-alias-shadowed-by-param",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-alias-shadowed-by-param.ts",
+   "form": "assertion"
+  },
+  {
+   "id": "missing-playwright-await/false-alias-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-alias-awaited.ts",
+   "form": "assertion"
   },
   {
    "id": "no-networkidle/true-const-options-wait-until",

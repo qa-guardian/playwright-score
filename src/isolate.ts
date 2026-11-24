@@ -25,6 +25,7 @@ import { clearParseCache, setParseCacheBudget, WORKER_MAX_CACHED_TOKENS } from '
 import { createModuleResolver, type ImportResolver } from './module-resolution.js';
 import { resetRuleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
 import type { Finding, ProfileName, SkipReason } from './types.js';
+import type { FileLinter } from './eslint-runner.js';
 
 /**
  * Default old-generation heap limit of the analysis worker, in MB.
@@ -66,6 +67,8 @@ export interface AnalysisInput {
   cwd: string;
   assertFunctionNamesByFile: Map<string, string[]>;
   testAliasNames: string[];
+  /** Spec files with a proven alias of Playwright's expect -> the alias names (expect-alias.ts). */
+  expectAliasesByFile?: Map<string, string[]>;
 }
 
 /** What the analysis says about one file that parsed. */
@@ -82,6 +85,8 @@ export interface FileFacts {
 export interface BatchResult {
   /** Lint findings after triage; a file that did not parse keeps only its parse-error finding. */
   lintFindings: Finding[];
+  /** New findings of the alias lint (expect-alias.ts), not yet checked against the resolver; not triaged. */
+  aliasFindings: Finding[];
   metricFindings: Finding[];
   /** One entry per scored file, in file order. */
   facts: FileFacts[];
@@ -147,8 +152,8 @@ export function createAnalyzer(
 
   // Built on first use (with a worker, the main thread never loads the lint
   // engine) and reused for every later batch: the config is the whole run's.
-  let linter: Promise<(files: string[]) => Promise<Finding[]>> | undefined;
-  const lintFiles = async (files: string[]): Promise<Finding[]> => {
+  let linter: Promise<FileLinter> | undefined;
+  const getLinter = (): Promise<FileLinter> => {
     linter ??= import('./eslint-runner.js').then((m) =>
       m.createLinter(
         {
@@ -157,16 +162,20 @@ export function createAnalyzer(
           reportBase: filesBase,
           assertFunctionNamesByFile: input.assertFunctionNamesByFile,
           testAliasNames,
+          expectAliasesByFile: input.expectAliasesByFile,
           basePath,
         },
         input.files
       )
     );
-    return (await linter)(files);
+    return linter;
   };
 
   return async (files) => {
-    const linted = files.length === 0 ? [] : await lintFiles(files);
+    const lintWith = files.length === 0 ? undefined : await getLinter();
+    const linted = lintWith ? await lintWith(files) : [];
+    // The alias lint's own findings skip the triage: whether their expect is one is the resolver's call (expect-alias.ts).
+    const added = lintWith ? await lintWith.aliasPass(files, linted) : [];
     heapCheckpoint();
     const lint = triage(linted);
     heapCheckpoint();
@@ -174,6 +183,7 @@ export function createAnalyzer(
     const unparsed = parseErrorFiles(lint);
     const result: BatchResult = {
       lintFindings: dropFindingsOfSkipped(lint, new Set(unparsed.keys())),
+      aliasFindings: dropFindingsOfSkipped(added, new Set(unparsed.keys())),
       metricFindings: [],
       facts: [],
       parseErrors: [],

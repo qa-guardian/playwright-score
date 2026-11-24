@@ -10,6 +10,7 @@ import { plainAliasNames } from './test-aliases.js';
 import { createPostFilter } from './eslint-postfilter.js';
 import { heapGuardArmed, withHeapCheckpoint } from './heap-guard.js';
 import { formOfReportedRead, urlCountReads } from './read-forms.js';
+import { expectAliasConfig, newFindings } from './expect-alias.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
 const ASSERT_FUNCTION_PATTERNS = [
@@ -20,6 +21,8 @@ const ASSERT_FUNCTION_PATTERNS = [
 ];
 
 const escapeGlob = (p: string): string => p.replace(/[\\*?[\]{}()!+@|]/g, '\\$&');
+/** A config `files` pattern for one file: its escaped literal path relative to `cwd`. */
+const fileGlob = (file: string, cwd: string): string => escapeGlob(path.relative(cwd, file).split(path.sep).join('/'));
 
 /** One override per distinct helper-name list: `files` are escaped literal paths relative to `cwd`. */
 function perFileHelperOverrides(
@@ -30,7 +33,7 @@ function perFileHelperOverrides(
   for (const [file, names] of byFile) {
     const key = names.join('\u0000');
     const g = groups.get(key) ?? { names, files: [] };
-    g.files.push(escapeGlob(path.relative(cwd, file).split(path.sep).join('/')));
+    g.files.push(fileGlob(file, cwd));
     groups.set(key, g);
   }
   return [...groups.values()].map((g) => ({
@@ -248,6 +251,8 @@ export interface LintOptions {
   assertFunctionNamesByFile?: ReadonlyMap<string, string[]>;
   /** See detectExtendedTestAliases in test-aliases.ts. */
   testAliasNames?: string[];
+  /** Per spec file: the proven aliases of Playwright's expect (expect-alias.ts). Only these files get the alias lint. */
+  expectAliasesByFile?: ReadonlyMap<string, string[]>;
   /**
    * ESLint base path. A run that lints its files in batches passes the common
    * ancestor of ALL its files, so every batch is linted under the same base.
@@ -259,6 +264,11 @@ export interface LintOptions {
  * Lint `options.files` with the embedded config only (a host repo's
  * eslint.config.js is never loaded).
  */
+/** Lints files; `aliasPass` lints those of them with a proven expect alias once more and returns only the new findings (expect-alias.ts). */
+export type FileLinter = ((files: string[]) => Promise<Finding[]>) & {
+  aliasPass: (files: string[], found: readonly Finding[]) => Promise<Finding[]>;
+};
+
 export async function runEslint(options: LintOptions & { files: string[] }): Promise<Finding[]> {
   return (await createLinter(options, options.files))(options.files);
 }
@@ -274,7 +284,7 @@ export async function runEslint(options: LintOptions & { files: string[] }): Pro
 export async function createLinter(
   options: LintOptions,
   allFiles: readonly string[]
-): Promise<(files: string[]) => Promise<Finding[]>> {
+): Promise<FileLinter> {
   // ESLint 9 flat config resolves a `basePath` from `cwd` and silently
   // drops (as an untracked, ruleId-less message) any file that isn't
   // underneath it — no error, no findings, just a quietly clean score.
@@ -323,10 +333,19 @@ export async function createLinter(
     ignore: false,
   });
 
-  return (files) => lintWith(eslint, files, options.reportBase ?? cwd);
+  const reportBase = options.reportBase ?? cwd;
+  const byFile = options.expectAliasesByFile;
+  const aliasConfig = expectAliasConfig(overrideConfig, byFile, (f) => fileGlob(f, cwd), plainAliasNames(options.testAliasNames ?? []));
+  const aliasEslint = aliasConfig && new ESLint({ cwd, overrideConfigFile: true, overrideConfig: aliasConfig as never, ignore: false });
+  const aliasPass = async (files: string[], found: readonly Finding[]): Promise<Finding[]> => {
+    const mine = aliasEslint && byFile ? files.filter((f) => byFile.has(f)) : [];
+    if (!aliasEslint || mine.length === 0) return [];
+    return newFindings(found, await lintWith(aliasEslint, mine, reportBase, byFile));
+  };
+  return Object.assign((files: string[]) => lintWith(eslint, files, reportBase), { aliasPass });
 }
 
-async function lintWith(eslint: ESLint, files: string[], reportBase: string): Promise<Finding[]> {
+async function lintWith(eslint: ESLint, files: string[], reportBase: string, aliasesByFile?: ReadonlyMap<string, string[]>): Promise<Finding[]> {
   const results = await eslint.lintFiles(files);
   const findings: Finding[] = [];
 
@@ -339,7 +358,9 @@ async function lintWith(eslint: ESLint, files: string[], reportBase: string): Pr
     );
     const absFile = path.resolve(result.filePath);
     const file = path.relative(reportBase, absFile) || path.basename(absFile);
-    const postFilter = createPostFilter(() => result.source ?? fs.readFileSync(absFile, 'utf8'), absFile);
+    const aliasNames = aliasesByFile?.get(absFile);
+    const aliases = aliasNames ? new Set(aliasNames) : undefined;
+    const postFilter = createPostFilter(() => result.source ?? fs.readFileSync(absFile, 'utf8'), absFile, aliases);
     for (const msg of result.messages) {
       // A `// eslint-disable-next-line some/rule-we-dont-bundle` comment is
       // extremely common in real-world code (any host project that lints
@@ -392,7 +413,7 @@ async function lintWith(eslint: ESLint, files: string[], reportBase: string): Pr
       const messageSeverity = msg.messageId ? MESSAGE_SEVERITY[`${msg.ruleId}#${msg.messageId}`] : undefined;
       const form =
         msg.ruleId === 'playwright/prefer-web-first-assertions'
-          ? formOfReportedRead(postFilter.tree(), msg.line, msg.column)
+          ? formOfReportedRead(postFilter.tree(), msg.line, msg.column, aliases)
           : postFilter.formOf({ ruleId: msg.ruleId, messageId: msg.messageId, line: msg.line, column: msg.column });
       findings.push({
         rule: msg.ruleId,

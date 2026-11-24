@@ -54,11 +54,27 @@
    "pending": null
   },
   {
+   "id": "missing-playwright-await/false-alias-awaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-alias-of-chai-expect",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-alias-shadowed-by-param",
+   "pending": null
+  },
+  {
    "id": "missing-playwright-await/false-awaited",
    "pending": null
   },
   {
    "id": "missing-playwright-await/false-js-awaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-let-alias-reassigned",
    "pending": null
   },
   {
@@ -114,7 +130,15 @@
    "pending": null
   },
   {
+   "id": "missing-playwright-await/true-alias-of-alias-unawaited",
+   "pending": null
+  },
+  {
    "id": "missing-playwright-await/true-aliased-test",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/true-const-alias-unawaited",
    "pending": null
   },
   {
@@ -127,6 +151,10 @@
   },
   {
    "id": "missing-playwright-await/true-js-cjs-unawaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/true-js-const-alias-unawaited",
    "pending": null
   },
   {
@@ -2195,7 +2223,7 @@
   },
   {
    "id": "valid-expect/true-renamed-expect-const",
-   "pending": "S4b"
+   "pending": null
   }
  ]
 }
