@@ -365,8 +365,7 @@
    "form": "assertion",
    "tags": [
     "shared"
-   ],
-   "pending": "S6b"
+   ]
   },
   {
    "id": "missing-playwright-await/true-action-unawaited-wait-for-response",
@@ -519,8 +518,7 @@
    "dir": "pwscore__no-unawaited-action/-/shared/true-helper-unawaited-click",
    "tags": [
     "shared"
-   ],
-   "pending": "S6b"
+   ]
   },
   {
    "id": "no-unawaited-action/false-awaited",
@@ -1200,8 +1198,7 @@
    "dir": "playwright__no-networkidle/-/shared/true-helper-network-idle",
    "tags": [
     "shared"
-   ],
-   "pending": "S6b"
+   ]
   },
   {
    "id": "no-wait-for-selector/true-page-wait-for-selector",
@@ -2017,8 +2014,7 @@
    "tags": [
     "shared"
    ],
-   "pending": "S6b",
-   "note": "the helper file is not linted until shared-file linting lands"
+   "note": "the finding is in a shared helper file: reported with the shared option only"
   },
   {
    "id": "valid-expect/true-helper-matcherless",
@@ -2030,8 +2026,7 @@
    "tags": [
     "shared"
    ],
-   "pending": "S6b",
-   "note": "the helper file is not linted until shared-file linting lands"
+   "note": "the finding is in a shared helper file: reported with the shared option only"
   },
   {
    "id": "no-unawaited-expect-value/true-helper-promise-subject",
@@ -2042,8 +2037,7 @@
    "tags": [
     "shared"
    ],
-   "pending": "S6b",
-   "note": "the helper file is not linted until shared-file linting lands"
+   "note": "the finding is in a shared helper file: reported with the shared option only"
   },
   {
    "id": "no-weak-assertion/true-helper-locator-truthy",
@@ -2054,8 +2048,7 @@
    "tags": [
     "shared"
    ],
-   "pending": "S6b",
-   "note": "the helper file is not linted until shared-file linting lands"
+   "note": "the finding is in a shared helper file: reported with the shared option only"
   },
   {
    "id": "no-floating-callback-assertion/true-shared-foreach-async",
@@ -2079,8 +2072,7 @@
    "tags": [
     "shared"
    ],
-   "pending": "S6b",
-   "note": "the helper file is not linted until shared-file linting lands"
+   "note": "the finding is in a shared helper file: reported with the shared option only"
   },
   {
    "id": "prefer-web-first-assertions/true-shared-read-url",
@@ -2092,8 +2084,7 @@
    "tags": [
     "shared"
    ],
-   "note": "the read shape is reported (S7c); the finding is in a shared helper file, which needs shared-file linting (S6b)",
-   "pending": "S6b"
+   "note": "the finding is in a shared helper file: reported with the shared option only"
   },
   {
    "id": "no-wait-for-selector/true-helper-wait-for-selector",
@@ -2104,8 +2095,7 @@
    "tags": [
     "shared"
    ],
-   "pending": "S6b",
-   "note": "the helper file is not linted until shared-file linting lands"
+   "note": "the finding is in a shared helper file: reported with the shared option only"
   },
   {
    "id": "no-wait-for-navigation/true-helper-wait-for-navigation",
@@ -2116,8 +2106,7 @@
    "tags": [
     "shared"
    ],
-   "pending": "S6b",
-   "note": "the helper file is not linted until shared-file linting lands"
+   "note": "the finding is in a shared helper file: reported with the shared option only"
   },
   {
    "id": "no-element-handle/true-helper-page-dollar",
@@ -2128,8 +2117,7 @@
    "tags": [
     "shared"
    ],
-   "pending": "S6b",
-   "note": "the helper file is not linted until shared-file linting lands"
+   "note": "the finding is in a shared helper file: reported with the shared option only"
   },
   {
    "id": "no-page-pause/true-helper-page-pause",
@@ -2140,8 +2128,7 @@
    "tags": [
     "shared"
    ],
-   "pending": "S6b",
-   "note": "the helper file is not linted until shared-file linting lands"
+   "note": "the finding is in a shared helper file: reported with the shared option only"
   },
   {
    "id": "no-focused-test/true-aliased-import-test-only",
@@ -5389,6 +5376,730 @@
    "entry": "pwscore__no-trivial-assertion/foreign-expect/false-playwright-expect-literal.ts",
    "form": "foreign-expect",
    "note": "expect is the one from @playwright/test: the finding keeps its shape form"
+  },
+  {
+   "id": "missing-playwright-await/true-fixture-unawaited-assert",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/assertion/shared/true-fixture-unawaited-assert/orders.spec.ts",
+   "dir": "playwright__missing-playwright-await/assertion/shared/true-fixture-unawaited-assert",
+   "form": "assertion",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "missing-playwright-await/true-helper-js-unawaited-assert",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/assertion/shared/true-helper-js-unawaited-assert/orders.spec.js",
+   "dir": "playwright__missing-playwright-await/assertion/shared/true-helper-js-unawaited-assert",
+   "form": "assertion",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only"
+  },
+  {
+   "id": "missing-playwright-await/true-fixture-js-unawaited-assert",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/assertion/shared/true-fixture-js-unawaited-assert/orders.spec.js",
+   "dir": "playwright__missing-playwright-await/assertion/shared/true-fixture-js-unawaited-assert",
+   "form": "assertion",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "missing-playwright-await/true-fixture-unawaited-wait",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/action/shared/true-fixture-unawaited-wait/orders.spec.ts",
+   "dir": "playwright__missing-playwright-await/action/shared/true-fixture-unawaited-wait",
+   "form": "action",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "missing-playwright-await/true-helper-js-unawaited-wait",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/action/shared/true-helper-js-unawaited-wait/orders.spec.js",
+   "dir": "playwright__missing-playwright-await/action/shared/true-helper-js-unawaited-wait",
+   "form": "action",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only"
+  },
+  {
+   "id": "missing-playwright-await/true-fixture-js-unawaited-wait",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/action/shared/true-fixture-js-unawaited-wait/orders.spec.js",
+   "dir": "playwright__missing-playwright-await/action/shared/true-fixture-js-unawaited-wait",
+   "form": "action",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "valid-expect/true-fixture-matcherless",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "playwright__valid-expect/matcherless/shared/true-fixture-matcherless/orders.spec.ts",
+   "dir": "playwright__valid-expect/matcherless/shared/true-fixture-matcherless",
+   "form": "matcherless",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "valid-expect/true-helper-js-matcherless",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "playwright__valid-expect/matcherless/shared/true-helper-js-matcherless/orders.spec.js",
+   "dir": "playwright__valid-expect/matcherless/shared/true-helper-js-matcherless",
+   "form": "matcherless",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only"
+  },
+  {
+   "id": "valid-expect/true-fixture-js-matcherless",
+   "rule": "playwright/valid-expect",
+   "verdict": "true",
+   "entry": "playwright__valid-expect/matcherless/shared/true-fixture-js-matcherless/orders.spec.js",
+   "dir": "playwright__valid-expect/matcherless/shared/true-fixture-js-matcherless",
+   "form": "matcherless",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-unawaited-expect-value/true-fixture-promise-subject",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "true",
+   "entry": "pwscore__no-unawaited-expect-value/-/shared/true-fixture-promise-subject/orders.spec.ts",
+   "dir": "pwscore__no-unawaited-expect-value/-/shared/true-fixture-promise-subject",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-unawaited-expect-value/true-helper-js-promise-subject",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "true",
+   "entry": "pwscore__no-unawaited-expect-value/-/shared/true-helper-js-promise-subject/orders.spec.js",
+   "dir": "pwscore__no-unawaited-expect-value/-/shared/true-helper-js-promise-subject",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only"
+  },
+  {
+   "id": "no-unawaited-expect-value/true-fixture-js-promise-subject",
+   "rule": "pwscore/no-unawaited-expect-value",
+   "verdict": "true",
+   "entry": "pwscore__no-unawaited-expect-value/-/shared/true-fixture-js-promise-subject/orders.spec.js",
+   "dir": "pwscore__no-unawaited-expect-value/-/shared/true-fixture-js-promise-subject",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-weak-assertion/true-fixture-locator-truthy",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-weak-assertion/-/shared/true-fixture-locator-truthy/orders.spec.ts",
+   "dir": "pwscore__no-weak-assertion/-/shared/true-fixture-locator-truthy",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-weak-assertion/true-helper-js-locator-truthy",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-weak-assertion/-/shared/true-helper-js-locator-truthy/orders.spec.js",
+   "dir": "pwscore__no-weak-assertion/-/shared/true-helper-js-locator-truthy",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only"
+  },
+  {
+   "id": "no-weak-assertion/true-fixture-js-locator-truthy",
+   "rule": "pwscore/no-weak-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-weak-assertion/-/shared/true-fixture-js-locator-truthy/orders.spec.js",
+   "dir": "pwscore__no-weak-assertion/-/shared/true-fixture-js-locator-truthy",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-unawaited-action/true-fixture-unawaited-click",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "true",
+   "entry": "pwscore__no-unawaited-action/-/shared/true-fixture-unawaited-click/orders.spec.ts",
+   "dir": "pwscore__no-unawaited-action/-/shared/true-fixture-unawaited-click",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-unawaited-action/true-helper-js-unawaited-click",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "true",
+   "entry": "pwscore__no-unawaited-action/-/shared/true-helper-js-unawaited-click/orders.spec.js",
+   "dir": "pwscore__no-unawaited-action/-/shared/true-helper-js-unawaited-click",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only"
+  },
+  {
+   "id": "no-unawaited-action/true-fixture-js-unawaited-click",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "true",
+   "entry": "pwscore__no-unawaited-action/-/shared/true-fixture-js-unawaited-click/orders.spec.js",
+   "dir": "pwscore__no-unawaited-action/-/shared/true-fixture-js-unawaited-click",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-fixture-awaited-is-visible",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/shared/true-fixture-awaited-is-visible/orders.spec.ts",
+   "dir": "playwright__prefer-web-first-assertions/read-direct/shared/true-fixture-awaited-is-visible",
+   "form": "read-direct",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-helper-js-awaited-is-visible",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/shared/true-helper-js-awaited-is-visible/orders.spec.js",
+   "dir": "playwright__prefer-web-first-assertions/read-direct/shared/true-helper-js-awaited-is-visible",
+   "form": "read-direct",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-fixture-js-awaited-is-visible",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/shared/true-fixture-js-awaited-is-visible/orders.spec.js",
+   "dir": "playwright__prefer-web-first-assertions/read-direct/shared/true-fixture-js-awaited-is-visible",
+   "form": "read-direct",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-fixture-read-url",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-url-count/shared/true-fixture-read-url/orders.spec.ts",
+   "dir": "playwright__prefer-web-first-assertions/read-url-count/shared/true-fixture-read-url",
+   "form": "read-url-count",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-helper-js-read-url",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-url-count/shared/true-helper-js-read-url/orders.spec.js",
+   "dir": "playwright__prefer-web-first-assertions/read-url-count/shared/true-helper-js-read-url",
+   "form": "read-url-count",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only"
+  },
+  {
+   "id": "prefer-web-first-assertions/true-fixture-js-read-url",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-url-count/shared/true-fixture-js-read-url/orders.spec.js",
+   "dir": "playwright__prefer-web-first-assertions/read-url-count/shared/true-fixture-js-read-url",
+   "form": "read-url-count",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-networkidle/true-fixture-network-idle",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/-/shared/true-fixture-network-idle/orders.spec.ts",
+   "dir": "playwright__no-networkidle/-/shared/true-fixture-network-idle",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-networkidle/true-helper-js-network-idle",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/-/shared/true-helper-js-network-idle/orders.spec.js",
+   "dir": "playwright__no-networkidle/-/shared/true-helper-js-network-idle",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only"
+  },
+  {
+   "id": "no-networkidle/true-fixture-js-network-idle",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/-/shared/true-fixture-js-network-idle/orders.spec.js",
+   "dir": "playwright__no-networkidle/-/shared/true-fixture-js-network-idle",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-wait-for-selector/true-fixture-wait-for-selector",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/shared/true-fixture-wait-for-selector/orders.spec.ts",
+   "dir": "playwright__no-wait-for-selector/-/shared/true-fixture-wait-for-selector",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-wait-for-selector/true-helper-js-wait-for-selector",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/shared/true-helper-js-wait-for-selector/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/shared/true-helper-js-wait-for-selector",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only"
+  },
+  {
+   "id": "no-wait-for-selector/true-fixture-js-wait-for-selector",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/shared/true-fixture-js-wait-for-selector/orders.spec.js",
+   "dir": "playwright__no-wait-for-selector/-/shared/true-fixture-js-wait-for-selector",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-wait-for-navigation/true-fixture-wait-for-navigation",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/shared/true-fixture-wait-for-navigation/orders.spec.ts",
+   "dir": "playwright__no-wait-for-navigation/unresolved/shared/true-fixture-wait-for-navigation",
+   "form": "unresolved",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only; the receiver is not proven to be a Playwright Page here (a fixture callback parameter, or a JSDoc type), so the finding has the unresolved form"
+  },
+  {
+   "id": "no-wait-for-navigation/true-helper-js-wait-for-navigation",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/shared/true-helper-js-wait-for-navigation/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/shared/true-helper-js-wait-for-navigation",
+   "form": "unresolved",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only; the receiver is not proven to be a Playwright Page here (a fixture callback parameter, or a JSDoc type), so the finding has the unresolved form"
+  },
+  {
+   "id": "no-wait-for-navigation/true-fixture-js-wait-for-navigation",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/unresolved/shared/true-fixture-js-wait-for-navigation/orders.spec.js",
+   "dir": "playwright__no-wait-for-navigation/unresolved/shared/true-fixture-js-wait-for-navigation",
+   "form": "unresolved",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only; the receiver is not proven to be a Playwright Page here (a fixture callback parameter, or a JSDoc type), so the finding has the unresolved form"
+  },
+  {
+   "id": "no-element-handle/true-fixture-page-dollar",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/unresolved/shared/true-fixture-page-dollar/orders.spec.ts",
+   "dir": "playwright__no-element-handle/unresolved/shared/true-fixture-page-dollar",
+   "form": "unresolved",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only; the receiver is not proven to be a Playwright Page here (a fixture callback parameter, or a JSDoc type), so the finding has the unresolved form"
+  },
+  {
+   "id": "no-element-handle/true-helper-js-page-dollar",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/unresolved/shared/true-helper-js-page-dollar/orders.spec.js",
+   "dir": "playwright__no-element-handle/unresolved/shared/true-helper-js-page-dollar",
+   "form": "unresolved",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only; the receiver is not proven to be a Playwright Page here (a fixture callback parameter, or a JSDoc type), so the finding has the unresolved form"
+  },
+  {
+   "id": "no-element-handle/true-fixture-js-page-dollar",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/unresolved/shared/true-fixture-js-page-dollar/orders.spec.js",
+   "dir": "playwright__no-element-handle/unresolved/shared/true-fixture-js-page-dollar",
+   "form": "unresolved",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only; the receiver is not proven to be a Playwright Page here (a fixture callback parameter, or a JSDoc type), so the finding has the unresolved form"
+  },
+  {
+   "id": "no-page-pause/true-fixture-page-pause",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/unresolved/shared/true-fixture-page-pause/orders.spec.ts",
+   "dir": "playwright__no-page-pause/unresolved/shared/true-fixture-page-pause",
+   "form": "unresolved",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only; the receiver is not proven to be a Playwright Page here (a fixture callback parameter, or a JSDoc type), so the finding has the unresolved form"
+  },
+  {
+   "id": "no-page-pause/true-helper-js-page-pause",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/unresolved/shared/true-helper-js-page-pause/orders.spec.js",
+   "dir": "playwright__no-page-pause/unresolved/shared/true-helper-js-page-pause",
+   "form": "unresolved",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only; the receiver is not proven to be a Playwright Page here (a fixture callback parameter, or a JSDoc type), so the finding has the unresolved form"
+  },
+  {
+   "id": "no-page-pause/true-fixture-js-page-pause",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/unresolved/shared/true-fixture-js-page-pause/orders.spec.js",
+   "dir": "playwright__no-page-pause/unresolved/shared/true-fixture-js-page-pause",
+   "form": "unresolved",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only; the receiver is not proven to be a Playwright Page here (a fixture callback parameter, or a JSDoc type), so the finding has the unresolved form"
+  },
+  {
+   "id": "no-wait-for-timeout/true-fixture-wait-for-timeout",
+   "rule": "playwright/no-wait-for-timeout",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-timeout/-/shared/true-fixture-wait-for-timeout/orders.spec.ts",
+   "dir": "playwright__no-wait-for-timeout/-/shared/true-fixture-wait-for-timeout",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-wait-for-timeout/true-helper-js-wait-for-timeout",
+   "rule": "playwright/no-wait-for-timeout",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-timeout/-/shared/true-helper-js-wait-for-timeout/orders.spec.js",
+   "dir": "playwright__no-wait-for-timeout/-/shared/true-helper-js-wait-for-timeout",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only"
+  },
+  {
+   "id": "no-wait-for-timeout/true-fixture-js-wait-for-timeout",
+   "rule": "playwright/no-wait-for-timeout",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-timeout/-/shared/true-fixture-js-wait-for-timeout/orders.spec.js",
+   "dir": "playwright__no-wait-for-timeout/-/shared/true-fixture-js-wait-for-timeout",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-swallowed-assertion/true-fixture-swallowed-catch",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/shared/true-fixture-swallowed-catch/orders.spec.ts",
+   "dir": "pwscore__no-swallowed-assertion/-/shared/true-fixture-swallowed-catch",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-swallowed-assertion/true-helper-js-swallowed-catch",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/shared/true-helper-js-swallowed-catch/orders.spec.js",
+   "dir": "pwscore__no-swallowed-assertion/-/shared/true-helper-js-swallowed-catch",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript helper file: reported with the shared option only"
+  },
+  {
+   "id": "no-swallowed-assertion/true-fixture-js-swallowed-catch",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/shared/true-fixture-js-swallowed-catch/orders.spec.js",
+   "dir": "pwscore__no-swallowed-assertion/-/shared/true-fixture-js-swallowed-catch",
+   "tags": [
+    "shared",
+    "js"
+   ],
+   "note": "the finding is in a JavaScript test.extend fixture file: reported with the shared option only"
+  },
+  {
+   "id": "no-wait-for-timeout/true-helper-wait-for-timeout",
+   "rule": "playwright/no-wait-for-timeout",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-timeout/-/shared/true-helper-wait-for-timeout/orders.spec.ts",
+   "dir": "playwright__no-wait-for-timeout/-/shared/true-helper-wait-for-timeout",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a shared helper file: reported with the shared option only"
+  },
+  {
+   "id": "no-swallowed-assertion/true-helper-swallowed-catch",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/shared/true-helper-swallowed-catch/orders.spec.ts",
+   "dir": "pwscore__no-swallowed-assertion/-/shared/true-helper-swallowed-catch",
+   "tags": [
+    "shared"
+   ],
+   "note": "the finding is in a shared helper file: reported with the shared option only"
+  },
+  {
+   "id": "no-unawaited-action/false-helper-returned-promise",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "false",
+   "entry": "pwscore__no-unawaited-action/-/shared/false-helper-returned-promise/orders.spec.ts",
+   "dir": "pwscore__no-unawaited-action/-/shared/false-helper-returned-promise",
+   "tags": [
+    "shared",
+    "g10:return-position"
+   ],
+   "note": "a helper that returns the promise hands the wait to its caller: never a finding, shared option on or off"
+  },
+  {
+   "id": "no-unawaited-action/false-helper-js-returned-promise",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "false",
+   "entry": "pwscore__no-unawaited-action/-/shared/false-helper-js-returned-promise/orders.spec.js",
+   "dir": "pwscore__no-unawaited-action/-/shared/false-helper-js-returned-promise",
+   "tags": [
+    "shared",
+    "js",
+    "g10:return-position"
+   ],
+   "note": "JavaScript form of the returned promise in a helper file"
+  },
+  {
+   "id": "missing-playwright-await/false-helper-returned-promise",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/shared/false-helper-returned-promise/orders.spec.ts",
+   "dir": "playwright__missing-playwright-await/assertion/shared/false-helper-returned-promise",
+   "form": "assertion",
+   "tags": [
+    "shared",
+    "g10:return-position"
+   ],
+   "note": "a helper that returns the promise hands the wait to its caller: never a finding, shared option on or off"
+  },
+  {
+   "id": "missing-playwright-await/false-helper-js-returned-promise",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/shared/false-helper-js-returned-promise/orders.spec.js",
+   "dir": "playwright__missing-playwright-await/assertion/shared/false-helper-js-returned-promise",
+   "form": "assertion",
+   "tags": [
+    "shared",
+    "js",
+    "g10:return-position"
+   ],
+   "note": "JavaScript form of the returned promise in a helper file"
+  },
+  {
+   "id": "missing-playwright-await/false-helper-returned-promise-action",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/action/shared/false-helper-returned-promise-action/orders.spec.ts",
+   "dir": "playwright__missing-playwright-await/action/shared/false-helper-returned-promise-action",
+   "form": "action",
+   "tags": [
+    "shared",
+    "g10:return-position"
+   ],
+   "note": "a helper that returns the promise hands the wait to its caller: never a finding, shared option on or off"
+  },
+  {
+   "id": "missing-playwright-await/false-helper-js-returned-promise-action",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/action/shared/false-helper-js-returned-promise-action/orders.spec.js",
+   "dir": "playwright__missing-playwright-await/action/shared/false-helper-js-returned-promise-action",
+   "form": "action",
+   "tags": [
+    "shared",
+    "js",
+    "g10:return-position"
+   ],
+   "note": "JavaScript form of the returned promise in a helper file"
+  },
+  {
+   "id": "valid-expect/false-helper-returned-promise",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "playwright__valid-expect/matcherless/shared/false-helper-returned-promise/orders.spec.ts",
+   "dir": "playwright__valid-expect/matcherless/shared/false-helper-returned-promise",
+   "form": "matcherless",
+   "tags": [
+    "shared",
+    "g10:return-position"
+   ],
+   "note": "a helper that returns the promise hands the wait to its caller: never a finding, shared option on or off"
+  },
+  {
+   "id": "valid-expect/false-helper-js-returned-promise",
+   "rule": "playwright/valid-expect",
+   "verdict": "false",
+   "entry": "playwright__valid-expect/matcherless/shared/false-helper-js-returned-promise/orders.spec.js",
+   "dir": "playwright__valid-expect/matcherless/shared/false-helper-js-returned-promise",
+   "form": "matcherless",
+   "tags": [
+    "shared",
+    "js",
+    "g10:return-position"
+   ],
+   "note": "JavaScript form of the returned promise in a helper file"
+  },
+  {
+   "id": "no-unawaited-action/false-helper-route-handler",
+   "rule": "pwscore/no-unawaited-action",
+   "verdict": "false",
+   "entry": "pwscore__no-unawaited-action/-/shared/false-helper-route-handler/orders.spec.ts",
+   "dir": "pwscore__no-unawaited-action/-/shared/false-helper-route-handler",
+   "tags": [
+    "shared",
+    "g10:route-handler"
+   ],
+   "note": "calls on the route inside a page.route handler in a helper file: the handler is not a test body"
+  },
+  {
+   "id": "missing-playwright-await/false-helper-route-handler",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/action/shared/false-helper-route-handler/orders.spec.ts",
+   "dir": "playwright__missing-playwright-await/action/shared/false-helper-route-handler",
+   "form": "action",
+   "tags": [
+    "shared",
+    "g10:route-handler"
+   ],
+   "note": "calls on the route inside a page.route handler in a helper file: the handler is not a test body"
+  },
+  {
+   "id": "no-wait-for-timeout/false-helper-not-playwright-bound",
+   "rule": "playwright/no-wait-for-timeout",
+   "verdict": "false",
+   "entry": "playwright__no-wait-for-timeout/-/shared/false-helper-not-playwright-bound/orders.spec.ts",
+   "dir": "playwright__no-wait-for-timeout/-/shared/false-helper-not-playwright-bound",
+   "tags": [
+    "shared"
+   ],
+   "note": "the helper has no tie to Playwright (its page is its own object): the file is skipped, so nothing in it is reported"
+  },
+  {
+   "id": "no-page-pause/false-helper-not-playwright-bound",
+   "rule": "playwright/no-page-pause",
+   "verdict": "false",
+   "entry": "playwright__no-page-pause/-/shared/false-helper-not-playwright-bound/orders.spec.ts",
+   "dir": "playwright__no-page-pause/-/shared/false-helper-not-playwright-bound",
+   "tags": [
+    "shared"
+   ],
+   "note": "the helper has no tie to Playwright (its page is its own object): the file is skipped, so nothing in it is reported"
   }
  ]
 }

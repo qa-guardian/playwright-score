@@ -47,6 +47,9 @@ Options:
                                   (default: ${DEFAULT_MAX_HEAP_MB}, the same on every machine;
                                   ${MIN_MAX_HEAP_MB} to ${MAX_MAX_HEAP_MB}).
                                   Files in the batch that hits it are skipped.
+  --shared                        Also check the shared files the specs import
+                                  (page objects, fixtures, helpers). Their
+                                  findings are listed and never change the score.
   --version                       Print version
   --help                          Show help
 
@@ -123,6 +126,7 @@ async function main(): Promise<void> {
   let name: string | undefined;
   let maxSeconds: number | undefined;
   let maxHeapMb: number | undefined;
+  let shared = false;
   const paths: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
@@ -189,6 +193,8 @@ async function main(): Promise<void> {
         process.exitCode = 2;
         return;
       }
+    } else if (a === '--shared') {
+      shared = true;
     } else if (a === '--version' || a === '-v') {
       continue;
     } else if (a.startsWith('-')) {
@@ -207,7 +213,7 @@ async function main(): Promise<void> {
   }
 
   try {
-    const result = await scorePaths({ paths, profile, threshold, maxSeconds, maxHeapMb });
+    const result = await scorePaths({ paths, profile, threshold, maxSeconds, maxHeapMb, shared });
     for (const c of result.ruleCrashes ?? []) {
       console.error(`warning: rule ${c.rule} crashed on ${c.count} node(s); results may be incomplete`);
     }

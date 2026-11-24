@@ -541,6 +541,9 @@ describe('QAG-287 S5b: forced limits give a labelled result and exit 1, never 2'
     assert.equal(r.stderr, '');
   });
 
+  // This test only shows that a real one-second limit ends in a listed, never a silent, result. The proof that a batch
+  // IN FLIGHT is cut off when the limit passes (and that the batches before it are kept) is tests/isolate.test.ts,
+  // 'QAG-287 S5b: the time limit passes mid-run, on an injected clock': it needs a clock the test controls.
   it('--max-seconds 1 on the largest suite: exit 1, never 2; not-scored (limit-reached) when nothing was scored in time, partial otherwise; every skipped file is listed as deadline', async () => {
     const dir = largestSuite();
     const r = await run([dir, '--max-seconds', '1']);

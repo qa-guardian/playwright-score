@@ -34,7 +34,13 @@ export interface Finding {
    * inside a before/after hook ('hook' — affects every test in the file),
    * or at module level ('module' — counted once per file). Set during
    * attribution in index.ts; findings without it are treated as 'module'. */
-  scope?: 'test' | 'hook' | 'module';
+  scope?: 'test' | 'hook' | 'module' | 'shared';
+  /**
+   * Set when scope === 'shared' (a finding in a shared file, reported only
+   * with the `shared` option): the spec files that reach the file through
+   * imports, sorted, in the same form as `file`.
+   */
+  usedBy?: string[];
   /** `${file}#${testIndex}` when scope === 'test'. */
   testKey?: string;
   /**
@@ -237,6 +243,13 @@ export interface ScoreOptions {
    * thread. Both give the same result when no limit is hit.
    */
   isolate?: boolean;
+  /**
+   * `true` also checks the shared files the specs import (page objects,
+   * fixtures, helpers that are Playwright code; `coverage.sharedLintedFiles`)
+   * with the rules that hold outside a test body. Their findings carry
+   * `scope: 'shared'` and `usedBy`. Default: false.
+   */
+  shared?: boolean;
 }
 
 export interface LocatorCounts {

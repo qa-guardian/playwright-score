@@ -48,6 +48,11 @@ export interface RuleRow {
   reportOnly?: boolean;
   /** Display label used for ranking and report wording. Unchanged by the tier model. */
   label: Confidence;
+  /**
+   * The cell is also checked on shared files (page objects, fixtures, helpers) under the `shared` option.
+   * Only rules that hold outside a test body carry it; every certain-candidate class C1 to C12 must.
+   */
+  onShared?: true;
   /** Not a lint rule: left out of the lint-rule map. */
   noMapping?: true;
   /** Left out of the report copy map (the report never printed copy for it). */

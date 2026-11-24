@@ -82,7 +82,8 @@ export function decorateFindings(findings: Finding[], baseDir: string | undefine
     const { row, undecided, familyKnown } = rowOf(f);
     const evidence: Evidence = f.evidence ?? 'name';
     if (!undecided) f.form = f.form ?? row.form;
-    f.tier = undecided ? 'needs-check' : tierOf(row);
+    const role = f.scope === 'shared' ? 'shared' : 'spec';
+    f.tier = undecided ? 'needs-check' : tierOf(row, role);
     if (familyKnown) f.family = row.family;
     f.basis = row.basis;
     if (row.docs) f.docs = row.docs;
@@ -92,7 +93,8 @@ export function decorateFindings(findings: Finding[], baseDir: string | undefine
     f.fix = row.fix;
     f.excerpt = f.line !== undefined && f.line > 0 ? excerptOf(linesOf(f.file), f.line) : '';
     f.evidence = evidence;
-    f.confidence = undecided ? null : confidenceOfRow(row);
+    // The measured precision is the spec cell's: a shared cell has none until it is measured.
+    f.confidence = undecided || role === 'shared' ? null : confidenceOfRow(row);
     f.quotable = false;
   }
 }

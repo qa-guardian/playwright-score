@@ -12,6 +12,7 @@ import {
 import { collectLocallyImportedFiles, createModuleResolver } from './import-graph.js';
 import { clearParseCache } from './parse-cache.js';
 import { createSharedCollector, sharedCoverage, type SharedFiles } from './shared-files.js';
+import { analysisFiles, finishSharedFindings, planSharedLint, type SharedLintPlan } from './shared-lint.js';
 import {
   attributeFindingScopes,
   countLocators,
@@ -714,6 +715,8 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   const candidates = new Set([...explicit, ...expanded]);
   const isSpec = (f: string): boolean => candidates.has(f) || SPEC_NAME_RE.test(f);
   let shared: SharedFiles | undefined;
+  /** Set only with the `shared` option: the shared files to lint and the specs that reach each (shared-lint.ts). */
+  let sharedRun: SharedLintPlan | undefined;
   let analysis: AnalysisInput | undefined;
   /** Locator counts of the imported dependency files (they add to the suite totals, nothing else). */
   let importedNative = 0;
@@ -763,6 +766,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
     shared = sharedCollector.collect(sources, importedFiles, importEdges, isSpec, specifierCache);
 
     if (timeLimit.passed('analysis-input')) break prePass;
+    if (options.shared) sharedRun = planSharedLint(shared, sharedCollector.graph(), files, filesBase);
     analysis = {
       files,
       sources,
@@ -773,6 +777,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
       cwd,
       assertFunctionNamesByFile,
       testAliasNames,
+      ...(sharedRun ? { sharedFiles: sharedRun.files } : {}),
     };
   }
 
@@ -785,7 +790,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
     analysis === undefined
       ? { batches: [], skipped: files.map((f) => deadlineSkip(f, timeLimit)) }
       : options.isolate === false
-        ? { batches: [await createAnalyzer(analysis, moduleResolver)(files)], skipped: [] }
+        ? { batches: [await createAnalyzer(analysis, moduleResolver)(analysisFiles(analysis))], skipped: [] }
         : await analyzeIsolated(analysis, { maxHeapMb: options.maxHeapMb ?? DEFAULT_MAX_HEAP_MB, time: timeLimit });
   for (const s of outcome.skipped) skips.add(s.file, s.reason, s.detail);
 
@@ -798,12 +803,14 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   let native = 0;
   let raw = 0;
   const eslintFindings: Finding[] = [];
+  const sharedFindings: Finding[] = [];
   const metricFindings: Finding[] = [];
   const fileTests: Record<string, number> = {};
   const fileSpans = new Map<string, TestSpans>();
   for (const batch of outcome.batches) {
     for (const [file, detail] of batch.parseErrors) skips.add(file, 'parse-error', detail);
     eslintFindings.push(...batch.lintFindings);
+    sharedFindings.push(...(batch.sharedFindings ?? []));
     metricFindings.push(...batch.metricFindings);
     for (const f of batch.facts) {
       totalSloc += f.sloc;
@@ -826,11 +833,16 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   native += importedNative;
   raw += importedRaw;
 
-  const findings = [...eslintFindings, ...metricFindings];
+  // Shared-file findings (the `shared` option): listed after the spec findings, never part of the score.
+  const sharedListed = sharedRun
+    ? finishSharedFindings(sharedFindings, sharedRun, { filesBase, sources, importedFiles, importBoundary, moduleResolver }, (f) => skips.has(f))
+    : [];
+  const specFindings = [...eslintFindings, ...metricFindings];
+  const findings = [...specFindings, ...sharedListed];
 
   // Attribute each finding to the test it sits in (model v3) — see
   // attributeFindingScopes in metrics.ts.
-  attributeFindingScopes(findings, fileSpans);
+  attributeFindingScopes(findings, fileSpans, sharedRun?.usedBy);
 
   const coverage: Coverage = {
     filesFound: found.length,
@@ -867,7 +879,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   const result = computeScore({
     profile,
     threshold,
-    findings: scoredFindings(findings),
+    findings: scoredFindings(specFindings),
     sloc: Math.max(totalSloc, 1),
     files: scoredFiles.length,
     tests: totalTests,
