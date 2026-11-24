@@ -213,4 +213,37 @@ export const passesRegardlessRows: readonly RuleRow[] = [
     dimension: 'assertions',
     label: 'medium',
   },
+  // "locator.isVisible() does not wait for the element to become visible and returns immediately."
+  // "If you need to assert that element is visible, prefer expect(locator).toBeVisible() to avoid flakiness."
+  {
+    rule: 'pwscore/unchecked-read',
+    form: 'discarded',
+    family: 'passes-regardless',
+    design: 'likely',
+    basis: 'docs',
+    docs: 'https://playwright.dev/docs/api/class-locator#locator-is-visible',
+    bcEligible: false,
+    title: 'Visibility read that checks nothing',
+    what: 'isVisible() or isHidden() is called on its own line and its result is thrown away.',
+    why: 'The call returns at once and nothing looks at the answer, so the test passes whether the element is shown or not.',
+    fix: 'Use await expect(locator).toBeVisible() or toBeHidden(), which waits for the state and fails the test when it is wrong.',
+    dimension: 'assertions',
+    label: 'medium',
+  },
+  // "To make an assertion, call expect(value) and choose a matcher that reflects the expectation."
+  {
+    rule: 'pwscore/unchecked-read',
+    form: 'unused-binding',
+    family: 'passes-regardless',
+    design: 'likely',
+    basis: 'docs',
+    docs: 'https://playwright.dev/docs/test-assertions',
+    bcEligible: false,
+    title: 'Value read from the page and never checked',
+    what: 'A test reads a value from the page, such as a text, a count, a state or an attribute, into a variable it never uses.',
+    why: 'Nothing checks the value, so the test passes whatever the page shows.',
+    fix: 'Assert on it, preferably with a web-first assertion on the locator such as toHaveText, toHaveCount or toHaveAttribute, or remove the read.',
+    dimension: 'assertions',
+    label: 'medium',
+  },
 ];

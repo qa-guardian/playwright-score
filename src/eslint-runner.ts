@@ -199,6 +199,8 @@ function buildConfig(assertFunctionNames: string[], testAliasNames: string[]): L
         'pwscore/no-unawaited-expect-value': 'error',
         // QAG-287 N1: assertions that pass on almost any page (three forms).
         'pwscore/assertion-passes-anyway': 'warn',
+        // QAG-287 N2: Playwright reads whose result nothing checks (two forms).
+        'pwscore/unchecked-read': ['warn', { testAliasNames }],
       },
     },
     // .cjs/.cts are always CommonJS (top-level `return`, `require`, no

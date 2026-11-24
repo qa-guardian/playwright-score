@@ -2290,6 +2290,102 @@
    "pending": null
   },
   {
+   "id": "unchecked-read/discarded-false-bound-asserted",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-false-if-is-visible",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-false-returned",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-false-text-content",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-false-unknown-receiver",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-false-void",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-true-awaited-is-visible",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-true-const-locator-is-visible",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-true-js-is-visible",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-true-page-alias-is-hidden",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-true-unawaited-is-hidden",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-false-builds-locator",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-false-builds-url",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-false-helper-return",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-false-logged",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-false-underscore",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-false-used-in-expect",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-const-locator-input",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-hook-title",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-js-unused-text",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-step-inner-text",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-unused-attribute",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-unused-count",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-unused-state",
+   "pending": null
+  },
+  {
    "id": "valid-expect/false-chai-expect",
    "pending": null
   },

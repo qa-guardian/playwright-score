@@ -438,6 +438,17 @@
     "fix": "Assert on an element the test is about, such as a heading, a form or a row, instead of the document root."
    },
    "conf": "medium"
+  },
+  "pwscore/unchecked-read": {
+   "map": {
+    "dimension": "assertions"
+   },
+   "copy": {
+    "title": "Visibility read that checks nothing",
+    "why": "The call returns at once and nothing looks at the answer, so the test passes whether the element is shown or not.",
+    "fix": "Use await expect(locator).toBeVisible() or toBeHidden(), which waits for the state and fails the test when it is wrong."
+   },
+   "conf": "medium"
   }
  }
 }
