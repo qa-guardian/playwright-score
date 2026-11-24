@@ -215,7 +215,16 @@ describe('QAG-287 S6c: a (rule, form, shared) cell is certain only with an L2 me
   ]);
   /** A shared finding of that rule and form after decorateFindings (the path every real shared finding takes). */
   const decorated = (x: { rule: string; form: string | undefined }): Finding => {
-    const f: Finding = { rule: x.rule, severity: 'warning', message: 'm', file: 'helpers.ts', line: 1, scope: 'shared', usedBy: ['a.spec.ts'] };
+    const f: Finding = {
+      rule: x.rule,
+      severity: 'warning',
+      message: 'm',
+      file: 'helpers.ts',
+      line: 1,
+      dimension: 'playwrightHygiene',
+      scope: 'shared',
+      usedBy: ['a.spec.ts'],
+    };
     if (x.form !== undefined) f.form = x.form;
     decorateFindings([f], undefined);
     return f;
