@@ -1,14 +1,38 @@
-import type { ScoreResult } from '../types.js';
+import type { Finding, ScoreResult } from '../types.js';
+import type { Tier } from '../catalogue/types.js';
+import { viewTier } from '../report-view.js';
+
+/** QAG-287 S10a: SARIF level by tier. Every finding is reported; advisory and needs-check as `note`. */
+export const SARIF_LEVEL: Record<Tier, 'error' | 'warning' | 'note'> = {
+  certain: 'error',
+  likely: 'warning',
+  advisory: 'note',
+  'needs-check': 'note',
+};
+
+export function sarifLevel(f: Finding): 'error' | 'warning' | 'note' {
+  return SARIF_LEVEL[viewTier(f)];
+}
+
+interface SarifRule {
+  id: string;
+  shortDescription: { text: string };
+  helpUri?: string;
+}
 
 /** Minimal SARIF 2.1.0 for CI integrations */
 export function formatSarif(result: ScoreResult): string {
-  const rulesMap = new Map<string, { id: string; shortDescription: { text: string } }>();
+  const rulesMap = new Map<string, SarifRule>();
   for (const f of result.findings) {
-    if (!rulesMap.has(f.rule)) {
+    const known = rulesMap.get(f.rule);
+    if (!known) {
       rulesMap.set(f.rule, {
         id: f.rule,
-        shortDescription: { text: f.rule },
+        shortDescription: { text: f.title ?? f.rule },
+        ...(f.docs ? { helpUri: f.docs } : {}),
       });
+    } else if (!known.helpUri && f.docs) {
+      known.helpUri = f.docs;
     }
   }
 
@@ -28,12 +52,7 @@ export function formatSarif(result: ScoreResult): string {
         },
         results: result.findings.map((f) => ({
           ruleId: f.rule,
-          level:
-            f.severity === 'error'
-              ? 'error'
-              : f.severity === 'warning'
-                ? 'warning'
-                : 'note',
+          level: sarifLevel(f),
           message: { text: f.message },
           locations: [
             {

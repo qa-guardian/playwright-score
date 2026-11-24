@@ -8,6 +8,18 @@ import {
   type Confidence,
 } from './confidence.js';
 import { GRADE_BANDS } from './score-engine.js';
+import type { Tier } from './catalogue/types.js';
+
+const TIER_RANK: Record<Tier, number> = { certain: 0, likely: 1, advisory: 2, 'needs-check': 3 };
+
+/** A finding's tier; a finding built without the catalogue (computeScore, tests) reads as likely or needs-check. */
+export function viewTier(f: Finding): Tier {
+  return f.tier ?? (isNeedsCheck(f) ? 'needs-check' : 'likely');
+}
+
+export function tierRank(t: Tier): number {
+  return TIER_RANK[t];
+}
 
 /** Shared by the HTML report and the terminal output. */
 
@@ -40,6 +52,8 @@ export const DIMENSIONS: ReadonlyArray<{ key: DimensionName; label: string; mean
 
 export interface RuleGroup {
   rule: string;
+  /** QAG-287 S10a: the most trusted tier among the group's findings (certain groups lead). */
+  tier: Tier;
   /** Worst severity among the group's findings. */
   severity: Finding['severity'];
   confidence: Confidence;
@@ -67,6 +81,7 @@ export function groupByRule(findings: readonly Finding[]): RuleGroup[] {
     }
     groups.push({
       rule,
+      tier: sorted.map(viewTier).sort((a, b) => tierRank(a) - tierRank(b))[0]!,
       severity: sorted[0]!.severity,
       confidence: confidenceOf(sorted[0]!),
       testsAffected: tests.size,
@@ -88,11 +103,14 @@ export function compareGroups(a: RuleGroup, b: RuleGroup): number {
   );
 }
 
-/** Every rule group, worst first. Never includes needs-check findings. A file that does not parse always leads. */
+/**
+ * Every rule group, worst first. Never includes needs-check findings. A file that does not parse always
+ * leads; then certain groups, then likely, then advisory (QAG-287 S10a).
+ */
 export function rankGroups(findings: readonly Finding[]): RuleGroup[] {
   const parseFirst = (g: RuleGroup): number => (g.rule === PARSE_ERROR_RULE ? 0 : 1);
-  return groupByRule(findings.filter((f) => !isNeedsCheck(f))).sort(
-    (a, b) => parseFirst(a) - parseFirst(b) || compareGroups(a, b)
+  return groupByRule(findings.filter((f) => !isNeedsCheck(f) && viewTier(f) !== 'needs-check')).sort(
+    (a, b) => parseFirst(a) - parseFirst(b) || tierRank(a.tier) - tierRank(b.tier) || compareGroups(a, b)
   );
 }
 

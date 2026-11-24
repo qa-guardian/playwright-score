@@ -101,7 +101,7 @@ export const FLAGS: readonly Flag[] = [
   },
   {
     names: ['--advice'],
-    help: ['Accepted; no effect on the output yet.'],
+    help: ['Also show advisory findings, and the reasons for findings not decided', 'automatically, in text, markdown and report output. JSON always has every finding.'],
     apply(o) {
       o.advice = true;
       return undefined;

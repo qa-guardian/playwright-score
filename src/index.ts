@@ -591,15 +591,17 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   const gate = gateSettings(options);
   resetRuleCrashes();
   let result: ScoreResult;
+  // QAG-287 S10a: the sources the run read, by absolute path; the excerpts come from them.
+  const texts = new Map<string, string>();
   try {
-    result = await scorePathsInner(options);
+    result = await scorePathsInner(options, texts);
   } finally {
     clearParseCache(); // nothing parsed for this run outlives it
   }
-  decorateFindings(result.findings, result.baseDir);
+  decorateFindings(result.findings, result.baseDir, texts);
   settleExpectBinding(result.findings);
   // QAG-287 S12: one state per test; adds the report-only pwscore/unasserted findings.
-  settleTestStates(result);
+  settleTestStates(result, texts);
   // QAG-287 S9a: score model v5, the share of counted tests that are clean, from those states.
   applyStateScore(result);
   settleQuotable(result.findings);
@@ -610,7 +612,7 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   return { ...withCrashes, engine: getEngineVersions() };
 }
 
-async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
+async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>): Promise<ScoreResult> {
   // The time limit bounds the whole call. Without one the clock is never read.
   const timeLimit = startTimeLimit(options.isolate === false ? undefined : options.maxSeconds);
   const cwd = options.cwd ?? process.cwd();
@@ -796,6 +798,9 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   // caller passes one, the time limit; a file the worker gives up on is listed
   // in `coverage` and the result is `partial`. Every file was classified
   // above, so a limit can only skip a file that is already a Playwright file.
+  // Every text read above (spec files and the files they import), kept for the excerpts.
+  for (const [file, source] of readSources) texts.set(path.resolve(file), source);
+  for (const [file, source] of importedFiles) texts.set(path.resolve(file), source);
   const outcome =
     analysis === undefined
       ? { batches: [], skipped: files.map((f) => deadlineSkip(f, timeLimit)) }

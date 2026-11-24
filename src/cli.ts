@@ -116,7 +116,7 @@ async function main(): Promise<void> {
         body = formatJson(result);
         break;
       case 'markdown':
-        body = formatMarkdown(result);
+        body = formatMarkdown(result, { advice });
         break;
       case 'sarif':
         body = formatSarif(result);

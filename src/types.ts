@@ -343,7 +343,7 @@ export interface ScoreOptions {
   failOn?: FailOn[];
   /** Lets a `partial` result pass. Default false. A `not-scored` result never passes. */
   allowPartial?: boolean;
-  /** Accepted for the advice output; no effect on the result in this version. Default false. */
+  /** Read by the text, markdown and report formatters (they show advisory findings and needs-check reasons); no effect on the result. Default false. */
   advice?: boolean;
   cwd?: string;
   /**

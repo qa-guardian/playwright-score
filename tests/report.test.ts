@@ -115,7 +115,7 @@ describe('confidence and ranking', () => {
     assert.ok(!top.some((g) => g.rule === 'playwright/expect-expect'));
   });
 
-  it('groups the terminal output by rule, worst first, with a per-rule cap and relative paths', () => {
+  it('groups the terminal output by tier, rule and form, biggest first, with a per-group cap and relative paths (S10a)', () => {
     const many = Array.from({ length: 12 }, (_, i) =>
       finding({ rule: 'playwright/no-force-option', file: `dir/sub/f${i}.spec.ts`, line: i + 1, testKey: `t${i}`, scope: 'test' })
     );
@@ -126,28 +126,28 @@ describe('confidence and ranking', () => {
     ]);
     const text = formatText(r, { suiteName: 'my/suite', version: '9.9.9' });
     const lines = text.split('\n');
-    assert.match(lines[0]!, /^my\/suite {2}· {2}10 tests in 2 files$/);
-    assert.match(lines[1]!, /^Score 61\/100 \(D\) {2}· {2}FAIL \(bar 80\) {2}· {2}4 tests have no issues$/);
-    assert.match(lines[2]!, /^Reliability 50 · Checks 70 · Resilience to UI changes 60 · Maintainability 90$/);
-    // networkidle is high confidence, so it leads; the force rule has 13 findings in one group
+    assert.match(lines[0]!, /^10 tests\.$/);
+    assert.match(lines[1]!, /^Score 61\/100 \(D\) {2}· {2}FAIL \(bar 80\) {2}· {2}my\/suite {2}· {2}2 files$/);
+    // Same tier (likely, no catalogue fields): the group with more tests leads.
     const idle = text.indexOf('Waiting for the network to go quiet');
     const force = text.indexOf('Click forced past a blocking element');
-    assert.ok(idle > 0 && idle < force, 'worst group first');
-    assert.match(text, /13 in 13 tests {3}Likely|13 in \d+ tests {3}Likely/);
-    assert.equal((text.match(/dir\/sub\/f\d+\.spec\.ts/g) ?? []).length, 3, 'three locations per rule');
+    assert.ok(force > 0 && force < idle, 'bigger group first');
+    assert.match(text, /13 in 13 tests/);
+    // Locations are in file order, so a.spec.ts takes one of the three slots.
+    assert.equal((text.match(/dir\/sub\/f\d+\.spec\.ts|(?<![\w/])a\.spec\.ts/g) ?? []).length, 3, 'three locations per group');
     assert.ok(text.includes('+ 10 more'));
     assert.ok(!text.includes('/abs/leak'), 'an absolute path must never reach the terminal');
     assert.ok(text.includes('leak/z.spec.ts:9'));
     assert.ok(!/playwrightHygiene|\[error\]/.test(text));
-    assert.ok(text.trimEnd().split('\n').slice(-2)[0]!.startsWith('Score 61/100 (D)'), 'verdict repeats at the bottom');
     assert.ok(text.includes('playwright-score 9.9.9 (rules v4)'));
   });
 
-  it('caps terminal groups at 10 and says how to see the rest', () => {
-    const rules = Object.keys(RULE_COPY).filter((x) => x !== 'playwright-score/assertion-unverified').slice(0, 14);
+  it('caps terminal groups at 15 and says how to see the rest (S10a)', () => {
+    const rules = Object.keys(RULE_COPY).filter((x) => x !== 'playwright-score/assertion-unverified').slice(0, 17);
+    assert.equal(rules.length, 17);
     const text = formatText(fakeResult(rules.map((rule) => finding({ rule }))));
-    assert.ok(text.includes('+ 4 more issue types. Full list: npx pwscore <path> --format report --out report.html'));
-    assert.equal(text.split('\n').filter((l) => /^ {1,2}\d+\. /.test(l)).length, 10);
+    assert.ok(text.includes('+ 2 more issue types (2 findings). Every finding: --format json'));
+    assert.equal(text.split('\n').filter((l) => /^ {1,2}\d+\. /.test(l)).length, 15);
   });
 });
 
@@ -203,12 +203,14 @@ describe('report robustness (QAG-288 slice 1b)', () => {
     assert.ok(html.includes('Other quality issue'));
   });
 
-  it('shows the unverified count in the headline area', () => {
-    const r = fakeResult([]);
-    r.summary.unverifiedTests = 3;
-    assert.ok(formatReport(r, opts).includes('3 tests are not decided automatically and are left out of the score: a person should look.'));
-    r.summary.unverifiedTests = 0;
-    assert.ok(!formatReport(r, opts).includes('left out of the score.'));
+  it('shows the needs-check count line in the headline area; the reasons only with --advice (S10a)', () => {
+    const nc = finding({ rule: 'playwright-score/assertion-unverified', dimension: 'assertions', reportOnly: true, file: 'h.spec.ts', line: 4 });
+    const r = fakeResult([nc]);
+    const html = formatReport(r, opts);
+    assert.ok(html.includes('Not decided automatically: 1 finding in 1 file, run with --advice for the reasons.'));
+    assert.ok(!html.includes('id="human-check"'));
+    assert.ok(formatReport(r, { ...opts, advice: true }).includes('id="human-check"'));
+    assert.ok(!formatReport(fakeResult([]), opts).includes('Not decided automatically:'));
   });
 
   it('tiers assertion-unverified as needs-check', () => {
@@ -345,7 +347,11 @@ describe('report polish (QAG-288 slice 3b)', () => {
     assert.ok(!/0\/100|>F</.test(h) && !h.includes('0 tests') && h.includes('49 files'));
     assert.ok(!h.includes('weighted average') && !h.includes('share of the counted tests'));
     const t = formatText(r, { suiteName: 's' });
-    assert.ok(t.includes('Not scored: 1 file has a syntax error.') && !t.includes('0/100') && !t.includes('0 tests'));
+    // S10a: line 1 is the not-scored headline, line 2 starts "Not scored"; the syntax error stays visible.
+    const tl = t.split('\n');
+    assert.equal(tl[0], '1 file has a syntax error, so this suite could not be scored.');
+    assert.ok(tl[1]!.startsWith('Not scored') && tl.includes('Syntax error (1 file, not scored): bad.spec.ts:5.'), t);
+    assert.ok(!t.includes('0/100') && !t.includes('0 tests'), t);
   });
 
   it('shows "Not scored" and nothing else for a suite with no tests', () => {

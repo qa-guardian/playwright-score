@@ -109,7 +109,7 @@ npx -p @qaguardian/playwright-score pwscore ./tests
 | `--fail-on <list>` | What fails the gate, comma-separated: `passes-regardless` (default; a certain finding that lets a test pass whatever the app does), `flake-risk` (a certain flake-risk finding, or a `page.pause()` or focused test), `unasserted` (a counted test with no assertion found), `shared` (a certain finding in a shared file a counted spec imports), `none`. `none` combines with nothing |
 | `--threshold <n>` | Also fail when the score is below n (0–100). Without it the score does not fail the gate |
 | `--allow-partial` | Let a partial result (a file was skipped) pass. A not-scored result never passes |
-| `--advice` | Accepted; no effect on the output yet |
+| `--advice` | Also show advisory findings and the reasons for findings not decided automatically (text, markdown, report). JSON always has every finding |
 | `--format text\|json\|markdown\|sarif\|report` | Output format (`report` is a self-contained one-page HTML suite report) |
 | `--out <file>` | Write report to file |
 | `--max-seconds <n>` | Time limit for the whole run, counted from the start. No default: without it a run is never cut short. Finding the files always finishes; after that no new step starts once the limit has passed. Files not analysed in time are skipped and the result is partial, or not scored (reason `limit-reached`) when no test was scored in time |

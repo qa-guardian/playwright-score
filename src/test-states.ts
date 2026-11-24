@@ -28,7 +28,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { decorateFindings } from './catalogue/decorate.js';
+import { decorateFindings, type SourceTexts } from './catalogue/decorate.js';
 import { compareRefs, findingRef } from './finding-ref.js';
 import { KNOWN_PACKAGES } from './catalogue/table.js';
 import { EXPECT_BOUND_RULES, expectUse, type ExpectUse } from './expect-binding.js';
@@ -272,7 +272,7 @@ export function stageTestStates<T extends object>(result: T, input: StateInput):
  * then line), sets `summary.unassertedTests` to the number of unasserted tests and appends one
  * report-only `pwscore/unasserted` finding per such test, at the test's declaration.
  */
-export function settleTestStates(result: ScoreResult): void {
+export function settleTestStates(result: ScoreResult, texts?: SourceTexts): void {
   if (!testStates.enabled) return;
   const added: Finding[] = [];
   // A spec-cell finding: scope `test` or `hook` (a shared-file finding has scope `shared` and never charges a test).
@@ -302,6 +302,6 @@ export function settleTestStates(result: ScoreResult): void {
   entries.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : a.line - b.line));
   result.testStates = entries;
   result.summary.unassertedTests = added.length;
-  decorateFindings(added, result.baseDir);
+  decorateFindings(added, result.baseDir, texts);
   result.findings.push(...added);
 }

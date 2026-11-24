@@ -1,27 +1,25 @@
 import type { ScoreResult } from '../types.js';
-import { CONFIDENCE_LABEL, compareFindings, isNeedsCheck, needsCheckIntro } from '../confidence.js';
-import { copyFor } from '../rule-copy.js';
+import { notScoredHeadline, notScoredState, partialNote, plural, INCOMPLETE_NOTE } from '../report-model.js';
 import {
-  DIMENSIONS,
-  notScoredHeadline,
-  notScoredState,
-  partialNote,
-  plural,
-  rankGroups,
-  INCOMPLETE_NOTE,
-} from '../report-model.js';
+  advisoryLine,
+  buildStateLines,
+  buildView,
+  headlineText,
+  needsCheckLine,
+  needsCheckReasons,
+  NOT_SCORED_REASON_TEXT,
+  outsideTestsLine,
+  type ViewGroup,
+} from '../report-view.js';
 
 export interface TextOptions {
   suiteName?: string;
   version?: string;
   customThreshold?: boolean;
-  /** `--advice`: accepted; no effect on the output yet. */
+  /** `--advice`: also list advisory findings and the reasons for findings not decided automatically. */
   advice?: boolean;
 }
 
-/** Groups shown, and locations shown per group; the rest collapse into "+N more". */
-const MAX_GROUPS = 10;
-const MAX_LOCATIONS = 3;
 const MAX_PATH = 100;
 
 /** Relative path, shortened in the middle to MAX_PATH. An absolute path never gets through. */
@@ -38,95 +36,96 @@ function shortPath(file: string, line?: number): string {
   return p + suffix;
 }
 
+const SECTION: Record<string, string> = {
+  certain: 'Certain issues',
+  likely: 'Worth a look',
+  advisory: 'Advisory',
+};
+
+function groupLines(g: ViewGroup, i: number): string[] {
+  const where = g.shown.map((f) => shortPath(f.file, f.line)).join('  ');
+  const lines = [
+    ` ${i + 1}. ${g.title}   ${g.findings.length} in ${plural(g.testsAffected, 'test')}`,
+    `    ${where}${g.more > 0 ? `${where ? '  ' : ''}+ ${g.more} more` : ''}`,
+  ];
+  // The fix is spelled out for certain groups; a likely or advisory group keeps to two lines.
+  if (g.tier === 'certain') lines.push(`    Fix: ${g.fix}`);
+  return lines;
+}
+
+/**
+ * Terminal output. Line 1 is the headline (report-view.ts headlineText), line 2
+ * the score or the not-scored reason, then the status lines, then the groups by
+ * tier inside the noise budget.
+ */
 export function formatText(result: ScoreResult, opts: TextOptions = {}): string {
   const { summary } = result;
   const state = notScoredState(result);
+  const view = buildView(result, { advice: opts.advice });
   const lines: string[] = [];
-  const counts = state
-    ? plural(result.coverage?.filesFound ?? summary.files, 'file')
-    : `${plural(summary.tests, 'test')} in ${plural(summary.files, 'file')}`;
-  lines.push(opts.suiteName ? `${opts.suiteName}  ·  ${counts}` : counts);
+  const suite = opts.suiteName ? `  ·  ${opts.suiteName}` : '';
   if (state) {
-    lines.push(`Not scored: ${notScoredHeadline(result).headline.replace(/, so this suite could not be scored\.$/, '')}.`);
-    const first = result.findings.find((f) => f.rule === 'playwright-score/parse-error');
-    if (first && state === 'parse-error') lines.push(`  ${shortPath(first.file, first.line)}`);
+    lines.push(notScoredHeadline(result).headline);
+    const reason = result.reason ? NOT_SCORED_REASON_TEXT[result.reason] ?? result.reason : undefined;
+    lines.push(`Not scored${reason ? `: ${reason}` : ''}${suite}  ·  ${plural(result.coverage?.filesFound ?? summary.files, 'file')}`);
     lines.push(notScoredHeadline(result).line);
   } else {
-    const clean = summary.cleanTests;
-    lines.push(
-      `Score ${result.score}/100 (${result.grade})  ·  ${result.pass ? 'PASS' : 'FAIL'}${result.threshold > 0 || opts.customThreshold ? ` (${opts.customThreshold ? 'your bar' : 'bar'} ${result.threshold})` : ''}  ·  ${clean} ${clean === 1 ? 'test has' : 'tests have'} no issues`
-    );
-    lines.push(
-      DIMENSIONS.filter((d) => result.dimensions[d.key] !== undefined)
-        .map((d) => `${d.label} ${result.dimensions[d.key]}`)
-        .join(' · ')
-    );
+    lines.push(headlineText(result));
+    const bar = result.threshold > 0 || opts.customThreshold ? ` (${opts.customThreshold ? 'your bar' : 'bar'} ${result.threshold})` : '';
+    lines.push(`Score ${result.score}/100 (${result.grade})  ·  ${result.pass ? 'PASS' : 'FAIL'}${bar}${suite}  ·  ${plural(summary.files, 'file')}`);
   }
 
   const partial = partialNote(result);
   if (partial) lines.push(partial);
+  lines.push(...buildStateLines(view));
+  if (result.ruleCrashes?.length) lines.push(INCOMPLETE_NOTE);
 
-  // 'no-tests' hard-fail findings carry the absolute working directory as their file.
-  const groups = state === 'no-tests' ? [] : rankGroups(result.findings);
-  if (groups.length) {
-    lines.push('');
-    lines.push('Top issues (worst first)');
-    groups.slice(0, MAX_GROUPS).forEach((g, i) => {
-      const where = `${g.findings.length} in ${plural(g.testsAffected, 'test')}`;
-      lines.push(` ${i + 1}. ${copyFor(g.rule).title}   ${where}   ${CONFIDENCE_LABEL[g.confidence]}`);
-      for (const f of g.findings.slice(0, MAX_LOCATIONS)) lines.push(`    ${shortPath(f.file, f.line)}`);
-      if (g.findings.length > MAX_LOCATIONS) lines.push(`    + ${g.findings.length - MAX_LOCATIONS} more`);
-    });
-    if (groups.length > MAX_GROUPS) {
-      lines.push(
-        ` + ${plural(groups.length - MAX_GROUPS, 'more issue type')}. Full list: npx pwscore <path> --format report --out report.html`
-      );
+  let tier = '';
+  view.groups.forEach((g, i) => {
+    if (g.tier !== tier) {
+      tier = g.tier;
+      lines.push('');
+      lines.push(SECTION[g.tier] ?? g.tier);
     }
-  }
-
-  const human = result.findings.filter(isNeedsCheck).sort(compareFindings);
-  if (human.length && !state) {
-    const files = [...new Set(human.map((f) => f.file))];
-    lines.push('');
+    lines.push(...groupLines(g, i));
+  });
+  if (view.moreGroups > 0) {
     lines.push(
-      needsCheckIntro(human).helpers
-        ? `Not decided automatically (not in the score): ${plural(human.length, 'test')} in ${plural(files.length, 'file')} ${human.length === 1 ? 'relies' : 'rely'} on helpers we could not read. A person should look.`
-        : `Not decided automatically (not in the score): ${plural(human.length, 'finding')} in ${plural(files.length, 'file')}, information only. A person should look.`
+      ` + ${plural(view.moreGroups, 'more issue type')} (${plural(view.moreGroupFindings, 'finding')}). Every finding: --format json`
     );
-    for (const f of files.slice(0, 5)) lines.push(`    ${shortPath(f)}`);
-    if (files.length > 5) lines.push(`    + ${files.length - 5} more`);
   }
 
-  if (result.ruleCrashes?.length) {
+  const tail = [outsideTestsLine(result), needsCheckLine(view), advisoryLine(view)].filter((l): l is string => !!l);
+  if (tail.length) {
     lines.push('');
-    lines.push(INCOMPLETE_NOTE);
+    for (const l of tail) {
+      lines.push(l);
+      if (l === needsCheckLine(view) && view.advice) {
+        const reasons = needsCheckReasons(view);
+        for (const r of reasons.lines) lines.push(`    ${r}`);
+        if (reasons.more > 0) lines.push(`    + ${reasons.more} more`);
+      }
+    }
   }
 
   if (result.skippedFiles?.length) {
     lines.push('');
-    lines.push(
-      `Skipped (looks like a non-Playwright test — Jest/Vitest/RTL/Cypress — ${result.skippedFiles.length}):`
-    );
-    for (const f of result.skippedFiles.slice(0, 20)) {
-      lines.push(`  ${f}`);
-    }
-    if (result.skippedFiles.length > 20) {
-      lines.push(`  … and ${result.skippedFiles.length - 20} more`);
-    }
+    lines.push(`Skipped (looks like a non-Playwright test — Jest/Vitest/RTL/Cypress — ${result.skippedFiles.length}):`);
+    for (const f of result.skippedFiles.slice(0, 20)) lines.push(`  ${f}`);
+    if (result.skippedFiles.length > 20) lines.push(`  … and ${result.skippedFiles.length - 20} more`);
   }
 
   if (result.configWarnings?.length) {
     lines.push('');
     lines.push('Config warnings:');
-    for (const w of result.configWarnings) {
-      lines.push(`  ${w}`);
-    }
+    for (const w of result.configWarnings) lines.push(`  ${w}`);
   }
 
   lines.push('');
-  if (!state) lines.push(`Score ${result.score}/100 (${result.grade})  ·  ${result.pass ? 'PASS' : 'FAIL'}`);
   lines.push(
-    `${opts.version ? `QA Guardian playwright-score ${opts.version} (rules ${result.scoreVersion})` : `QA Guardian playwright-score (rules ${result.scoreVersion})`}`
+    opts.version
+      ? `QA Guardian playwright-score ${opts.version} (rules ${result.scoreVersion})`
+      : `QA Guardian playwright-score (rules ${result.scoreVersion})`
   );
   return lines.join('\n');
 }

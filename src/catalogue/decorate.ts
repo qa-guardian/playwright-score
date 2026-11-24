@@ -1,12 +1,13 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import type { Finding } from '../types.js';
+import { excerptAt, splitLines } from '../excerpt.js';
 import type { Evidence, RuleRow } from './types.js';
 import { defaultRow, rowFor, rowsOf } from './table.js';
 import { confidenceOfRow, tierOf } from './tiers.js';
 import { cellPassedPath } from './precision.js';
 
-const MAX_EXCERPT = 240;
+/** Source texts the run already read, by absolute path (spec files and the files they import). */
+export type SourceTexts = ReadonlyMap<string, string>;
 
 /** Row for a finding. A rule the table does not know gets a neutral advisory row. */
 const UNKNOWN_ROW: RuleRow = {
@@ -48,35 +49,25 @@ function rowOf(f: Finding): { row: RuleRow; undecided: boolean; familyKnown: boo
   return { row, undecided: true, familyKnown: sameFamily };
 }
 
-/** The source line a finding points at, trimmed and capped. Empty when it cannot be read. */
-function excerptOf(lines: string[] | undefined, line: number | undefined): string {
-  if (!lines || line === undefined || line < 1 || line > lines.length) return '';
-  const text = lines[line - 1].replace(/\s+$/, '').replace(/^\s+/, '');
-  return text.length > MAX_EXCERPT ? `${text.slice(0, MAX_EXCERPT - 3)}...` : text;
-}
-
 /**
  * Adds the catalogue fields to every finding, in place: form, tier, family,
  * basis, docs, title, what, why, fix, excerpt, evidence, confidence and
  * quotable. Only adds keys; no existing key is changed, so the score, the
  * grade and every earlier field are untouched.
  *
- * `baseDir` is the directory the findings' `file` paths are relative to; it is
- * used to read the excerpt line and is never written into a finding.
+ * `baseDir` is the directory the findings' `file` paths are relative to. The
+ * excerpt (src/excerpt.ts) comes from `texts`, the sources the run already
+ * read; no file is read here, and a file not in `texts` gets an empty excerpt.
  */
-export function decorateFindings(findings: Finding[], baseDir: string | undefined): void {
-  const sources = new Map<string, string[] | undefined>();
+export function decorateFindings(findings: Finding[], baseDir: string | undefined, texts?: SourceTexts): void {
+  const split = new Map<string, string[] | undefined>();
   const linesOf = (file: string): string[] | undefined => {
-    if (!baseDir) return undefined;
+    if (!baseDir || !texts) return undefined;
     const abs = path.resolve(baseDir, file);
-    if (sources.has(abs)) return sources.get(abs);
-    let lines: string[] | undefined;
-    try {
-      lines = fs.readFileSync(abs, 'utf8').split(/\r\n|\r|\n/);
-    } catch {
-      lines = undefined;
-    }
-    sources.set(abs, lines);
+    if (split.has(abs)) return split.get(abs);
+    const text = texts.get(abs);
+    const lines = text === undefined ? undefined : splitLines(text);
+    split.set(abs, lines);
     return lines;
   };
   for (const f of findings) {
@@ -91,7 +82,7 @@ export function decorateFindings(findings: Finding[], baseDir: string | undefine
     f.what = row.what;
     f.why = row.why;
     f.fix = row.fix;
-    f.excerpt = f.line !== undefined && f.line > 0 ? excerptOf(linesOf(f.file), f.line) : '';
+    f.excerpt = f.line !== undefined && f.line > 0 ? excerptAt(linesOf(f.file), f.line) : '';
     f.evidence = evidence;
     f.confidence = undecided ? null : confidenceOfRow(row);
     f.quotable = isQuotable(f);

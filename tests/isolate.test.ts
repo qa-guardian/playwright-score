@@ -184,7 +184,10 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
     assert.deepEqual(r.findings, []);
     // Classification is untouched: the file of another framework is where it was.
     assert.deepEqual(r.skippedFiles, reference.skippedFiles);
-    assert.match(formatText(r), /^Not scored: The time limit was reached before any test was scored\.$/m);
+    // S10a: line 1 is the not-scored headline, line 2 names the reason.
+    const tl = formatText(r).split('\n');
+    assert.equal(tl[0], 'The time limit was reached before any test was scored, so this suite could not be scored.');
+    assert.match(tl[1]!, /^Not scored: a time or memory limit was reached first  ·  \d+ files?$/);
     assert.match(formatText(r), /time limit reached/);
   });
 
@@ -266,7 +269,10 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
     assert.deepEqual([...new Set(r.coverage?.skipped.map((s) => s.reason))], ['worker-died']);
     assert.ok(r.coverage?.skipped.every((s) => s.detail !== undefined && !s.detail.includes('/')), 'a detail carries a path');
     assert.deepEqual(r.skippedFiles, reference.skippedFiles);
-    assert.match(formatText(r), /^Not scored: The analysis ran out of memory or stopped before any test was scored\.$/m);
+    // S10a: line 1 is the not-scored headline, line 2 names the reason.
+    const tl = formatText(r).split('\n');
+    assert.equal(tl[0], 'The analysis ran out of memory or stopped before any test was scored, so this suite could not be scored.');
+    assert.match(tl[1]!, /^Not scored: a time or memory limit was reached first  ·  \d+ files?$/);
     assert.match(formatText(r), /analysis ran out of memory or stopped/);
   });
 

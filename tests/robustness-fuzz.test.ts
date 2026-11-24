@@ -440,7 +440,11 @@ describe('QAG-287 S5a.1: status, coverage and the single-file path', () => {
     assert.equal(result.score, 0);
     assert.equal(result.grade, 'F');
     assert.equal(result.pass, false);
-    assert.match(formatText(result), /Not scored: 1 file has a syntax error/);
+    // S10a: line 1 is the not-scored headline, line 2 names the reason; the syntax error stays visible.
+    const tl = formatText(result).split('\n');
+    assert.equal(tl[0], '1 file has a syntax error, so this suite could not be scored.');
+    assert.equal(tl[1], 'Not scored: no test could be counted  ·  1 file');
+    assert.ok(tl.includes('Syntax error (1 file, not scored): generated.spec.ts:5.'));
   });
 
   it('a scored result carries status scored, no reason and an empty skipped list', async () => {

@@ -37,9 +37,15 @@ describe('QAG-287 fix round 1: markdown formatter escaping', () => {
     const hit = result.findings.find((f) => f.rule === 'pwscore/no-shared-mutable-state');
     assert.ok(hit, JSON.stringify(result.findings));
     assert.match(hit.message, /create \| the record/); // raw data keeps the pipe
-    const md = formatMarkdown(result);
-    const line = md.split('\n').find((l) => l.includes('no-shared-mutable-state'));
-    assert.ok(line, md);
+    // S10a: group lines carry the title and locations, not the message; a message reaches the
+    // markdown only as a needs-check reason (--advice). Both paths keep every line whole.
+    const md = formatMarkdown(result, { advice: true });
+    const group = md.split('\n').find((l) => l.includes('shared-pipe-title.spec.ts'));
+    assert.ok(group, md);
+    assert.ok(!/[^\\]\|/.test(group.replace(/\\\|/g, '')), group);
+    const asReason = formatMarkdown({ ...result, findings: [{ ...hit, tier: 'needs-check' }] }, { advice: true });
+    const line = asReason.split('\n').find((l) => l.includes('the record'));
+    assert.ok(line, asReason);
     assert.ok(line.includes('create \\| the record second line'), line);
     assert.ok(!/[^\\]\|/.test(line.replace(/\\\|/g, '')), line);
   });
