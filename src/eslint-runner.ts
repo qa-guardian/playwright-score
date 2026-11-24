@@ -11,6 +11,7 @@ import { createPostFilter } from './eslint-postfilter.js';
 import { heapGuardArmed, withHeapCheckpoint } from './heap-guard.js';
 import { formOfReportedRead, urlCountReads } from './read-forms.js';
 import { expectAliasConfig, newFindings } from './expect-alias.js';
+import { scopeAliasConfig, type ScopeAliases } from './rules/aliased-page-api.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
 const ASSERT_FUNCTION_PATTERNS = [
@@ -253,6 +254,8 @@ export interface LintOptions {
   testAliasNames?: string[];
   /** Per spec file: the proven aliases of Playwright's expect (expect-alias.ts). Only these files get the alias lint. */
   expectAliasesByFile?: ReadonlyMap<string, string[]>;
+  /** Per spec file: the proven scope aliases of the page fixture, of `test` and of a `networkidle` value (rules/aliased-page-api.ts). */
+  scopeAliasesByFile?: ReadonlyMap<string, ScopeAliases>;
   /**
    * ESLint base path. A run that lints its files in batches passes the common
    * ancestor of ALL its files, so every batch is linted under the same base.
@@ -337,10 +340,15 @@ export async function createLinter(
   const byFile = options.expectAliasesByFile;
   const aliasConfig = expectAliasConfig(overrideConfig, byFile, (f) => fileGlob(f, cwd), plainAliasNames(options.testAliasNames ?? []));
   const aliasEslint = aliasConfig && new ESLint({ cwd, overrideConfigFile: true, overrideConfig: aliasConfig as never, ignore: false });
+  // QAG-287 S4a: the same pass for scope aliases, with its own rules, so an expect alias file lints as before.
+  const scopeByFile = options.scopeAliasesByFile;
+  const scopeConfig = scopeAliasConfig(overrideConfig, scopeByFile, (f) => fileGlob(f, cwd), plainAliasNames(options.testAliasNames ?? []), { playwright, pwscore: basePlugin });
+  const scopeEslint = scopeConfig && new ESLint({ cwd, overrideConfigFile: true, overrideConfig: scopeConfig as never, ignore: false });
   const aliasPass = async (files: string[], found: readonly Finding[]): Promise<Finding[]> => {
     const mine = aliasEslint && byFile ? files.filter((f) => byFile.has(f)) : [];
-    if (!aliasEslint || mine.length === 0) return [];
-    return newFindings(found, await lintWith(aliasEslint, mine, reportBase, byFile));
+    const added = !aliasEslint || mine.length === 0 ? [] : newFindings(found, await lintWith(aliasEslint, mine, reportBase, byFile));
+    const scoped = scopeEslint && scopeByFile ? files.filter((f) => scopeByFile.has(f)) : [];
+    return scoped.length === 0 || !scopeEslint ? added : [...added, ...newFindings(found, await lintWith(scopeEslint, scoped, reportBase))];
   };
   return Object.assign((files: string[]) => lintWith(eslint, files, reportBase), { aliasPass });
 }

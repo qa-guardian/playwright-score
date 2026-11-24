@@ -242,6 +242,10 @@
    "pending": null
   },
   {
+   "id": "no-element-handle/false-s4a-alias-shadowed-by-parameter",
+   "pending": null
+  },
+  {
    "id": "no-element-handle/true-aliased-test",
    "pending": null
   },
@@ -307,6 +311,18 @@
   },
   {
    "id": "no-element-handle/true-page-dollar-dollar",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-s4a-alias-of-alias",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-s4a-const-alias",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/true-s4a-js-const-alias",
    "pending": null
   },
   {
@@ -411,7 +427,7 @@
   },
   {
    "id": "no-focused-test/true-aliased-test-only",
-   "pending": "S4a"
+   "pending": null
   },
   {
    "id": "no-focused-test/true-describe-only",
@@ -482,6 +498,10 @@
    "pending": null
   },
   {
+   "id": "no-networkidle/false-s4a-networkidle0",
+   "pending": null
+  },
+  {
    "id": "no-networkidle/false-word-in-text",
    "pending": null
   },
@@ -491,7 +511,7 @@
   },
   {
    "id": "no-networkidle/true-const-options-wait-until",
-   "pending": "S4a"
+   "pending": null
   },
   {
    "id": "no-networkidle/true-customer-calls-customer-registry-deps",
@@ -507,6 +527,26 @@
   },
   {
    "id": "no-networkidle/true-js-wait-for-load-state",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/true-s4a-const-options-alias-of-alias",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/true-s4a-const-string-alias-of-alias",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/true-s4a-const-string-load-state",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/true-s4a-js-const-options-wait-until",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/true-s4a-js-const-string-load-state",
    "pending": null
   },
   {
@@ -622,6 +662,18 @@
    "pending": null
   },
   {
+   "id": "no-page-pause/true-s4a-alias-of-alias",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/true-s4a-const-alias",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/true-s4a-js-const-alias",
+   "pending": null
+  },
+  {
    "id": "no-raw-locators/false-role-locator",
    "pending": null
   },
@@ -731,7 +783,7 @@
   },
   {
    "id": "no-unawaited-action/true-aliased-page-renamed-fixture",
-   "pending": "S4a"
+   "pending": null
   },
   {
    "id": "no-unawaited-action/true-aliased-test",
@@ -1310,6 +1362,18 @@
    "pending": null
   },
   {
+   "id": "no-wait-for-navigation/true-s4a-alias-of-alias",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-s4a-const-alias",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/true-s4a-js-const-alias",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-navigation/true-stored-promise",
    "pending": null
   },
@@ -1338,6 +1402,10 @@
    "pending": null
   },
   {
+   "id": "no-wait-for-selector/api-under-test-true-s4a-aliased-engine",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-selector/false-api-under-test-engine-named-package",
    "pending": null
   },
@@ -1355,6 +1423,10 @@
   },
   {
    "id": "no-wait-for-selector/false-locator-wait-for",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/false-s4a-untyped-helper-parameter",
    "pending": null
   },
   {
@@ -1830,6 +1902,30 @@
    "pending": null
   },
   {
+   "id": "no-wait-for-selector/true-s4a-alias-of-alias",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-s4a-const-alias",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-s4a-fixture-renamed",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-s4a-fixture-renamed-alias",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-s4a-js-const-alias",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/true-s4a-js-fixture-renamed",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-selector/true-test-from-extend-file",
    "pending": null
   },
@@ -1854,11 +1950,31 @@
    "pending": null
   },
   {
+   "id": "no-wait-for-timeout/false-s4a-let-reassigned",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-timeout/false-s4a-own-wait-for-timeout",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-timeout/false-web-first-wait",
    "pending": null
   },
   {
    "id": "no-wait-for-timeout/true-fixed-wait",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-timeout/true-s4a-alias-of-alias",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-timeout/true-s4a-const-alias",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-timeout/true-s4a-js-const-alias",
    "pending": null
   },
   {

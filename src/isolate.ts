@@ -26,6 +26,7 @@ import { createModuleResolver, type ImportResolver } from './module-resolution.j
 import { resetRuleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
 import type { Finding, ProfileName, SkipReason } from './types.js';
 import type { FileLinter } from './eslint-runner.js';
+import type { ScopeAliases } from './rules/aliased-page-api.js';
 
 /**
  * Default old-generation heap limit of the analysis worker, in MB.
@@ -69,6 +70,8 @@ export interface AnalysisInput {
   testAliasNames: string[];
   /** Spec files with a proven alias of Playwright's expect -> the alias names (expect-alias.ts). */
   expectAliasesByFile?: Map<string, string[]>;
+  /** Spec files with a proven scope alias -> the names (rules/aliased-page-api.ts). */
+  scopeAliasesByFile?: Map<string, ScopeAliases>;
 }
 
 /** What the analysis says about one file that parsed. */
@@ -163,6 +166,7 @@ export function createAnalyzer(
           assertFunctionNamesByFile: input.assertFunctionNamesByFile,
           testAliasNames,
           expectAliasesByFile: input.expectAliasesByFile,
+          scopeAliasesByFile: input.scopeAliasesByFile,
           basePath,
         },
         input.files

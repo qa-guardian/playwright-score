@@ -36,6 +36,7 @@ import { decorateFindings } from './catalogue/decorate.js';
 import { applyReceiverForms } from './receiver-forms.js';
 import { applyExpectBinding, settleExpectBinding } from './expect-binding.js';
 import { findExpectAliases, keepProvenAliasFindings } from './expect-alias.js';
+import { SCOPE_RULES, findScopeAliases, keepScopeAliasFindings } from './rules/aliased-page-api.js';
 import { applyApiUnderTest } from './project-identity.js';
 import { computeScore } from './score-engine.js';
 import { getEngineVersions } from './engine-versions.js';
@@ -767,6 +768,8 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
     if (timeLimit.passed('analysis-input')) break prePass;
     // QAG-287 S4b.2: the spec files that prove a `const` alias of Playwright's expect; only they get the alias lint.
     const expectAliasesByFile = findExpectAliases({ filesBase, sources, importedFiles, importBoundary, moduleResolver }, files);
+    // QAG-287 S4a: the spec files that prove a scope alias of the page fixture, of `test` or of a `networkidle` value.
+    const scopeAliasesByFile = findScopeAliases({ filesBase, sources, importedFiles, importBoundary, moduleResolver }, files);
     analysis = {
       files,
       sources,
@@ -778,6 +781,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
       assertFunctionNamesByFile,
       testAliasNames,
       expectAliasesByFile,
+      scopeAliasesByFile,
     };
   }
 
@@ -825,8 +829,10 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
     }
   }
   // QAG-287 S4b.2: the alias lint's findings whose expect is, at that call, a proven alias of Playwright's expect.
-  const aliasAdded = keepProvenAliasFindings(aliasCandidates, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
+  const aliasAdded = keepProvenAliasFindings(aliasCandidates.filter((f) => !SCOPE_RULES.includes(f.rule)), { filesBase, sources, importedFiles, importBoundary, moduleResolver });
   eslintFindings.push(...aliasAdded.findings);
+  // QAG-287 S4a: the scope lint's findings at a site the resolver proves for their rule.
+  eslintFindings.push(...keepScopeAliasFindings(aliasCandidates.filter((f) => SCOPE_RULES.includes(f.rule)), eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver }));
   // QAG-287 B2: form of the Page/Frame-method findings, from what the receiver is proven to be.
   applyReceiverForms(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
   // QAG-287 S4b: where the `expect` of an assertion-rule finding comes from (Playwright, another library, or not resolved).

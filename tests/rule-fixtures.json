@@ -528,8 +528,7 @@
    "entry": "pwscore__no-unawaited-action/-/true-aliased-page-renamed-fixture.ts",
    "tags": [
     "alias"
-   ],
-   "pending": "S4a"
+   ]
   },
   {
    "id": "no-unawaited-action/true-helper-unawaited-click",
@@ -1493,8 +1492,7 @@
    "entry": "playwright__no-focused-test/-/true-aliased-test-only.ts",
    "tags": [
     "alias"
-   ],
-   "pending": "S4a"
+   ]
   },
   {
    "id": "no-focused-test/true-js-test-only",
@@ -2200,7 +2198,7 @@
    "tags": [
     "alias"
    ],
-   "note": "an import alias keeps the upstream name match, so this form is reported today; the const alias is pending S4a"
+   "note": "an import alias keeps the upstream name match, so this form was reported before S4a; S4a adds the const alias"
   },
   {
    "id": "no-swallowed-assertion/true-negated-catch-alone",
@@ -2320,7 +2318,6 @@
    "rule": "playwright/no-networkidle",
    "verdict": "true",
    "entry": "playwright__no-networkidle/-/true-const-options-wait-until.ts",
-   "pending": "S4a",
    "note": "C8 with the options object held in a const; needs scope resolution"
   },
   {
@@ -5718,6 +5715,282 @@
     "precedence:api-under-test>unresolved"
    ],
    "note": "the receiver is not proven, so the form would be unresolved; the project is named @playwright/test, so api-under-test wins"
+  },
+  {
+   "id": "no-wait-for-selector/true-s4a-const-alias",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-s4a-const-alias.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "S4a: a const alias of the page fixture"
+  },
+  {
+   "id": "no-wait-for-selector/true-s4a-js-const-alias",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-s4a-js-const-alias.js",
+   "tags": [
+    "js",
+    "alias"
+   ],
+   "note": "S4a: a const alias of the page fixture"
+  },
+  {
+   "id": "no-wait-for-selector/true-s4a-alias-of-alias",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-s4a-alias-of-alias.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "S4a: an alias of an alias of the page fixture"
+  },
+  {
+   "id": "no-wait-for-navigation/true-s4a-const-alias",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-s4a-const-alias.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "S4a: a const alias of the page fixture"
+  },
+  {
+   "id": "no-wait-for-navigation/true-s4a-js-const-alias",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-s4a-js-const-alias.js",
+   "tags": [
+    "js",
+    "alias"
+   ],
+   "note": "S4a: a const alias of the page fixture"
+  },
+  {
+   "id": "no-wait-for-navigation/true-s4a-alias-of-alias",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-navigation/-/true-s4a-alias-of-alias.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "S4a: an alias of an alias of the page fixture"
+  },
+  {
+   "id": "no-element-handle/true-s4a-const-alias",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/-/true-s4a-const-alias.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "S4a: a const alias of the page fixture"
+  },
+  {
+   "id": "no-element-handle/true-s4a-js-const-alias",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/-/true-s4a-js-const-alias.js",
+   "tags": [
+    "js",
+    "alias"
+   ],
+   "note": "S4a: a const alias of the page fixture"
+  },
+  {
+   "id": "no-element-handle/true-s4a-alias-of-alias",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/-/true-s4a-alias-of-alias.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "S4a: an alias of an alias of the page fixture"
+  },
+  {
+   "id": "no-page-pause/true-s4a-const-alias",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/-/true-s4a-const-alias.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "S4a: a const alias of the page fixture"
+  },
+  {
+   "id": "no-page-pause/true-s4a-js-const-alias",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/-/true-s4a-js-const-alias.js",
+   "tags": [
+    "js",
+    "alias"
+   ],
+   "note": "S4a: a const alias of the page fixture"
+  },
+  {
+   "id": "no-page-pause/true-s4a-alias-of-alias",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "playwright__no-page-pause/-/true-s4a-alias-of-alias.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "S4a: an alias of an alias of the page fixture"
+  },
+  {
+   "id": "no-wait-for-timeout/true-s4a-const-alias",
+   "rule": "playwright/no-wait-for-timeout",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-timeout/-/true-s4a-const-alias.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "S4a: a const alias of the page fixture"
+  },
+  {
+   "id": "no-wait-for-timeout/true-s4a-js-const-alias",
+   "rule": "playwright/no-wait-for-timeout",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-timeout/-/true-s4a-js-const-alias.js",
+   "tags": [
+    "js",
+    "alias"
+   ],
+   "note": "S4a: a const alias of the page fixture"
+  },
+  {
+   "id": "no-wait-for-timeout/true-s4a-alias-of-alias",
+   "rule": "playwright/no-wait-for-timeout",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-timeout/-/true-s4a-alias-of-alias.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "S4a: an alias of an alias of the page fixture"
+  },
+  {
+   "id": "no-wait-for-selector/true-s4a-fixture-renamed",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-s4a-fixture-renamed.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "S4a: the page fixture destructured under another name"
+  },
+  {
+   "id": "no-wait-for-selector/true-s4a-js-fixture-renamed",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-s4a-js-fixture-renamed.js",
+   "tags": [
+    "js",
+    "alias"
+   ],
+   "note": "S4a: the page fixture destructured under another name"
+  },
+  {
+   "id": "no-wait-for-selector/true-s4a-fixture-renamed-alias",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "playwright__no-wait-for-selector/-/true-s4a-fixture-renamed-alias.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "S4a: a const alias of the renamed page fixture"
+  },
+  {
+   "id": "no-networkidle/true-s4a-js-const-options-wait-until",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/-/true-s4a-js-const-options-wait-until.js",
+   "tags": [
+    "js"
+   ],
+   "note": "S4a: the options object held in a const"
+  },
+  {
+   "id": "no-networkidle/true-s4a-const-options-alias-of-alias",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/-/true-s4a-const-options-alias-of-alias.ts",
+   "note": "S4a: the options object reached through two consts"
+  },
+  {
+   "id": "no-networkidle/true-s4a-const-string-load-state",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/-/true-s4a-const-string-load-state.ts",
+   "note": "S4a: the load state held in a const string"
+  },
+  {
+   "id": "no-networkidle/true-s4a-js-const-string-load-state",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/-/true-s4a-js-const-string-load-state.js",
+   "tags": [
+    "js"
+   ],
+   "note": "S4a: the load state held in a const string"
+  },
+  {
+   "id": "no-networkidle/true-s4a-const-string-alias-of-alias",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/-/true-s4a-const-string-alias-of-alias.ts",
+   "note": "S4a: the load state reached through two consts"
+  },
+  {
+   "id": "no-wait-for-selector/false-s4a-untyped-helper-parameter",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "false",
+   "entry": "playwright__no-wait-for-selector/-/false-s4a-untyped-helper-parameter.ts",
+   "note": "S4a: an untyped helper parameter is never proven a page"
+  },
+  {
+   "id": "no-wait-for-timeout/false-s4a-let-reassigned",
+   "rule": "playwright/no-wait-for-timeout",
+   "verdict": "false",
+   "entry": "playwright__no-wait-for-timeout/-/false-s4a-let-reassigned.ts",
+   "note": "S4a: a let binding with a second write is never a scope alias"
+  },
+  {
+   "id": "no-element-handle/false-s4a-alias-shadowed-by-parameter",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "playwright__no-element-handle/-/false-s4a-alias-shadowed-by-parameter.ts",
+   "note": "S4a: the inner parameter p shadows the page alias"
+  },
+  {
+   "id": "no-networkidle/false-s4a-networkidle0",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/-/false-s4a-networkidle0.ts",
+   "note": "S4a: networkidle0 is a Puppeteer value, not Playwright's networkidle"
+  },
+  {
+   "id": "no-wait-for-timeout/false-s4a-own-wait-for-timeout",
+   "rule": "playwright/no-wait-for-timeout",
+   "verdict": "false",
+   "entry": "playwright__no-wait-for-timeout/-/false-s4a-own-wait-for-timeout.ts",
+   "note": "S4a: an in-repo object with its own waitForTimeout is not a page"
+  },
+  {
+   "id": "no-wait-for-selector/api-under-test-true-s4a-aliased-engine",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "_projects/s4a-aliased-engine/tests",
+   "dir": "_projects/s4a-aliased-engine",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "project",
+    "alias"
+   ],
+   "note": "S4a: a const alias of the page fixture in a project named playwright-core"
   }
  ]
 }
