@@ -144,8 +144,10 @@ describe('S4b.2: a const alias of Playwright expect is checked like expect', () 
   });
 
   it('rules outside the six are unchanged: expect-expect on an alias-only test keeps its finding (report only)', async () => {
+    // Not `verify`: expect-expect already counts a `verify(...)` call as an assertion by name
+    // (assertFunctionPatterns), so it never fires there with or without the alias step.
     const files = {
-      'a.spec.ts': TS('const verify = expect;') + `test('status', async ({ page }) => {\n  await page.goto('/');\n  if (page.url()) verify(page.getByRole('status')).toBeVisible();\n});\n`,
+      'a.spec.ts': TS('const affirm = expect;') + `test('status', async ({ page }) => {\n  await page.goto('/');\n  if (page.url()) affirm(page.getByRole('status')).toBeVisible();\n});\n`,
     };
     const on = await score(files, 'a.spec.ts');
     const off = await score(files, 'a.spec.ts', false);
