@@ -79,7 +79,9 @@ describe('QAG-287 B2: the catalogue holds the unresolved cells as one data entry
       const base = rowFor(rule, '-')!;
       const row = rowFor(rule, 'unresolved');
       assert.equal(row !== undefined, tiered(rule), rule);
-      assert.deepEqual(rowsOf(rule).map((r) => r.form), tiered(rule) ? ['-', 'unresolved', 'api-under-test'] : ['-', 'api-under-test'], rule);
+      // QAG-287 S4c: no-element-handle also has the `locator-handle` cell (elementHandle() on a proven Locator).
+      const own = rule === EH ? ['locator-handle'] : [];
+      assert.deepEqual(rowsOf(rule).map((r) => r.form), [...(tiered(rule) ? ['-', 'unresolved', 'api-under-test'] : ['-', 'api-under-test']), ...own], rule);
       if (!row) continue;
       assert.equal(tierOf(row), 'likely');
       assert.equal(row.design, 'likely');

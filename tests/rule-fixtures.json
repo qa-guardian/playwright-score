@@ -258,6 +258,10 @@
    "form": "api-under-test"
   },
   {
+   "rule": "playwright/no-element-handle",
+   "form": "locator-handle"
+  },
+  {
    "rule": "playwright/no-page-pause",
    "form": "api-under-test"
   }
@@ -5963,6 +5967,124 @@
    "verdict": "false",
    "entry": "playwright__no-element-handle/-/false-s4a-alias-shadowed-by-parameter.ts",
    "note": "S4a: the inner parameter p shadows the page alias"
+  },
+  {
+   "id": "no-element-handle/locator-handle-true-chain-first",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/locator-handle/true-chain-first.ts",
+   "form": "locator-handle",
+   "note": "S4c: elementHandle() on a getByRole(...).first() chain of the page fixture"
+  },
+  {
+   "id": "no-element-handle/locator-handle-true-const-alias-handles",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/locator-handle/true-const-alias-handles.ts",
+   "form": "locator-handle",
+   "tags": [
+    "alias"
+   ],
+   "note": "S4c: elementHandles() on a const bound to page.locator(...)"
+  },
+  {
+   "id": "no-element-handle/locator-handle-true-frame-locator-chain",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/locator-handle/true-frame-locator-chain.ts",
+   "form": "locator-handle",
+   "note": "S4c: elementHandle() on a frameLocator(...).locator(...) chain"
+  },
+  {
+   "id": "no-element-handle/locator-handle-true-js-chain-first",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/locator-handle/true-js-chain-first.js",
+   "form": "locator-handle",
+   "tags": [
+    "js"
+   ],
+   "note": "S4c: elementHandle() on a getByRole(...).first() chain of the page fixture"
+  },
+  {
+   "id": "no-element-handle/locator-handle-true-js-const-alias-handles",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/locator-handle/true-js-const-alias-handles.js",
+   "form": "locator-handle",
+   "tags": [
+    "js",
+    "alias"
+   ],
+   "note": "S4c: elementHandles() on a const bound to page.locator(...)"
+  },
+  {
+   "id": "no-element-handle/locator-handle-true-js-frame-locator-chain",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "playwright__no-element-handle/locator-handle/true-js-frame-locator-chain.js",
+   "form": "locator-handle",
+   "tags": [
+    "js"
+   ],
+   "note": "S4c: elementHandle() on a frameLocator(...).locator(...) chain"
+  },
+  {
+   "id": "no-element-handle/locator-handle-false-untyped-parameter",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "playwright__no-element-handle/locator-handle/false-untyped-parameter.ts",
+   "form": "locator-handle",
+   "note": "S4c: an untyped function parameter is not a proven Locator: no finding of any form"
+  },
+  {
+   "id": "no-element-handle/locator-handle-false-js-untyped-parameter",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "playwright__no-element-handle/locator-handle/false-js-untyped-parameter.js",
+   "form": "locator-handle",
+   "tags": [
+    "js"
+   ],
+   "note": "S4c: an untyped function parameter is not a proven Locator: no finding of any form"
+  },
+  {
+   "id": "no-element-handle/locator-handle-false-object-literal-method",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "playwright__no-element-handle/locator-handle/false-object-literal-method.ts",
+   "form": "locator-handle",
+   "note": "S4c: an object literal with its own elementHandle method"
+  },
+  {
+   "id": "no-element-handle/locator-handle-false-let-reassigned",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "playwright__no-element-handle/locator-handle/false-let-reassigned.ts",
+   "form": "locator-handle",
+   "note": "S4c: a let locator that is reassigned is not a single-assignment const"
+  },
+  {
+   "id": "no-element-handle/locator-handle-false-unknown-npm-helper",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "playwright__no-element-handle/locator-handle/false-unknown-npm-helper.ts",
+   "form": "locator-handle",
+   "note": "S4c: the return value of a helper from an unknown npm package"
+  },
+  {
+   "id": "no-element-handle/api-under-test-true-s4c-locator-engine",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "_projects/s4c-locator-engine/tests",
+   "dir": "_projects/s4c-locator-engine",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "project",
+    "alias"
+   ],
+   "note": "S4c: elementHandles() on a const-held locator in a project named playwright-core: api-under-test wins over locator-handle"
   },
   {
    "id": "no-networkidle/false-s4a-networkidle0",

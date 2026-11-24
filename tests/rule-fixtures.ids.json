@@ -214,6 +214,10 @@
    "pending": null
   },
   {
+   "id": "no-element-handle/api-under-test-true-s4c-locator-engine",
+   "pending": null
+  },
+  {
    "id": "no-element-handle/false-api-under-test-engine-named-package",
    "pending": null
   },
@@ -243,6 +247,50 @@
   },
   {
    "id": "no-element-handle/false-s4a-alias-shadowed-by-parameter",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/locator-handle-false-js-untyped-parameter",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/locator-handle-false-let-reassigned",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/locator-handle-false-object-literal-method",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/locator-handle-false-unknown-npm-helper",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/locator-handle-false-untyped-parameter",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/locator-handle-true-chain-first",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/locator-handle-true-const-alias-handles",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/locator-handle-true-frame-locator-chain",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/locator-handle-true-js-chain-first",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/locator-handle-true-js-const-alias-handles",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/locator-handle-true-js-frame-locator-chain",
    "pending": null
   },
   {
