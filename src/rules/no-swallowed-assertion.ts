@@ -23,9 +23,16 @@
  *    after it as the fallthrough.
  * A catch that only logs or ignores, with no later check of the same
  * thing, is still reported.
+ *
+ * QAG-287 S7b: a negated chain whose `.catch` discards the rejection
+ * (`.not.toBeVisible().catch(() => {})`, see swallow-handler.ts) is
+ * re-checked only by a later hard assertion that repeats the same negated
+ * check on the same subject; a later positive assertion proves nothing about
+ * the swallowed `not` condition.
  */
 import type { Rule } from 'eslint';
 import { FN_TYPES, memberName, nearestFunction, parseMatcherCall, walk, type N } from './ast-util.js';
+import { checkSignature, isDiscardingHandler, isNegated } from './swallow-handler.js';
 
 const LOOPS = new Set(['ForStatement', 'ForInStatement', 'ForOfStatement', 'WhileStatement', 'DoWhileStatement']);
 const FAILISH = /fail|error|throw|assert|report|expect/i;
@@ -104,14 +111,16 @@ function isHardAssertionNode(n: N, stop: N | undefined): boolean {
  * True when the swallowed probe is followed by something that still fails
  * the test on a bad state: see the file header. `stmt` is the statement
  * holding the probe (TryStatement or the `.catch` expression statement),
- * `tryBlock`/`catchBody` the parts of a try/catch, if any.
+ * `tryBlock`/`catchBody` the parts of a try/catch, if any. `sameCheck`
+ * (S7b): the later same-subject assertion must also repeat this check.
  */
 function probeIsRechecked(
   source: { getText(n: unknown): string },
   stmt: N,
   probes: N[],
   tryBlock: N | undefined,
-  catchBody: N | undefined
+  catchBody: N | undefined,
+  sameCheck?: string
 ): boolean {
   const scope = nearestFunction(stmt) ?? (() => { let t: N = stmt; while (t.parent) t = t.parent; return t; })();
   const after = stmt.range?.[1] ?? Infinity;
@@ -124,6 +133,7 @@ function probeIsRechecked(
   for (const n of hardLater) {
     const chain = parseMatcherCall(n);
     const subject = chain ? probeKey(source, chain) : isWaitForCall(n) && n.callee?.object ? source.getText(n.callee.object) : '';
+    if (sameCheck !== undefined && (!chain || checkSignature(source, chain) !== sameCheck)) continue;
     if (subject && keys.includes(subject)) return true;
   }
 
@@ -219,17 +229,20 @@ export const noSwallowedAssertion: Rule.RuleModule = {
         let up: N | undefined = node.parent;
         if (up?.type === 'AwaitExpression') up = up.parent;
         if (up?.type !== 'ExpressionStatement') return;
+        const chain = parseMatcherCall(inner);
+        // S7b: a negated check whose rejection is discarded outright (empty handler, or a local empty function).
+        const negatedDiscard = isNegated(chain) && isDiscardingHandler(context, handler);
         const isFn = FN_TYPES.has(handler.type);
         const isConsole = handler.type === 'MemberExpression' && handler.object?.name === 'console';
-        if (!isFn && !isConsole) return;
+        if (!isFn && !isConsole && !negatedDiscard) return;
         if (isFn) {
           const body = handler.body as N | undefined;
           if (body && body.type === 'BlockStatement' && propagates(body)) return;
         }
-        const chain = parseMatcherCall(inner);
         const holder = (node.parent?.type === 'AwaitExpression' ? node.parent.parent : node.parent) as N;
         const handlerBody = isFn ? (handler.body as N | undefined) : undefined;
-        if (chain && probeIsRechecked(context.sourceCode, holder, [inner], undefined, handlerBody)) return;
+        const sameCheck = negatedDiscard && chain ? checkSignature(context.sourceCode, chain) : undefined;
+        if (chain && probeIsRechecked(context.sourceCode, holder, [inner], undefined, handlerBody, sameCheck)) return;
         context.report({ node: raw, messageId: 'swallowedCatch' });
       },
     };

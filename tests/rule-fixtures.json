@@ -2265,8 +2265,91 @@
    "rule": "pwscore/no-swallowed-assertion",
    "verdict": "true",
    "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-status-after-click.ts",
-   "pending": "S7b",
-   "note": "a negated matcher with a discarded catch, a click in between, then a later assertion on the same subject. The later-assertion exemption hides the swallowed first assertion today. A bare .not chain with no later assertion is already reported, see true-negated-catch-alone"
+   "note": "a negated matcher with a discarded catch, a click in between, then a later positive assertion on the same subject: the later assertion says nothing about the swallowed not condition, so it is reported (S7b). A bare .not chain with no later assertion is reported too, see true-negated-catch-alone"
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-banner-text",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-banner-text.ts",
+   "tags": [
+    "alias"
+   ],
+   "note": "a const-bound locator: the swallowed .not.toBeVisible() is followed by a positive toHaveText on the same locator"
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-banner-text-js",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-banner-text-js.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-inline-locator",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-inline-locator.ts",
+   "note": "the same subject written inline twice"
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-local-noop",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-local-noop.ts",
+   "note": ".catch(noop) with an empty local function discards the rejection like .catch(() => {})"
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-undefined-handler",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "true",
+   "entry": "pwscore__no-swallowed-assertion/-/true-not-catch-chain-undefined-handler.ts",
+   "note": ".catch(() => undefined) discards the rejection"
+  },
+  {
+   "id": "no-swallowed-assertion/false-positive-catch-then-same-subject",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-swallowed-assertion/-/false-positive-catch-then-same-subject.ts",
+   "note": "a positive timed probe followed by a hard assertion on the same subject: the later check still fails the test (E1 exemption, unchanged)"
+  },
+  {
+   "id": "no-swallowed-assertion/false-positive-catch-then-same-subject-js",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-swallowed-assertion/-/false-positive-catch-then-same-subject-js.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-without-catch",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-swallowed-assertion/-/false-not-without-catch.ts",
+   "note": "the negated assertion is awaited without .catch, so its failure fails the test"
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-catch-rethrows",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-swallowed-assertion/-/false-not-catch-rethrows.ts",
+   "note": "the catch logs and rethrows"
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-catch-records-error",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-swallowed-assertion/-/false-not-catch-records-error.ts",
+   "note": "the catch records the error and the test asserts on the record"
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-catch-same-negated-recheck",
+   "rule": "pwscore/no-swallowed-assertion",
+   "verdict": "false",
+   "entry": "pwscore__no-swallowed-assertion/-/false-not-catch-same-negated-recheck.ts",
+   "note": "a timed negated probe followed by the same negated check as a hard assertion (a timeout-only options object aside)"
   },
   {
    "id": "prefer-web-first-assertions/false-jest-expect-page-is-visible",

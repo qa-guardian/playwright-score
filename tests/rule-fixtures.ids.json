@@ -798,6 +798,30 @@
    "pending": null
   },
   {
+   "id": "no-swallowed-assertion/false-not-catch-records-error",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-catch-rethrows",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-catch-same-negated-recheck",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/false-not-without-catch",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/false-positive-catch-then-same-subject",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/false-positive-catch-then-same-subject-js",
+   "pending": null
+  },
+  {
    "id": "no-swallowed-assertion/false-rethrown",
    "pending": null
   },
@@ -810,8 +834,28 @@
    "pending": null
   },
   {
+   "id": "no-swallowed-assertion/true-not-catch-chain-banner-text",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-banner-text-js",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-inline-locator",
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-local-noop",
+   "pending": null
+  },
+  {
    "id": "no-swallowed-assertion/true-not-catch-chain-status-after-click",
-   "pending": "S7b"
+   "pending": null
+  },
+  {
+   "id": "no-swallowed-assertion/true-not-catch-chain-undefined-handler",
+   "pending": null
   },
   {
    "id": "no-swallowed-assertion/true-try-catch-log",
