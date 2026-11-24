@@ -715,7 +715,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   const candidates = new Set([...explicit, ...expanded]);
   const isSpec = (f: string): boolean => candidates.has(f) || SPEC_NAME_RE.test(f);
   let shared: SharedFiles | undefined;
-  /** Set only with the `shared` option: the shared files to lint and the specs that reach each (shared-lint.ts). */
+  /** Unset only with `shared: false`: the shared files to lint and the specs that reach each (shared-lint.ts). */
   let sharedRun: SharedLintPlan | undefined;
   let analysis: AnalysisInput | undefined;
   /** Locator counts of the imported dependency files (they add to the suite totals, nothing else). */
@@ -766,7 +766,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
     shared = sharedCollector.collect(sources, importedFiles, importEdges, isSpec, specifierCache);
 
     if (timeLimit.passed('analysis-input')) break prePass;
-    if (options.shared) sharedRun = planSharedLint(shared, sharedCollector.graph(), files, filesBase);
+    if (options.shared !== false) sharedRun = planSharedLint(shared, sharedCollector.graph(), files, filesBase);
     analysis = {
       files,
       sources,
@@ -833,7 +833,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   native += importedNative;
   raw += importedRaw;
 
-  // Shared-file findings (the `shared` option): listed after the spec findings, never part of the score.
+  // Shared-file findings (on unless `shared: false`): listed after the spec findings, never part of the score.
   const sharedListed = sharedRun
     ? finishSharedFindings(sharedFindings, sharedRun, { filesBase, sources, importedFiles, importBoundary, moduleResolver }, (f) => skips.has(f))
     : [];

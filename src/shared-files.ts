@@ -11,9 +11,9 @@ import type { SharedSkippedFile } from './types.js';
  * The shared files of a run: the files the specs reach through imports (page
  * objects, fixtures, helpers), minus specs, split into the ones that are
  * Playwright code and the ones that are not. This module only computes and
- * reports the two sets. No rule runs on a shared file here; with the `shared`
- * option, shared-lint.ts lints the bound set. Without it nothing in a result
- * other than `coverage.shared*` depends on them.
+ * reports the two sets. No rule runs on a shared file here; shared-lint.ts
+ * lints the bound set unless the `shared` option is false. With `shared:
+ * false` nothing in a result other than `coverage.shared*` depends on them.
  *
  * A shared file is Playwright-bound when one of these holds:
  * - it imports `@playwright/test`, `playwright` or `playwright-core` (or a

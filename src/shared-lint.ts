@@ -11,7 +11,7 @@ import type { SharedFiles } from './shared-files.js';
 import type { Finding, ProfileName } from './types.js';
 
 /**
- * Shared-file linting (the `shared` option, CLI `--shared`).
+ * Shared-file linting, on by default (option `shared: false`, CLI `--no-shared`, turns it off).
  *
  * The shared files of a run (shared-files.ts: the Playwright-bound files the
  * specs reach through imports, minus specs and declaration files) are linted

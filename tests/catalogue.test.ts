@@ -167,15 +167,17 @@ describe('QAG-287 F-5: tier follows labels/precision.json', () => {
     assert.equal(precision.schema, 2);
     for (const c of precision.cells) {
       assert.ok(['certain', 'likely', 'advisory'].includes(c.tier), `${c.rule} ${c.form}: tier ${c.tier}`);
-      assert.equal(c.role, 'spec', 'shared-file cells have no measurement yet');
+      // A 'shared' cell is the evaluator's measurement on shared files (L2): it may only name a cell that runs on them.
+      assert.ok(['spec', 'shared'].includes(c.role), `${c.rule} ${c.form}: role ${c.role}`);
       assert.ok(rowFor(c.rule, c.form), `${c.rule} ${c.form}: listed cell has no catalogue row`);
+      if (c.role === 'shared') assert.equal(rowFor(c.rule, c.form)?.onShared, true, `${c.rule} ${c.form}: a shared cell of a rule that never runs on a shared file`);
     }
   });
 
   it('every row has the tier the file gives it, and only listed certain cells are certain', () => {
     for (const r of ROWS) assert.equal(tierOf(r), expectedTier(r), `${r.rule} ${r.form}`);
     const certainRows = ROWS.filter((r) => tierOf(r) === 'certain').map((r) => `${r.rule}|${r.form}`).sort();
-    const certainCells = precision.cells.filter((c) => c.tier === 'certain').map((c) => `${c.rule}|${c.form}`).sort();
+    const certainCells = precision.cells.filter((c) => c.tier === 'certain' && c.role === 'spec').map((c) => `${c.rule}|${c.form}`).sort();
     assert.deepEqual(certainRows, certainCells);
   });
 
@@ -184,7 +186,76 @@ describe('QAG-287 F-5: tier follows labels/precision.json', () => {
   });
 
   it('a shared-file cell is never certain without a shared-file measurement', () => {
-    for (const r of ROWS) assert.notEqual(tierOf(r, 'shared'), 'certain', `${r.rule} ${r.form}`);
+    const measured = new Set(precision.cells.filter((c) => c.role === 'shared' && c.tier === 'certain').map((c) => `${c.rule}|${c.form}`));
+    for (const r of ROWS) if (!measured.has(`${r.rule}|${r.form}`)) assert.notEqual(tierOf(r, 'shared'), 'certain', `${r.rule} ${r.form}`);
+  });
+});
+
+describe('QAG-287 S6c: a (rule, form, shared) cell is certain only with an L2 measurement', () => {
+  // Shared linting is on by default (S6c), so every shared finding reaches the output. Its tier may be certain
+  // only where labels/precision.json lists the cell with role 'shared' and tier certain (the evaluator's L2
+  // measurement on shared files). The spec cell's tier never carries over. Restated independently of tiers.ts.
+  type Cell = { rule: string; form: string; role: string; tier: string };
+  const measuredIn = (cells: Cell[]): Set<string> =>
+    new Set(cells.filter((c) => c.role === 'shared' && c.tier === 'certain').map((c) => `${c.rule}|${c.form}`));
+  /** The `rule|form` cells a tier function makes certain on a shared file without a measurement in `cells`. */
+  const unmeasuredCertain = (keys: string[], tier: (key: string) => string | undefined, cells: Cell[]): string[] => {
+    const measured = measuredIn(cells);
+    return keys.filter((k) => tier(k) === 'certain' && !measured.has(k)).sort();
+  };
+
+  const sharedRules = [...new Set(ROWS.filter((r) => r.onShared).map((r) => r.rule))];
+  const UNLISTED = '(a form the catalogue does not list)';
+  // Every form a shared finding can carry: each catalogue row of a rule that runs on shared files, no form
+  // (a multi-form rule whose form was not decided), and a form the catalogue does not list.
+  const sharedForms: Array<{ rule: string; form: string | undefined }> = sharedRules.flatMap((rule) => [
+    ...ROWS.filter((r) => r.rule === rule).map((r) => ({ rule, form: r.form as string | undefined })),
+    { rule, form: undefined },
+    { rule, form: UNLISTED },
+  ]);
+  /** A shared finding of that rule and form after decorateFindings (the path every real shared finding takes). */
+  const decorated = (x: { rule: string; form: string | undefined }): Finding => {
+    const f: Finding = { rule: x.rule, severity: 'warning', message: 'm', file: 'helpers.ts', line: 1, scope: 'shared', usedBy: ['a.spec.ts'] };
+    if (x.form !== undefined) f.form = x.form;
+    decorateFindings([f], undefined);
+    return f;
+  };
+  /** The cell a decorated finding sits in: its own form once decorated (an undecided one has none). */
+  const cellOf = (f: Finding): string => `${f.rule}|${f.form ?? '(undecided)'}`;
+
+  it('covers every rule the catalogue runs on shared files, and the three measured spec cells among them', () => {
+    assert.ok(sharedRules.length >= 13, sharedRules.join(' '));
+    const specCertain = precision.cells.filter((c) => c.role === 'spec' && c.tier === 'certain').map((c) => c.rule);
+    assert.ok(specCertain.length > 0 && specCertain.every((r) => sharedRules.includes(r)), specCertain.join(' '));
+  });
+
+  it('no catalogue row is certain on a shared file without a measurement', () => {
+    const byKey = new Map(ROWS.map((r) => [`${r.rule}|${r.form}`, r]));
+    assert.deepEqual(unmeasuredCertain([...byKey.keys()], (k) => tierOf(byKey.get(k)!, 'shared'), precision.cells), []);
+  });
+
+  it('no shared finding is certain without a measurement, whatever form it carries', () => {
+    const found = sharedForms.map(decorated);
+    assert.equal(found.length, sharedForms.length);
+    const tiers = new Map<string, string | undefined>();
+    for (const f of found) if (tiers.get(cellOf(f)) !== 'certain') tiers.set(cellOf(f), f.tier);
+    assert.ok(tiers.has(`playwright/no-wait-for-timeout|${UNLISTED}`) && [...tiers.keys()].some((k) => k.endsWith('|(undecided)')));
+    assert.deepEqual(unmeasuredCertain([...tiers.keys()], (k) => tiers.get(k), precision.cells), []);
+    // And no shared finding carries the spec cell's measured precision.
+    for (const f of found) assert.equal(f.confidence, null, cellOf(f));
+  });
+
+  it('the check fails on a shared tier taken from the spec cell, and passes once that cell is measured', () => {
+    const specTier = new Map(precision.cells.filter((c) => c.role === 'spec').map((c) => [`${c.rule}|${c.form}`, c.tier]));
+    const keys = ROWS.map((r) => `${r.rule}|${r.form}`);
+    const inherited = (k: string) => specTier.get(k);
+    const flagged = unmeasuredCertain(keys, inherited, precision.cells);
+    assert.deepEqual(flagged, precision.cells.filter((c) => c.role === 'spec' && c.tier === 'certain').map((c) => `${c.rule}|${c.form}`).sort());
+    const measured: Cell[] = [...precision.cells, ...flagged.map((k) => ({ rule: k.split('|')[0], form: k.split('|')[1], role: 'shared', tier: 'certain' }))];
+    assert.deepEqual(unmeasuredCertain(keys, inherited, measured), []);
+    // A shared cell listed as likely is no measurement of certainty.
+    const likely: Cell[] = [...precision.cells, ...flagged.map((k) => ({ rule: k.split('|')[0], form: k.split('|')[1], role: 'shared', tier: 'likely' }))];
+    assert.deepEqual(unmeasuredCertain(keys, inherited, likely), flagged);
   });
 });
 

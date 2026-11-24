@@ -175,14 +175,15 @@ describe('QAG-287 S6b: the shared rule list is a catalogue property', () => {
 });
 
 describe('QAG-287 S6b: findings on shared files', () => {
-  it('without the option the result holds no shared finding and no usedBy; with it the spec findings and the coverage are the same', async () => {
+  it('by default the shared findings are listed (S6c); shared: false lists none and no usedBy; the spec findings and the coverage are the same', async () => {
     const dir = suite(SUITE);
-    const off = await scorePaths({ paths: [path.join(dir, 'tests')], cwd: dir, threshold: 0 });
-    const explicitOff = await scorePaths({ paths: [path.join(dir, 'tests')], cwd: dir, threshold: 0, shared: false });
+    const byDefault = await scorePaths({ paths: [path.join(dir, 'tests')], cwd: dir, threshold: 0 });
+    const off = await scorePaths({ paths: [path.join(dir, 'tests')], cwd: dir, threshold: 0, shared: false });
     const on = await scorePaths({ paths: [path.join(dir, 'tests')], cwd: dir, threshold: 0, shared: true });
     assert.deepEqual(brief(off), []);
     assert.ok(!JSON.stringify(off).includes('"usedBy"'));
-    assert.deepEqual(JSON.parse(JSON.stringify(explicitOff)), JSON.parse(JSON.stringify(off)));
+    assert.equal(brief(on).length, 3);
+    assert.deepEqual(JSON.parse(JSON.stringify(byDefault)), JSON.parse(JSON.stringify(on)));
     assert.deepEqual(on.findings.filter((f) => f.scope !== 'shared'), off.findings);
     assert.deepEqual(on.coverage, off.coverage);
     assert.equal(on.status, off.status);
@@ -385,19 +386,22 @@ describe('QAG-287 S6b: shared files under the time limit', () => {
   });
 });
 
-describe('QAG-287 S6b: the CLI flag', () => {
-  it('--shared adds the shared findings to the JSON output; without it there is none', async () => {
+describe('QAG-287 S6c: the CLI flags', () => {
+  it('the JSON output lists the shared findings by default and with --shared; --no-shared lists none', async () => {
     const dir = suite(SUITE);
     const cli = path.join(packageRoot(), 'bin', 'playwright-score.js');
-    const runCli = async (extra: string[]): Promise<ScoreResult> => {
+    const stdout = async (extra: string[]): Promise<string> => {
       const args = [cli, path.join(dir, 'tests'), '--format', 'json', '--threshold', '0', ...extra];
-      const out = await execFileAsync(process.execPath, args, { cwd: dir }).catch((e: { stdout?: string }) => ({ stdout: e.stdout ?? '' }));
-      return JSON.parse(out.stdout) as ScoreResult;
+      return (await execFileAsync(process.execPath, args, { cwd: dir }).catch((e: { stdout?: string }) => ({ stdout: e.stdout ?? '' }))).stdout;
     };
-    const off = await runCli([]);
-    const on = await runCli(['--shared']);
-    assert.deepEqual(brief(off), []);
-    assert.equal(brief(on).length, 3);
-    assert.deepEqual(on.findings.filter((f) => f.scope !== 'shared'), off.findings);
+    const [byDefault, on, off, lastWins] = [await stdout([]), await stdout(['--shared']), await stdout(['--no-shared']), await stdout(['--shared', '--no-shared'])];
+    const parsed = (s: string) => JSON.parse(s) as ScoreResult;
+    assert.equal(brief(parsed(byDefault)).length, 3);
+    assert.equal(on, byDefault, '--shared restates the default, byte for byte');
+    assert.deepEqual(brief(parsed(off)), []);
+    assert.ok(!off.includes('"usedBy"'));
+    assert.equal(lastWins, off, 'the last of the two flags wins');
+    assert.deepEqual(parsed(byDefault).findings.filter((f) => f.scope !== 'shared'), parsed(off).findings);
+    assert.deepEqual(parsed(byDefault).coverage, parsed(off).coverage);
   });
 });

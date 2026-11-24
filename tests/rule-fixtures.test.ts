@@ -383,13 +383,13 @@ describe('QAG-287 S3: the gate fails when a fixture goes missing or flips', () =
   });
 });
 
-describe('QAG-287 S6b: a shared fixture without the shared option', () => {
+describe('QAG-287 S6b: a shared fixture with shared: false (--no-shared)', () => {
   for (const f of manifest.fixtures.filter((x) => isShared(x) && !isPending(x))) {
     it(`${f.id}: no finding outside the spec, and the spec findings are the same with the option on`, async () => {
       const run = (shared: boolean) => scorePaths({ paths: [path.join(fixtureRoot, f.entry)], threshold: 0, cwd: fixtureRoot, shared });
       const [off, on] = [await run(false), await run(true)];
       const entryRel = path.basename(f.entry);
-      assert.deepEqual(off.findings.filter((x) => x.file !== entryRel), [], 'default flags: every finding is in the spec');
+      assert.deepEqual(off.findings.filter((x) => x.file !== entryRel), [], 'shared: false: every finding is in the spec');
       assert.ok(off.findings.every((x) => x.scope !== 'shared' && x.usedBy === undefined));
       assert.deepEqual(on.findings.filter((x) => x.scope !== 'shared'), off.findings, 'the spec findings do not depend on the option');
       assert.deepEqual(on.coverage, off.coverage);

@@ -36,8 +36,8 @@ export interface Finding {
    * attribution in index.ts; findings without it are treated as 'module'. */
   scope?: 'test' | 'hook' | 'module' | 'shared';
   /**
-   * Set when scope === 'shared' (a finding in a shared file, reported only
-   * with the `shared` option): the spec files that reach the file through
+   * Set when scope === 'shared' (a finding in a shared file, reported unless
+   * the `shared` option is false): the spec files that reach the file through
    * imports, sorted, in the same form as `file`.
    */
   usedBy?: string[];
@@ -244,10 +244,11 @@ export interface ScoreOptions {
    */
   isolate?: boolean;
   /**
-   * `true` also checks the shared files the specs import (page objects,
-   * fixtures, helpers that are Playwright code; `coverage.sharedLintedFiles`)
-   * with the rules that hold outside a test body. Their findings carry
-   * `scope: 'shared'` and `usedBy`. Default: false.
+   * Whether the shared files the specs import (page objects, fixtures,
+   * helpers that are Playwright code; `coverage.sharedLintedFiles`) are also
+   * checked, with the rules that hold outside a test body. Their findings
+   * carry `scope: 'shared'` and `usedBy` and never change the score.
+   * Default: true; `false` lists spec findings only.
    */
   shared?: boolean;
 }

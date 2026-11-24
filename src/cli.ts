@@ -47,9 +47,11 @@ Options:
                                   (default: ${DEFAULT_MAX_HEAP_MB}, the same on every machine;
                                   ${MIN_MAX_HEAP_MB} to ${MAX_MAX_HEAP_MB}).
                                   Files in the batch that hits it are skipped.
-  --shared                        Also check the shared files the specs import
-                                  (page objects, fixtures, helpers). Their
-                                  findings are listed and never change the score.
+  --no-shared                     Do not check the shared files the specs
+                                  import. By default the shared files (page
+                                  objects, fixtures, helpers) are checked too;
+                                  their findings are listed and never change
+                                  the score. --shared restates the default.
   --version                       Print version
   --help                          Show help
 
@@ -126,7 +128,7 @@ async function main(): Promise<void> {
   let name: string | undefined;
   let maxSeconds: number | undefined;
   let maxHeapMb: number | undefined;
-  let shared = false;
+  let shared = true;
   const paths: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
@@ -195,6 +197,8 @@ async function main(): Promise<void> {
       }
     } else if (a === '--shared') {
       shared = true;
+    } else if (a === '--no-shared') {
+      shared = false;
     } else if (a === '--version' || a === '-v') {
       continue;
     } else if (a.startsWith('-')) {
