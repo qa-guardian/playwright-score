@@ -24,6 +24,9 @@
  * decides `issue` once the tiers are known and adds one `pwscore/unasserted` finding per
  * unasserted test. The score, the grade and every other finding are never touched.
  * Callees are resolved by src/test-callees.ts (syntax helpers in src/test-syntax.ts).
+ * N3: while a file's tree is alive, each counted test's assertion sites and in-scope hooks are
+ * handed to src/rules/loop-only-assertions.ts (`TestAssertions`); its report-only findings are
+ * added in `settleTestStates`.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -36,6 +39,7 @@ import type { N, ScopeFile } from './rules/proof.js';
 import { strip } from './rules/scope-resolve.js';
 import { valueOf, type CalleeCtx } from './test-callees.js';
 import { chain, isFunction, text, walk } from './test-syntax.js';
+import { loopFinding, loopOnlyAssertions, type LoopHit } from './rules/loop-only-assertions.js';
 import type { Finding, ScoreResult, TestState, TestStateEntry } from './types.js';
 
 /** Switch for the unit test that compares a run with the step on and off. */
@@ -56,7 +60,16 @@ const norm = (rule: string): string => rule.replace(/^playwright-score\//, 'pwsc
 interface Facts {
   asserts: boolean;
   unresolved: Set<string>;
+  /** Nodes of this function (nested callbacks included) that assert, and that call something not resolved. */
+  sites: N[];
+  open: N[];
 }
+/** One counted test as the facts see it: its callback, then each in-scope hook's callback (N3). */
+export interface TestAssertions {
+  sf: ScopeFile;
+  parts: Array<{ fn: N; hook?: string; sites: readonly N[]; open: readonly N[] }>;
+}
+const none = (name?: string): Facts => ({ asserts: false, unresolved: new Set(name ? [name] : []), sites: [], open: [] });
 interface Staged {
   entry: TestStateEntry;
   column: number;
@@ -64,6 +77,7 @@ interface Staged {
   facts: Facts;
   /** Line spans of the hooks in scope for the test. */
   hooks: Array<[number, number]>;
+  loops?: LoopHit[];
 }
 export interface StateInput {
   ctx: ReceiverContext;
@@ -111,15 +125,23 @@ function analyzer(c: CalleeCtx, ctx: ReceiverContext, discounts: ReadonlyMap<str
   function factsOf(sf: ScopeFile, fn: N): Facts {
     const done = memo.get(fn);
     if (done) return done;
-    if (active.has(fn)) return { asserts: false, unresolved: new Set() }; // a cycle adds nothing
-    if (active.size >= MAX_NESTING) return { asserts: false, unresolved: new Set(['(call depth limit)']) };
+    if (active.has(fn)) return none(); // a cycle adds nothing
+    if (active.size >= MAX_NESTING) return none('(call depth limit)');
     active.add(fn);
-    const out: Facts = { asserts: false, unresolved: new Set() };
+    const out = none();
+    const asserts = (n: N): void => {
+      out.asserts = true;
+      out.sites.push(n);
+    };
+    const open = (n: N, name: string): void => {
+      out.unresolved.add(name);
+      out.open.push(n);
+    };
     walk(fn.body, (n) => {
-      if (n.type === 'ThrowStatement') out.asserts ||= guarded(sf, n);
+      if (n.type === 'ThrowStatement' && guarded(sf, n)) asserts(n);
       if (n.type === 'NewExpression') {
         const v = valueOf(c, sf, n.callee);
-        if (v.k === 'unres') out.unresolved.add(v.name);
+        if (v.k === 'unres') open(n, v.name);
       }
       if (n.type !== 'CallExpression') return;
       const { root } = chain(n.callee);
@@ -128,18 +150,20 @@ function analyzer(c: CalleeCtx, ctx: ReceiverContext, discounts: ReadonlyMap<str
         const b = use.binding;
         const library = b.kind === 'foreign' && KNOWN_PACKAGES.assertion.includes(b.package);
         // Playwright's expect asserts in its matcher call, not in `expect(x)` itself.
-        if (b.kind === 'playwright' ? chain(n.callee).props.length > 0 && hasCall(n.callee) && !discounted(sf, n) : library && !discounted(sf, n)) out.asserts = true;
-        else if (b.kind === 'unresolved' || (b.kind === 'foreign' && !library)) out.unresolved.add(root!.name);
+        if (b.kind === 'playwright' ? chain(n.callee).props.length > 0 && hasCall(n.callee) && !discounted(sf, n) : library && !discounted(sf, n)) asserts(n);
+        else if (b.kind === 'unresolved' || (b.kind === 'foreign' && !library)) open(n, root!.name);
         return;
       }
       const v = valueOf(c, sf, n.callee);
-      if (v.k === 'assert') out.asserts ||= !discounted(sf, n);
-      else if (v.k === 'unres') out.unresolved.add(v.name);
-      else if (v.k === 'param') out.unresolved.add(text(n.callee));
+      if (v.k === 'assert') {
+        if (!discounted(sf, n)) asserts(n);
+      } else if (v.k === 'unres') open(n, v.name);
+      else if (v.k === 'param') open(n, text(n.callee));
       else if (v.k === 'fn') {
         const inner = factsOf(v.sf, v.node);
-        out.asserts ||= inner.asserts;
+        if (inner.asserts) asserts(n);
         for (const name of inner.unresolved) out.unresolved.add(name);
+        if (inner.unresolved.size > 0) out.open.push(n);
       }
     });
     active.delete(fn);
@@ -186,7 +210,7 @@ function stageFile(sf: ScopeFile, rel: string, spans: TestSpans, factsOf: (sf: S
     const entry: TestStateEntry = { file: rel, testKey: `${rel}#${index}`, line: span.startLine, state: 'unverified' };
     const node = calls.filter((n) => n.loc.start.line === span.startLine && n.loc.end.line === span.endLine && !chain(n.callee).props.includes('describe')).sort((a, b) => size(b) - size(a))[0];
     const fn = node ? functionArg(node) : undefined;
-    if (!node || !fn) return { entry, column: 1, facts: { asserts: false, unresolved: new Set(['(test not located)']) }, hooks: [] };
+    if (!node || !fn) return { entry, column: 1, facts: none('(test not located)'), hooks: [] };
     const { root, props } = chain(node.callee);
     const describes = describesOf(node);
     const first = fn.body?.type === 'BlockStatement' ? (fn.body.body[0] as N | undefined) : undefined;
@@ -199,15 +223,24 @@ function stageFile(sf: ScopeFile, rel: string, spans: TestSpans, factsOf: (sf: S
     if (!hasAnyCall(fn.body)) excluded = 'excluded-empty';
     else if (props.some((p) => SKIPS.includes(p)) || describes.some((d) => chain(d.callee).props.some((p) => SKIPS.includes(p))) || skipsFirst) excluded = 'excluded-skipped';
     const scoped = hooks.filter((h) => !h.scope || describes.includes(h.scope));
-    const facts: Facts = { asserts: false, unresolved: new Set() };
+    const facts = none();
+    const parts: TestAssertions['parts'] = [];
     if (!excluded) {
-      for (const f of [fn, ...scoped.map((h) => functionArg(h.node)!)]) {
+      const callbacks: Array<{ f: N; hook?: string }> = [{ f: fn }, ...scoped.map((h) => ({ f: functionArg(h.node)!, hook: chain(h.node.callee).props.slice(-1)[0] ?? text(h.node.callee) }))];
+      for (const { f, hook } of callbacks) {
         const part = factsOf(sf, f);
         facts.asserts ||= part.asserts;
         for (const name of part.unresolved) facts.unresolved.add(name);
+        parts.push({ fn: f, hook, sites: part.sites, open: part.open });
       }
     }
-    return { entry, column: node.loc.start.column + 1, excluded, facts, hooks: scoped.map((h) => [h.node.loc.start.line, h.node.loc.end.line] as [number, number]) };
+    let loops: LoopHit[] | undefined;
+    try {
+      loops = excluded ? undefined : loopOnlyAssertions({ sf, parts });
+    } catch {
+      loops = undefined; // the N3 check never changes a state
+    }
+    return { entry, column: node.loc.start.column + 1, excluded, facts, hooks: scoped.map((h) => [h.node.loc.start.line, h.node.loc.end.line] as [number, number]), loops };
   });
 }
 
@@ -256,7 +289,7 @@ export function stageTestStates<T extends object>(result: T, input: StateInput):
         all.push(...stageFile(sf, rel, spans, factsOf));
       } catch {
         spans.tests.forEach((span, index) =>
-          all.push({ entry: { file: rel, testKey: `${rel}#${index}`, line: span.startLine, state: 'unverified' }, column: 1, facts: { asserts: false, unresolved: new Set(['(analysis error)']) }, hooks: [] })
+          all.push({ entry: { file: rel, testKey: `${rel}#${index}`, line: span.startLine, state: 'unverified' }, column: 1, facts: none('(analysis error)'), hooks: [] })
         );
       }
     }
@@ -273,12 +306,18 @@ export function stageTestStates<T extends object>(result: T, input: StateInput):
 export function settleTestStates(result: ScoreResult): void {
   if (!testStates.enabled) return;
   const added: Finding[] = [];
+  const loops = new Map<string, Finding>();
   const certain = result.findings.filter((f) => f.tier === 'certain' && f.line !== undefined);
   const entries = (staged.get(result) ?? []).map((s) => {
     const { entry, facts } = s;
     const issue = certain.some((f) => (f.scope === 'test' ? f.testKey === entry.testKey : f.scope === 'hook' && f.file === entry.file && s.hooks.some(([a, b]) => f.line! >= a && f.line! <= b)));
     entry.state = s.excluded ?? (issue ? 'issue' : facts.asserts ? 'clean' : facts.unresolved.size > 0 ? 'unverified' : 'unasserted');
     if (entry.state === 'unverified') entry.unresolved = [...facts.unresolved].sort().slice(0, MAX_NAMES);
+    // N3: one finding per loop, also when the loop is in a hook shared by several tests.
+    for (const hit of s.loops ?? []) {
+      const key = `${entry.file}:${hit.line}:${hit.column}`;
+      if (!loops.has(key)) loops.set(key, loopFinding(entry, hit));
+    }
     if (entry.state === 'unasserted') {
       added.push({
         rule: UNASSERTED_RULE,
@@ -298,6 +337,7 @@ export function settleTestStates(result: ScoreResult): void {
   entries.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : a.line - b.line));
   result.testStates = entries;
   result.summary.unassertedTests = added.length;
+  added.push(...loops.values());
   decorateFindings(added, result.baseDir);
   result.findings.push(...added);
 }

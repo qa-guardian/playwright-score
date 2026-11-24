@@ -26,6 +26,70 @@
    "pending": null
   },
   {
+   "id": "loop-only-assertions/false-assertion-outside-loop",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/false-first-visible-before",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/false-js-to-have-count-before",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/false-literal-array",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/false-size-in-before-each",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/false-to-have-count-before",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/false-wait-for-before",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/true-alias-all-loop",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/true-alias-count-range",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/true-alias-dollar-loop",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/true-all-loop",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/true-count-range",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/true-dollar-loop",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/true-js-all-loop",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/true-js-count-range",
+   "pending": null
+  },
+  {
+   "id": "loop-only-assertions/true-js-dollar-loop",
+   "pending": null
+  },
+  {
    "id": "max-nested-describe/false-two-levels",
    "pending": null
   },

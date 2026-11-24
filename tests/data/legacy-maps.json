@@ -435,6 +435,14 @@
     "fix": "Add an expect() on what the user should see after the last action."
    },
    "conf": null
+  },
+  "pwscore/loop-only-assertions": {
+   "copy": {
+    "title": "Assertions only inside a loop over a list",
+    "why": "locator.all() does not wait for elements: it returns whatever is on the page at that moment. If the list is empty, the loop runs zero times, nothing is checked and the test passes.",
+    "fix": "Before the loop, assert the list itself, for example await expect(items).toHaveCount(3) or await expect(items.first()).toBeVisible()."
+   },
+   "conf": null
   }
  }
 }

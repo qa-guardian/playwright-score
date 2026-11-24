@@ -85,7 +85,7 @@ describe('QAG-287 S12: test states', () => {
   });
 
   it('with the step off, everything but the registered additions is the same', async () => {
-    const strip = (r: ScoreResult) => ({ ...r, testStates: undefined, findings: r.findings.filter((f) => f.rule !== UNASSERTED_RULE), summary: { ...r.summary, unassertedTests: 0 } });
+    const strip = (r: ScoreResult) => ({ ...r, testStates: undefined, findings: r.findings.filter((f) => f.rule !== UNASSERTED_RULE && f.rule !== 'pwscore/loop-only-assertions'), summary: { ...r.summary, unassertedTests: 0 } });
     let added = 0;
     for (const entry of entries) {
       const on = await scored(entry);

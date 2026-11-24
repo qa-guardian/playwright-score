@@ -244,6 +244,10 @@
   {
    "rule": "pwscore/unasserted",
    "form": "-"
+  },
+  {
+   "rule": "pwscore/loop-only-assertions",
+   "form": "-"
   }
  ],
  "fixtures": [
@@ -5873,6 +5877,123 @@
    "verdict": "true",
    "entry": "pwscore__unasserted/-/true-typed-page-param/billing.spec.ts",
    "dir": "pwscore__unasserted/-/true-typed-page-param"
+  },
+  {
+   "id": "loop-only-assertions/false-assertion-outside-loop",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "false",
+   "entry": "pwscore__loop-only-assertions/-/false-assertion-outside-loop.ts"
+  },
+  {
+   "id": "loop-only-assertions/false-first-visible-before",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "false",
+   "entry": "pwscore__loop-only-assertions/-/false-first-visible-before.ts"
+  },
+  {
+   "id": "loop-only-assertions/false-js-to-have-count-before",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "false",
+   "entry": "pwscore__loop-only-assertions/-/false-js-to-have-count-before.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "loop-only-assertions/false-literal-array",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "false",
+   "entry": "pwscore__loop-only-assertions/-/false-literal-array.ts"
+  },
+  {
+   "id": "loop-only-assertions/false-size-in-before-each",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "false",
+   "entry": "pwscore__loop-only-assertions/-/false-size-in-before-each.ts"
+  },
+  {
+   "id": "loop-only-assertions/false-to-have-count-before",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "false",
+   "entry": "pwscore__loop-only-assertions/-/false-to-have-count-before.ts"
+  },
+  {
+   "id": "loop-only-assertions/false-wait-for-before",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "false",
+   "entry": "pwscore__loop-only-assertions/-/false-wait-for-before.ts"
+  },
+  {
+   "id": "loop-only-assertions/true-alias-all-loop",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "true",
+   "entry": "pwscore__loop-only-assertions/-/true-alias-all-loop.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "loop-only-assertions/true-alias-count-range",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "true",
+   "entry": "pwscore__loop-only-assertions/-/true-alias-count-range.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "loop-only-assertions/true-alias-dollar-loop",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "true",
+   "entry": "pwscore__loop-only-assertions/-/true-alias-dollar-loop.ts",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "loop-only-assertions/true-all-loop",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "true",
+   "entry": "pwscore__loop-only-assertions/-/true-all-loop.ts"
+  },
+  {
+   "id": "loop-only-assertions/true-count-range",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "true",
+   "entry": "pwscore__loop-only-assertions/-/true-count-range.ts"
+  },
+  {
+   "id": "loop-only-assertions/true-dollar-loop",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "true",
+   "entry": "pwscore__loop-only-assertions/-/true-dollar-loop.ts"
+  },
+  {
+   "id": "loop-only-assertions/true-js-all-loop",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "true",
+   "entry": "pwscore__loop-only-assertions/-/true-js-all-loop.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "loop-only-assertions/true-js-count-range",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "true",
+   "entry": "pwscore__loop-only-assertions/-/true-js-count-range.js",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "loop-only-assertions/true-js-dollar-loop",
+   "rule": "pwscore/loop-only-assertions",
+   "verdict": "true",
+   "entry": "pwscore__loop-only-assertions/-/true-js-dollar-loop.js",
+   "tags": [
+    "js"
+   ]
   }
  ]
 }
