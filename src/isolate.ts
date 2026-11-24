@@ -19,7 +19,7 @@ import { Worker, isMainThread, parentPort, workerData } from 'node:worker_thread
 import { dropFindingsOfSkipped, parseErrorFiles } from './coverage.js';
 import { createTriage } from './finding-triage.js';
 import { commonAncestorDir } from './fs-util.js';
-import { HEAP_LIMIT_EXIT, effectiveHeapLimitMb, heapCheckpoint, installHeapGuard, releaseMemory } from './heap-guard.js';
+import { HEAP_LIMIT_EXIT, effectiveHeapLimitMb, heapCheckpoint, heapGuardInstalled, installHeapGuard, releaseMemory } from './heap-guard.js';
 import { analyzeSource, getTestSpans, type TestSpans } from './metrics.js';
 import { clearParseCache, setParseCacheBudget, WORKER_MAX_CACHED_TOKENS } from './parse-cache.js';
 import { createModuleResolver, type ImportResolver } from './module-resolution.js';
@@ -128,6 +128,33 @@ export function deadlineSkip(file: string, limit: TimeLimit): WorkerSkip {
 export interface IsolateLimits {
   maxHeapMb: number;
   time: TimeLimit;
+  /** For tests: called with what each worker reports of itself once it is set up. Not given: the worker reports nothing. */
+  onWorkerSetup?: (setup: WorkerSetup) => void;
+}
+
+/** What a worker holds after `setUpWorker`, read back from the modules that hold it. */
+export interface WorkerSetup {
+  /** The parse cache budget of the thread, in tokens. */
+  cacheBudget: number;
+  /** Whether a heap guard is installed in the thread. */
+  heapGuard: boolean;
+}
+
+/**
+ * What every analysis worker sets up before its first batch: its heap guard,
+ * and its own parse cache budget (the main thread's is larger, and a worker
+ * left on it holds more trees than its heap limit was measured with).
+ */
+export function setUpWorker(maxHeapMb: number): void {
+  installHeapGuard(maxHeapMb);
+  setParseCacheBudget(WORKER_MAX_CACHED_TOKENS);
+}
+
+/** The setup of the calling thread, as it is now. */
+export function readWorkerSetup(): WorkerSetup {
+  const cacheBudget = setParseCacheBudget(0);
+  setParseCacheBudget(cacheBudget);
+  return { cacheBudget, heapGuard: heapGuardInstalled() };
 }
 
 /**
@@ -253,7 +280,7 @@ export async function analyzeIsolated(
   const runWorker = (): Promise<WorkerEnd> =>
     new Promise((resolve) => {
       const worker = new Worker(new URL(import.meta.url), {
-        workerData: { [WORKER_MARK]: true, input, maxHeapMb: limits.maxHeapMb },
+        workerData: { [WORKER_MARK]: true, input, maxHeapMb: limits.maxHeapMb, reportSetup: limits.onWorkerSetup !== undefined },
         resourceLimits: { maxOldGenerationSizeMb: limits.maxHeapMb },
       });
       let settled = false;
@@ -275,8 +302,9 @@ export async function analyzeIsolated(
         timer = setTimeout(onTimer, Math.min(Math.max(0, left), MAX_TIMER_MS));
       };
       arm();
-      worker.on('message', (result: BatchResult) => {
+      worker.on('message', (result: BatchResult | { setup: WorkerSetup }) => {
         if (settled) return;
+        if ('setup' in result) return limits.onWorkerSetup?.(result.setup);
         done.push(result);
         next++;
         if (next >= batches.length) settle({ kind: 'finished' });
@@ -305,9 +333,9 @@ export async function analyzeIsolated(
 
 /** Worker side: one batch in, one result out. */
 function serve(): void {
-  const { input, maxHeapMb } = workerData as { input: AnalysisInput; maxHeapMb: number };
-  installHeapGuard(maxHeapMb);
-  setParseCacheBudget(WORKER_MAX_CACHED_TOKENS);
+  const { input, maxHeapMb, reportSetup } = workerData as { input: AnalysisInput; maxHeapMb: number; reportSetup?: boolean };
+  setUpWorker(maxHeapMb);
+  if (reportSetup) parentPort!.postMessage({ setup: readWorkerSetup() });
   const analyze = createAnalyzer(input);
   parentPort!.on('message', (files: string[]) => {
     resetRuleCrashes();

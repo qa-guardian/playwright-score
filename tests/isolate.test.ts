@@ -10,7 +10,8 @@ import { formatText } from '../src/formatters/text.js';
 import { execFile } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
-import { analyzeIsolated, BATCH_SIZE, clock, MAX_MAX_HEAP_MB, MAX_TIMER_MS, MIN_MAX_HEAP_MB, startTimeLimit, toBatches, type AnalysisInput } from '../src/isolate.js';
+import { analyzeIsolated, BATCH_SIZE, clock, MAX_MAX_HEAP_MB, MAX_TIMER_MS, MIN_MAX_HEAP_MB, readWorkerSetup, startTimeLimit, toBatches, type AnalysisInput, type WorkerSetup } from '../src/isolate.js';
+import { MAX_CACHED_TOKENS, WORKER_MAX_CACHED_TOKENS } from '../src/parse-cache.js';
 import { MAX_SOURCE_BYTES } from '../src/fs-util.js';
 import type { ScoreResult } from '../src/types.js';
 
@@ -517,5 +518,37 @@ describe('QAG-287 S5b: the time limit passes mid-run, on an injected clock', () 
     const broken = suite({ 'a.spec.ts': BROKEN });
     assert.equal((await scorePaths({ paths: [broken], cwd: broken })).reason, 'no-counted-tests');
     assert.equal((await scorePaths({ paths: [path.join(empty, 'none')], cwd: empty })).reason, 'no-files');
+  });
+});
+
+describe('QAG-287 S5c: what a worker sets up before its first batch', () => {
+  function inputOf(dir: string): AnalysisInput {
+    const abs = fs.readdirSync(dir).filter((f) => f.endsWith('.spec.ts')).sort().map((f) => path.join(dir, f));
+    return {
+      files: abs,
+      sources: new Map(abs.map((f) => [f, fs.readFileSync(f, 'utf8')])),
+      importedFiles: new Map(),
+      filesBase: dir,
+      importBoundary: dir,
+      profile: 'standard',
+      cwd: dir,
+      assertFunctionNamesByFile: new Map(abs.map((f) => [f, []])),
+      testAliasNames: [],
+    };
+  }
+
+  it('the worker runs on its own parse cache budget, with a heap guard; the calling thread keeps its own', async () => {
+    const input = inputOf(mixedSuite());
+    const setups: WorkerSetup[] = [];
+    const limits = { maxHeapMb: DEFAULT_MAX_HEAP_MB, time: startTimeLimit(undefined) };
+    const out = await analyzeIsolated(input, { ...limits, onWorkerSetup: (setup) => setups.push(setup) });
+    assert.deepEqual(setups, [{ cacheBudget: WORKER_MAX_CACHED_TOKENS, heapGuard: true }]);
+    assert.notEqual(WORKER_MAX_CACHED_TOKENS, MAX_CACHED_TOKENS);
+    assert.deepEqual(readWorkerSetup(), { cacheBudget: MAX_CACHED_TOKENS, heapGuard: false });
+    // The report is one message more, and nothing else: the batches are those of a run without it.
+    assert.equal(out.batches.length, toBatches(input.files).length);
+    assert.deepEqual(out.skipped, []);
+    const plain = await analyzeIsolated(input, limits);
+    assert.deepEqual(out.batches, plain.batches);
   });
 });
