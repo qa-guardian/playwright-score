@@ -81,9 +81,11 @@ const skips = (run: Run): string[] =>
  * hold that file under it, while the main thread, which parses the file too,
  * can. Measured on node 22, each twice: flags of 704 to 1536 MB end the worker
  * alone; 640 MB and below end the whole process, because the flag is the main
- * thread's limit too.
+ * thread's limit too. At 1024 MB a worker once held the file under load (all
+ * files scored), so the flag sits low in that band: furthest from what the
+ * worker needs, still 128 MB over the lowest rung the main thread held.
  */
-const FLAG_MB = 1024;
+const FLAG_MB = 832;
 
 describe('QAG-287 S5c: the heap limit holds under --max-old-space-size', () => {
   const heavy = ['b-00.spec.ts|worker-died|heap limit 256 MB', 'b-01.spec.ts|worker-died|heap limit 256 MB'];

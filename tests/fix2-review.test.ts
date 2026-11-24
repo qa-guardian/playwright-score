@@ -87,12 +87,16 @@ describe('fix2 item P: helper facts do not walk the whole file once per helper',
         `  async m${i}(x: string) { await this.page.getByRole('button', { name: x + '${i}' }).click(); await expect(this.page.getByText('ok${i}')).toBeVisible(); }`
     );
     const source = `import { expect, type Page } from '@playwright/test';\nexport class Big {\n  constructor(private page: Page) {}\n${methods.join('\n')}\n}\n`;
-    const t0 = Date.now();
+    // CPU time, not wall-clock time: the bar guards the work done (a walk of the
+    // whole file per helper), which a loaded machine does not change; wall-clock
+    // time under load (7.2 s at load 60) measured the queue for a core instead.
+    const t0 = process.cpuUsage();
     const facts = extractHelperFacts(source, 'big.ts');
-    const ms = Date.now() - t0;
+    const used = process.cpuUsage(t0);
+    const ms = Math.round((used.user + used.system) / 1000);
     assert.ok(facts.length >= 1500, `expected a fact per method, got ${facts.length}`);
     // Was ~20 s with the per-helper caller walk; a few hundred ms now.
-    assert.ok(ms < 5000, `extractHelperFacts took ${ms} ms`);
+    assert.ok(ms < 5000, `extractHelperFacts used ${ms} ms of CPU`);
   });
 });
 

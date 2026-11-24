@@ -1275,7 +1275,7 @@ describe('2.1.0: custom test.extend() fixture names are recognized as test decla
     );
   });
 
-  it('a cyclic cross-file import (fixtures-a imports fixtures-b, fixtures-b imports fixtures-a) terminates and still resolves the real alias correctly, instead of hanging (detectExtendedTestAliases is a bounded fixed-point over the whole file set, not a per-file recursive walk, so a cycle can never cause unbounded recursion — this proves it in practice, not just by reading the bound)', async () => {
+  it('a cyclic cross-file import (fixtures-a imports fixtures-b, fixtures-b imports fixtures-a) terminates and still resolves the real alias correctly, instead of hanging (detectExtendedTestAliases is a bounded fixed-point over the whole file set, not a per-file recursive walk, so a cycle can never cause unbounded recursion — this proves it in practice, not just by reading the bound)', { timeout: 120_000 }, async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-extend-cycle-'));
     try {
       fs.mkdirSync(path.join(dir, 'tests'), { recursive: true });
@@ -1304,9 +1304,15 @@ describe('2.1.0: custom test.extend() fixture names are recognized as test decla
           `});\n`
       );
 
-      const start = Date.now();
+      // CPU time, not wall-clock time: a cycle the fixed point does not end spins,
+      // and spinning is CPU; wall-clock time under load (11.1 s at load 60) also
+      // counted the wait for a core. A cycle that waits instead of spinning hits
+      // the test's own timeout.
+      const cpu0 = process.cpuUsage();
       const result = await scorePaths({ paths: [dir], profile: 'standard', cwd: dir });
-      assert.ok(Date.now() - start < 10_000, 'a two-file import cycle must not hang or take unreasonably long');
+      const cpu = process.cpuUsage(cpu0);
+      const cpuMs = Math.round((cpu.user + cpu.system) / 1000);
+      assert.ok(cpuMs < 10_000, `a two-file import cycle must not hang or take unreasonably long (${cpuMs} ms of CPU)`);
       assert.equal(result.summary.tests, 1, `expected the bTest(...) declaration to count as one test, got ${result.summary.tests}`);
       assert.equal(result.score, 100, `expected a clean score despite the cyclic fixture imports, got ${result.score}: ${JSON.stringify(result.findings)}`);
     } finally {
@@ -1731,8 +1737,15 @@ describe('2.1.0 review fixes: config discovery and testDir must never escape the
     }
   });
 
-  it('a testDir of "/" in the scanned repo\'s own config does not escape the repo root and glob the whole filesystem (clamped to the repo root instead)', async () => {
+  it('a testDir of "/" in the scanned repo\'s own config does not escape the repo root and glob the whole filesystem (clamped to the repo root instead)', { timeout: 120_000 }, async () => {
     const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-config-testdir-root-'));
+    // A spec outside the repo root that a scan from "/" reaches on any machine:
+    // an escape then shows in the file count, whatever else the disk holds.
+    const decoyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-config-testdir-decoy-'));
+    fs.writeFileSync(
+      path.join(decoyDir, 'outside.spec.ts'),
+      `import { test, expect } from '@playwright/test';\ntest('b', async ({ page }) => {\n  await expect(page).toHaveTitle('y');\n});\n`
+    );
     try {
       fs.mkdirSync(path.join(repoDir, '.git'), { recursive: true });
       fs.mkdirSync(path.join(repoDir, 'tests'), { recursive: true });
@@ -1752,13 +1765,16 @@ describe('2.1.0 review fixes: config discovery and testDir must never escape the
           `});\n`
       );
 
-      const start = Date.now();
+      // CPU time, not wall-clock time: a walk of the whole filesystem is work the
+      // machine's load does not change (wall-clock took 16.2 s at load 60).
+      const cpu0 = process.cpuUsage();
       const result = await scorePaths({ paths: [repoDir], profile: 'standard', cwd: repoDir });
-      const elapsedMs = Date.now() - start;
+      const cpu = process.cpuUsage(cpu0);
+      const cpuMs = Math.round((cpu.user + cpu.system) / 1000);
 
       assert.ok(
-        elapsedMs < 15_000,
-        `expected the scan to stay bounded to the repo root and finish quickly (${elapsedMs}ms) — an unclamped testDir: '/' would glob the entire filesystem`
+        cpuMs < 15_000,
+        `expected the scan to stay bounded to the repo root and finish quickly (${cpuMs} ms of CPU) — an unclamped testDir: '/' would glob the entire filesystem`
       );
       assert.equal(
         result.summary.files,
@@ -1767,6 +1783,7 @@ describe('2.1.0 review fixes: config discovery and testDir must never escape the
       );
     } finally {
       fs.rmSync(repoDir, { recursive: true, force: true });
+      fs.rmSync(decoyDir, { recursive: true, force: true });
     }
   });
 });
