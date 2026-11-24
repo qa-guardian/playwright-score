@@ -120,7 +120,7 @@ export function formOfReportedRead(t: Tree | undefined, line: number, column: nu
   const node = t?.nodeAt(line, column);
   if (!t || !node || !readForms.enabled) return undefined;
   if (reportedReadReused(t, node, aliases)) return 'read-reused';
-  return readShapeForm(t, node) ?? 'read-direct';
+  return readShapeForm(t, node, aliases) ?? 'read-direct';
 }
 
 /** The url/count reads upstream does not report: `expect(<read>).toX()` with an equivalent web-first matcher, outside a retrying block. */

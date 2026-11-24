@@ -1098,6 +1098,10 @@
    "pending": null
   },
   {
+   "id": "no-networkidle/capture-window-false-aliased-expect-collection-never-asserted",
+   "pending": null
+  },
+  {
    "id": "no-networkidle/capture-window-false-collection-never-asserted",
    "pending": null
   },
@@ -1122,11 +1126,19 @@
    "pending": null
   },
   {
+   "id": "no-networkidle/capture-window-true-aliased-expect-const-held-networkidle",
+   "pending": null
+  },
+  {
    "id": "no-networkidle/capture-window-true-aliased-test-requestfinished-set",
    "pending": null
   },
   {
    "id": "no-networkidle/capture-window-true-failed-response-counter",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-true-js-aliased-expect-const-held-networkidle",
    "pending": null
   },
   {
@@ -3074,6 +3086,10 @@
    "pending": null
   },
   {
+   "id": "prefer-web-first-assertions/read-compare-true-aliased-expect-compare",
+   "pending": null
+  },
+  {
    "id": "prefer-web-first-assertions/read-compare-true-aliased-test-text-changed",
    "pending": null
   },
@@ -3083,6 +3099,10 @@
   },
   {
    "id": "prefer-web-first-assertions/read-compare-true-expected-derived-from-read",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-js-aliased-expect-compare",
    "pending": null
   },
   {
@@ -3134,6 +3154,10 @@
    "pending": null
   },
   {
+   "id": "prefer-web-first-assertions/read-handle-true-aliased-expect-handle-read",
+   "pending": null
+  },
+  {
    "id": "prefer-web-first-assertions/read-handle-true-aliased-test-locator-element-handle",
    "pending": null
   },
@@ -3143,6 +3167,10 @@
   },
   {
    "id": "prefer-web-first-assertions/read-handle-true-dollar-dollar-item",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-js-aliased-expect-handle-read",
    "pending": null
   },
   {

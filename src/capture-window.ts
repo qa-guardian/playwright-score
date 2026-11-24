@@ -83,8 +83,8 @@ function usesCollection(t: Tree, expr: N, collections: Set<N>, depth = 0): boole
 }
 
 /** An `expect(...)` chain or an `assert` call: the whole statement expression. */
-function assertionAt(t: Tree, n: N): N | undefined {
-  if (isExpectSubjectCall(n)) return t.chainTop(n);
+function assertionAt(t: Tree, n: N, aliases?: ReadonlySet<string>): N | undefined {
+  if (isExpectSubjectCall(n, aliases)) return t.chainTop(n);
   if (n.type !== 'CallExpression') return undefined;
   const callee = n.callee as N;
   const root = callee.type === 'MemberExpression' ? (callee.object as N) : callee;
@@ -97,12 +97,13 @@ export const PLAIN_WAIT_FORM = '-';
 /**
  * Form of the no-networkidle finding reported at (line, column): `capture-window`, or `-` for the plain wait.
  * Always one of the two: with two rows in the catalogue, a finding without a form would have no cell.
+ * `aliases`: the names proven to alias Playwright's expect in the file (expect-alias.ts); their assertions count.
  */
-export function captureWindowForm(t: Tree | undefined, line: number, column: number): string {
-  return (captureWindow.enabled && t && isCaptureWindow(t, line, column)) ? CAPTURE_WINDOW_FORM : PLAIN_WAIT_FORM;
+export function captureWindowForm(t: Tree | undefined, line: number, column: number, aliases?: ReadonlySet<string>): string {
+  return (captureWindow.enabled && t && isCaptureWindow(t, line, column, aliases)) ? CAPTURE_WINDOW_FORM : PLAIN_WAIT_FORM;
 }
 
-function isCaptureWindow(t: Tree, line: number, column: number): boolean {
+function isCaptureWindow(t: Tree, line: number, column: number, aliases?: ReadonlySet<string>): boolean {
   const node = t.nodeAt(line, column);
   if (!node) return false;
   const body = testBody(t, node);
@@ -118,7 +119,7 @@ function isCaptureWindow(t: Tree, line: number, column: number): boolean {
   if (collections.size === 0) return false;
   return t.some(body, (n) => {
     if (start(n) <= at) return false;
-    const assertion = assertionAt(t, n);
+    const assertion = assertionAt(t, n, aliases);
     return !!assertion && usesCollection(t, assertion, collections);
   });
 }

@@ -360,12 +360,23 @@ export async function createLinter(
     const mine = aliasEslint && byFile ? files.filter((f) => byFile.has(f)) : [];
     const added = !aliasEslint || mine.length === 0 ? [] : newFindings(found, await lintWith(aliasEslint, mine, reportBase, byFile));
     const scoped = scopeEslint && scopeByFile ? files.filter((f) => scopeByFile.has(f)) : [];
-    return scoped.length === 0 || !scopeEslint ? added : [...added, ...newFindings(found, await lintWith(scopeEslint, scoped, reportBase))];
+    return scoped.length === 0 || !scopeEslint ? added : [...added, ...newFindings(found, await lintWith(scopeEslint, scoped, reportBase, undefined, byFile))];
   };
-  return Object.assign((files: string[]) => lintWith(eslint, files, reportBase), { aliasPass });
+  return Object.assign((files: string[]) => lintWith(eslint, files, reportBase, undefined, byFile), { aliasPass });
 }
 
-async function lintWith(eslint: ESLint, files: string[], reportBase: string, aliasesByFile?: ReadonlyMap<string, string[]>): Promise<Finding[]> {
+/**
+ * `aliasesByFile` drives the alias lint (the post-filter reads it). `formAliasesByFile` only feeds the form of a
+ * prefer-web-first-assertions or no-networkidle finding, in every pass: a read or a capture window is judged with the
+ * file's proven expect aliases also when the finding itself is not on an aliased expect.
+ */
+async function lintWith(
+  eslint: ESLint,
+  files: string[],
+  reportBase: string,
+  aliasesByFile?: ReadonlyMap<string, string[]>,
+  formAliasesByFile: ReadonlyMap<string, string[]> | undefined = aliasesByFile
+): Promise<Finding[]> {
   const results = await eslint.lintFiles(files);
   const findings: Finding[] = [];
 
@@ -380,6 +391,8 @@ async function lintWith(eslint: ESLint, files: string[], reportBase: string, ali
     const file = path.relative(reportBase, absFile) || path.basename(absFile);
     const aliasNames = aliasesByFile?.get(absFile);
     const aliases = aliasNames ? new Set(aliasNames) : undefined;
+    const formAliasNames = formAliasesByFile?.get(absFile);
+    const formAliases = formAliasNames ? new Set(formAliasNames) : undefined;
     const postFilter = createPostFilter(() => result.source ?? fs.readFileSync(absFile, 'utf8'), absFile, aliases);
     for (const msg of result.messages) {
       // A `// eslint-disable-next-line some/rule-we-dont-bundle` comment is
@@ -433,9 +446,9 @@ async function lintWith(eslint: ESLint, files: string[], reportBase: string, ali
       const messageSeverity = msg.messageId ? MESSAGE_SEVERITY[`${msg.ruleId}#${msg.messageId}`] : undefined;
       const form =
         msg.ruleId === 'playwright/prefer-web-first-assertions'
-          ? formOfReportedRead(postFilter.tree(), msg.line, msg.column, aliases)
+          ? formOfReportedRead(postFilter.tree(), msg.line, msg.column, formAliases)
           : msg.ruleId === 'playwright/no-networkidle'
-          ? captureWindowForm(postFilter.tree(), msg.line, msg.column)
+          ? captureWindowForm(postFilter.tree(), msg.line, msg.column, formAliases)
           : postFilter.formOf({ ruleId: msg.ruleId, messageId: msg.messageId, line: msg.line, column: msg.column });
       findings.push({
         rule: msg.ruleId,

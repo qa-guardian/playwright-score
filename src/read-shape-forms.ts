@@ -63,9 +63,9 @@ function isHandle(t: Tree, n: N | undefined, depth = 0): boolean {
 }
 
 /** The expects whose subject is the reported read, and the read itself. Upstream reports the expect, or the read inside the declaration it followed. */
-function reportedRead(t: Tree, node: N): { read: N | undefined; expects: N[] } {
+function reportedRead(t: Tree, node: N, aliases?: ReadonlySet<string>): { read: N | undefined; expects: N[] } {
   for (let c: N | undefined = node; c; c = t.parent(c)) {
-    if (isExpectSubjectCall(c)) {
+    if (isExpectSubjectCall(c, aliases)) {
       const subject = unwrap(c.arguments?.[0] as N | undefined);
       if (subject?.type !== 'Identifier') return { read: subject, expects: [c] };
       const b = resolve(t, c, subject.name);
@@ -76,7 +76,7 @@ function reportedRead(t: Tree, node: N): { read: N | undefined; expects: N[] } {
       const name = c.id.name as string;
       const expects: N[] = [];
       t.some(t.enclosingFunction(c) ?? t.root, (n) => {
-        if (!isExpectSubjectCall(n)) return false;
+        if (!isExpectSubjectCall(n, aliases)) return false;
         const subject = unwrap(n.arguments?.[0] as N | undefined);
         if (subject?.type === 'Identifier' && subject.name === name && resolve(t, n, name)?.decl === decl) expects.push(n);
         return false;
@@ -137,10 +137,13 @@ function comparesWithRead(t: Tree, expectCall: N): boolean {
   return !!matcher && ((matcher.arguments ?? []) as N[]).some((a) => derivedFromRead(t, a, expectCall));
 }
 
-/** The form of the read reported at `node` when it is one of the two shapes; read-handle wins over read-compare. */
-export function readShapeForm(t: Tree, node: N): ReadShapeForm | undefined {
+/**
+ * The form of the read reported at `node` when it is one of the two shapes; read-handle wins over read-compare.
+ * `aliases`: the names proven to alias Playwright's expect in the file (expect-alias.ts), as for read-reused.
+ */
+export function readShapeForm(t: Tree, node: N, aliases?: ReadonlySet<string>): ReadShapeForm | undefined {
   if (!readShapeForms.enabled) return undefined;
-  const { read, expects } = reportedRead(t, node);
+  const { read, expects } = reportedRead(t, node, aliases);
   if (read?.type === 'CallExpression' && read.callee?.type === 'MemberExpression' && isHandle(t, read.callee.object as N)) return 'read-handle';
   return expects.some((e) => comparesWithRead(t, e)) ? 'read-compare' : undefined;
 }

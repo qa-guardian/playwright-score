@@ -9205,6 +9205,55 @@
    "tags": [
     "js"
    ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-aliased-expect-handle-read",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-aliased-expect-handle-read.ts",
+   "form": "read-handle"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-js-aliased-expect-handle-read",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-js-aliased-expect-handle-read.js",
+   "form": "read-handle"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-aliased-expect-compare",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/true-aliased-expect-compare.ts",
+   "form": "read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-js-aliased-expect-compare",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/true-js-aliased-expect-compare.js",
+   "form": "read-compare"
+  },
+  {
+   "id": "no-networkidle/capture-window-true-aliased-expect-const-held-networkidle",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/capture-window/true-aliased-expect-const-held-networkidle.ts",
+   "form": "capture-window"
+  },
+  {
+   "id": "no-networkidle/capture-window-true-js-aliased-expect-const-held-networkidle",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/capture-window/true-js-aliased-expect-const-held-networkidle.js",
+   "form": "capture-window"
+  },
+  {
+   "id": "no-networkidle/capture-window-false-aliased-expect-collection-never-asserted",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/capture-window/false-aliased-expect-collection-never-asserted.ts",
+   "form": "capture-window"
   }
  ]
 }
