@@ -1023,7 +1023,7 @@
   },
   {
    "id": "no-floating-callback-assertion/true-shared-foreach-async",
-   "pending": "S6b"
+   "pending": null
   },
   {
    "id": "no-floating-callback-assertion/true-to-pass-map-statement",

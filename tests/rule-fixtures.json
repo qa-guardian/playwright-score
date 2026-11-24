@@ -2165,8 +2165,7 @@
    "tags": [
     "shared"
    ],
-   "pending": "S6b",
-   "note": "needs shared-file linting (S6b); the rule landed in S7a, and no rule runs on a shared file before S6b"
+   "note": "an awaited assertion in an async forEach callback inside a shared helper file: reported once shared files are linted (S6b)"
   },
   {
    "id": "prefer-web-first-assertions/true-helper-awaited-is-visible",
