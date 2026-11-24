@@ -51,3 +51,15 @@ export function cellTier(rule: string, form: string, role: 'spec' | 'shared' = '
   const key = cellKey(rule, form, role);
   return tierOverrides.get(key) ?? load().byKey.get(key)?.tier;
 }
+
+/**
+ * Test seam: a release path set here, by `cellKey`, replaces the file's `passedPath` for that
+ * cell. Empty outside the unit tests, like `tierOverrides`.
+ */
+export const pathOverrides = new Map<string, 'M' | 'BC'>();
+
+/** The release path the file gives one cell (`passedPath`: M or BC), or undefined when none has passed. */
+export function cellPassedPath(rule: string, form: string, role: 'spec' | 'shared' = 'spec'): 'M' | 'BC' | undefined {
+  const key = cellKey(rule, form, role);
+  return pathOverrides.get(key) ?? load().byKey.get(key)?.passedPath;
+}

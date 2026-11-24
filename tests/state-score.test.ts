@@ -148,7 +148,11 @@ describe('QAG-287 S9a: score model v5 from test states', () => {
       assert.equal(r.summary.chargedTests, want.charged);
       assert.equal(r.score, want.score);
       assert.equal(r.grade, want.grade);
-      assert.equal(r.pass, want.status === 'scored' && want.score >= r.threshold);
+      // QAG-287 S9c: the default gate. Only weak-only has a certain passes-regardless finding
+      // (no-weak-assertion) in a counted test; the others' certain findings are flake-risk
+      // (no-wait-for-selector), which the default gate does not name. No threshold: 0.
+      assert.equal(r.pass, want.status === 'scored' && c !== 'weak-only');
+      assert.equal(r.threshold, 0);
       assert.equal(r.summary.unassertedCharged, false, 'the unasserted cell is not certain in the committed file');
       assert.deepEqual(r.locators, { native: r.summary.nativeLocators, raw: r.summary.rawLocators, scored: false });
       for (const k of ['playwrightHygiene', 'assertions', 'locators', 'structure'] as const) assert.equal(typeof r.dimensions[k], 'number');

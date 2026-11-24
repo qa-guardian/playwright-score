@@ -32,6 +32,8 @@ export interface ReportOptions {
   suiteName: string;
   /** True when --threshold was passed, so the bar reads "your bar" instead of "the default bar". */
   customThreshold?: boolean;
+  /** `--advice`: accepted; no effect on the output yet. */
+  advice?: boolean;
   /** Source lookup for code excerpts; without it the excerpts are omitted. */
   readSource?: SourceReader;
 }
@@ -245,7 +247,7 @@ export function formatReport(result: ScoreResult, opts: ReportOptions): string {
     scoreBox = `<div class="score notscored" role="img" aria-label="Not scored"><span class="big">--</span><span class="grade">Not scored</span></div>`;
   } else {
     headline = `${clean} of ${summary.tests} ${summary.tests === 1 ? 'test has' : 'tests have'} no issues.`;
-    explain = `The share of the counted tests with no confirmed issue; the areas below are for information. ${gradeBandText(result.grade, result.pass)}${result.status === 'partial' ? '' : ` ${barText(result.threshold, opts.customThreshold === true, result.pass)}`}`;
+    explain = `The share of the counted tests with no confirmed issue; the areas below are for information. ${gradeBandText(result.grade, result.pass)}${result.status === 'partial' || (result.threshold === 0 && opts.customThreshold !== true) ? '' : ` ${barText(result.threshold, opts.customThreshold === true, result.score >= result.threshold)}`}`;
     scoreBox = `<div class="score g-${result.grade}" aria-hidden="true"><span class="big">${result.score}</span><span class="of">/100</span><span class="grade">${result.grade}</span></div>`;
   }
   const srScore = state ? '' : `<span class="sr-only">Score ${result.score} out of 100, grade ${result.grade}. </span>`;

@@ -52,8 +52,10 @@ export interface Finding {
    * copy; `excerpt` is the source line. `evidence` is how the scorer decided
    * what the code refers to. `confidence` is the lower end of the 95% Wilson
    * interval of the cell's decided precision on hand-checked rows, or null
-   * when fewer than five rows were decided. `quotable` is true only for a
-   * certain finding in a cell that passed the full release bar.
+   * when fewer than five rows were decided. `quotable` (always set by
+   * `scorePaths`) is true only for a certain finding in a cell whose release
+   * path in the committed precision file is M (measured); a by-construction
+   * (BC), likely, advisory or needs-check finding is never quotable.
    */
   form?: string;
   tier?: Tier;
@@ -196,6 +198,36 @@ export interface Coverage {
  */
 export type TestState = 'excluded-empty' | 'excluded-skipped' | 'issue' | 'unasserted' | 'unverified' | 'clean';
 
+/**
+ * What fails the gate (`ScoreOptions.failOn`, `--fail-on`). `passes-regardless`
+ * (the default): a certain finding of that family. `flake-risk`: a certain
+ * finding of the flake-risk or suite family. Both count a finding in a counted
+ * test, in a hook in scope for a counted test, or outside every test in a spec
+ * file with at least one counted test. `unasserted`: a counted test in state
+ * `unasserted` or `unverified`. `shared`: a certain finding in a shared file
+ * (scope `shared`) whose `usedBy` names a spec file with a counted test.
+ * `none`: no finding fails the gate; it is never combined with another value.
+ */
+export type FailOn = 'passes-regardless' | 'flake-risk' | 'unasserted' | 'shared' | 'none';
+
+/**
+ * Why a result does not pass: `not-scored`; `partial` (without
+ * `allowPartial`); `threshold` (the score is below a given threshold); or the
+ * `failOn` value whose findings or tests failed the gate.
+ */
+export type GateReason = 'not-scored' | 'partial' | 'threshold' | Exclude<FailOn, 'none'>;
+
+/** How `pass` was decided (additive). */
+export interface GateOutcome {
+  /** The `failOn` values in effect, in a fixed order. */
+  failOn: FailOn[];
+  allowPartial: boolean;
+  /** True when a threshold was given; without one the score does not gate. */
+  thresholdApplied: boolean;
+  /** Empty when `pass` is true; otherwise every reason, in a fixed order. */
+  reasons: GateReason[];
+}
+
 /** Points at one finding of `findings`: the same rule, form, file, line and column. */
 export interface FindingRef {
   rule: string;
@@ -225,7 +257,13 @@ export interface ScoreResult {
   profile: ProfileName;
   score: number;
   grade: Grade;
+  /**
+   * The gate (set by `scorePaths`, see `gate`): status `scored`, or `partial`
+   * with `allowPartial`; no finding or test named by `failOn`; and, only when a
+   * threshold was given, `score >= threshold`.
+   */
   pass: boolean;
+  /** The threshold given, or 0 when none was (the score then does not gate). */
   threshold: number;
   summary: ScoreSummary;
   dimensions: ScoreDimensions;
@@ -285,12 +323,28 @@ export interface ScoreResult {
   reason?: NotScoredReason;
   /** Always set by `scorePaths`: what was found, what was scored and what was skipped. */
   coverage?: Coverage;
+  /** Always set by `scorePaths`: the gate settings and why the result does not pass. */
+  gate?: GateOutcome;
 }
 
 export interface ScoreOptions {
   paths: string[];
   profile?: ProfileName;
+  /**
+   * When given, `pass` also needs `score >= threshold` (0-100). Default: none,
+   * and the score does not gate (`threshold` in the result is then 0).
+   */
   threshold?: number;
+  /**
+   * What fails the gate (see `FailOn`). Default `['passes-regardless']`. An
+   * empty list, an unknown value, or `none` with another value makes
+   * `scorePaths` throw a `RangeError` before any file is looked at.
+   */
+  failOn?: FailOn[];
+  /** Lets a `partial` result pass. Default false. A `not-scored` result never passes. */
+  allowPartial?: boolean;
+  /** Accepted for the advice output; no effect on the result in this version. Default false. */
+  advice?: boolean;
   cwd?: string;
   /**
    * Time limit for the whole call, in seconds, counted from the call. No

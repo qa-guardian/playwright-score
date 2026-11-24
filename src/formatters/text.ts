@@ -15,6 +15,8 @@ export interface TextOptions {
   suiteName?: string;
   version?: string;
   customThreshold?: boolean;
+  /** `--advice`: accepted; no effect on the output yet. */
+  advice?: boolean;
 }
 
 /** Groups shown, and locations shown per group; the rest collapse into "+N more". */
@@ -52,7 +54,7 @@ export function formatText(result: ScoreResult, opts: TextOptions = {}): string 
   } else {
     const clean = summary.cleanTests;
     lines.push(
-      `Score ${result.score}/100 (${result.grade})  ·  ${result.pass ? 'PASS' : 'FAIL'} (${opts.customThreshold ? 'your bar' : 'bar'} ${result.threshold})  ·  ${clean} ${clean === 1 ? 'test has' : 'tests have'} no issues`
+      `Score ${result.score}/100 (${result.grade})  ·  ${result.pass ? 'PASS' : 'FAIL'}${result.threshold > 0 || opts.customThreshold ? ` (${opts.customThreshold ? 'your bar' : 'bar'} ${result.threshold})` : ''}  ·  ${clean} ${clean === 1 ? 'test has' : 'tests have'} no issues`
     );
     lines.push(
       DIMENSIONS.filter((d) => result.dimensions[d.key] !== undefined)

@@ -28,8 +28,9 @@ export const PROFILE_WEIGHTS: Record<
   },
 };
 
+/** 0: without a given threshold the score does not gate (QAG-287 S9c). */
 export const DEFAULT_THRESHOLDS: Record<ProfileName, number> = {
-  standard: 80,
+  standard: 0,
 };
 
 /** Map eslint ruleId → dimension + whether report-only for scoring */

@@ -32,12 +32,13 @@ import {
 } from './playwright-config.js';
 import { SPEC_EXTENSION_RE } from './source-type.js';
 import { DEFAULT_THRESHOLDS } from './profiles.js';
-import { decorateFindings } from './catalogue/decorate.js';
+import { decorateFindings, settleQuotable } from './catalogue/decorate.js';
 import { applyReceiverForms } from './receiver-forms.js';
 import { applyExpectBinding, settleExpectBinding } from './expect-binding.js';
 import { settleTestStates, stageTestStates } from './test-states.js';
 import { computeScore } from './score-engine.js';
 import { applyStateScore, SCORE_VERSION } from './state-score.js';
+import { applyGate, gateSettings } from './gate.js';
 import { getEngineVersions } from './engine-versions.js';
 import { resetRuleCrashes, ruleCrashes, summarizeRuleCrashes } from './rules/base-plugin.js';
 import {
@@ -61,6 +62,9 @@ export type {
   Coverage,
   SkippedFile,
   SkipReason,
+  FailOn,
+  GateOutcome,
+  GateReason,
 } from './types.js';
 export {
   computeScore,
@@ -583,6 +587,8 @@ function hardFail(
 export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   // A limit that is not usable is refused here, before any file is looked at.
   assertLimits(options);
+  // QAG-287 S9c: an unusable failOn or allowPartial is refused here too.
+  const gate = gateSettings(options);
   resetRuleCrashes();
   let result: ScoreResult;
   try {
@@ -596,6 +602,9 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   settleTestStates(result);
   // QAG-287 S9a: score model v5, the share of counted tests that are clean, from those states.
   applyStateScore(result);
+  settleQuotable(result.findings);
+  // QAG-287 S9c: pass from the states, tiers, families and scopes above; nothing is re-analysed.
+  applyGate(result, gate);
   const crashes = summarizeRuleCrashes();
   const withCrashes = crashes.length > 0 ? { ...result, ruleCrashes: crashes } : result;
   return { ...withCrashes, engine: getEngineVersions() };
@@ -607,7 +616,7 @@ async function scorePathsInner(options: ScoreOptions): Promise<ScoreResult> {
   const cwd = options.cwd ?? process.cwd();
   const profile: ProfileName = options.profile ?? 'standard';
   const threshold =
-    options.threshold ?? DEFAULT_THRESHOLDS[profile] ?? 80;
+    options.threshold ?? DEFAULT_THRESHOLDS[profile] ?? 0;
 
   // One admission object per run: it decides, for both discovery and the
   // loop below, whether a candidate is a Playwright file and whether it is

@@ -96,6 +96,8 @@ describe('QAG-287 S12: test states', () => {
       score: undefined,
       grade: undefined,
       pass: undefined,
+      // QAG-287 S9c: the gate is read from the status and the states, like pass.
+      gate: undefined,
       status: undefined,
       reason: undefined,
       outsideTests: undefined,

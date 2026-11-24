@@ -37,7 +37,6 @@ counted = every test except excluded-empty and excluded-skipped
 charged = issue tests, plus unasserted tests when that check is certain
 score   = round(100 x (counted - charged) / counted)
 grade   = A >=90 · B >=80 · C >=70 · D >=60 · F <60
-pass    = score >= threshold on a fully scored suite   // CLI default 80
 ```
 
 - Only **certain** findings charge a test. Likely and advisory findings
@@ -56,6 +55,36 @@ pass    = score >= threshold on a fully scored suite   // CLI default 80
   `summary.chargedTests` give the two numbers of the formula.
 - With no file found, or no counted test, the suite is `not-scored`:
   score 0, grade F, no pass, exit code 1.
+
+### The gate: `pass` and the exit code
+
+`pass` (exit code 0) needs all three:
+
+- status `scored`, or `partial` with `--allow-partial` (library:
+  `allowPartial`). A `not-scored` suite never passes.
+- nothing named by `--fail-on` (library: `failOn`) is found. The values,
+  combined with commas:
+  - `passes-regardless` (the default): a certain finding of that family.
+  - `flake-risk`: a certain finding of the flake-risk family, or of the
+    suite family (`page.pause()`, a focused test).
+  - `unasserted`: a counted test in state `unasserted` or `unverified`,
+    whether or not the score charges it.
+  - `shared`: a certain finding in a shared file whose `usedBy` names a
+    spec file with a counted test. A likely shared finding never counts.
+  - `none`: nothing; it cannot be combined with another value.
+
+  For the two family values a finding counts when it is in a counted
+  test, in a hook in scope for a counted test, or outside every test in a
+  spec file with at least one counted test. A finding in a shared file
+  counts only through `shared`.
+- `score >= threshold`, only when `--threshold` was given. Without it the
+  score does not gate, and the JSON `threshold` is 0.
+
+The gate reads the states, tiers, families and scopes already in the
+result; it never changes a finding, a state or the score. The JSON `gate`
+object says which settings were used and lists every reason a result does
+not pass. Exit code 1 means not pass; 2 is a tool or usage error, such
+as an unknown `--fail-on` value or `none` combined with another value.
 
 The four dimensions below, `summary.cleanTests` and locator usage
 (`locators`, with `scored: false`) are still computed as before. They are
@@ -129,7 +158,7 @@ owns this dimension; counting them as demerits too would double-penalize.)
 
 ```
 score = round(Σ (weight_d / 100) × dimensionScore_d)
-pass  = score >= threshold        // CLI default 80
+pass  = score >= threshold        // computeScore on its own; scorePaths uses the gate
 grade = A ≥90 · B ≥80 · C ≥70 · D ≥60 · F <60
 ```
 

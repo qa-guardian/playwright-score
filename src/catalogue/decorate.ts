@@ -4,6 +4,7 @@ import type { Finding } from '../types.js';
 import type { Evidence, RuleRow } from './types.js';
 import { defaultRow, rowFor, rowsOf } from './table.js';
 import { confidenceOfRow, tierOf } from './tiers.js';
+import { cellPassedPath } from './precision.js';
 
 const MAX_EXCERPT = 240;
 
@@ -93,6 +94,21 @@ export function decorateFindings(findings: Finding[], baseDir: string | undefine
     f.excerpt = f.line !== undefined && f.line > 0 ? excerptOf(linesOf(f.file), f.line) : '';
     f.evidence = evidence;
     f.confidence = undecided ? null : confidenceOfRow(row);
-    f.quotable = false;
+    f.quotable = isQuotable(f);
   }
+}
+
+/**
+ * Whether a finding may be quoted: it is certain, and its cell's release path in the committed
+ * precision file is M (measured). A BC (by construction), likely, advisory or needs-check
+ * finding never is.
+ */
+export function isQuotable(f: Finding): boolean {
+  if (f.tier !== 'certain' || f.form === undefined) return false;
+  return cellPassedPath(f.rule, f.form, f.scope === 'shared' ? 'shared' : 'spec') === 'M';
+}
+
+/** Sets `quotable` on every finding from its final tier (a later step may lower a tier). */
+export function settleQuotable(findings: Finding[]): void {
+  for (const f of findings) f.quotable = isQuotable(f);
 }

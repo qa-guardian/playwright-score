@@ -12,10 +12,7 @@ import { formatSarif } from './formatters/sarif.js';
 import { formatReport } from './formatters/report.js';
 import { makeSourceReader } from './report-source.js';
 import { suiteLabel } from './suite-name.js';
-import { resolveDotSlashAbsolute } from './fs-util.js';
-import { DEFAULT_MAX_HEAP_MB, MAX_MAX_HEAP_MB, MIN_MAX_HEAP_MB } from './isolate.js';
-import { limitProblem } from './limits.js';
-import type { ProfileName } from './types.js';
+import { optionsHelp, parseArgs } from './cli-args.js';
 
 function printHelp(): void {
   console.log(`pwscore — deterministic Playwright spec quality score
@@ -30,33 +27,18 @@ Usage:
 Not affiliated with Microsoft or the Playwright project.
 
 Options:
-  --profile <standard>             Scoring profile (default, and only
-                                   supported value, as of 2.0.0: standard).
-  --threshold <n>                 Pass threshold 0-100 (default: 80)
-  --format <text|json|markdown|sarif|report>
-                                  Output format (default: text). report is a
-                                  self-contained one-page HTML suite report.
-  --out, --output <file>          Write report to file
-  --name <suite name>             Suite name for the report headline
-                                  (default: the directory basename)
-  --max-seconds <n>               Time limit for the run. No default: without
-                                  it a run is never cut short. Finding the
-                                  files always finishes; files not analysed
-                                  when the limit passes are skipped.
-  --max-heap-mb <n>               Heap limit of the analysis worker
-                                  (default: ${DEFAULT_MAX_HEAP_MB}, the same on every machine;
-                                  ${MIN_MAX_HEAP_MB} to ${MAX_MAX_HEAP_MB}).
-                                  Files in the batch that hits it are skipped.
-  --version                       Print version
-  --help                          Show help
+${optionsHelp()}
 
 Exit codes:
-  0  score >= threshold, every file scored
-  1  score < threshold, or partial (a file was skipped: syntax error,
-     over 1 MB, binary, unreadable, or a --max-seconds / --max-heap-mb
-     limit was hit), or not scored (no files matched, every file skipped,
-     or no tests found)
-  2  tool error
+  0  pass: status scored (or partial with --allow-partial), nothing
+     named by --fail-on found, and score >= --threshold when given
+  1  not pass, including a partial result without --allow-partial
+     (a file was skipped: syntax error, over 1 MB, binary, unreadable,
+     or a --max-seconds / --max-heap-mb limit was hit) and every
+     not-scored result (no files matched, every file skipped, or no
+     counted tests)
+  2  tool or usage error (an unknown option or --fail-on value, or
+     "none" combined with another --fail-on value)
 
 Website: https://qaguardian.com/open-source/playwright-score
 Methodology: METHODOLOGY.md (scoring model v4)
@@ -115,99 +97,16 @@ async function main(): Promise<void> {
     return;
   }
 
-  let profile: ProfileName = 'standard';
-  let threshold: number | undefined;
-  type Format = 'text' | 'json' | 'markdown' | 'sarif' | 'report';
-  let format: Format = 'text';
-  let out: string | undefined;
-  let name: string | undefined;
-  let maxSeconds: number | undefined;
-  let maxHeapMb: number | undefined;
-  const paths: string[] = [];
-
-  for (let i = 0; i < args.length; i++) {
-    const a = args[i];
-    if (a === '--profile') {
-      const p = args[++i];
-      if (p === 'guardian') {
-        console.error(
-          'Profile "guardian" is no longer public — it was QA Guardian\'s internal house-rules layer, never official Playwright doctrine, and doesn\'t belong in a general-purpose tool. See CHANGELOG.md. Use --profile standard.'
-        );
-        process.exitCode = 2;
-        return;
-      }
-      if (p === 'strict') {
-        console.error(
-          'Profile "strict" was removed in 2.0.0 — the four gameability checks it used to count on top of "standard" (timer-sleep sleeps, coordinate clicks, trivial assertions, soft-assertion-only tests) are now scored under "standard" directly, so a separate stricter profile has nothing left to gate. See CHANGELOG.md. Use --profile standard.'
-        );
-        process.exitCode = 2;
-        return;
-      }
-      if (p !== 'standard') {
-        console.error(`Invalid profile: ${p}`);
-        process.exitCode = 2;
-        return;
-      }
-      profile = p as ProfileName;
-    } else if (a === '--threshold') {
-      threshold = Number(args[++i]);
-      if (Number.isNaN(threshold) || threshold < 0 || threshold > 100) {
-        console.error('threshold must be 0-100');
-        process.exitCode = 2;
-        return;
-      }
-    } else if (a === '--format') {
-      const f = args[++i];
-      if (f !== 'text' && f !== 'json' && f !== 'markdown' && f !== 'sarif' && f !== 'report') {
-        console.error(`Invalid format: ${f}`);
-        process.exitCode = 2;
-        return;
-      }
-      format = f;
-    } else if (a === '--out' || a === '--output') {
-      out = args[++i];
-    } else if (a === '--name') {
-      name = args[++i];
-      if (!name) {
-        console.error('--name requires a value');
-        process.exitCode = 2;
-        return;
-      }
-    } else if (a === '--max-seconds') {
-      maxSeconds = Number(args[++i]);
-      const problem = limitProblem('maxSeconds', maxSeconds);
-      if (problem !== undefined) {
-        console.error(`--max-seconds ${problem}`);
-        process.exitCode = 2;
-        return;
-      }
-    } else if (a === '--max-heap-mb') {
-      maxHeapMb = Number(args[++i]);
-      const problem = limitProblem('maxHeapMb', maxHeapMb);
-      if (problem !== undefined) {
-        console.error(`--max-heap-mb ${problem}`);
-        process.exitCode = 2;
-        return;
-      }
-    } else if (a === '--version' || a === '-v') {
-      continue;
-    } else if (a.startsWith('-')) {
-      console.error(`Unknown option: ${a}`);
-      process.exitCode = 2;
-      return;
-    } else {
-      paths.push(resolveDotSlashAbsolute(a));
-    }
-  }
-
-  if (paths.length === 0) {
-    console.error('At least one path is required');
+  const parsed = parseArgs(args);
+  if ('error' in parsed) {
+    console.error(parsed.error);
     process.exitCode = 2;
     return;
   }
+  const { paths, profile, threshold, format, out, name, maxSeconds, maxHeapMb, failOn, allowPartial, advice } = parsed.options;
 
   try {
-    const result = await scorePaths({ paths, profile, threshold, maxSeconds, maxHeapMb });
+    const result = await scorePaths({ paths, profile, threshold, maxSeconds, maxHeapMb, failOn, allowPartial, advice });
     for (const c of result.ruleCrashes ?? []) {
       console.error(`warning: rule ${c.rule} crashed on ${c.count} node(s); results may be incomplete`);
     }
@@ -228,6 +127,7 @@ async function main(): Promise<void> {
           version: await packageVersion(),
           suiteName: name ?? suiteName(paths),
           customThreshold: threshold !== undefined,
+          advice,
           readSource: makeSourceReader(paths, process.cwd(), result.baseDir),
         });
         break;
@@ -236,6 +136,7 @@ async function main(): Promise<void> {
           suiteName: name ?? suiteName(paths),
           version: await packageVersion(),
           customThreshold: threshold !== undefined,
+          advice,
         });
     }
 

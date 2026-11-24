@@ -106,14 +106,19 @@ npx -p @qaguardian/playwright-score pwscore ./tests
 | Flag | Description |
 |---|---|
 | `--profile standard` | Scoring profile (default, and only, profile) |
-| `--threshold <n>` | Pass bar 0–100 |
+| `--fail-on <list>` | What fails the gate, comma-separated: `passes-regardless` (default; a certain finding that lets a test pass whatever the app does), `flake-risk` (a certain flake-risk finding, or a `page.pause()` or focused test), `unasserted` (a counted test with no assertion found), `shared` (a certain finding in a shared file a counted spec imports), `none`. `none` combines with nothing |
+| `--threshold <n>` | Also fail when the score is below n (0–100). Without it the score does not fail the gate |
+| `--allow-partial` | Let a partial result (a file was skipped) pass. A not-scored result never passes |
+| `--advice` | Accepted; no effect on the output yet |
 | `--format text\|json\|markdown\|sarif\|report` | Output format (`report` is a self-contained one-page HTML suite report) |
 | `--out <file>` | Write report to file |
 | `--max-seconds <n>` | Time limit for the whole run, counted from the start. No default: without it a run is never cut short. Finding the files always finishes; after that no new step starts once the limit has passed. Files not analysed in time are skipped and the result is partial, or not scored (reason `limit-reached`) when no test was scored in time |
 | `--max-heap-mb <n>` | Heap limit of the analysis worker. Default 4608, the same on every machine; a whole number from 64 to 65536. Files in a batch that hits it are skipped |
 | `--version` | Print version |
 
-**Exit codes:** `0` pass · `1` below threshold, **partial** (a file was skipped) or **not scored** (no files matched, every file skipped, or no tests found) · `2` tool error  
+**Exit codes:** `0` pass (status scored, or partial with `--allow-partial`; nothing named by `--fail-on` found; score at or above `--threshold` when given) · `1` not pass, including **partial** without `--allow-partial` and every **not scored** result (no files matched, every file skipped, or no counted tests) · `2` tool or usage error (an unknown option or `--fail-on` value, or `none` combined with another value)  
+
+Every finding in the JSON carries `quotable`: true only for a certain finding whose check was measured to the release bar.
 
 ## Library
 
@@ -123,10 +128,12 @@ import { scorePaths } from '@qaguardian/playwright-score';
 const result = await scorePaths({
   paths: ['tests/login.spec.ts'],
   profile: 'standard',
-  threshold: 80,
+  failOn: ['passes-regardless', 'flake-risk'], // default: ['passes-regardless']
+  allowPartial: false,
+  threshold: 80, // optional: without it the score does not gate
 });
 
-console.log(result.score, result.grade, result.pass, result.findings);
+console.log(result.score, result.grade, result.pass, result.gate.reasons, result.findings);
 ```
 
 ## GitHub Action

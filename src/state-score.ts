@@ -16,7 +16,8 @@
  *
  * Status: `not-scored` when no file was found or no test counts (`no-files`, `no-counted-tests`,
  * or `limit-reached` when a limit skipped a file): score 0, grade F, no pass. `partial` and
- * `scored` as before. `pass` is `score >= threshold` on a `scored` result. The `dimensions` are
+ * `scored` as before. `pass` is `score >= threshold` on a `scored` result here; `scorePaths` then
+ * replaces it with the gate (src/gate.ts). The `dimensions` are
  * computed as before (src/score-engine.ts) and are informational.
  */
 import { defaultRow } from './catalogue/table.js';
