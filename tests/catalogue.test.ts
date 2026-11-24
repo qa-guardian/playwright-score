@@ -213,8 +213,9 @@ describe('QAG-287 S2: the catalogue replaces the hand-kept maps without changing
 
 describe('QAG-287 S2: decorateFindings only adds keys', () => {
   it('leaves every existing key as it was and adds the catalogue fields', () => {
+    // A rule with one shape: decorateFindings gives its form-less finding the form of its only row.
     const f: Finding = {
-      rule: 'playwright/no-networkidle',
+      rule: 'playwright/no-wait-for-timeout',
       severity: 'error',
       message: 'm',
       file: 'a.spec.ts',
@@ -228,7 +229,7 @@ describe('QAG-287 S2: decorateFindings only adds keys', () => {
     const before = JSON.parse(JSON.stringify(f));
     decorateFindings([f], undefined);
     for (const [k, v] of Object.entries(before)) assert.deepEqual((f as unknown as Record<string, unknown>)[k], v, k);
-    assert.equal(f.tier, 'likely', 'the file lists no-networkidle as likely');
+    assert.equal(f.tier, 'likely', 'the file lists no-wait-for-timeout as likely');
     assert.equal(f.family, 'flake-risk');
     assert.equal(f.form, '-');
     assert.equal(f.basis, 'docs');
@@ -337,7 +338,7 @@ test('mix', async ({ page }) => {
     assert.equal(v?.family, 'passes-regardless');
   });
 
-  it('a rule with one shape carries form "-"', async () => {
+  it('a plain finding carries form "-"', async () => {
     const r = await scoreSource(SPEC);
     const n = r.findings.find((f) => f.rule === 'playwright/no-networkidle');
     assert.equal(n?.form, '-');

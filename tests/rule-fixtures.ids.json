@@ -406,6 +406,50 @@
    "pending": null
   },
   {
+   "id": "no-networkidle/capture-window-false-collection-never-asserted",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-false-idle-goto-then-click",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-false-js-idle-wait-then-assertion",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-false-js-listener-with-load-wait",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-false-listener-registered-after-the-wait",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-false-pageerror-listener",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-true-aliased-test-requestfinished-set",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-true-failed-response-counter",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-true-js-console-warnings-idle-wait",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-true-named-handler-derived-list",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/capture-window-true-response-statuses-idle-goto",
+   "pending": null
+  },
+  {
    "id": "no-networkidle/false-api-under-test-engine-named-package",
    "pending": "S3c"
   },
@@ -1951,6 +1995,114 @@
   },
   {
    "id": "prefer-web-first-assertions/foreign-expect-true-jest-globals-is-visible",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/foreign-expect-true-jest-globals-read-compare",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-expected-from-test-data",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-js-literal-expected",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-literal-expected",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-read-handle-precedence",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-read-reused-precedence",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-aliased-test-text-changed",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-attribute-differs-from-prior",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-expected-derived-from-read",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-js-expected-from-second-read",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-js-prior-assigned-later",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-js-read-compare-second-read",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-js-read-handle-text-content",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-read-compare-attribute-changed",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-read-handle-input-value",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-true-aliased-test-expected-from-test-data",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-true-js-attribute-literal-expected",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-true-text-content-literal-expected",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-false-handle-read-reused-precedence",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-false-js-locator-read-literal",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-false-locator-read-literal",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-aliased-test-locator-element-handle",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-compared-with-prior-read-precedence",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-dollar-dollar-item",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-js-for-of-handles",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-js-page-dollar-text-content",
+   "pending": null
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-page-dollar-input-value",
    "pending": null
   },
   {

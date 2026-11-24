@@ -240,6 +240,18 @@
   {
    "rule": "playwright/prefer-web-first-assertions",
    "form": "foreign-expect"
+  },
+  {
+   "rule": "playwright/prefer-web-first-assertions",
+   "form": "read-handle"
+  },
+  {
+   "rule": "playwright/prefer-web-first-assertions",
+   "form": "read-compare"
+  },
+  {
+   "rule": "playwright/no-networkidle",
+   "form": "capture-window"
   }
  ],
  "fixtures": [
@@ -5389,6 +5401,335 @@
    "entry": "pwscore__no-trivial-assertion/foreign-expect/false-playwright-expect-literal.ts",
    "form": "foreign-expect",
    "note": "expect is the one from @playwright/test: the finding keeps its shape form"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-true-text-content-literal-expected",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/true-text-content-literal-expected.ts",
+   "form": "read-direct"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-true-js-attribute-literal-expected",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/true-js-attribute-literal-expected.js",
+   "form": "read-direct",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-true-aliased-test-expected-from-test-data",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/true-aliased-test-expected-from-test-data.ts",
+   "form": "read-direct",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-read-compare-attribute-changed",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/false-read-compare-attribute-changed.ts",
+   "form": "read-direct",
+   "note": "the expected value is an earlier read: form read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-js-read-compare-second-read",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/false-js-read-compare-second-read.js",
+   "form": "read-direct",
+   "tags": [
+    "js"
+   ],
+   "note": "the expected value is a second read: form read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-read-handle-input-value",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/false-read-handle-input-value.ts",
+   "form": "read-direct",
+   "note": "the receiver is an ElementHandle: form read-handle"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-direct-false-js-read-handle-text-content",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-direct/false-js-read-handle-text-content.js",
+   "form": "read-direct",
+   "tags": [
+    "js"
+   ],
+   "note": "the receiver is an ElementHandle: form read-handle"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-attribute-differs-from-prior",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/true-attribute-differs-from-prior.ts",
+   "form": "read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-js-expected-from-second-read",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/true-js-expected-from-second-read.js",
+   "form": "read-compare",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-aliased-test-text-changed",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/true-aliased-test-text-changed.ts",
+   "form": "read-compare",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-expected-derived-from-read",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/true-expected-derived-from-read.ts",
+   "form": "read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-true-js-prior-assigned-later",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/true-js-prior-assigned-later.js",
+   "form": "read-compare",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-literal-expected",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/false-literal-expected.ts",
+   "form": "read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-js-literal-expected",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/false-js-literal-expected.js",
+   "form": "read-compare",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-expected-from-test-data",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/false-expected-from-test-data.ts",
+   "form": "read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-read-reused-precedence",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/false-read-reused-precedence.ts",
+   "form": "read-compare",
+   "note": "the subject is used twice: read-reused wins"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-compare-false-read-handle-precedence",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-compare/false-read-handle-precedence.ts",
+   "form": "read-compare",
+   "note": "the receiver is an ElementHandle: read-handle wins"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-page-dollar-input-value",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-page-dollar-input-value.ts",
+   "form": "read-handle"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-js-page-dollar-text-content",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-js-page-dollar-text-content.js",
+   "form": "read-handle",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-aliased-test-locator-element-handle",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-aliased-test-locator-element-handle.ts",
+   "form": "read-handle",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-dollar-dollar-item",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-dollar-dollar-item.ts",
+   "form": "read-handle"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-js-for-of-handles",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-js-for-of-handles.js",
+   "form": "read-handle",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-true-compared-with-prior-read-precedence",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/true-compared-with-prior-read-precedence.ts",
+   "form": "read-handle",
+   "note": "also compared with an earlier read: read-handle wins over read-compare"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-false-locator-read-literal",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/false-locator-read-literal.ts",
+   "form": "read-handle"
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-false-js-locator-read-literal",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/false-js-locator-read-literal.js",
+   "form": "read-handle",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "prefer-web-first-assertions/read-handle-false-handle-read-reused-precedence",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "false",
+   "entry": "playwright__prefer-web-first-assertions/read-handle/false-handle-read-reused-precedence.ts",
+   "form": "read-handle",
+   "note": "the read is used twice: read-reused wins"
+  },
+  {
+   "id": "prefer-web-first-assertions/foreign-expect-true-jest-globals-read-compare",
+   "rule": "playwright/prefer-web-first-assertions",
+   "verdict": "true",
+   "entry": "playwright__prefer-web-first-assertions/foreign-expect/true-jest-globals-read-compare.ts",
+   "form": "foreign-expect",
+   "note": "read-compare shape with expect from @jest/globals: foreign-expect wins"
+  },
+  {
+   "id": "no-networkidle/capture-window-true-response-statuses-idle-goto",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/capture-window/true-response-statuses-idle-goto.ts",
+   "form": "capture-window"
+  },
+  {
+   "id": "no-networkidle/capture-window-true-js-console-warnings-idle-wait",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/capture-window/true-js-console-warnings-idle-wait.js",
+   "form": "capture-window",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "no-networkidle/capture-window-true-aliased-test-requestfinished-set",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/capture-window/true-aliased-test-requestfinished-set.ts",
+   "form": "capture-window",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "no-networkidle/capture-window-true-named-handler-derived-list",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/capture-window/true-named-handler-derived-list.ts",
+   "form": "capture-window"
+  },
+  {
+   "id": "no-networkidle/capture-window-true-failed-response-counter",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "playwright__no-networkidle/capture-window/true-failed-response-counter.ts",
+   "form": "capture-window"
+  },
+  {
+   "id": "no-networkidle/capture-window-false-idle-goto-then-click",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/capture-window/false-idle-goto-then-click.ts",
+   "form": "capture-window",
+   "note": "a readiness wait: the finding keeps form -"
+  },
+  {
+   "id": "no-networkidle/capture-window-false-js-idle-wait-then-assertion",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/capture-window/false-js-idle-wait-then-assertion.js",
+   "form": "capture-window",
+   "tags": [
+    "js"
+   ],
+   "note": "a readiness wait: the finding keeps form -"
+  },
+  {
+   "id": "no-networkidle/capture-window-false-listener-registered-after-the-wait",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/capture-window/false-listener-registered-after-the-wait.ts",
+   "form": "capture-window",
+   "note": "the listener is registered after the wait"
+  },
+  {
+   "id": "no-networkidle/capture-window-false-collection-never-asserted",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/capture-window/false-collection-never-asserted.ts",
+   "form": "capture-window",
+   "note": "no assertion uses what the listener collected"
+  },
+  {
+   "id": "no-networkidle/capture-window-false-pageerror-listener",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/capture-window/false-pageerror-listener.ts",
+   "form": "capture-window",
+   "note": "pageerror is not one of the four capture events"
+  },
+  {
+   "id": "no-networkidle/capture-window-false-js-listener-with-load-wait",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "playwright__no-networkidle/capture-window/false-js-listener-with-load-wait.js",
+   "form": "capture-window",
+   "tags": [
+    "js"
+   ],
+   "note": "no networkidle wait at all"
   }
  ]
 }

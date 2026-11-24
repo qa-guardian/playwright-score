@@ -10,6 +10,7 @@ import { plainAliasNames } from './test-aliases.js';
 import { createPostFilter } from './eslint-postfilter.js';
 import { heapGuardArmed, withHeapCheckpoint } from './heap-guard.js';
 import { formOfReportedRead, urlCountReads } from './read-forms.js';
+import { captureWindowForm } from './capture-window.js';
 import type { Finding, ProfileName, Severity } from './types.js';
 
 const ASSERT_FUNCTION_PATTERNS = [
@@ -393,6 +394,8 @@ async function lintWith(eslint: ESLint, files: string[], reportBase: string): Pr
       const form =
         msg.ruleId === 'playwright/prefer-web-first-assertions'
           ? formOfReportedRead(postFilter.tree(), msg.line, msg.column)
+          : msg.ruleId === 'playwright/no-networkidle'
+          ? captureWindowForm(postFilter.tree(), msg.line, msg.column)
           : postFilter.formOf({ ruleId: msg.ruleId, messageId: msg.messageId, line: msg.line, column: msg.column });
       findings.push({
         rule: msg.ruleId,
