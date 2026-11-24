@@ -4,6 +4,7 @@ import type { Finding } from '../types.js';
 import type { Evidence, RuleRow } from './types.js';
 import { defaultRow, rowFor, rowsOf } from './table.js';
 import { confidenceOfRow, tierOf } from './tiers.js';
+import { API_UNDER_TEST_FORM } from './api-under-test.js';
 
 const MAX_EXCERPT = 240;
 
@@ -40,7 +41,8 @@ function rowOf(f: Finding): { row: RuleRow; undecided: boolean; familyKnown: boo
   const known = defaultRow(f.rule);
   if (!known) return { row: UNKNOWN_ROW, undecided: false, familyKnown: true };
   if (f.form !== undefined) return { row: rowFor(f.rule, f.form) ?? known, undecided: false, familyKnown: true };
-  const rows = rowsOf(f.rule);
+  // `api-under-test` says what the project is, not what the code looks like: it is never one of the shapes to tell apart.
+  const rows = rowsOf(f.rule).filter((r) => r.form !== API_UNDER_TEST_FORM);
   if (rows.length <= 1) return { row: known, undecided: false, familyKnown: true };
   const sameFamily = rows.every((r) => r.family === known.family);
   const row: RuleRow = sameFamily ? { ...known } : { ...known, family: 'maintainability', ...UNDECIDED_COPY };

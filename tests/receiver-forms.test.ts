@@ -79,7 +79,7 @@ describe('QAG-287 B2: the catalogue holds the unresolved cells as one data entry
       const base = rowFor(rule, '-')!;
       const row = rowFor(rule, 'unresolved');
       assert.equal(row !== undefined, tiered(rule), rule);
-      assert.equal(rowsOf(rule).length, tiered(rule) ? 2 : 1, rule);
+      assert.deepEqual(rowsOf(rule).map((r) => r.form), tiered(rule) ? ['-', 'unresolved', 'api-under-test'] : ['-', 'api-under-test'], rule);
       if (!row) continue;
       assert.equal(tierOf(row), 'likely');
       assert.equal(row.design, 'likely');

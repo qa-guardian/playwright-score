@@ -240,6 +240,26 @@
   {
    "rule": "playwright/prefer-web-first-assertions",
    "form": "foreign-expect"
+  },
+  {
+   "rule": "playwright/no-networkidle",
+   "form": "api-under-test"
+  },
+  {
+   "rule": "playwright/no-wait-for-selector",
+   "form": "api-under-test"
+  },
+  {
+   "rule": "playwright/no-wait-for-navigation",
+   "form": "api-under-test"
+  },
+  {
+   "rule": "playwright/no-element-handle",
+   "form": "api-under-test"
+  },
+  {
+   "rule": "playwright/no-page-pause",
+   "form": "api-under-test"
   }
  ],
  "fixtures": [
@@ -1521,9 +1541,11 @@
    "dir": "_projects/engine-named-package",
    "project": true,
    "tags": [
-    "g10:api-under-test"
+    "g10:api-under-test",
+    "js"
    ],
-   "pending": "S3c"
+   "movedTo": "api-under-test",
+   "note": "the scanned project is a Playwright package: the finding is still reported, with form api-under-test, never as a finding of this cell"
   },
   {
    "id": "no-wait-for-selector/false-api-under-test-engine-named-package",
@@ -1533,9 +1555,11 @@
    "dir": "_projects/engine-named-package",
    "project": true,
    "tags": [
-    "g10:api-under-test"
+    "g10:api-under-test",
+    "js"
    ],
-   "pending": "S3c"
+   "movedTo": "api-under-test",
+   "note": "the scanned project is a Playwright package: the finding is still reported, with form api-under-test, never as a finding of this cell"
   },
   {
    "id": "no-wait-for-navigation/false-api-under-test-engine-named-package",
@@ -1545,9 +1569,11 @@
    "dir": "_projects/engine-named-package",
    "project": true,
    "tags": [
-    "g10:api-under-test"
+    "g10:api-under-test",
+    "js"
    ],
-   "pending": "S3c"
+   "movedTo": "api-under-test",
+   "note": "the scanned project is a Playwright package: the finding is still reported, with form api-under-test, never as a finding of this cell"
   },
   {
    "id": "no-element-handle/false-api-under-test-engine-named-package",
@@ -1557,9 +1583,11 @@
    "dir": "_projects/engine-named-package",
    "project": true,
    "tags": [
-    "g10:api-under-test"
+    "g10:api-under-test",
+    "js"
    ],
-   "pending": "S3c"
+   "movedTo": "api-under-test",
+   "note": "the scanned project is a Playwright package: the finding is still reported, with form api-under-test, never as a finding of this cell"
   },
   {
    "id": "no-page-pause/false-api-under-test-engine-named-package",
@@ -1569,9 +1597,11 @@
    "dir": "_projects/engine-named-package",
    "project": true,
    "tags": [
-    "g10:api-under-test"
+    "g10:api-under-test",
+    "js"
    ],
-   "pending": "S3c"
+   "movedTo": "api-under-test",
+   "note": "the scanned project is a Playwright package: the finding is still reported, with form api-under-test, never as a finding of this cell"
   },
   {
    "id": "no-networkidle/false-api-under-test-lockfile-link-only",
@@ -1581,9 +1611,11 @@
    "dir": "_projects/lockfile-link-only",
    "project": true,
    "tags": [
-    "g10:api-under-test"
+    "g10:api-under-test",
+    "js"
    ],
-   "pending": "S3c"
+   "movedTo": "api-under-test",
+   "note": "the scanned project is a Playwright package: the finding is still reported, with form api-under-test, never as a finding of this cell"
   },
   {
    "id": "no-wait-for-selector/false-api-under-test-lockfile-link-only",
@@ -1593,9 +1625,11 @@
    "dir": "_projects/lockfile-link-only",
    "project": true,
    "tags": [
-    "g10:api-under-test"
+    "g10:api-under-test",
+    "js"
    ],
-   "pending": "S3c"
+   "movedTo": "api-under-test",
+   "note": "the scanned project is a Playwright package: the finding is still reported, with form api-under-test, never as a finding of this cell"
   },
   {
    "id": "no-wait-for-navigation/false-api-under-test-lockfile-link-only",
@@ -1605,9 +1639,11 @@
    "dir": "_projects/lockfile-link-only",
    "project": true,
    "tags": [
-    "g10:api-under-test"
+    "g10:api-under-test",
+    "js"
    ],
-   "pending": "S3c"
+   "movedTo": "api-under-test",
+   "note": "the scanned project is a Playwright package: the finding is still reported, with form api-under-test, never as a finding of this cell"
   },
   {
    "id": "no-element-handle/false-api-under-test-lockfile-link-only",
@@ -1617,9 +1653,11 @@
    "dir": "_projects/lockfile-link-only",
    "project": true,
    "tags": [
-    "g10:api-under-test"
+    "g10:api-under-test",
+    "js"
    ],
-   "pending": "S3c"
+   "movedTo": "api-under-test",
+   "note": "the scanned project is a Playwright package: the finding is still reported, with form api-under-test, never as a finding of this cell"
   },
   {
    "id": "no-page-pause/false-api-under-test-lockfile-link-only",
@@ -1629,9 +1667,11 @@
    "dir": "_projects/lockfile-link-only",
    "project": true,
    "tags": [
-    "g10:api-under-test"
+    "g10:api-under-test",
+    "js"
    ],
-   "pending": "S3c"
+   "movedTo": "api-under-test",
+   "note": "the scanned project is a Playwright package: the finding is still reported, with form api-under-test, never as a finding of this cell"
   },
   {
    "id": "no-networkidle/true-customer-calls-customer-registry-deps",
@@ -1641,8 +1681,10 @@
    "dir": "_projects/customer-registry-deps",
    "project": true,
    "tags": [
+    "js",
     "project"
-   ]
+   ],
+   "form": "-"
   },
   {
    "id": "no-wait-for-selector/true-customer-calls-customer-registry-deps",
@@ -1652,8 +1694,10 @@
    "dir": "_projects/customer-registry-deps",
    "project": true,
    "tags": [
+    "js",
     "project"
-   ]
+   ],
+   "form": "-"
   },
   {
    "id": "no-wait-for-navigation/true-customer-calls-customer-registry-deps",
@@ -1663,8 +1707,10 @@
    "dir": "_projects/customer-registry-deps",
    "project": true,
    "tags": [
+    "js",
     "project"
-   ]
+   ],
+   "form": "-"
   },
   {
    "id": "no-element-handle/true-customer-calls-customer-registry-deps",
@@ -1674,8 +1720,10 @@
    "dir": "_projects/customer-registry-deps",
    "project": true,
    "tags": [
+    "js",
     "project"
-   ]
+   ],
+   "form": "-"
   },
   {
    "id": "no-page-pause/true-customer-calls-customer-registry-deps",
@@ -1685,8 +1733,10 @@
    "dir": "_projects/customer-registry-deps",
    "project": true,
    "tags": [
+    "js",
     "project"
-   ]
+   ],
+   "form": "-"
   },
   {
    "id": "expect-expect/true-click-only",
@@ -5389,6 +5439,231 @@
    "entry": "pwscore__no-trivial-assertion/foreign-expect/false-playwright-expect-literal.ts",
    "form": "foreign-expect",
    "note": "expect is the one from @playwright/test: the finding keeps its shape form"
+  },
+  {
+   "id": "no-networkidle/api-under-test-true-engine-named-package",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "_projects/engine-named-package/tests",
+   "dir": "_projects/engine-named-package",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "package.json name playwright-core"
+  },
+  {
+   "id": "no-networkidle/api-under-test-true-lockfile-link-only",
+   "rule": "playwright/no-networkidle",
+   "verdict": "true",
+   "entry": "_projects/lockfile-link-only/tests",
+   "dir": "_projects/lockfile-link-only",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "workspaces with no directories on disk and a link: true lockfile entry"
+  },
+  {
+   "id": "no-networkidle/api-under-test-false-customer-registry-deps",
+   "rule": "playwright/no-networkidle",
+   "verdict": "false",
+   "entry": "_projects/customer-registry-deps/tests",
+   "dir": "_projects/customer-registry-deps",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "a customer project with registry lockfile entries: the finding keeps form -"
+  },
+  {
+   "id": "no-wait-for-selector/api-under-test-true-engine-named-package",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "_projects/engine-named-package/tests",
+   "dir": "_projects/engine-named-package",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "package.json name playwright-core"
+  },
+  {
+   "id": "no-wait-for-selector/api-under-test-true-lockfile-link-only",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "true",
+   "entry": "_projects/lockfile-link-only/tests",
+   "dir": "_projects/lockfile-link-only",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "workspaces with no directories on disk and a link: true lockfile entry"
+  },
+  {
+   "id": "no-wait-for-selector/api-under-test-false-customer-registry-deps",
+   "rule": "playwright/no-wait-for-selector",
+   "verdict": "false",
+   "entry": "_projects/customer-registry-deps/tests",
+   "dir": "_projects/customer-registry-deps",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "a customer project with registry lockfile entries: the finding keeps form -"
+  },
+  {
+   "id": "no-wait-for-navigation/api-under-test-true-engine-named-package",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "_projects/engine-named-package/tests",
+   "dir": "_projects/engine-named-package",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "package.json name playwright-core"
+  },
+  {
+   "id": "no-wait-for-navigation/api-under-test-true-lockfile-link-only",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "true",
+   "entry": "_projects/lockfile-link-only/tests",
+   "dir": "_projects/lockfile-link-only",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "workspaces with no directories on disk and a link: true lockfile entry"
+  },
+  {
+   "id": "no-wait-for-navigation/api-under-test-false-customer-registry-deps",
+   "rule": "playwright/no-wait-for-navigation",
+   "verdict": "false",
+   "entry": "_projects/customer-registry-deps/tests",
+   "dir": "_projects/customer-registry-deps",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "a customer project with registry lockfile entries: the finding keeps form -"
+  },
+  {
+   "id": "no-element-handle/api-under-test-true-engine-named-package",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "_projects/engine-named-package/tests",
+   "dir": "_projects/engine-named-package",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "package.json name playwright-core"
+  },
+  {
+   "id": "no-element-handle/api-under-test-true-lockfile-link-only",
+   "rule": "playwright/no-element-handle",
+   "verdict": "true",
+   "entry": "_projects/lockfile-link-only/tests",
+   "dir": "_projects/lockfile-link-only",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "workspaces with no directories on disk and a link: true lockfile entry"
+  },
+  {
+   "id": "no-element-handle/api-under-test-false-customer-registry-deps",
+   "rule": "playwright/no-element-handle",
+   "verdict": "false",
+   "entry": "_projects/customer-registry-deps/tests",
+   "dir": "_projects/customer-registry-deps",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "a customer project with registry lockfile entries: the finding keeps form -"
+  },
+  {
+   "id": "no-page-pause/api-under-test-true-engine-named-package",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "_projects/engine-named-package/tests",
+   "dir": "_projects/engine-named-package",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "package.json name playwright-core"
+  },
+  {
+   "id": "no-page-pause/api-under-test-true-lockfile-link-only",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "_projects/lockfile-link-only/tests",
+   "dir": "_projects/lockfile-link-only",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "workspaces with no directories on disk and a link: true lockfile entry"
+  },
+  {
+   "id": "no-page-pause/api-under-test-false-customer-registry-deps",
+   "rule": "playwright/no-page-pause",
+   "verdict": "false",
+   "entry": "_projects/customer-registry-deps/tests",
+   "dir": "_projects/customer-registry-deps",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project"
+   ],
+   "note": "a customer project with registry lockfile entries: the finding keeps form -"
+  },
+  {
+   "id": "no-page-pause/api-under-test-true-over-unresolved-receiver",
+   "rule": "playwright/no-page-pause",
+   "verdict": "true",
+   "entry": "_projects/engine-unresolved-receiver/tests",
+   "dir": "_projects/engine-unresolved-receiver",
+   "project": true,
+   "form": "api-under-test",
+   "tags": [
+    "js",
+    "project",
+    "precedence:api-under-test>unresolved"
+   ],
+   "note": "the receiver is not proven, so the form would be unresolved; the project is named @playwright/test, so api-under-test wins"
   }
  ]
 }

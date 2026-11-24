@@ -174,12 +174,24 @@
    "pending": null
   },
   {
+   "id": "no-element-handle/api-under-test-false-customer-registry-deps",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/api-under-test-true-engine-named-package",
+   "pending": null
+  },
+  {
+   "id": "no-element-handle/api-under-test-true-lockfile-link-only",
+   "pending": null
+  },
+  {
    "id": "no-element-handle/false-api-under-test-engine-named-package",
-   "pending": "S3c"
+   "pending": null
   },
   {
    "id": "no-element-handle/false-api-under-test-lockfile-link-only",
-   "pending": "S3c"
+   "pending": null
   },
   {
    "id": "no-element-handle/false-js-fixture-page",
@@ -406,12 +418,24 @@
    "pending": null
   },
   {
+   "id": "no-networkidle/api-under-test-false-customer-registry-deps",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/api-under-test-true-engine-named-package",
+   "pending": null
+  },
+  {
+   "id": "no-networkidle/api-under-test-true-lockfile-link-only",
+   "pending": null
+  },
+  {
    "id": "no-networkidle/false-api-under-test-engine-named-package",
-   "pending": "S3c"
+   "pending": null
   },
   {
    "id": "no-networkidle/false-api-under-test-lockfile-link-only",
-   "pending": "S3c"
+   "pending": null
   },
   {
    "id": "no-networkidle/false-goto-domcontentloaded",
@@ -466,12 +490,28 @@
    "pending": null
   },
   {
+   "id": "no-page-pause/api-under-test-false-customer-registry-deps",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/api-under-test-true-engine-named-package",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/api-under-test-true-lockfile-link-only",
+   "pending": null
+  },
+  {
+   "id": "no-page-pause/api-under-test-true-over-unresolved-receiver",
+   "pending": null
+  },
+  {
    "id": "no-page-pause/false-api-under-test-engine-named-package",
-   "pending": "S3c"
+   "pending": null
   },
   {
    "id": "no-page-pause/false-api-under-test-lockfile-link-only",
-   "pending": "S3c"
+   "pending": null
   },
   {
    "id": "no-page-pause/false-fixture-page",
@@ -758,12 +798,24 @@
    "pending": null
   },
   {
+   "id": "no-wait-for-navigation/api-under-test-false-customer-registry-deps",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/api-under-test-true-engine-named-package",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-navigation/api-under-test-true-lockfile-link-only",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-navigation/false-api-under-test-engine-named-package",
-   "pending": "S3c"
+   "pending": null
   },
   {
    "id": "no-wait-for-navigation/false-api-under-test-lockfile-link-only",
-   "pending": "S3c"
+   "pending": null
   },
   {
    "id": "no-wait-for-navigation/false-js-wait-for-url",
@@ -1246,12 +1298,24 @@
    "pending": null
   },
   {
+   "id": "no-wait-for-selector/api-under-test-false-customer-registry-deps",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/api-under-test-true-engine-named-package",
+   "pending": null
+  },
+  {
+   "id": "no-wait-for-selector/api-under-test-true-lockfile-link-only",
+   "pending": null
+  },
+  {
    "id": "no-wait-for-selector/false-api-under-test-engine-named-package",
-   "pending": "S3c"
+   "pending": null
   },
   {
    "id": "no-wait-for-selector/false-api-under-test-lockfile-link-only",
-   "pending": "S3c"
+   "pending": null
   },
   {
    "id": "no-wait-for-selector/false-fixture-page",
