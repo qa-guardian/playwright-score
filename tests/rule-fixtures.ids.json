@@ -2,6 +2,242 @@
  "note": "Frozen list of fixture (id, pending) pairs (tests/rule-fixtures.test.ts). pending is the slice that will fix the fixture, or null for a fixture that runs against current behaviour. Change it in the same commit as any fixture you add, remove, or whose pending mark you change; a mark naming a landed slice (S1, S2, S3) is rejected.",
  "fixtures": [
   {
+   "id": "assertion-passes-anyway/empty-fallback-false-array-contain-fallback",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-have-text-fallback",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-js-non-empty-fallback",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-literal-left",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-non-empty-fallback",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-false-string-cast",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-attribute-or-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-const-locator-fallback",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-heading-nullish",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-js-heading-nullish",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/empty-fallback-true-regexp-or-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-bare-input",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-have-value-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-js-reset-input",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-not-have-text-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-placeholder",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-select-have-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-status-region",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-submit-input",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-textarea-initial-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-textbox-role",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-false-untyped-input-not-have-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-city-not-have-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-const-email-have-text-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-email-have-text-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-js-city-not-contain-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-js-email-have-text-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-page-const-not-have-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/form-control-text-true-soft-form-first",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-array-contain-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-contain-variable",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-empty-only-pattern",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-have-text-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-js-one-or-more",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-negated-match-all",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-one-or-more",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-false-vitest-contain-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-const-locator-contain-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-contain-empty-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-js-text-any-chars",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-string-contain-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-title-match-all",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/match-anything-true-url-match-all",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-js-root-has-class",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-region-not-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-has-attribute",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-has-class",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-has-text-pattern",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-hidden-option",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-root-not-contain-text",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-false-untyped-helper-receiver",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-const-frame-locator-root",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-const-root-not-empty",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-frame-locator-root",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-html-visible",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-js-body-visible",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-page-const",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-root-attached",
+   "pending": null
+  },
+  {
+   "id": "assertion-passes-anyway/root-content-true-soft-body-attached",
+   "pending": null
+  },
+  {
    "id": "assertion-unverified/false-direct-assertion",
    "pending": null
   },
@@ -3227,6 +3463,102 @@
   },
   {
    "id": "unasserted/true-typed-page-param",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-false-bound-asserted",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-false-if-is-visible",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-false-returned",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-false-text-content",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-false-unknown-receiver",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-false-void",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-true-awaited-is-visible",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-true-const-locator-is-visible",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-true-js-is-visible",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-true-page-alias-is-hidden",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/discarded-true-unawaited-is-hidden",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-false-builds-locator",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-false-builds-url",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-false-helper-return",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-false-logged",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-false-underscore",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-false-used-in-expect",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-const-locator-input",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-hook-title",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-js-unused-text",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-step-inner-text",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-unused-attribute",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-unused-count",
+   "pending": null
+  },
+  {
+   "id": "unchecked-read/unused-binding-true-unused-state",
    "pending": null
   },
   {

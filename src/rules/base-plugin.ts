@@ -13,6 +13,8 @@ import { noWeakAssertion } from './no-weak-assertion.js';
 import { noUnawaitedExpectValue } from './no-unawaited-expect-value.js';
 import { expectAliasNames, isExpectName } from './ast-util.js';
 import { noFloatingCallbackAssertion } from './no-floating-callback-assertion.js';
+import { assertionPassesAnyway } from './assertion-passes-anyway.js';
+import { uncheckedRead } from './unchecked-read.js';
 
 type Node = {
   type: string;
@@ -1110,6 +1112,8 @@ const rawRules: Record<string, Rule.RuleModule> = {
   'no-weak-assertion': noWeakAssertion,
   'no-unawaited-expect-value': noUnawaitedExpectValue,
   'no-floating-callback-assertion': noFloatingCallbackAssertion,
+  'assertion-passes-anyway': assertionPassesAnyway,
+  'unchecked-read': uncheckedRead,
 };
 
 /**

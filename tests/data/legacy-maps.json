@@ -446,6 +446,28 @@
     "fix": "Add an expect() on what the user should see after the last action."
    },
    "conf": null
+  },
+  "pwscore/assertion-passes-anyway": {
+   "map": {
+    "dimension": "assertions"
+   },
+   "copy": {
+    "title": "Assertion that passes on almost any page",
+    "why": "The document root is there and has text on nearly every page, including an error page, so the check passes when the feature is broken.",
+    "fix": "Assert on an element the test is about, such as a heading, a form or a row, instead of the document root."
+   },
+   "conf": "medium"
+  },
+  "pwscore/unchecked-read": {
+   "map": {
+    "dimension": "assertions"
+   },
+   "copy": {
+    "title": "Visibility read that checks nothing",
+    "why": "The call returns at once and nothing looks at the answer, so the test passes whether the element is shown or not.",
+    "fix": "Use await expect(locator).toBeVisible() or toBeHidden(), which waits for the state and fails the test when it is wrong."
+   },
+   "conf": "medium"
   }
  }
 }

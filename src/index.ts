@@ -42,6 +42,7 @@ import { SCOPE_RULES, findScopeAliases, keepScopeAliasFindings } from './rules/a
 import { findLocatorHandles } from './rules/locator-handle.js';
 import { applyApiUnderTest } from './project-identity.js';
 import { applyUseForms } from './use-forms.js';
+import { applyPassesAnyway } from './passes-anyway-forms.js';
 import { computeScore } from './score-engine.js';
 import { applyStateScore, SCORE_VERSION } from './state-score.js';
 import { applyGate, gateSettings } from './gate.js';
@@ -866,6 +867,8 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
   eslintFindings.push(...findLocatorHandles({ filesBase, sources, importedFiles, importBoundary, moduleResolver }, files.filter((f) => !skips.has(f)), eslintFindings));
   // QAG-287 B2: form of the Page/Frame-method findings, from what the receiver is proven to be.
   applyReceiverForms(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
+  // QAG-287 N1: assertion-passes-anyway keeps a document-root finding only on a proven Page or Frame, and none on a foreign expect.
+  applyPassesAnyway(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver });
   // QAG-287 S4b: where the `expect` of an assertion-rule finding comes from (Playwright, another library, or not resolved).
   applyExpectBinding(eslintFindings, { filesBase, sources, importedFiles, importBoundary, moduleResolver }, aliasAdded);
   dropForeignWithoutCell(eslintFindings);
