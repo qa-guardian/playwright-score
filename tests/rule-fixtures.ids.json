@@ -34,6 +34,86 @@
    "pending": null
   },
   {
+   "id": "missing-playwright-await/awaited-call-argument-false-aliased-locator-outer-call-not-awaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-array-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-callback-body",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-expect-rejects-control",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-foreign-expect-precedence",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-js-outer-call-stored-never-awaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-object-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-outer-call-not-awaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-pushed-never-awaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-step-bare-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-stored-then-passed",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-aliased-locator-helper-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-arrow-body-helper-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-arrow-body-in-callback",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-as-type-wrapper",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-js-cjs-returned-helper-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-poll-passed-to-helper",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-satisfies-type-wrapper",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-step-helper-argument-precedence",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-step-passed-to-helper",
+   "pending": null
+  },
+  {
    "id": "missing-playwright-await/false-action-awaited-wait",
    "pending": null
   },
@@ -54,11 +134,35 @@
    "pending": null
   },
   {
+   "id": "missing-playwright-await/false-aliased-locator-helper-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-arrow-body-helper-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-arrow-body-in-callback",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-as-type-wrapper",
+   "pending": null
+  },
+  {
    "id": "missing-playwright-await/false-awaited",
    "pending": null
   },
   {
    "id": "missing-playwright-await/false-js-awaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-js-cjs-returned-helper-argument",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-poll-passed-to-helper",
    "pending": null
   },
   {
@@ -70,7 +174,19 @@
    "pending": null
   },
   {
+   "id": "missing-playwright-await/false-satisfies-type-wrapper",
+   "pending": null
+  },
+  {
    "id": "missing-playwright-await/false-step-awaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-step-helper-argument-precedence",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/false-step-passed-to-helper",
    "pending": null
   },
   {
@@ -87,6 +203,10 @@
   },
   {
    "id": "missing-playwright-await/foreign-expect-false-playwright-expect-unawaited",
+   "pending": null
+  },
+  {
+   "id": "missing-playwright-await/foreign-expect-true-vitest-awaited-helper-precedence",
    "pending": null
   },
   {

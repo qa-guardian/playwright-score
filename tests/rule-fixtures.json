@@ -252,6 +252,10 @@
   {
    "rule": "playwright/no-networkidle",
    "form": "capture-window"
+  },
+  {
+   "rule": "playwright/missing-playwright-await",
+   "form": "awaited-call-argument"
   }
  ],
  "fixtures": [
@@ -5730,6 +5734,263 @@
     "js"
    ],
    "note": "no networkidle wait at all"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-step-helper-argument-precedence",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-step-helper-argument-precedence.ts",
+   "form": "awaited-call-argument",
+   "note": "precedence pair (awaited-call-argument over assertion)"
+  },
+  {
+   "id": "missing-playwright-await/false-step-helper-argument-precedence",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-step-helper-argument-precedence.ts",
+   "form": "assertion",
+   "note": "precedence pair (awaited-call-argument over assertion)"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-js-cjs-returned-helper-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-js-cjs-returned-helper-argument.js",
+   "form": "awaited-call-argument",
+   "tags": [
+    "js",
+    "cjs"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-js-cjs-returned-helper-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-js-cjs-returned-helper-argument.js",
+   "form": "assertion",
+   "tags": [
+    "js",
+    "cjs"
+   ],
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-aliased-locator-helper-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-aliased-locator-helper-argument.ts",
+   "form": "awaited-call-argument",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-aliased-locator-helper-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-aliased-locator-helper-argument.ts",
+   "form": "assertion",
+   "tags": [
+    "alias"
+   ],
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-arrow-body-helper-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-arrow-body-helper-argument.ts",
+   "form": "awaited-call-argument",
+   "tags": [
+    "arrow-body"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-arrow-body-helper-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-arrow-body-helper-argument.ts",
+   "form": "assertion",
+   "tags": [
+    "arrow-body"
+   ],
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-step-passed-to-helper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-step-passed-to-helper.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/false-step-passed-to-helper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-step-passed-to-helper.ts",
+   "form": "assertion",
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-poll-passed-to-helper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-poll-passed-to-helper.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/false-poll-passed-to-helper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-poll-passed-to-helper.ts",
+   "form": "assertion",
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-as-type-wrapper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-as-type-wrapper.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/false-as-type-wrapper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-as-type-wrapper.ts",
+   "form": "assertion",
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-satisfies-type-wrapper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-satisfies-type-wrapper.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/false-satisfies-type-wrapper",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-satisfies-type-wrapper.ts",
+   "form": "assertion",
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-true-arrow-body-in-callback",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/true-arrow-body-in-callback.ts",
+   "form": "awaited-call-argument",
+   "tags": [
+    "arrow-body"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/false-arrow-body-in-callback",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/assertion/false-arrow-body-in-callback.ts",
+   "form": "assertion",
+   "tags": [
+    "arrow-body"
+   ],
+   "note": "moves to awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-step-bare-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-step-bare-argument.ts",
+   "form": "awaited-call-argument",
+   "note": "no finding: upstream does not treat a test.step whose parent is a call as a step call"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-stored-then-passed",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-stored-then-passed.ts",
+   "form": "awaited-call-argument",
+   "note": "no finding: upstream counts a stored promise read by an awaited call as consumed"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-array-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-array-argument.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-object-argument",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-object-argument.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-outer-call-not-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-outer-call-not-awaited.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-js-outer-call-stored-never-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-js-outer-call-stored-never-awaited.js",
+   "form": "awaited-call-argument",
+   "tags": [
+    "js"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-aliased-locator-outer-call-not-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-aliased-locator-outer-call-not-awaited.ts",
+   "form": "awaited-call-argument",
+   "tags": [
+    "alias"
+   ]
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-callback-body",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-callback-body.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-pushed-never-awaited",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-pushed-never-awaited.ts",
+   "form": "awaited-call-argument"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-expect-rejects-control",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-expect-rejects-control.ts",
+   "form": "awaited-call-argument",
+   "note": "control: no finding"
+  },
+  {
+   "id": "missing-playwright-await/foreign-expect-true-vitest-awaited-helper-precedence",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "true",
+   "entry": "playwright__missing-playwright-await/foreign-expect/true-vitest-awaited-helper-precedence.ts",
+   "form": "foreign-expect",
+   "note": "precedence pair (foreign-expect over awaited-call-argument)"
+  },
+  {
+   "id": "missing-playwright-await/awaited-call-argument-false-foreign-expect-precedence",
+   "rule": "playwright/missing-playwright-await",
+   "verdict": "false",
+   "entry": "playwright__missing-playwright-await/awaited-call-argument/false-foreign-expect-precedence.ts",
+   "form": "awaited-call-argument",
+   "note": "precedence pair (foreign-expect over awaited-call-argument)"
   }
  ]
 }

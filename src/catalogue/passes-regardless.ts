@@ -20,6 +20,24 @@ export const passesRegardlessRows: readonly RuleRow[] = [
     label: 'high',
   },
   {
+    // QAG-287 B3c (src/awaited-call-argument.ts). Docs: "Note that retrying assertions are async, so you must
+    // await them." Whether the receiving call awaits the promise cannot be seen at the call site: likely by design.
+    rule: 'playwright/missing-playwright-await',
+    form: 'awaited-call-argument',
+    family: 'passes-regardless',
+    design: 'likely',
+    cls: 'C1',
+    basis: 'docs',
+    docs: 'https://playwright.dev/docs/test-assertions',
+    bcEligible: false,
+    title: 'Assertion handed to another call instead of awaited',
+    what: "An assertion's promise is passed straight into another call that is awaited, so whether it can fail the test depends on what that call does with it.",
+    why: 'If the receiving function does not await the promise, the check runs after the test has moved on and cannot fail it.',
+    fix: 'Await the assertion where it is written, or make sure the function that receives it awaits it.',
+    dimension: 'playwrightHygiene',
+    label: 'high',
+  },
+  {
     rule: 'playwright/valid-expect',
     form: 'matcherless',
     family: 'passes-regardless',
