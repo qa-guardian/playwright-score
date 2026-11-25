@@ -476,6 +476,14 @@
     "fix": "Before the loop, assert the list itself, for example await expect(items).toHaveCount(3) or await expect(items.first()).toBeVisible()."
    },
    "conf": null
+  },
+  "pwscore/negative-only-test": {
+   "copy": {
+    "title": "Test that only checks that things are absent",
+    "why": "A locator that matches no element passes every one of these checks, so the test would still pass if the page were blank or had not rendered the result.",
+    "fix": "Also assert what the action should produce, for example await expect(page.getByRole('alert')).toHaveText('Saved') or await expect(page).toHaveURL(/orders/)."
+   },
+   "conf": null
   }
  }
 }

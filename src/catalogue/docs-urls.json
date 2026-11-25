@@ -14,6 +14,7 @@
   "https://playwright.dev/docs/api/class-locator#locator-is-visible",
   "https://playwright.dev/docs/api/class-locator#locator-text-content",
   "https://playwright.dev/docs/api/class-locatorassertions#locator-assertions-to-be-empty",
+  "https://playwright.dev/docs/api/class-locatorassertions#locator-assertions-to-be-hidden",
   "https://playwright.dev/docs/api/class-locatorassertions#locator-assertions-to-contain-text",
   "https://playwright.dev/docs/api/class-locatorassertions#locator-assertions-to-have-value",
   "https://playwright.dev/docs/api/class-page#page-goto",

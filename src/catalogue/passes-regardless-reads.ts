@@ -1,7 +1,8 @@
 import type { RuleRow } from './types.js';
 
 /**
- * Passes-regardless rows of the read rules: `pwscore/unchecked-read` (N2) and `pwscore/loop-only-assertions` (N3).
+ * Passes-regardless rows of the read rules, `pwscore/unchecked-read` (N2) and `pwscore/loop-only-assertions` (N3),
+ * and of the other rule on the test states' assertion facts, `pwscore/negative-only-test` (N4).
  * Kept apart from passes-regardless.ts only to hold every catalogue file under 300 lines; `ROWS` spreads them
  * right after `passesRegardlessRows`, so the catalogue order is unchanged.
  */
@@ -53,6 +54,27 @@ export const passesRegardlessReadRows: readonly RuleRow[] = [
     what: 'Every assertion of the test is inside a loop over locator.all(), page.$$() or a count() range, and nothing before the loop checks that the list has items or waits for one.',
     why: 'locator.all() does not wait for elements: it returns whatever is on the page at that moment. If the list is empty, the loop runs zero times, nothing is checked and the test passes.',
     fix: 'Before the loop, assert the list itself, for example await expect(items).toHaveCount(3) or await expect(items.first()).toBeVisible().',
+    dimension: 'assertions',
+    severityOverride: 'info',
+    reportOnly: true,
+    label: 'medium',
+    noMapping: true,
+  },
+  // N4: every assertion of a test checks for absence, after an action (src/rules/negative-only-test.ts, run by the
+  // test states). Likely by design (P-NEG: 26 of 28 drawn tests labelled TRUE); report-only like the N3 row.
+  // "Ensures that Locator either does not resolve to any DOM node, or resolves to a non-visible one."
+  {
+    rule: 'pwscore/negative-only-test',
+    form: '-',
+    family: 'passes-regardless',
+    design: 'likely',
+    basis: 'docs',
+    docs: 'https://playwright.dev/docs/api/class-locatorassertions#locator-assertions-to-be-hidden',
+    bcEligible: false,
+    title: 'Test that only checks that things are absent',
+    what: 'Every assertion of the test, and of the hooks it runs, checks that an element is absent: not.toBeVisible(), toBeHidden(), toBeVisible({ visible: false }), not.toBeAttached(), toBeAttached({ attached: false }) or toHaveCount(0). Nothing checks what the page shows after the action.',
+    why: 'A locator that matches no element passes every one of these checks, so the test would still pass if the page were blank or had not rendered the result.',
+    fix: 'Also assert what the action should produce, for example await expect(page.getByRole(\'alert\')).toHaveText(\'Saved\') or await expect(page).toHaveURL(/orders/).',
     dimension: 'assertions',
     severityOverride: 'info',
     reportOnly: true,

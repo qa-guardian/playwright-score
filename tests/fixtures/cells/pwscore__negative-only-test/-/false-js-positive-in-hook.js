@@ -1,0 +1,11 @@
+const { test, expect } = require('@playwright/test');
+
+test.afterEach(async ({ page }) => {
+  await expect(page.getByRole('heading', { name: 'Basket' })).toBeVisible();
+});
+
+test('clearing the basket empties the list', async ({ page }) => {
+  await page.goto('/basket');
+  await page.getByRole('button', { name: 'Clear basket' }).click();
+  await expect(page.getByRole('listitem')).toHaveCount(0);
+});
