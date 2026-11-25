@@ -63,7 +63,7 @@ export function applyStateScore(result: ScoreResult): ScoreResult {
     : counted.length === 0
       ? { status: 'not-scored' as const, reason: 'no-counted-tests' as const }
       : { status: 'scored' as const, reason: undefined };
-  const score = status === 'not-scored' ? 0 : Math.round((100 * (counted.length - charged)) / counted.length);
+  const score = status === 'not-scored' || counted.length === 0 ? 0 : Math.round((100 * (counted.length - charged)) / counted.length);
 
   result.scoreVersion = SCORE_VERSION;
   result.score = score;

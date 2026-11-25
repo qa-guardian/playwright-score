@@ -132,8 +132,8 @@ export type ScoreStatus = 'scored' | 'partial' | 'not-scored';
  * Why nothing was scored. `no-files`: no Playwright file was found.
  * `limit-reached`: no test was counted, and a limit of the run (`maxSeconds`
  * or `maxHeapMb`) skipped at least one file, so the suite may hold tests the
- * run did not get to. `no-counted-tests`: no test was counted, and no limit
- * was involved.
+ * run did not get to; the status is then `partial` (score 0), not `not-scored`.
+ * `no-counted-tests`: no test was counted, and no limit was involved.
  */
 export type NotScoredReason = 'no-files' | 'no-counted-tests' | 'limit-reached';
 /**

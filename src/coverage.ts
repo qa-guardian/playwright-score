@@ -62,15 +62,18 @@ export function scoredFindings(findings: Finding[]): Finding[] {
 const isLimitSkip = (s: SkippedFile): boolean => s.reason === 'deadline' || s.reason === 'worker-died';
 
 /**
- * Status, in order: `not-scored` with no files or no tests in the scored files, `partial`
- * when a file was skipped, `scored` otherwise. A `not-scored` result with no
- * counted test says `limit-reached` when a limit skipped at least one file:
- * the suite may hold tests the run did not get to.
+ * Status, in order: `not-scored` with no files, `partial` with reason
+ * `limit-reached` when no test was counted and a limit skipped at least one
+ * file (the suite may hold tests the run did not get to; QAG-287 FIX1: partial
+ * whether or not any file finished), `not-scored` with no tests in the scored
+ * files, `partial` when a file was skipped, `scored` otherwise.
  */
 export function decideStatus(coverage: Coverage): { status: ScoreStatus; reason?: NotScoredReason } {
   if (coverage.filesFound === 0) return { status: 'not-scored', reason: 'no-files' };
   if (coverage.testsCounted === 0) {
-    return { status: 'not-scored', reason: coverage.skipped.some(isLimitSkip) ? 'limit-reached' : 'no-counted-tests' };
+    return coverage.skipped.some(isLimitSkip)
+      ? { status: 'partial', reason: 'limit-reached' }
+      : { status: 'not-scored', reason: 'no-counted-tests' };
   }
   if (coverage.skipped.length > 0) return { status: 'partial' };
   return { status: 'scored' };

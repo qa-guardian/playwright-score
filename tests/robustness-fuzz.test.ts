@@ -22,7 +22,7 @@ import { v4Weighted } from './helpers/v4-weighted.js';
 // Documented outcomes:
 //   scored      exit 0 (at threshold 0)
 //   partial     exit 1, `coverage.skipped` lists each skipped file
-//   not-scored  exit 1, score 0, grade F, `reason` is no-files, no-counted-tests or limit-reached
+//   not-scored  exit 1, score 0, grade F, `reason` is no-files or no-counted-tests (limit-reached is partial, FIX1)
 //
 // Forced --max-seconds 1 and --max-heap-mb 256 (S5b) are at the end of this file.
 // Owned by another slice: "every test skipped" becoming not-scored (S9a; the
@@ -552,7 +552,7 @@ describe('QAG-287 S5b: forced limits give a labelled result and exit 1, never 2'
   // This test only shows that a real one-second limit ends in a listed, never a silent, result. The proof that a batch
   // IN FLIGHT is cut off when the limit passes (and that the batches before it are kept) is tests/isolate.test.ts,
   // 'QAG-287 S5b: the time limit passes mid-run, on an injected clock': it needs a clock the test controls.
-  it('--max-seconds 1 on the largest suite: exit 1, never 2; not-scored (limit-reached) when nothing was scored in time, partial otherwise; every skipped file is listed as deadline', async () => {
+  it('--max-seconds 1 on the largest suite: exit 1, never 2; partial (reason limit-reached, FIX1) when nothing was scored in time, partial otherwise; every skipped file is listed as deadline', async () => {
     const dir = largestSuite();
     const r = await run([dir, '--max-seconds', '1']);
     assert.equal(r.code, 1);
@@ -565,9 +565,12 @@ describe('QAG-287 S5b: forced limits give a labelled result and exit 1, never 2'
     assert.equal(cov.filesScored + cov.skipped.length, cov.filesFound);
     // The dense file's batch and the one after it can never make it; the first batch may.
     assert.ok(cov.skipped.some((s) => s.file === 'b-00.spec.ts') && cov.skipped.some((s) => s.file === 'c-04.spec.ts'));
-    // Nothing analysed in time is not-scored and says a limit did it; some of it is partial (S5a.1 status order).
-    if (cov.filesScored === 0) expectNotScored(r, 'limit-reached');
-    else {
+    // Nothing analysed in time is partial and says a limit did it (FIX1); some of it is partial (S5a.1 status order).
+    assert.equal(r.result.status, 'partial');
+    if (cov.filesScored === 0) {
+      assert.equal(r.result.reason, 'limit-reached');
+      assert.equal(r.result.score, 0);
+    } else {
       assert.equal(r.result.status, 'partial');
       assert.equal(r.result.reason, undefined);
     }

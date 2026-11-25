@@ -169,13 +169,15 @@ describe('QAG-287 S5b: the worker gives the in-process result', () => {
 });
 
 describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () => {
-  it('the time limit has passed before the analysis starts: every file is skipped as deadline, not-scored', async () => {
+  it('the time limit has passed before the analysis starts: every file is skipped as deadline, partial (limit-reached, FIX1)', async () => {
     const dir = mixedSuite();
     // The spec batches only (shared: false): tests/shared-lint.test.ts covers a shared file under the limit.
     const reference = await scorePaths({ paths: [dir], cwd: dir, shared: false });
     const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxSeconds: 0.001, shared: false });
-    assert.equal(r.status, 'not-scored');
+    assert.equal(r.status, 'partial');
     assert.equal(r.reason, 'limit-reached');
+    assert.deepEqual(r.gate?.reasons, ['partial']);
+    assert.equal(r.grade, 'F');
     assert.equal(r.pass, false);
     assert.equal(r.score, 0);
     assert.equal(r.coverage?.filesFound, reference.coverage?.filesFound);
@@ -186,11 +188,14 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
     assert.deepEqual(r.findings, []);
     // Classification is untouched: the file of another framework is where it was.
     assert.deepEqual(r.skippedFiles, reference.skippedFiles);
-    // S10a: line 1 is the not-scored headline, line 2 names the reason.
-    const tl = formatText(r).split('\n');
-    assert.equal(tl[0], 'The time limit was reached before any test was scored, so this suite could not be scored.');
-    assert.match(tl[1]!, /^Not scored: a time or memory limit was reached first  ·  \d+ files?$/);
-    assert.match(formatText(r), /time limit reached/);
+    // FIX1: the partial line names the limit; nothing reads as a scored suite.
+    const text = formatText(r);
+    assert.match(text, /Partial: The time limit was reached before any test was scored \(\d+ of \d+ files skipped\), so this is not a pass\./);
+    assert.match(text, /time limit reached/);
+    // --allow-partial lets it pass; no threshold is applied here.
+    const allowed = await scorePaths({ paths: [dir], cwd: dir, maxSeconds: 0.001, shared: false, allowPartial: true });
+    assert.equal(allowed.status, 'partial');
+    assert.equal(allowed.pass, true);
   });
 
   it('the time limit passes while the worker is analysing: the worker is stopped, and the batch in flight and the later ones are skipped as deadline', async () => {
@@ -256,7 +261,7 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
     assert.ok(out.skipped.every((s) => s.detail !== undefined && !s.detail.includes('/')), 'a detail carries a path');
   });
 
-  it('the lowest heap limit scorePaths accepts, on a file no worker can analyse under it: no throw; worker-died, not-scored', async () => {
+  it('the lowest heap limit scorePaths accepts, on a file no worker can analyse under it: no throw; worker-died, partial (limit-reached, FIX1)', async () => {
     const head = good('dense');
     const dir = suite({
       'dense.spec.ts': head + 'a;\n'.repeat(Math.floor((MAX_SOURCE_BYTES - head.length) / 3)),
@@ -264,18 +269,16 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
     });
     const reference = await scorePaths({ paths: [dir], cwd: dir, isolate: false });
     const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, maxHeapMb: MIN_MAX_HEAP_MB });
-    assert.equal(r.status, 'not-scored');
+    assert.equal(r.status, 'partial');
     assert.equal(r.reason, 'limit-reached');
+    assert.equal(r.score, 0);
+    assert.equal(r.pass, false);
     assert.equal(r.coverage?.filesScored, 0);
     assert.equal(r.coverage?.skipped.length, reference.coverage?.filesFound);
     assert.deepEqual([...new Set(r.coverage?.skipped.map((s) => s.reason))], ['worker-died']);
     assert.ok(r.coverage?.skipped.every((s) => s.detail !== undefined && !s.detail.includes('/')), 'a detail carries a path');
     assert.deepEqual(r.skippedFiles, reference.skippedFiles);
-    // S10a: line 1 is the not-scored headline, line 2 names the reason.
-    const tl = formatText(r).split('\n');
-    assert.equal(tl[0], 'The analysis ran out of memory or stopped before any test was scored, so this suite could not be scored.');
-    assert.match(tl[1]!, /^Not scored: a time or memory limit was reached first  ·  \d+ files?$/);
-    assert.match(formatText(r), /analysis ran out of memory or stopped/);
+    assert.match(formatText(r), /Partial: The analysis ran out of memory or stopped before any test was scored/);
   });
 
   for (const maxHeapMb of [0, -1, 0.5, 1, 4, MIN_MAX_HEAP_MB - 1, MAX_MAX_HEAP_MB + 1, 2 ** 44, Number.MAX_SAFE_INTEGER, NaN, Infinity, '256' as unknown as number]) {
@@ -442,7 +445,7 @@ describe('QAG-287 S5b: the time limit passes mid-run, on an injected clock', () 
   });
 
   for (const step of ['helper-facts', 'import-graph', 'aliases', 'shared-files', 'analysis-input', 'batch:0']) {
-    it(`before the ${step} step: no later step starts; every file is skipped as deadline; not-scored, limit-reached`, async () => {
+    it(`before the ${step} step: no later step starts; every file is skipped as deadline; partial, limit-reached`, async () => {
       const dir = mixedSuite();
       const asked = passAt(step);
       // The spec files only (shared: false, S6c); tests/shared-lint.test.ts covers the shared files under the limit.
@@ -450,7 +453,7 @@ describe('QAG-287 S5b: the time limit passes mid-run, on an injected clock', () 
       clock.now = realNow;
       // The clock is not read again once the limit has passed.
       assert.equal(asked[asked.length - 1], step);
-      assert.equal(r.status, 'not-scored');
+      assert.equal(r.status, 'partial');
       assert.equal(r.reason, 'limit-reached');
       assert.equal(r.pass, false);
       assert.deepEqual(r.coverage?.skipped, specNames().map((file) => ({ file, reason: 'deadline', detail: 'time limit 1000 s' })));

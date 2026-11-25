@@ -195,10 +195,24 @@ export function skippedFilesText(result: ScoreResult, max = 3): string {
   return shown.join(', ') + (skipped.length > max ? ` and ${skipped.length - max} more` : '');
 }
 
+/** Which limit skipped the files: "The time limit was reached", ... */
+function limitWhat(result: ScoreResult): string {
+  const reasons = new Set((result.coverage?.skipped ?? []).map((s) => s.reason));
+  return !reasons.has('worker-died')
+    ? 'The time limit was reached'
+    : !reasons.has('deadline')
+      ? 'The analysis ran out of memory or stopped'
+      : 'A time or memory limit was reached';
+}
+
 /** One line for a partial result, or undefined. */
 export function partialNote(result: ScoreResult): string | undefined {
   if (result.status !== 'partial' || !result.coverage) return undefined;
   const { filesFound, skipped } = result.coverage;
+  // QAG-287 FIX1: a limit reached before any test was counted is partial, with nothing scored.
+  if (result.reason === 'limit-reached') {
+    return `Partial: ${limitWhat(result)} before any test was scored (${skipped.length} of ${plural(filesFound, 'file')} skipped), so this is not a pass. Skipped: ${skippedFilesText(result)}.`;
+  }
   return `Partial: ${skipped.length} of ${plural(filesFound, 'file')} skipped, so this is not a pass. The score covers the other ${plural(filesFound - skipped.length, 'file')}. Skipped: ${skippedFilesText(result)}.`;
 }
 
@@ -235,14 +249,8 @@ export function notScoredHeadline(result: ScoreResult): { headline: string; line
     };
   }
   if (result.reason === 'limit-reached') {
-    const reasons = new Set((result.coverage?.skipped ?? []).map((s) => s.reason));
-    const what = !reasons.has('worker-died')
-      ? 'The time limit was reached'
-      : !reasons.has('deadline')
-        ? 'The analysis ran out of memory or stopped'
-        : 'A time or memory limit was reached';
     return {
-      headline: `${what} before any test was scored, so this suite could not be scored.`,
+      headline: `${limitWhat(result)} before any test was scored, so this suite could not be scored.`,
       line: `Raise the limit and run the score again. Skipped: ${skippedFilesText(result)}.`,
     };
   }
