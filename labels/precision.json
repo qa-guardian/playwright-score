@@ -17,7 +17,19 @@
   {
    "rule": "playwright/missing-playwright-await",
    "form": "action",
+   "role": "shared",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/missing-playwright-await",
+   "form": "action",
    "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/missing-playwright-await",
+   "form": "assertion",
+   "role": "shared",
    "tier": "likely"
   },
   {
@@ -41,7 +53,25 @@
   {
    "rule": "playwright/no-element-handle",
    "form": "-",
+   "role": "shared",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/no-element-handle",
+   "form": "-",
    "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/no-element-handle",
+   "form": "locator-handle",
+   "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/no-element-handle",
+   "form": "unresolved",
+   "role": "shared",
    "tier": "likely"
   },
   {
@@ -65,6 +95,18 @@
   {
    "rule": "playwright/no-networkidle",
    "form": "-",
+   "role": "shared",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/no-networkidle",
+   "form": "-",
+   "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/no-networkidle",
+   "form": "capture-window",
    "role": "spec",
    "tier": "likely"
   },
@@ -89,7 +131,19 @@
   {
    "rule": "playwright/no-wait-for-navigation",
    "form": "-",
+   "role": "shared",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/no-wait-for-navigation",
+   "form": "-",
    "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/no-wait-for-selector",
+   "form": "-",
+   "role": "shared",
    "tier": "likely"
   },
   {
@@ -97,6 +151,12 @@
    "form": "-",
    "role": "spec",
    "tier": "certain"
+  },
+  {
+   "rule": "playwright/no-wait-for-timeout",
+   "form": "-",
+   "role": "shared",
+   "tier": "likely"
   },
   {
    "rule": "playwright/no-wait-for-timeout",
@@ -118,13 +178,67 @@
   },
   {
    "rule": "playwright/prefer-web-first-assertions",
+   "form": "read-compare",
+   "role": "shared",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/prefer-web-first-assertions",
+   "form": "read-compare",
+   "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/prefer-web-first-assertions",
+   "form": "read-direct",
+   "role": "shared",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/prefer-web-first-assertions",
    "form": "read-direct",
    "role": "spec",
    "tier": "likely"
   },
   {
+   "rule": "playwright/prefer-web-first-assertions",
+   "form": "read-handle",
+   "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/prefer-web-first-assertions",
+   "form": "read-url-count",
+   "role": "shared",
+   "tier": "likely"
+  },
+  {
    "rule": "playwright/valid-expect",
    "form": "matcherless",
+   "role": "shared",
+   "tier": "likely"
+  },
+  {
+   "rule": "playwright/valid-expect",
+   "form": "matcherless",
+   "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "pwscore/assertion-passes-anyway",
+   "form": "empty-fallback",
+   "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "pwscore/assertion-passes-anyway",
+   "form": "match-anything",
+   "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "pwscore/assertion-passes-anyway",
+   "form": "root-content",
    "role": "spec",
    "tier": "likely"
   },
@@ -153,9 +267,27 @@
    "tier": "likely"
   },
   {
+   "rule": "pwscore/no-floating-callback-assertion",
+   "form": "-",
+   "role": "shared",
+   "tier": "likely"
+  },
+  {
+   "rule": "pwscore/no-floating-callback-assertion",
+   "form": "-",
+   "role": "spec",
+   "tier": "likely"
+  },
+  {
    "rule": "pwscore/no-skipped-test-declaration",
    "form": "-",
    "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "pwscore/no-swallowed-assertion",
+   "form": "-",
+   "role": "shared",
    "tier": "likely"
   },
   {
@@ -179,6 +311,12 @@
   {
    "rule": "pwscore/no-unawaited-action",
    "form": "-",
+   "role": "shared",
+   "tier": "likely"
+  },
+  {
+   "rule": "pwscore/no-unawaited-action",
+   "form": "-",
    "role": "spec",
    "tier": "certain"
   },
@@ -186,6 +324,12 @@
    "rule": "pwscore/no-unawaited-expect-value",
    "form": "-",
    "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "pwscore/no-weak-assertion",
+   "form": "-",
+   "role": "shared",
    "tier": "likely"
   },
   {
@@ -199,6 +343,18 @@
    "form": "-",
    "role": "spec",
    "tier": "advisory"
+  },
+  {
+   "rule": "pwscore/unchecked-read",
+   "form": "discarded",
+   "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "pwscore/unchecked-read",
+   "form": "unused-binding",
+   "role": "spec",
+   "tier": "likely"
   }
  ]
 }
