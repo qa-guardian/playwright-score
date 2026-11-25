@@ -2,11 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ROWS, rowFor } from './catalogue/table.js';
 import { parseErrorFiles } from './coverage.js';
-import { applyExpectBinding, FOREIGN_EXPECT_FORM } from './expect-binding.js';
+import { applyExpectBinding, FOREIGN_EXPECT_FORM, type AddedAliasFindings } from './expect-binding.js';
 import { createTriage } from './finding-triage.js';
 import { commonAncestorDir } from './fs-util.js';
+import type { FileLinter } from './eslint-runner.js';
 import type { ImportResolver } from './module-resolution.js';
 import { applyReceiverForms, type ReceiverContext } from './receiver-forms.js';
+import type { ScopeAliases } from './rules/aliased-page-api.js';
 import type { SharedFiles } from './shared-files.js';
 import type { Finding, ProfileName } from './types.js';
 
@@ -112,10 +114,14 @@ export interface SharedLintInput {
   profile: ProfileName;
   cwd: string;
   testAliasNames: string[];
+  /** Shared files with a proven expect alias / scope alias (expect-alias.ts, rules/aliased-page-api.ts). */
+  sharedExpectAliasesByFile?: Map<string, string[]>;
+  sharedScopeAliasesByFile?: Map<string, ScopeAliases>;
 }
 
 export interface SharedLinter {
-  (files: string[]): Promise<{ findings: Finding[]; parseErrors: Array<[string, string]> }>;
+  /** `aliasFindings`: the alias lint's new findings, untriaged; the main thread keeps those the resolver proves. */
+  (files: string[]): Promise<{ findings: Finding[]; aliasFindings: Finding[]; parseErrors: Array<[string, string]> }>;
   /** A batch cut into its spec files and its shared files. Without shared files the batch itself is returned. */
   split(batch: string[]): { files: string[]; shared: string[] };
 }
@@ -129,7 +135,7 @@ export function createSharedLinter(input: SharedLintInput, moduleResolver?: Impo
   const all = input.sharedFiles ?? [];
   const set = new Set(all);
   const listed = new Set(sharedRuleIds());
-  let linter: Promise<(files: string[]) => Promise<Finding[]>> | undefined;
+  let linter: Promise<FileLinter> | undefined;
   let triage: ((findings: Finding[]) => Finding[]) | undefined;
   const sourcesOf = (): Map<string, string> => {
     const sources = new Map<string, string>();
@@ -147,7 +153,7 @@ export function createSharedLinter(input: SharedLintInput, moduleResolver?: Impo
     return sources;
   };
 
-  const run = async (files: string[]): Promise<{ findings: Finding[]; parseErrors: Array<[string, string]> }> => {
+  const run = async (files: string[]): Promise<{ findings: Finding[]; aliasFindings: Finding[]; parseErrors: Array<[string, string]> }> => {
     linter ??= import('./eslint-runner.js').then((m) =>
       m.createLinter(
         {
@@ -157,14 +163,20 @@ export function createSharedLinter(input: SharedLintInput, moduleResolver?: Impo
           testAliasNames: input.testAliasNames,
           basePath: commonAncestorDir(all),
           shared: true,
+          expectAliasesByFile: input.sharedExpectAliasesByFile,
+          scopeAliasesByFile: input.sharedScopeAliasesByFile,
         },
         all
       )
     );
-    const raw = await (await linter)(files);
+    const lintWith = await linter;
+    const raw = await lintWith(files);
+    // The alias lint on the shared files that prove an alias, as on spec files (QAG-287 FIXK 7).
+    const added = await lintWith.aliasPass(files, raw);
     // A shared file that is not valid JS/TS is a skipped file; it adds no finding.
     const unparsed = parseErrorFiles(raw);
     const kept = raw.filter((f) => listed.has(f.rule) && !unparsed.has(f.file));
+    const aliasFindings = added.filter((f) => listed.has(f.rule) && !unparsed.has(f.file));
     // The triage that tells a helper named `...Expect(` from a real expect() (finding-triage.ts).
     triage ??= createTriage({
       filesBase: input.filesBase,
@@ -175,6 +187,7 @@ export function createSharedLinter(input: SharedLintInput, moduleResolver?: Impo
     });
     return {
       findings: triage(kept),
+      aliasFindings,
       parseErrors: [...unparsed].map(([relFile, detail]) => [path.resolve(input.filesBase, relFile), detail] as [string, string]),
     };
   };
@@ -194,12 +207,18 @@ export function finishSharedFindings(
   findings: Finding[],
   plan: SharedLintPlan,
   ctx: ReceiverContext,
-  isSkipped: (absFile: string) => boolean
+  isSkipped: (absFile: string) => boolean,
+  aliasAdded?: AddedAliasFindings
 ): Finding[] {
   const live = findings.filter((f) => !isSkipped(path.resolve(ctx.filesBase, f.file)));
   if (live.length === 0) return live;
-  const shared: ReceiverContext = { ...ctx, sources: new Map([...ctx.sources, ...plan.sources]) };
+  const shared = sharedContext(ctx, plan);
   applyReceiverForms(live, shared);
-  applyExpectBinding(live, shared);
+  applyExpectBinding(live, shared, aliasAdded);
   return live.filter(listedOnShared);
+}
+
+/** The receiver context with the shared files' texts added: what the shared steps resolve against. */
+export function sharedContext(ctx: ReceiverContext, plan: SharedLintPlan): ReceiverContext {
+  return { ...ctx, sources: new Map([...ctx.sources, ...plan.sources]) };
 }

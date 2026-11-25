@@ -75,6 +75,9 @@ export interface AnalysisInput {
   expectAliasesByFile?: Map<string, string[]>;
   /** Spec files with a proven scope alias -> the names (rules/aliased-page-api.ts). */
   scopeAliasesByFile?: Map<string, ScopeAliases>;
+  /** The same two maps for the shared files (shared-lint.ts): their alias lint runs as the specs' does. */
+  sharedExpectAliasesByFile?: Map<string, string[]>;
+  sharedScopeAliasesByFile?: Map<string, ScopeAliases>;
 }
 
 /** What the analysis says about one file that parsed. */
@@ -93,6 +96,8 @@ export interface BatchResult {
   lintFindings: Finding[];
   /** Findings of the batch's shared files (shared-lint.ts). Absent when the batch holds none. */
   sharedFindings?: Finding[];
+  /** New findings of the shared files' alias lint, not yet checked against the resolver. Absent when there are none. */
+  sharedAliasFindings?: Finding[];
   /** New findings of the alias lint (expect-alias.ts), not yet checked against the resolver; not triaged. */
   aliasFindings: Finding[];
   metricFindings: Finding[];
@@ -253,6 +258,7 @@ export function createAnalyzer(
     if (shared.length > 0) {
       const s = await lintShared(shared);
       result.sharedFindings = s.findings;
+      if (s.aliasFindings.length > 0) result.sharedAliasFindings = s.aliasFindings;
       result.parseErrors.push(...s.parseErrors);
       heapCheckpoint();
     }

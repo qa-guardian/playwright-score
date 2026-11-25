@@ -12,7 +12,7 @@ import {
 import { collectLocallyImportedFiles, createModuleResolver } from './import-graph.js';
 import { clearParseCache } from './parse-cache.js';
 import { createSharedCollector, sharedCoverage, type SharedFiles } from './shared-files.js';
-import { analysisFiles, finishSharedFindings, planSharedLint, type SharedLintPlan } from './shared-lint.js';
+import { analysisFiles, finishSharedFindings, planSharedLint, sharedContext, type SharedLintPlan } from './shared-lint.js';
 import {
   attributeFindingScopes,
   countLocators,
@@ -796,6 +796,11 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
     const expectAliasesByFile = findExpectAliases({ filesBase, sources, importedFiles, importBoundary, moduleResolver }, files);
     // QAG-287 S4a: the spec files that prove a scope alias of the page fixture, of `test` or of a `networkidle` value.
     const scopeAliasesByFile = findScopeAliases({ filesBase, sources, importedFiles, importBoundary, moduleResolver }, files);
+    // QAG-287 FIXK 7: the shared files get the same two alias lints, resolved with their own texts.
+    const sharedCtx = sharedRun && sharedContext({ filesBase, sources, importedFiles, importBoundary, moduleResolver }, sharedRun);
+    const sharedAliases = sharedRun && sharedCtx
+      ? { sharedExpectAliasesByFile: findExpectAliases(sharedCtx, sharedRun.files), sharedScopeAliasesByFile: findScopeAliases(sharedCtx, sharedRun.files) }
+      : {};
     analysis = {
       files,
       sources,
@@ -809,6 +814,7 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
       ...(sharedRun ? { sharedFiles: sharedRun.files } : {}),
       expectAliasesByFile,
       scopeAliasesByFile,
+      ...sharedAliases,
     };
   }
 
@@ -838,6 +844,7 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
   let raw = 0;
   const eslintFindings: Finding[] = [];
   const sharedFindings: Finding[] = [];
+  const sharedAliasCandidates: Finding[] = [];
   const aliasCandidates: Finding[] = [];
   const metricFindings: Finding[] = [];
   const fileTests: Record<string, number> = {};
@@ -846,6 +853,7 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
     for (const [file, detail] of batch.parseErrors) skips.add(file, 'parse-error', detail);
     eslintFindings.push(...batch.lintFindings);
     sharedFindings.push(...(batch.sharedFindings ?? []));
+    sharedAliasCandidates.push(...(batch.sharedAliasFindings ?? []));
     aliasCandidates.push(...(batch.aliasFindings ?? []));
     metricFindings.push(...batch.metricFindings);
     for (const f of batch.facts) {
@@ -884,9 +892,15 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
   raw += importedRaw;
 
   // Shared-file findings (on unless `shared: false`): listed after the spec findings, never part of the score.
-  const sharedListed = sharedRun
-    ? finishSharedFindings(sharedFindings, sharedRun, { filesBase, sources, importedFiles, importBoundary, moduleResolver }, (f) => skips.has(f))
-    : [];
+  // QAG-287 FIXK 7: the shared alias lints' findings are kept as the specs' are (S4b.2, S4a), then finished with the rest.
+  let sharedListed: Finding[] = [];
+  if (sharedRun) {
+    const sharedCtx = sharedContext({ filesBase, sources, importedFiles, importBoundary, moduleResolver }, sharedRun);
+    const sharedAliasAdded = keepProvenAliasFindings(sharedAliasCandidates.filter((f) => !SCOPE_RULES.includes(f.rule)), sharedCtx);
+    sharedFindings.push(...sharedAliasAdded.findings);
+    sharedFindings.push(...keepScopeAliasFindings(sharedAliasCandidates.filter((f) => SCOPE_RULES.includes(f.rule)), sharedFindings, sharedCtx));
+    sharedListed = finishSharedFindings(sharedFindings, sharedRun, { filesBase, sources, importedFiles, importBoundary, moduleResolver }, (f) => skips.has(f), sharedAliasAdded);
+  }
   const specFindings = [...eslintFindings, ...metricFindings];
   const findings = [...specFindings, ...sharedListed];
 
