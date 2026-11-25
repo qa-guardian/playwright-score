@@ -110,23 +110,22 @@ Some defects no static rule decides. The scorer does not report:
 
 ## Real-world results
 
-The numbers below are the last published corpus run, scored with model v4
-and the 2.x score bar of 80 before 3.0.0; the 3.0.0 run replaces them in
+3.0.0 was checked on 279 public Playwright suites, scored against each
+project's own source with the default gate (no score bar). People also
+read real suites by hand and listed every defect before comparing with the
+output: 27 of the 36 defect classes they found that a rule targets are
+reported.
+
+**279 suites · 17,019 files · 86,200 tests · 264/279 pass (default gate) ·
+tested on 2026-11-25**
+
 [VALIDATION.md](https://github.com/qa-guardian/playwright-score/blob/main/VALIDATION.md)
-when it is published. 100 public Playwright suites, scored against each
-project's actual source, chosen to include both well-known,
-heavily-engineered platforms and smaller, less mature projects, plus three
-named testing-infra competitors scored under the exact same rules as
-everyone else. Not curated to look good: 35 of 100 failed that bar.
-
-**100 suites · 7,281 files · 39,059 tests · 65/100 pass (80% threshold) ·
-tested on 2026-09-24**
-
-Repo names in VALIDATION.md link to the exact commit scanned, with the full
-table, the findings breakdown and `scripts/validate-corpus.sh` to reproduce
-every number yourself. A machine-readable
+has the recall measured by hand, the precision of the certain rules, the
+corpus breakdown, the regression benchmark and the known limitations;
+`scripts/validate-corpus.sh` scores a public list of repositories on your
+own machine. A machine-readable
 [`validation.json`](https://github.com/qa-guardian/playwright-score/blob/main/validation.json)
-carries the same per-repo data for tooling. See
+carries the same numbers for tooling. See
 [CHANGELOG.md](https://github.com/qa-guardian/playwright-score/blob/main/CHANGELOG.md)
 for what changed release to release, including "Upgrading from 2.x". A
 self-contained visual report of an earlier five-suite audit lives at
