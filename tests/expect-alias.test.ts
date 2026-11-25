@@ -133,6 +133,16 @@ describe('S4b.2: a const alias of Playwright expect is checked like expect', () 
     });
   }
 
+  it('known gap, measured (QAG-287 FIX1): an import rename of expect is read by the plugin rules only', async () => {
+    const rules = (all: Finding[]): string[] =>
+      [...new Set(all.filter((f) => SIX.includes(f.rule) && typeof f.line === 'number' && f.line >= 4 && f.line <= 9).map((f) => f.rule))].sort();
+    assert.deepEqual(rules(await score({ 'a.spec.ts': TS('') + BODY('expect') }, 'a.spec.ts')), [...SIX].sort());
+    // `import { expect as verify }`: the plugin follows the import; pwscore's own three rules do not read it yet.
+    assert.deepEqual(rules(await score({ 'a.spec.ts': TS('', 'test, expect as verify') + BODY('verify') }, 'a.spec.ts')), [
+      'playwright/missing-playwright-await', 'playwright/prefer-web-first-assertions', 'playwright/valid-expect',
+    ]);
+  });
+
   it('a parameter that shadows the alias is not read as it; the alias in another test still is', async () => {
     const shadowed = BODY('verify').replace('async ({ page })', 'async ({ page, verify })');
     const later = `test('status', async ({ page }) => {\n  verify(page.getByRole('status')).toBeVisible();\n});\n`;

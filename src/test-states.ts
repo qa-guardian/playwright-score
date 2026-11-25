@@ -71,7 +71,8 @@ interface Facts {
 /** One counted test as the facts see it: its callback, then each in-scope hook's callback (N3). */
 export interface TestAssertions {
   sf: ScopeFile;
-  parts: Array<{ fn: N; hook?: string; sites: readonly N[]; open: readonly N[] }>;
+  /** `at`: the file `fn` is declared in (a named test callback may come from a relative import; hooks are in `sf`). */
+  parts: Array<{ fn: N; at?: ScopeFile; hook?: string; sites: readonly N[]; open: readonly N[] }>;
 }
 const none = (name?: string): Facts => ({ asserts: false, unresolved: new Set(name ? [name] : []), sites: [], open: [] });
 interface Staged {
@@ -247,7 +248,7 @@ function stageFile(sf: ScopeFile, rel: string, spans: TestSpans, factsOf: Return
         const part = factsOf(at, f);
         facts.asserts ||= part.asserts;
         for (const name of part.unresolved) facts.unresolved.add(name);
-        parts.push({ fn: f, hook, sites: part.sites, open: part.open });
+        parts.push({ fn: f, at, hook, sites: part.sites, open: part.open });
       }
     }
     let loops: LoopHit[] | undefined;
@@ -259,8 +260,9 @@ function stageFile(sf: ScopeFile, rel: string, spans: TestSpans, factsOf: Return
     }
     let negativeOnly = false;
     try {
-      // Like N3, the N4 check reads one file's syntax tree: a callback declared in another file is not looked at.
-      negativeOnly = !excluded && !(target && target.sf !== sf) && negativeOnlyTest({ sf, parts }, factsOf.probe);
+      // QAG-287 FIX1: the N4 check reads each part in the file it is declared in, so a test callback imported
+      // from another file is looked at too (N3 above still skips it).
+      negativeOnly = !excluded && negativeOnlyTest({ sf, parts }, factsOf.probe);
     } catch {
       negativeOnly = false; // nor does the N4 check
     }

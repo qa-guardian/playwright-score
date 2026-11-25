@@ -179,7 +179,7 @@ export function negativeOnlyTest(t: TestAssertions, probe: CallProbe): boolean {
   const ordered = [...parts].sort((a, b) => rank(a.hook) - rank(b.hook) || a.fn.range[0] - b.fn.range[0]);
   const kinds: Kind[] = [];
   for (const part of ordered) {
-    const s = seqOf(probe, sf, part.fn, new Set());
+    const s = seqOf(probe, part.at ?? sf, part.fn, new Set());
     if (s.open) return false;
     kinds.push(...s.kinds);
   }

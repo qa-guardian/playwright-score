@@ -168,6 +168,26 @@ describe('QAG-287 N4: pwscore/negative-only-test', () => {
     assert.deepEqual(await lines(t(`${HIDDEN}  if (await page.getByRole('main').count() > 1) throw new Error('two mains');\n`)), []);
   });
 
+  it('a test callback declared in an imported file is read there (QAG-287 FIX1)', async () => {
+    const twoFiles = async (steps: string): Promise<number[]> => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-neg-x-'));
+      try {
+        fs.writeFileSync(path.join(dir, 'steps.ts'), `import { expect } from '@playwright/test';\n${steps}`);
+        fs.writeFileSync(
+          path.join(dir, 'a.spec.ts'),
+          `import { test } from '@playwright/test';\nimport { pondTest } from './steps';\ntest('pond', pondTest);\n`,
+        );
+        const r = await scorePaths({ paths: [path.join(dir, 'a.spec.ts')], profile: 'standard', threshold: 0, cwd: dir });
+        return negativesOf(r).map((f) => f.line!);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    };
+    const fn = (inner: string) => `export async function pondTest({ page }) {\n  await page.goto('/pond');\n${inner}}\n`;
+    assert.deepEqual(await twoFiles(fn(HIDDEN)), [3]);
+    assert.deepEqual(await twoFiles(fn(`  await expect(page.getByRole('main')).toBeVisible();\n${HIDDEN}`)), []);
+  });
+
   it('one finding per test when a hook holds the only check', async () => {
     const after = `test.afterEach(async ({ page }) => {\n${HIDDEN}});\n`;
     const two = `test('a', async ({ page }) => {\n  await page.goto('/pond');\n});\ntest('b', async ({ page }) => {\n  await page.goto('/lake');\n});\n`;
