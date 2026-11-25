@@ -47,6 +47,14 @@ The lower bound is the Wilson score interval.
   scored from the packed tarball under Node 20 and 22, installed with npm
   and with pnpm.
 
+## Results (last run: 2026-11-25, 3.0.0, scoring model v5, `standard` profile, threshold 0)
+
+The pass count and score distribution of the same corpus run. Threshold 0
+means no score bar: "pass" is the default gate.
+
+**264 pass / 15 fail / 279 total (94.6%).** 17,019 files, 86,200 tests, 145,521 findings.
+Score distribution: mean 96.7, median 100; grades 256 A / 9 B / 6 C / 3 D / 5 F.
+
 ## Performance
 
 Measured on the 3.0.0 release candidate against 2.x on the same machine:
@@ -70,18 +78,11 @@ branch (only the Playwright suite's own subdirectory is fetched); nothing
 is committed to this repository. Scores drift over time as these
 projects' own suites change.
 
-## Results (last run: 2026-11-25, 3.0.0, scoring model v5, `standard` profile, threshold 0)
-
-Threshold 0 means no score bar: "pass" is the default gate.
-
-**264 pass / 15 fail / 279 total (94.6%).** 17,019 files, 86,200 tests, 145,521 findings.
-Score distribution: mean 96.7, median 100; grades 256 A / 9 B / 6 C / 3 D / 5 F.
-
 ## Regression benchmark
 
-A fixed set of synthetic specs, each written to contain one known defect,
-is scored on every change to catch regressions. It is not a measure of
-real-world recall.
+Two fixed sets of synthetic specs, each spec written to contain one known
+defect. Neither is a measure of real-world recall. The development
+benchmark is scored on every change to catch regressions.
 
 - Development benchmark: 152 of 155 seeded defects reported (98.1%).
 - Sealed set: 210 of 234 hand-written cases reported (89.7%), none of
