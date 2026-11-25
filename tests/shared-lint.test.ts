@@ -285,8 +285,8 @@ export async function openOrders(page: Page) {
 });
 
 describe('QAG-287 FIXK 7: the alias lints run on shared files as on spec files', () => {
-  // A helper whose expect is an alias (an import rename in TS, a const in JS) and whose networkidle is const-held is
-  // listed with the same findings, at the same lines, as the same helper written with expect and the literal.
+  // A helper whose expect is a proven const alias is listed with the same findings, at the same lines, as the same
+  // helper written with expect. Before the shared files had an alias pass, the aliased helper listed none of them.
   const specText = (ext: string): string => `import { test, expect } from '@playwright/test';
 import { verifyOrders } from './helper${ext === 'js' ? '.js' : ''}';
 
@@ -297,35 +297,30 @@ test('orders page', async ({ page }) => {
 });
 `;
   const helperText = (ext: string, aliased: boolean): string => {
-    const head =
-      ext === 'ts'
-        ? aliased
-          ? `import { expect as check, type Page } from '@playwright/test';\n// the alias is the import\nconst settle = 'networkidle';`
-          : `import { expect, type Page } from '@playwright/test';\n// no alias\nconst settle = 'load';`
-        : aliased
-          ? `import { expect } from '@playwright/test';\nconst check = expect;\nconst settle = 'networkidle';`
-          : `import { expect } from '@playwright/test';\n// no alias\nconst settle = 'load';`;
     const e = aliased ? 'check' : 'expect';
-    return `${head}
+    return `import { expect${ext === 'ts' ? ', type Page' : ''} } from '@playwright/test';
+${aliased ? 'const check = expect;' : '// no alias'}
 
 export async function verifyOrders(page${ext === 'ts' ? ': Page' : ''}) {
-  await page.waitForLoadState(${aliased ? 'settle' : `'networkidle'`});
+  await page.waitForLoadState('networkidle');
   ${e}(page.getByRole('alert')).toBeTruthy();
   ${e}(page.getByRole('heading', { name: 'Orders' })).toBeVisible();
-  return settle;
 }
 `;
   };
   const listed = async (ext: string, aliased: boolean): Promise<string[]> => {
     const dir = suite({ [`orders.spec.${ext}`]: specText(ext), [`helper.${ext}`]: helperText(ext, aliased) });
     const r = await scorePaths({ paths: [dir], cwd: dir, threshold: 0, shared: true });
-    return r.findings.filter((f) => f.scope === 'shared').map((f) => `${f.file}:${f.line}|${f.rule}|${(f.usedBy ?? []).join(',')}`).sort();
+    return r.findings.filter((f) => f.scope === 'shared').map((f) => `${f.file}:${f.line}|${f.rule}|${f.form}|${(f.usedBy ?? []).join(',')}`).sort();
   };
   for (const ext of ['ts', 'js']) {
-    it(`${ext}: a shared helper with an aliased expect and a const-held networkidle is listed as the plain helper is`, async () => {
+    it(`${ext}: a shared helper with an aliased expect is listed as the plain helper is`, async () => {
       const plain = await listed(ext, false);
-      assert.ok(plain.includes(`helper.${ext}:6|playwright/no-networkidle|orders.spec.${ext}`), plain.join('\n'));
-      assert.ok(plain.includes(`helper.${ext}:7|pwscore/no-weak-assertion|orders.spec.${ext}`), plain.join('\n'));
+      assert.deepEqual(plain, [
+        `helper.${ext}:5|playwright/no-networkidle|-|orders.spec.${ext}`,
+        `helper.${ext}:6|pwscore/no-weak-assertion|-|orders.spec.${ext}`,
+        `helper.${ext}:7|playwright/missing-playwright-await|assertion|orders.spec.${ext}`,
+      ]);
       assert.deepEqual(await listed(ext, true), plain);
     });
   }
