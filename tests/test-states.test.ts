@@ -55,14 +55,15 @@ describe('QAG-287 S12: test states', () => {
       const unverified = states.filter((s) => s.state === 'unverified');
       if (expected[entry].unresolved) assert.deepEqual(unverified.map((s) => s.unresolved), expected[entry].unresolved);
       for (const s of states) assert.equal(s.unresolved !== undefined, s.state === 'unverified', 'only an unverified test names callees');
-      // One finding per unasserted test, at its declaration, report-only and never certain.
+      // One finding per unasserted test, at its declaration, report-only and never certain
+      // (advisory: labels/precision.json lists the cell since precision refresh 2).
       const want = states.filter((s) => s.state === 'unasserted');
       const got = unasserted(r);
       assert.deepEqual(got.map((f) => [f.file, f.line, f.testKey]), want.map((s) => [s.file, s.line, s.testKey]));
       assert.equal(r.summary.unassertedTests, want.length);
       for (const f of got) {
         assert.equal(f.reportOnly, true);
-        assert.equal(f.tier, 'likely');
+        assert.equal(f.tier, 'advisory');
         assert.equal(f.family, 'passes-regardless');
         assert.equal(f.form, '-');
         assert.ok(typeof f.column === 'number' && f.column >= 1);
@@ -162,6 +163,8 @@ describe('QAG-287 S12: test states', () => {
     assert.equal(row!.bcEligible, false);
     assert.equal(row!.reportOnly, true);
     assert.equal(row!.basis, 'convention');
-    assert.equal(tierOf(row!), 'likely');
+    assert.equal(row!.design, 'likely');
+    // Listed in labels/precision.json since precision refresh 2, as advisory.
+    assert.equal(tierOf(row!), 'advisory');
   });
 });

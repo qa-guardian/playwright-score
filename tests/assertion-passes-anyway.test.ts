@@ -37,7 +37,9 @@ describe('QAG-287 N1: catalogue cells of assertion-passes-anyway', () => {
     const rows = ROWS.filter((r) => r.rule === RULE);
     assert.deepEqual(rows.map((r) => r.form), FORMS);
     for (const r of rows) {
-      assert.deepEqual([r.family, r.design, r.basis, tierOf(r), r.dimension], ['passes-regardless', 'likely', 'docs', 'likely', 'assertions'], r.form);
+      // The design stays likely; labels/precision.json makes empty-fallback advisory (precision refresh 2).
+      const tier = r.form === 'empty-fallback' ? 'advisory' : 'likely';
+      assert.deepEqual([r.family, r.design, r.basis, tierOf(r), r.dimension], ['passes-regardless', 'likely', 'docs', tier, 'assertions'], r.form);
       assert.match(r.docs ?? '', /^https:\/\/playwright\.dev\/docs\/api\/class-locator(assertions)?#/, r.form);
     }
     assert.equal(rowFor(RULE, 'foreign-expect'), undefined, 'a foreign expect gives no finding, so the rule has no foreign-expect cell');
@@ -52,7 +54,7 @@ describe('QAG-287 N1: catalogue cells of assertion-passes-anyway', () => {
 });
 
 describe('QAG-287 N1: the first three forms on a proven Playwright expect', () => {
-  it('reports each shape once, with its form, tier likely and the row copy', async () => {
+  it('reports each shape once, with its form, its cell tier and the row copy', async () => {
     const found = await score(inTest([
       `await expect(page.locator('body')).toBeVisible();`, // 3
       `await expect(page).toHaveURL(/.*/);`, // 4
@@ -62,7 +64,9 @@ describe('QAG-287 N1: the first three forms on a proven Playwright expect', () =
     assert.deepEqual(at(found), ['3:root-content', '4:match-anything', '6:empty-fallback']);
     for (const f of found) {
       const row = rowFor(RULE, f.form!)!;
-      assert.deepEqual([f.tier, f.family, f.docs, f.severity], ['likely', 'passes-regardless', row.docs, 'warning'], f.form);
+      // empty-fallback is advisory by measurement since precision refresh 2; the other two stay likely.
+      const tier = f.form === 'empty-fallback' ? 'advisory' : 'likely';
+      assert.deepEqual([f.tier, f.family, f.docs, f.severity], [tier, 'passes-regardless', row.docs, 'warning'], f.form);
     }
   });
 

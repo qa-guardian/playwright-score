@@ -18,7 +18,7 @@
    "rule": "playwright/missing-playwright-await",
    "form": "action",
    "role": "shared",
-   "tier": "likely"
+   "tier": "advisory"
   },
   {
    "rule": "playwright/missing-playwright-await",
@@ -66,7 +66,7 @@
    "rule": "playwright/no-element-handle",
    "form": "locator-handle",
    "role": "spec",
-   "tier": "likely"
+   "tier": "advisory"
   },
   {
    "rule": "playwright/no-element-handle",
@@ -108,7 +108,7 @@
    "rule": "playwright/no-networkidle",
    "form": "capture-window",
    "role": "spec",
-   "tier": "likely"
+   "tier": "advisory"
   },
   {
    "rule": "playwright/no-page-pause",
@@ -228,7 +228,7 @@
    "rule": "pwscore/assertion-passes-anyway",
    "form": "empty-fallback",
    "role": "spec",
-   "tier": "likely"
+   "tier": "advisory"
   },
   {
    "rule": "pwscore/assertion-passes-anyway",
@@ -247,6 +247,18 @@
    "form": "-",
    "role": "spec",
    "tier": "advisory"
+  },
+  {
+   "rule": "pwscore/loop-only-assertions",
+   "form": "-",
+   "role": "spec",
+   "tier": "likely"
+  },
+  {
+   "rule": "pwscore/negative-only-test",
+   "form": "-",
+   "role": "spec",
+   "tier": "likely"
   },
   {
    "rule": "pwscore/no-brittle-selector",
@@ -340,6 +352,12 @@
   },
   {
    "rule": "pwscore/serial-mode-dependency",
+   "form": "-",
+   "role": "spec",
+   "tier": "advisory"
+  },
+  {
+   "rule": "pwscore/unasserted",
    "form": "-",
    "role": "spec",
    "tier": "advisory"

@@ -119,7 +119,7 @@ describe('QAG-287 S4c: elementHandle() on a proven Locator', () => {
     assert.deepEqual(where(on.filter((f) => f.rule === RULE && f.form !== 'locator-handle')), [`${RULE}@17:21 -`]);
   });
 
-  it('names the call in the message, says to use the Locator, and is likely with the rule\'s docs, severity and dimension', async () => {
+  it('names the call in the message, says to use the Locator, and is advisory with the rule\'s docs, severity and dimension', async () => {
     const on = await score(TRUE_SPEC);
     const upstream = on.find((f) => f.rule === RULE && f.form === '-')!;
     const mine = on.filter((f) => f.form === 'locator-handle');
@@ -127,7 +127,8 @@ describe('QAG-287 S4c: elementHandle() on a proven Locator', () => {
     for (const f of mine) {
       const call = f.line === 12 ? 'elementHandles' : 'elementHandle';
       assert.equal(f.message, `Unexpected use of element handles: use the Locator directly instead of calling ${call}().`);
-      assert.equal(f.tier, 'likely');
+      // Advisory by measurement since precision refresh 2 (labels/precision.json).
+      assert.equal(f.tier, 'advisory');
       assert.equal(f.evidence, 'scope');
       assert.equal(f.docs, DOCS);
       assert.equal(f.title, 'Element handle taken from a locator');

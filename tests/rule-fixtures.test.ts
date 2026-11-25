@@ -243,11 +243,13 @@ async function probeFixture(f: Fixture): Promise<Probe & { parseError: boolean; 
   const base = path.dirname(path.join(fixtureRoot, f.entry));
   const entryRel = path.basename(f.entry);
   if (isShared(f)) {
-    // The contract of a shared finding: outside the entry spec, scope `shared`, used by that spec, tier likely.
+    // The contract of a shared finding: outside the entry spec, scope `shared`, used by that spec, tier likely,
+    // except the shared action cell of missing-playwright-await, advisory by measurement (precision refresh 2).
     for (const x of result.findings.filter((y) => norm(y.rule) === target && y.file !== entryRel)) {
       assert.equal(x.scope, 'shared', `${f.id}: a finding outside the spec has scope shared`);
       assert.deepEqual(x.usedBy, [entryRel], `${f.id}: usedBy names the spec`);
-      assert.equal(x.tier, 'likely', `${f.id}: a shared finding is likely`);
+      const sharedTier = target === 'playwright/missing-playwright-await' && x.form === 'action' ? 'advisory' : 'likely';
+      assert.equal(x.tier, sharedTier, `${f.id}: a shared finding is ${sharedTier}`);
       assert.ok(fs.existsSync(path.join(base, x.file)), `${f.id}: file resolves from the scored directory`);
     }
     if (f.verdict === 'true' && !isPending(f)) {

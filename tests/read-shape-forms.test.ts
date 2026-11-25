@@ -118,10 +118,11 @@ describe('QAG-287 B3: read-handle', () => {
 const LISTEN = "  const statuses: number[] = [];\n  page.on('response', (r) => statuses.push(r.status()));\n";
 
 describe('QAG-287 B3: capture-window', () => {
-  it('a listener before the idle wait and an assertion on its collection after is capture-window, likely', async () => {
+  it('a listener before the idle wait and an assertion on its collection after is capture-window, advisory', async () => {
     const f = await idles(LISTEN + "  await page.goto('/x', { waitUntil: 'networkidle' });\n  expect(statuses).not.toContain(500);");
     assert.deepEqual(forms(f), ['capture-window']);
-    assert.equal(f[0].tier, 'likely');
+    // Advisory by measurement since precision refresh 2 (labels/precision.json).
+    assert.equal(f[0].tier, 'advisory');
     assert.equal(f[0].line, 6);
     assert.equal(f[0].title, rowFor(IDLE, 'capture-window')!.title);
   });
@@ -193,8 +194,9 @@ describe('QAG-287 B3: narrowing only', () => {
       assert.deepEqual(on.map(strip).sort(), off.map(strip).sort(), src);
       if (cells(on).join() !== cells(off).join()) moved.push(`${cells(off).join()} -> ${cells(on).join()}`);
     }
-    // The switches are live: three sources move, and only to the three new forms; the tier never changes.
-    assert.deepEqual(moved, ['read-direct:likely -> read-compare:likely', 'read-direct:likely -> read-handle:likely', '-:likely -> capture-window:likely']);
+    // The switches are live: three sources move, and only to the three new forms. The tier follows
+    // labels/precision.json: capture-window is advisory by measurement (precision refresh 2), the read forms stay likely.
+    assert.deepEqual(moved, ['read-direct:likely -> read-compare:likely', 'read-direct:likely -> read-handle:likely', '-:likely -> capture-window:advisory']);
   });
 
   it('the new rows are likely by design and carry copy of their own', () => {
