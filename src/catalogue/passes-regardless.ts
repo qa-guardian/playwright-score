@@ -258,7 +258,7 @@ export const passesRegardlessRows: readonly RuleRow[] = [
     dimension: 'assertions',
     label: 'medium',
   },
-  // S12: a test in state `unasserted` (src/test-states.ts). Not in labels/precision.json, so never certain; report-only.
+  // S12: a test in state `unasserted` (src/test-states.ts). labels/precision.json gives it tier advisory, so never certain; report-only.
   {
     rule: 'pwscore/unasserted',
     form: '-',
