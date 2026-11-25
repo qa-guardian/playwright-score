@@ -71,14 +71,9 @@ export function contractProblems(j: unknown): string[] {
   return p;
 }
 
-// Known gap: the `playwright-score/no-files` finding is built without `scope`. Only that one problem is
-// tolerated in the not-scored test; the strict check runs as a todo test so every run still reports it.
 const NO_FILES_RULE = 'playwright-score/no-files';
-export function isNoFilesScopeGap(j: unknown, problem: string): boolean {
-  const m = /^findings\[(\d+)\]\.scope: undefined, want string$/.exec(problem);
-  const fs_ = (j as { findings?: Array<Record<string, unknown>> } | null)?.findings;
-  return !!m && Array.isArray(fs_) && fs_[Number(m[1])]?.rule === NO_FILES_RULE;
-}
+/** A finding's `file` is relative to the scored directory: never a POSIX root, a drive letter or a UNC path. */
+export const isAbsoluteFile = (file: string): boolean => file.startsWith('/') || /^[A-Za-z]:/.test(file) || file.startsWith('\\\\');
 
 /** The jq paths action.yml reads from the JSON report (`jq -r '.x' ...`). */
 function actionJqPaths(): string[] {
@@ -128,6 +123,8 @@ function contractSuite(label: string, target: () => Target): void {
       fs.mkdirSync(path.join(dir, 'empty'));
       fs.mkdirSync(path.join(dir, 'notests'));
       fs.writeFileSync(path.join(dir, 'notests', 'none.spec.ts'), `import { test } from '@playwright/test';\nexport const x = test;\n`);
+      fs.mkdirSync(path.join(dir, 'vitest'));
+      fs.writeFileSync(path.join(dir, 'vitest', 'sum.spec.ts'), `import { describe, it, expect } from 'vitest';\ndescribe('sum', () => {\n  it('adds', () => {\n    expect(12 + 30).toBe(42);\n  });\n});\n`);
     });
     after(() => fs.rmSync(dir, { recursive: true, force: true }));
 
@@ -165,16 +162,30 @@ function contractSuite(label: string, target: () => Target): void {
         const r = run([d, '--format', 'json']);
         assert.equal(r.status, 1, d);
         const j = JSON.parse(r.stdout) as Record<string, unknown>;
-        assert.deepEqual(contractProblems(j).filter((p) => !isNoFilesScopeGap(j, p)), [], d);
+        assert.deepEqual(contractProblems(j), [], d);
         assert.equal(j.status, 'not-scored', d);
         assert.equal(j.pass, false, d);
         assert.equal(j.reason, d === 'empty' ? 'no-files' : 'no-counted-tests', d);
       }
     });
 
-    it('the no-files finding carries a scope', { todo: 'known gap: the no-files finding has no scope' }, () => {
-      const j = JSON.parse(run(['empty', '--format', 'json']).stdout) as unknown;
-      assert.deepEqual(contractProblems(j), []);
+    it('a no-files result has module scope and file "."; no finding file is absolute', () => {
+      // Both no-files branches: nothing matched (empty), and only non-Playwright tests matched (vitest).
+      for (const d of ['empty', 'vitest']) {
+        const r = run([d, '--format', 'json']);
+        assert.equal(r.status, 1, d);
+        const j = JSON.parse(r.stdout) as { reason?: string; findings: Array<Record<string, unknown>> };
+        assert.equal(j.reason, 'no-files', d);
+        assert.deepEqual(contractProblems(j), [], d);
+        const nf = j.findings.filter((f) => f.rule === NO_FILES_RULE);
+        assert.equal(nf.length, 1, d);
+        assert.equal(nf[0].scope, 'module', d);
+        assert.equal(nf[0].file, '.', d);
+      }
+      for (const d of ['empty', 'vitest', 'notests', 'mixed', 'clean']) {
+        const j = JSON.parse(run([d, '--format', 'json']).stdout) as { findings: Array<{ file: string }> };
+        for (const f of j.findings) assert.ok(!isAbsoluteFile(f.file), `${d}: ${f.file}`);
+      }
     });
 
     it("the Action's jq paths .score .grade .pass read the JSON", () => {
@@ -226,13 +237,15 @@ describe('contract checker (mutation check)', () => {
     const e = clone(); e.findings[0].line = '1'; assert.notDeepEqual(contractProblems(e), []);
     const f = clone(); for (const k of Object.keys(FINDING_OPTIONAL)) delete f.findings[0][k]; assert.deepEqual(contractProblems(f), []);
   });
-  it('tolerates a missing scope on the no-files finding only', () => {
+  it('fails on a missing scope, the no-files finding included', () => {
     const c = clone(); delete c.findings[0].scope;
-    assert.deepEqual(contractProblems(c).filter((p) => !isNoFilesScopeGap(c, p)), ['findings[0].scope: undefined, want string']);
+    assert.deepEqual(contractProblems(c), ['findings[0].scope: undefined, want string']);
     c.findings[0].rule = NO_FILES_RULE;
-    assert.deepEqual(contractProblems(c).filter((p) => !isNoFilesScopeGap(c, p)), []);
-    delete c.findings[0].message;
-    assert.deepEqual(contractProblems(c).filter((p) => !isNoFilesScopeGap(c, p)), ['findings[0].message: undefined, want string']);
+    assert.deepEqual(contractProblems(c), ['findings[0].scope: undefined, want string']);
+  });
+  it('the absolute-file check catches POSIX, drive-letter and UNC paths, and passes relative ones', () => {
+    for (const f of ['/home/u/repo', 'C:\\repo', 'c:/repo', '\\\\host\\share']) assert.equal(isAbsoluteFile(f), true, f);
+    for (const f of ['.', 'tests/a.spec.ts', '../shared/x.ts']) assert.equal(isAbsoluteFile(f), false, f);
   });
 });
 

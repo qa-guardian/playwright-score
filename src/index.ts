@@ -646,8 +646,9 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
           rule: 'playwright-score/no-files',
           severity: 'error',
           message: `No Playwright spec files matched: ${options.paths.join(', ') || '(no paths)'}`,
-          file: cwd,
+          file: '.', // the working directory, relative: never the user's absolute path
           dimension: 'structure',
+          scope: 'module',
         },
       ],
       {},
@@ -693,8 +694,9 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
           rule: 'playwright-score/no-files',
           severity: 'error',
           message: `${expanded.length} file(s) matched but all look like non-Playwright tests (Jest/Vitest/RTL/Cypress) — nothing to score.`,
-          file: cwd,
+          file: '.', // the working directory, relative: never the user's absolute path
           dimension: 'structure',
+          scope: 'module',
         },
       ],
       {},
