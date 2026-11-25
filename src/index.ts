@@ -646,7 +646,8 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
         {
           rule: 'playwright-score/no-files',
           severity: 'error',
-          message: `No Playwright spec files matched: ${options.paths.join(', ') || '(no paths)'}`,
+          // QAG-287 FIX1: a path the caller gave as absolute is echoed relative to the working directory.
+          message: `No Playwright spec files matched: ${options.paths.map((p) => (path.isAbsolute(p) ? path.relative(cwd, p).split(path.sep).join('/') || '.' : p)).join(', ') || '(no paths)'}`,
           file: '.', // the working directory, relative: never the user's absolute path
           dimension: 'structure',
           scope: 'module',

@@ -167,6 +167,8 @@ unchanged" there refers to that change alone.
 
 ### Changes in detail
 
+- The `playwright-score/no-files` message echoes a path given as absolute relative to the working directory, and its SARIF level is `error`, as its JSON severity.
+
 - The `playwright-score/no-files` finding now has `scope: "module"` and `file: "."` (the scored working directory, relative) instead of the absolute path of the working directory, so CI JSON, SARIF and PR comments no longer carry a local path.
 
 - GitHub Action 3.x. `version` defaults to `3`. An empty `threshold` (the default) now means no score bar, as on the CLI; it no longer means 80. New inputs `allow-partial` and `max-seconds` pass `--allow-partial` and `--max-seconds`. The Action runs the scorer once instead of twice, and its messages describe the default gate. New CLI flag `--markdown-out <file>` writes the markdown report of the same run next to the main output (the Action uses it with `--format json --out`). The JSON contract (keys, types, exports, exit codes) is now checked by a test against the built package and the packed tarball.

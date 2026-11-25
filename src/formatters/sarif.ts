@@ -11,6 +11,8 @@ export const SARIF_LEVEL: Record<Tier, 'error' | 'warning' | 'note'> = {
 };
 
 export function sarifLevel(f: Finding): 'error' | 'warning' | 'note' {
+  // QAG-287 FIX1: no-files has no tier; its level follows its JSON severity (error).
+  if (f.rule === 'playwright-score/no-files') return 'error';
   return SARIF_LEVEL[viewTier(f)];
 }
 
