@@ -11,6 +11,7 @@ import {
 } from './coverage.js';
 import { collectLocallyImportedFiles, createModuleResolver } from './import-graph.js';
 import { clearParseCache } from './parse-cache.js';
+import { releaseMemory } from './heap-guard.js';
 import { createSharedCollector, sharedCoverage, type SharedFiles } from './shared-files.js';
 import { analysisFiles, finishSharedFindings, planSharedLint, sharedContext, type SharedLintPlan } from './shared-lint.js';
 import {
@@ -794,6 +795,10 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
 
     if (timeLimit.passed('analysis-input')) break prePass;
     if (options.shared !== false) sharedRun = planSharedLint(shared, sharedCollector.graph(), files, filesBase);
+    // QAG-287 FIX1: the alias finders below parse with their own scope analysis, not from the parse cache, so the
+    // trees cached by the steps above are dropped (and their memory handed back) before they run: held beside the
+    // finders' trees they took the largest corpus suite past node's default heap.
+    if (clearParseCache() > 0) releaseMemory();
     // QAG-287 S4b.2: the spec files that prove a `const` alias of Playwright's expect; only they get the alias lint.
     const expectAliasesByFile = findExpectAliases({ filesBase, sources, importedFiles, importBoundary, moduleResolver }, files);
     // QAG-287 S4a: the spec files that prove a scope alias of the page fixture, of `test` or of a `networkidle` value.

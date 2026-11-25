@@ -278,13 +278,14 @@ const WORKER_MARK = 'pwscoreAnalysisWorker';
 /** The longest delay a timer takes (2^31 - 1 ms, about 24.8 days); Node turns a longer one into 1 ms. */
 export const MAX_TIMER_MS = 2 ** 31 - 1;
 
-type WorkerEnd = { kind: 'finished' } | { kind: 'deadline' } | { kind: 'died'; detail: string };
+type WorkerEnd = { kind: 'finished' } | { kind: 'deadline' } | { kind: 'died'; detail: string; heap: boolean };
 
-function deathDetail(error: unknown, maxHeapMb: number): string {
+function deathEnd(error: unknown, maxHeapMb: number): WorkerEnd {
   const e = error as { code?: unknown; name?: unknown } | undefined;
-  if (e?.code === 'ERR_WORKER_OUT_OF_MEMORY') return `heap limit ${maxHeapMb} MB`;
+  if (e?.code === 'ERR_WORKER_OUT_OF_MEMORY') return { kind: 'died', detail: `heap limit ${maxHeapMb} MB`, heap: true };
   // Never the message: it can carry a local path.
-  return typeof e?.name === 'string' && /^[A-Za-z]+$/.test(e.name) ? `worker error (${e.name})` : 'worker error';
+  const detail = typeof e?.name === 'string' && /^[A-Za-z]+$/.test(e.name) ? `worker error (${e.name})` : 'worker error';
+  return { kind: 'died', detail, heap: false };
 }
 
 /**
@@ -293,8 +294,11 @@ function deathDetail(error: unknown, maxHeapMb: number): string {
  * - The time limit passes (it is checked before each batch, and a timer stops
  *   a batch in flight): the worker is stopped, and the batch in flight and
  *   every later one are skipped with `deadline`.
- * - The worker dies (out of heap, or any other error): the batch in flight
- *   is skipped with `worker-died`, and a fresh worker takes the later ones.
+ * - The worker runs out of heap: the batch in flight and every later one are
+ *   skipped with `worker-died` (QAG-287 FIX1: a fresh worker per batch under
+ *   the same limit only died again, batch after batch).
+ * - The worker dies of any other error: the batch in flight is skipped with
+ *   `worker-died`, and a fresh worker takes the later ones.
  *
  * Batches that came back before either event are kept.
  */
@@ -349,10 +353,14 @@ export async function analyzeIsolated(
         else if (time.passed(`batch:${next}`)) settle({ kind: 'deadline' });
         else worker.postMessage(batches[next]);
       });
-      worker.on('error', (error) => settle({ kind: 'died', detail: deathDetail(error, heapLimitMb) }));
+      worker.on('error', (error) => settle(deathEnd(error, heapLimitMb)));
       // HEAP_LIMIT_EXIT: the worker's own heap guard ended it (heap-guard.ts).
       worker.on('exit', (code) =>
-        settle({ kind: 'died', detail: code === HEAP_LIMIT_EXIT ? `heap limit ${heapLimitMb} MB` : 'worker error' })
+        settle(
+          code === HEAP_LIMIT_EXIT
+            ? { kind: 'died', detail: `heap limit ${heapLimitMb} MB`, heap: true }
+            : { kind: 'died', detail: 'worker error', heap: false }
+        )
       );
       worker.postMessage(batches[next]);
     });
@@ -362,8 +370,10 @@ export async function analyzeIsolated(
     if (end.kind === 'deadline') {
       for (; next < batches.length; next++) skipped.push(...batches[next].map((file) => deadlineSkip(file, time)));
     } else if (end.kind === 'died') {
-      // Only the dead worker's batch: a later batch may need less, so each gets its own fresh worker.
-      for (const file of batches[next++]) skipped.push({ file, reason: 'worker-died', detail: end.detail });
+      // Out of heap: stop here, every later batch is skipped with the same detail (QAG-287 FIX1).
+      // Any other death: only the dead worker's batch, and a fresh worker takes the later ones.
+      const last = end.heap ? batches.length : next + 1;
+      for (; next < last; next++) for (const file of batches[next]) skipped.push({ file, reason: 'worker-died', detail: end.detail });
     }
   }
   return { batches: done, skipped };

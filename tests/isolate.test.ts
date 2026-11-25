@@ -261,6 +261,37 @@ describe('QAG-287 S5b: a limit skips files into coverage, and nothing else', () 
     assert.ok(out.skipped.every((s) => s.detail !== undefined && !s.detail.includes('/')), 'a detail carries a path');
   });
 
+  it('FIX1: the first heap-limit death ends the analysis: one worker only, every later batch skipped as worker-died, and scorePaths says partial', async () => {
+    // Batch 0 holds a dense file no 256 MB worker can analyse; batches 1 and 2 are small files a fresh worker could score.
+    const head = good('dense');
+    const files: Record<string, string> = { 'a-00.spec.ts': head + 'a;\n'.repeat(Math.floor((MAX_SOURCE_BYTES - head.length) / 3)) };
+    for (let i = 1; i <= 2 * BATCH_SIZE; i++) files[`a-${two(i)}.spec.ts`] = good(`a${i}`);
+    const dir = suite(files);
+    const abs = Object.keys(files).sort().map((f) => path.join(dir, f));
+    const input: AnalysisInput = {
+      files: abs,
+      sources: new Map(abs.map((f) => [f, fs.readFileSync(f, 'utf8')])),
+      importedFiles: new Map(),
+      filesBase: dir,
+      importBoundary: dir,
+      profile: 'standard',
+      cwd: dir,
+      assertFunctionNamesByFile: new Map(abs.map((f) => [f, []])),
+      testAliasNames: [],
+    };
+    const setups: WorkerSetup[] = [];
+    const out = await analyzeIsolated(input, { maxHeapMb: 256, time: startTimeLimit(undefined), onWorkerSetup: (s) => setups.push(s) });
+    assert.equal(setups.length, 1, 'a fresh worker was started after the heap-limit death');
+    assert.deepEqual(out.batches, []);
+    assert.deepEqual(out.skipped.map((s) => `${s.file}|${s.reason}|${s.detail}`), abs.map((f) => `${f}|worker-died|heap limit 256 MB`));
+    const r = await scorePaths({ paths: [dir], cwd: dir, maxHeapMb: 256 });
+    assert.equal(r.status, 'partial');
+    assert.equal(r.reason, 'limit-reached');
+    assert.equal(r.pass, false);
+    assert.equal(r.coverage?.filesScored, 0);
+    assert.equal(r.coverage?.skipped.length, abs.length);
+  });
+
   it('the lowest heap limit scorePaths accepts, on a file no worker can analyse under it: no throw; worker-died, partial (limit-reached, FIX1)', async () => {
     const head = good('dense');
     const dir = suite({
