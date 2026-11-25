@@ -535,16 +535,17 @@ function largestSuite(): string {
 }
 
 describe('QAG-287 S5b: forced limits give a labelled result and exit 1, never 2', () => {
-  it('--max-heap-mb 256 on the largest suite: partial, exit 1; the batch that ran out of heap is skipped, the batches before and after are scored', async () => {
+  it('--max-heap-mb 256 on the largest suite: partial, exit 1; the batch that ran out of heap and every later one are skipped (FIX1), the batch before is scored', async () => {
     const dir = largestSuite();
     const r = await run([dir, '--max-heap-mb', '256']);
     const batchB = Array.from({ length: 20 }, (_, i): [string, string] => [`b-${String(i).padStart(2, '0')}.spec.ts`, 'worker-died']);
-    expectPartial(r, batchB, 25);
+    const batchC = Array.from({ length: 5 }, (_, i): [string, string] => [`c-${String(i).padStart(2, '0')}.spec.ts`, 'worker-died']);
+    expectPartial(r, [...batchB, ...batchC], 20);
     assert.deepEqual([...new Set(r.result.coverage?.skipped.map((s) => s.detail))], ['heap limit 256 MB']);
     // A skipped file contributes no test and no finding.
-    assert.equal(r.result.coverage?.testsCounted, 25);
-    assert.equal(r.result.summary.tests, 25);
-    assert.ok(!r.result.findings.some((f) => f.file.startsWith('b-')));
+    assert.equal(r.result.coverage?.testsCounted, 20);
+    assert.equal(r.result.summary.tests, 20);
+    assert.ok(!r.result.findings.some((f) => f.file.startsWith('b-') || f.file.startsWith('c-')));
     assert.deepEqual(r.result.skippedFiles, ['unit/sum.test.ts']);
     assert.equal(r.stderr, '');
   });

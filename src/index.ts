@@ -798,7 +798,8 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
     // QAG-287 FIX1: the alias finders below parse with their own scope analysis, not from the parse cache, so the
     // trees cached by the steps above are dropped before they run: held beside the finders' trees they took the
     // largest corpus suite past node's default heap. The memory is handed back once, before the worker starts.
-    clearParseCache();
+    // In the calling thread (isolate: false) the analysis reuses the cache, so it is kept there.
+    if (options.isolate !== false) clearParseCache();
     // QAG-287 S4b.2: the spec files that prove a `const` alias of Playwright's expect; only they get the alias lint.
     const expectAliasesByFile = findExpectAliases({ filesBase, sources, importedFiles, importBoundary, moduleResolver }, files);
     // QAG-287 S4a: the spec files that prove a scope alias of the page fixture, of `test` or of a `networkidle` value.
