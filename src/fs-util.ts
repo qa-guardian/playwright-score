@@ -106,3 +106,19 @@ export function resolveDotSlashAbsolute(input: string, cwd: string = process.cwd
   if (fs.existsSync(path.resolve(cwd, input))) return input;
   return fs.existsSync(absolute) ? absolute : input;
 }
+
+/**
+ * How the no-files finding names a path the caller gave, never showing where
+ * it lies outside the working directory (QAG-287 FIX1 R2). A relative path is
+ * shown as given, an absolute one relative to `cwd` with `/` separators. When
+ * that form leaves `cwd` (`..`), is still absolute (Windows, another drive),
+ * or is `./` in front of an absolute path (`.//abs/path`), only its last
+ * segment is shown. `p` is `path.win32` in tests.
+ */
+export function noFilesPathLabel(typed: string, cwd: string, p: typeof path = path): string {
+  const shown = p.isAbsolute(typed) ? p.relative(cwd, typed) : typed;
+  const bare = shown.replace(p.sep === '\\' ? /^(?:\.[\\/])+/ : /^(?:\.\/)+/, '');
+  const norm = p.normalize(bare || '.');
+  if (p.parse(bare).root !== '' || norm.split(p.sep)[0] === '..') return p.basename(norm) || '(outside the working directory)';
+  return p.isAbsolute(typed) ? shown.split(p.sep).join('/') || '.' : typed;
+}

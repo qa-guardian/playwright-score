@@ -167,7 +167,7 @@ unchanged" there refers to that change alone.
 
 ### Changes in detail
 
-- The `playwright-score/no-files` message echoes a path given as absolute relative to the working directory, and its SARIF level is `error`, as its JSON severity.
+- The `playwright-score/no-files` message echoes a path given as absolute relative to the working directory, and only the last segment of a path that lies outside it (`../`, another drive, or `./` in front of an absolute path), so it never shows a local path; its SARIF level is `error`, as its JSON severity.
 - VALIDATION.md reports 3.0.0: the recall measured by hand first, the precision of the certain rules, the corpus totals, and the synthetic benchmarks under their own "Regression benchmark" heading. The 2.1.0 write-up moves to `docs/validation-2.1.0.md`. `validation.json` (generated from VALIDATION.md, not part of the npm package) gains `gate`, `recall` and the totals `findings`, `scored`, `partial` and `notScored`; its `repos` list follows VALIDATION.md's per-repo table and is empty when there is none.
 
 - The `playwright-score/no-files` finding now has `scope: "module"` and `file: "."` (the scored working directory, relative) instead of the absolute path of the working directory, so CI JSON, SARIF and PR comments no longer carry a local path.

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { globSync, hasMagic, Ignore, type IgnoreLike, type Path as GlobPath } from 'glob';
 import { createHelperScope } from './helper-scope.js';
-import { commonAncestorDir } from './fs-util.js';
+import { commonAncestorDir, noFilesPathLabel } from './fs-util.js';
 import { Admission, type Route } from './admission.js';
 import {
   scoredFindings,
@@ -645,8 +645,8 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
         {
           rule: 'playwright-score/no-files',
           severity: 'error',
-          // QAG-287 FIX1: a path the caller gave as absolute is echoed relative to the working directory.
-          message: `No Playwright spec files matched: ${options.paths.map((p) => (path.isAbsolute(p) ? path.relative(cwd, p).split(path.sep).join('/') || '.' : p)).join(', ') || '(no paths)'}`,
+          // QAG-287 FIX1: never a location outside the working directory (fs-util.ts, noFilesPathLabel).
+          message: `No Playwright spec files matched: ${options.paths.map((p) => noFilesPathLabel(p, cwd)).join(', ') || '(no paths)'}`,
           file: '.', // the working directory, relative: never the user's absolute path
           dimension: 'structure',
           scope: 'module',
