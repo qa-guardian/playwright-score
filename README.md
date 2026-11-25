@@ -167,14 +167,14 @@ npx -p @qaguardian/playwright-score pwscore ./tests
 | `--profile standard` | Scoring profile (default, and only, profile) |
 | `--fail-on <list>` | What fails the gate, comma-separated: `passes-regardless` (default; a certain finding that lets a test pass whatever the app does), `flake-risk` (a certain flake-risk finding, or a `page.pause()` or focused test), `unasserted` (a counted test with no assertion found: `unasserted` or `unverified`), `shared` (a certain finding in a shared file a counted spec imports), `none`. A finding counts when it is in a counted test, in a hook that runs for one, or outside every test in a spec file with a counted test. `none` combines with nothing |
 | `--threshold <n>` | Also fail when the score is below n (0–100). Without it the score does not fail the gate |
-| `--allow-partial` | Let a partial result (a file was skipped) pass. A not-scored result never passes |
+| `--allow-partial` | Let a partial result (a file was skipped) pass, also one where a limit left nothing scored (score 0; `status` says `partial`). A not-scored result never passes |
 | `--advice` | Also show advisory findings and the reasons for findings not decided automatically (text, markdown, report). JSON always has every finding |
 | `--format text\|json\|markdown\|sarif\|report` | Output format (default `text`; `report` is a self-contained one-page HTML suite report) |
 | `--out <file>`, `--output <file>` | Write the report to a file |
 | `--markdown-out <file>` | Also write the markdown report to file, from the same run (for example with `--format json --out <file>`) |
 | `--name <suite name>` | Suite name for the report headline (default: the directory basename) |
 | `--max-seconds <n>` | Time limit for the whole run, counted from the start. No default: without it a run is never cut short. Finding the files always finishes; after that no new step starts once the limit has passed. Files not analysed in time are skipped and the result is partial (with reason `limit-reached` and score 0 when no test was scored in time) |
-| `--max-heap-mb <n>` | Heap limit of the analysis worker. Default 4608, the same on every machine; a whole number from 64 to 65536. Files in a batch that hits it are skipped |
+| `--max-heap-mb <n>` | Heap limit of the analysis worker. Default 4608, the same on every machine; a whole number from 64 to 65536. The batch that hits it and every later batch are skipped (`worker-died`) |
 | `--no-shared` | Do not check the shared files the specs import (see [Shared code](#shared-code)) |
 | `--shared` | Check the shared files (the default) |
 | `--version`, `-v` | Print the version |
@@ -185,7 +185,7 @@ npx -p @qaguardian/playwright-score pwscore ./tests
 | Code | Meaning |
 |---|---|
 | `0` | Pass: status `scored` (or `partial` with `--allow-partial`), nothing named by `--fail-on` found, and the score at or above `--threshold` when it is given |
-| `1` | Not pass, including a `partial` result without `--allow-partial` and every `not-scored` result (no files matched, every file skipped, or no counted test) |
+| `1` | Not pass, including a `partial` result without `--allow-partial` (also when a limit left no test counted) and every `not-scored` result (no files matched, every file skipped with no limit hit, or no counted test) |
 | `2` | Tool or usage error: an unknown option, an unknown `--fail-on` value or `none` combined with another value, or a limit that is not usable |
 
 ## Library
@@ -225,7 +225,7 @@ is partial or not scored, or when the score is below a threshold you set
 | `paths` | Space-separated paths/globs to score | `tests` |
 | `profile` | `standard` (default, and only, profile) | `standard` |
 | `threshold` | Optional score bar 0–100; empty means no score bar | empty |
-| `allow-partial` | `true`: a partial result (a file was skipped) can pass | `false` |
+| `allow-partial` | `true`: a partial result (a file was skipped) can pass, also one where a limit left nothing scored (score 0) | `false` |
 | `max-seconds` | Optional time limit for the run; files not analysed in time are skipped | empty |
 | `mode` | `gate` (fail CI when the result does not pass) \| `warn` (report only) | `gate` |
 | `comment` | Post/update a sticky PR comment | `true` |

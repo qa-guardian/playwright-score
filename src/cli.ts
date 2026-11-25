@@ -34,9 +34,9 @@ Exit codes:
      named by --fail-on found, and score >= --threshold when given
   1  not pass, including a partial result without --allow-partial
      (a file was skipped: syntax error, over 1 MB, binary, unreadable,
-     or a --max-seconds / --max-heap-mb limit was hit) and every
-     not-scored result (no files matched, every file skipped, or no
-     counted tests)
+     or a --max-seconds / --max-heap-mb limit was hit, also when no
+     test was counted) and every not-scored result (no files matched,
+     every file skipped with no limit hit, or no counted tests)
   2  tool or usage error (an unknown option or --fail-on value, or
      "none" combined with another --fail-on value)
 

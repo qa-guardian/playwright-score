@@ -123,9 +123,11 @@ export interface ScoreSummary {
 /**
  * How much of the suite the score stands for.
  * `scored`: every file found was scored. `partial`: one or more files were
- * skipped (see `coverage.skipped`) and the score covers the rest; it does not
- * pass. `not-scored`: nothing counted toward a score (no files, every file
- * skipped, or no tests found in the scored files); the score is 0 and never a pass.
+ * skipped (see `coverage.skipped`) and the score covers the rest; it passes
+ * only with `allowPartial`, also when a limit skipped files and no test was
+ * counted (reason `limit-reached`, score 0). `not-scored`: nothing counted
+ * toward a score and no limit was involved (no files, every file skipped, or
+ * no tests found in the scored files); the score is 0 and never a pass.
  */
 export type ScoreStatus = 'scored' | 'partial' | 'not-scored';
 /**
@@ -352,8 +354,8 @@ export interface ScoreOptions {
    * files always finishes, so `skippedFiles` never depends on the limit. After
    * that the limit is checked before each step; once it has passed no new step
    * starts, and a batch being analysed is stopped. The files not analysed are
-   * skipped (`deadline`) and the result is `partial`, or `not-scored` with
-   * reason `limit-reached` when no test was counted in time. This is the only
+   * skipped (`deadline`) and the result is `partial`, with reason
+   * `limit-reached` and score 0 when no test was counted in time. This is the only
    * limit whose effect depends on the machine. Must be a finite number above
    * 0; any other value makes `scorePaths` throw a `RangeError`.
    */

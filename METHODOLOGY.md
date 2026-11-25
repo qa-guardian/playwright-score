@@ -53,8 +53,10 @@ grade   = A >=90 · B >=80 · C >=70 · D >=60 · F <60
 - Every point lost names a finding or a state: an `issue` entry lists its
   findings in `chargedBy`; `summary.countedTests` and
   `summary.chargedTests` give the two numbers of the formula.
-- With no file found, or no counted test, the suite is `not-scored`:
-  score 0, grade F, no pass, exit code 1.
+- With no file found, or no counted test and no limit involved, the suite
+  is `not-scored`: score 0, grade F, no pass, exit code 1. When a limit
+  skipped files and no test was counted, it is `partial` (reason
+  `limit-reached`, score 0).
 
 ### The gate: `pass` and the exit code
 

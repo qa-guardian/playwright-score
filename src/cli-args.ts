@@ -96,7 +96,12 @@ export const FLAGS: readonly Flag[] = [
   },
   {
     names: ['--allow-partial'],
-    help: ['Let a partial result (a file was skipped)', 'pass the gate. A not-scored result never', 'passes.'],
+    help: [
+      'Let a partial result (a file was skipped)',
+      'pass the gate, also one where a limit left',
+      'nothing scored (score 0; status says',
+      'partial). A not-scored result never passes.',
+    ],
     apply(o) {
       o.allowPartial = true;
       return undefined;
@@ -171,7 +176,8 @@ export const FLAGS: readonly Flag[] = [
       'Heap limit of the analysis worker',
       `(default: ${DEFAULT_MAX_HEAP_MB}, the same on every machine;`,
       `${MIN_MAX_HEAP_MB} to ${MAX_MAX_HEAP_MB}).`,
-      'Files in the batch that hits it are skipped.',
+      'The batch that hits it and every later one',
+      'are skipped.',
     ],
     apply(o, v) {
       o.maxHeapMb = Number(v);

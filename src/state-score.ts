@@ -14,9 +14,10 @@
  * charges a test. A certain spec-file finding outside every test and hook changes no state and
  * not the score; it is listed in `outsideTests`.
  *
- * Status: `not-scored` when no file was found or no test counts (`no-files`, `no-counted-tests`,
- * or `limit-reached` when a limit skipped a file): score 0, grade F, no pass. `partial` and
- * `scored` as before. `pass` is `score >= threshold` on a `scored` result here; `scorePaths` then
+ * Status: `not-scored` when no file was found or no test counts and no limit skipped a file
+ * (`no-files`, `no-counted-tests`): score 0, grade F, no pass. No test counted and a limit
+ * skipped a file: `partial` with reason `limit-reached`, score 0. `partial` and `scored`
+ * otherwise as before. `pass` is `score >= threshold` on a `scored` result here; `scorePaths` then
  * replaces it with the gate (src/gate.ts). The `dimensions` are
  * computed as before (src/score-engine.ts) and are informational.
  */

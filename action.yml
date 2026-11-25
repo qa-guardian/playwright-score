@@ -19,7 +19,7 @@ inputs:
     required: false
     default: ''
   allow-partial:
-    description: 'true: a partial result (a file was skipped) can pass. A not-scored result never passes.'
+    description: 'true: a partial result (a file was skipped) can pass, also one where a limit left nothing scored (score 0; its status is partial). A not-scored result never passes.'
     required: false
     default: 'false'
   max-seconds:
