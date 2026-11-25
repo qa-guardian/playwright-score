@@ -8,9 +8,10 @@
 // apart.
 //
 // Read from VALIDATION.md: the "## Results" heading (date, version, model,
-// threshold), the default gate in the "Tested on" line, the bold summary
-// line, the status line, the manual recall line, the two benchmark lines
-// and, when the Results section has one, the per-repo table.
+// threshold), the default gate and its --allow-partial setting in the
+// "Tested on" line, the bold summary line, the status line, the manual
+// recall line, the two benchmark lines and, when the Results section has
+// one, the per-repo table.
 //
 // Usage: node scripts/generate-validation-json.mjs
 import fs from 'node:fs';
@@ -37,8 +38,12 @@ const [, testedOn, version, model, , threshold] = need(
   'the "## Results" heading'
 );
 
-// "default gate (`--fail-on passes-regardless`, no score bar)"
-const [, failOn] = need(/default gate\s+\(`--fail-on ([a-z,-]+)`/, 'the default gate in the "Tested on" line');
+// "default gate (`--fail-on passes-regardless`, no score bar, without
+// `--allow-partial`)": `with` means a partial result passed the gate.
+const [, failOn, partialWord] = need(
+  /default gate\s+\(`--fail-on ([a-z,-]+)`[^)]*?\b(with|without)\s+`--allow-partial`\)/,
+  'the default gate (with its --allow-partial setting) in the "Tested on" line'
+);
 
 // "**221 pass / 58 fail / 279 total (79.2%).** 9,999 files, 99,999 tests, 99,999 findings."
 const [, passingStr, , totalStr, filesStr, testsStr, findingsStr] = need(
@@ -55,7 +60,9 @@ const [, manualPctStr, manualFoundStr, manualTotalStr] = need(
   /\*\*Manual recall: ([\d.]+)%\*\* \((\d+) of (\d+) /,
   'the manual recall line'
 );
-// "Development benchmark: 152 of 155 ..." and "Sealed set: 210 of 234 ..."
+// "Development benchmark: 152 of 155 ..." and "Sealed set: 210 of 234 ...",
+// both under "## Regression benchmark" (recall.benchmarkDevelopment and
+// recall.benchmarkSealed).
 const [, devFoundStr, devTotalStr] = need(/Development benchmark: (\d+) of (\d+) /, 'the development benchmark line');
 const [, sealedFoundStr, sealedTotalStr] = need(/Sealed set: (\d+) of (\d+) /, 'the sealed set line');
 
@@ -126,11 +133,11 @@ const output = {
   model,
   testedOn,
   threshold: Number(threshold),
-  gate: { failOn: failOn.split(','), allowPartial: false },
+  gate: { failOn: failOn.split(','), allowPartial: partialWord === 'with' },
   recall: {
     manual,
-    regressionBenchmark: { seeded: num(devTotalStr), found: num(devFoundStr), recall: pct(num(devFoundStr), num(devTotalStr)) },
-    sealed: { cases: num(sealedTotalStr), found: num(sealedFoundStr), recall: pct(num(sealedFoundStr), num(sealedTotalStr)) },
+    benchmarkDevelopment: { seeded: num(devTotalStr), found: num(devFoundStr), recall: pct(num(devFoundStr), num(devTotalStr)) },
+    benchmarkSealed: { cases: num(sealedTotalStr), found: num(sealedFoundStr), recall: pct(num(sealedFoundStr), num(sealedTotalStr)) },
   },
   totals,
   repos,

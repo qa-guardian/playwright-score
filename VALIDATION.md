@@ -7,7 +7,8 @@ scorer bugs found that way) is kept in
 [docs/validation-2.1.0.md](docs/validation-2.1.0.md).
 
 **Tested on 2026-11-25**: 3.0.0, scoring model v5, default gate
-(`--fail-on passes-regardless`, no score bar), 279-suite corpus.
+(`--fail-on passes-regardless`, no score bar, without `--allow-partial`),
+279-suite corpus.
 
 ## Recall: defects found by hand
 

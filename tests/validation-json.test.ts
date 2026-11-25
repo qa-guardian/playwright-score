@@ -44,8 +44,8 @@ describe('validation.json stays in sync with VALIDATION.md', () => {
     gate: { failOn: string[]; allowPartial: boolean };
     recall: {
       manual: { classes: number; found: number; recall: number };
-      regressionBenchmark: { seeded: number; found: number; recall: number };
-      sealed: { cases: number; found: number; recall: number };
+      benchmarkDevelopment: { seeded: number; found: number; recall: number };
+      benchmarkSealed: { cases: number; found: number; recall: number };
     };
     totals: {
       repos: number;
@@ -105,8 +105,8 @@ describe('validation.json stays in sync with VALIDATION.md', () => {
     const dev = md.slice(benchmarkAt).match(/Development benchmark: (\d+) of (\d+) /);
     const sealed = md.slice(benchmarkAt).match(/Sealed set: (\d+) of (\d+) /);
     assert.ok(dev && sealed, 'expected the development benchmark and sealed set lines under "## Regression benchmark"');
-    assert.deepEqual([data.recall.regressionBenchmark.found, data.recall.regressionBenchmark.seeded], [Number(dev![1]), Number(dev![2])]);
-    assert.deepEqual([data.recall.sealed.found, data.recall.sealed.cases], [Number(sealed![1]), Number(sealed![2])]);
+    assert.deepEqual([data.recall.benchmarkDevelopment.found, data.recall.benchmarkDevelopment.seeded], [Number(dev![1]), Number(dev![2])]);
+    assert.deepEqual([data.recall.benchmarkSealed.found, data.recall.benchmarkSealed.cases], [Number(sealed![1]), Number(sealed![2])]);
   });
 
   it('a per-repo table, when VALIDATION.md has one, lists every suite with the same score/grade/pass', () => {
@@ -138,6 +138,10 @@ describe('validation.json stays in sync with VALIDATION.md', () => {
   it('model, threshold and gate match VALIDATION.md (version is not checked against package.json here — the corpus is re-run less often than patch releases, so validation.json\'s version can legitimately lag package.json\'s by a patch or two; see scripts/generate-validation-json.mjs)', () => {
     assert.equal(data.model, 'v5');
     assert.equal(data.threshold, 0);
+    // The gate as VALIDATION.md's "Tested on" line states it, then the pinned default gate.
+    const gate = md.match(/default gate\s+\(`--fail-on ([a-z,-]+)`[^)]*?\b(with|without)\s+`--allow-partial`\)/);
+    assert.ok(gate, "expected VALIDATION.md's default gate, with its --allow-partial setting, to still be parseable");
+    assert.deepEqual(data.gate, { failOn: gate![1].split(','), allowPartial: gate![2] === 'with' });
     assert.deepEqual(data.gate, { failOn: ['passes-regardless'], allowPartial: false });
   });
 

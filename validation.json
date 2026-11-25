@@ -15,12 +15,12 @@
       "found": 27,
       "recall": 75
     },
-    "regressionBenchmark": {
+    "benchmarkDevelopment": {
       "seeded": 155,
       "found": 152,
       "recall": 98.1
     },
-    "sealed": {
+    "benchmarkSealed": {
       "cases": 234,
       "found": 210,
       "recall": 89.7
