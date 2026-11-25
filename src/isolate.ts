@@ -308,8 +308,11 @@ export async function analyzeIsolated(
 ): Promise<{ batches: BatchResult[]; skipped: WorkerSkip[] }> {
   // The worker parses for itself: the trees the main thread parsed before the
   // analysis are dropped here and their memory is handed back, so they are
-  // not held beside the worker's (heap-guard.ts, releaseMemory).
-  if (clearParseCache() > 0) releaseMemory();
+  // not held beside the worker's (heap-guard.ts, releaseMemory). QAG-287 FIX1:
+  // always, since the cache may already be empty while the alias finders'
+  // trees are still garbage on the heap.
+  clearParseCache();
+  releaseMemory();
   const batches = toBatches(analysisFiles(input));
   const done: BatchResult[] = [];
   const skipped: WorkerSkip[] = [];
