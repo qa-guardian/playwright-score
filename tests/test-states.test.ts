@@ -117,8 +117,15 @@ describe('QAG-287 S12: test states', () => {
       assert.equal(off.testStates, undefined);
       assert.equal(unasserted(off).length, 0);
       assert.equal(JSON.stringify(strip(on)), JSON.stringify(strip(off)), entry);
-      assert.equal(on.scoreVersion, 'v5');
-      assert.equal(off.scoreVersion, 'v4');
+      if (expected[entry].states.length === 0) {
+        // A file that declares no test is not scored: no score, so no score version to switch.
+        assert.equal(on.status, 'not-scored', entry);
+        assert.equal(off.status, 'not-scored', entry);
+        assert.equal(off.scoreVersion, on.scoreVersion, entry);
+      } else {
+        assert.equal(on.scoreVersion, 'v5');
+        assert.equal(off.scoreVersion, 'v4');
+      }
       assert.equal(off.summary.countedTests, undefined);
       assert.deepEqual(on.dimensions, off.dimensions);
       added += unasserted(on).length;
