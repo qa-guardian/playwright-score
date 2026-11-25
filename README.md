@@ -4,76 +4,132 @@
 [![npm version](https://img.shields.io/npm/v/@qaguardian/playwright-score.svg)](https://www.npmjs.com/package/@qaguardian/playwright-score)
 [![license](https://img.shields.io/npm/l/@qaguardian/playwright-score.svg)](https://github.com/qa-guardian/playwright-score/blob/main/LICENSE)
 
-**Deterministic, AI-free quality score for Playwright specs** — the
-share of your tests that are clean.
+**Deterministic, AI-free quality check for Playwright specs.** It finds
+the tests that would pass whatever your app does, the tests with flake
+risk and the tests with no assertion, and scores the share of your tests
+that are clean.
 
 **Website:** [qaguardian.com/open-source/playwright-score](https://qaguardian.com/open-source/playwright-score)  
 **Built by:** [QA Guardian](https://qaguardian.com) — managed Playwright E2E (AI drafts, engineers verify, you own the code)
 
-Lint + score Playwright tests against community best practices via
+Static analysis only: rules from
 [`eslint-plugin-playwright`](https://github.com/playwright-community/eslint-plugin-playwright)
-plus suite-level metrics (locator ratio, assertion-delegation tracing,
-Page Object Model import resolution, ...).
+plus the package's own checks, with imports followed into your helpers,
+page objects and fixtures. Nothing is run against your app.
 
 The score never calls an LLM. AI may *generate* or *repair* code using findings; **rules grade code**.
 
+## What the output says
+
+The text and markdown output open with a headline and the score:
+
+```
+86 tests. 79 have no certain issue. 2 would pass whatever the app does. 5 have flake risk. 3 have no assertion.
+Score 92/100 (A)  ·  FAIL  ·  e2e  ·  41 files
+```
+
+This suite scores 92 and still fails the default gate, because 2 tests
+would pass whatever the app does. A clause whose count is 0 is left out.
+What each count means:
+
+| Count | Meaning |
+|---|---|
+| `86 tests` | Every test declared in the scored spec files (`summary.tests`). Each has one entry in the JSON `testStates`. |
+| `have no certain issue` | Tests with no certain finding in the test or in a hook that runs for it. |
+| `would pass whatever the app does` | Tests charged by a certain finding of the passes-regardless family: an assertion that never runs, is never awaited, or cannot fail. |
+| `have flake risk` | Tests charged by a certain flake-risk finding, such as a fixed wait for a selector. A test can be in this count and the one above. |
+| `have no assertion` | Tests in state `unasserted`: no assertion can be reached from the test or its hooks, and every call it makes was followed. |
+| `certain issues in shared code` | Certain findings in page objects, fixtures and helpers, with the number of spec files that use them. |
+| the score | `round(100 x (counted - charged) / counted)`: the share of counted tests that are not charged. |
+
+Every test gets one state, first match wins:
+
+| State | Meaning | Counted | Charged |
+|---|---|:-:|:-:|
+| `excluded-empty` | the test makes no call | no | no |
+| `excluded-skipped` | declared with `skip` or `fixme`, inside a skipped `describe`, or skipped unconditionally by its first statement | no | no |
+| `issue` | a certain finding in the test, or in a hook that runs for it | yes | yes |
+| `unasserted` | no reachable assertion, and every call was followed | yes | once that check is certain (`summary.unassertedCharged`) |
+| `unverified` | no assertion found, but some call could not be followed (the entry names it) | yes | no |
+| `clean` | anything else | yes | no |
+
+Likely, advisory and not-decided findings, findings in shared files and
+findings outside every test are listed and never cost points. A result is
+`scored`, `partial` (a file was skipped: a syntax error, over 1 MB, binary,
+unreadable, or cut off by a limit; `coverage.skipped` lists them) or
+`not-scored` (no files, or no counted test; score 0, grade F).
+
+## Tiers: what "certain" means
+
+A rule can report several shapes of code; each shape is a **form**, and
+each finding carries its `form` and a `tier`:
+
+- **certain**: the check for this rule and form is listed as certain in
+  the committed precision file (`labels/precision.json`), which is built
+  from hand-checked findings: either its precision was measured on real
+  suites, or the defect follows from the code shape alone. Only certain
+  findings charge a test or fail the default gate. They are shown first.
+- **likely**: probably worth fixing, shown under "Worth a look". Never
+  costs points.
+- **advisory**: shown as one count line; `--advice` lists them.
+- **needs-check** ("not decided automatically"): the scorer cannot decide
+  it, for example when an `expect` cannot be traced to Playwright's. One
+  count line; `--advice` gives the reasons.
+
+Every finding also carries `quotable`: true only for a certain finding
+whose check passed the measured release path. SARIF levels follow the
+tier: certain `error`, likely `warning`, the rest `note`.
+
+## Shared code
+
+The files your specs import (page objects, fixtures, helpers) are checked
+too, by default, with the rules that hold outside a test body, such as a
+Playwright call that is not awaited or a fixed wait. Their findings are
+shown with `scope: "shared"` and `usedBy` (the spec files that reach the
+file), and they are **never charged to a test**: they never change the
+score. A shared finding can fail the gate only under `--fail-on shared`,
+and only when it is certain, which needs a measured check; until then shared
+findings are likely at most. `--no-shared` turns the check off.
+
+## Not covered
+
+Some defects no static rule decides. The scorer does not report:
+
+- an assertion on the wrong variable or element;
+- `toHaveText("")` on an input in general (only an `<input>` located with
+  an explicit `type` in a CSS selector is reported, as a likely finding;
+  role and placeholder locators are not);
+- a test whose title does not match what it checks;
+- vacuous loops in general (only a loop whose every assertion depends on a
+  list that may be empty, with no earlier check, is reported, as a likely
+  finding);
+- hard-coded credentials;
+- clicks at fixed coordinates (they are the right way to drive a canvas,
+  so there is no rule for them).
+
 ## Real-world results
 
-100 public Playwright suites, scored with the published package against each
-project's actual source — chosen to include both well-known,
+The numbers below are the last published corpus run, scored with model v4
+and the 2.x score bar of 80 before 3.0.0; the 3.0.0 run replaces them in
+[VALIDATION.md](https://github.com/qa-guardian/playwright-score/blob/main/VALIDATION.md)
+when it is published. 100 public Playwright suites, scored against each
+project's actual source, chosen to include both well-known,
 heavily-engineered platforms and smaller, less mature projects, plus three
 named testing-infra competitors scored under the exact same rules as
-everyone else. Not curated to look good: 35 of 100 fail the default
-threshold, for real, verifiable reasons (see
-[VALIDATION.md](https://github.com/qa-guardian/playwright-score/blob/main/VALIDATION.md),
-which also has the full before/after against the last published version
-and every one of the 100 entries, not just the 15 shown below).
+everyone else. Not curated to look good: 35 of 100 failed that bar.
 
 **100 suites · 7,281 files · 39,059 tests · 65/100 pass (80% threshold) ·
 tested on 2026-09-24**
 
-Top scorers (everyone at 97+; the next tier down is a 6-way tie at 96 — see
-VALIDATION.md for the full 100):
-
-| Repo (source scanned) | Score | Grade | Result |
-|---|---:|:-:|:-:|
-| [pinterest/gestalt](https://github.com/pinterest/gestalt/tree/22874a7522d1/playwright/accessibility) | 100/100 | A | PASS |
-| [TryGhost/Ghost](https://github.com/TryGhost/Ghost/tree/9d7248b56d53/e2e/tests) | 99/100 | A | PASS |
-| [hashicorp/vault](https://github.com/hashicorp/vault/tree/f03da019aba5/ui/e2e) | 98/100 | A | PASS |
-| [microsoft/playwright (TodoMVC example)](https://github.com/microsoft/playwright/tree/7563c5a67eab/examples/todomvc) | 98/100 | A | PASS |
-| [plausible/analytics](https://github.com/plausible/analytics/tree/8f3970104aa7/e2e) | 98/100 | A | PASS |
-| [segmentio/analytics-next](https://github.com/segmentio/analytics-next/tree/2d6d55301804/packages/browser-integration-tests/src) | 98/100 | A | PASS |
-| [cloudflare/templates](https://github.com/cloudflare/templates/tree/a0bb6ef9a990/playwright-tests) | 97/100 | A | PASS |
-| [glpi-project/glpi](https://github.com/glpi-project/glpi/tree/9e8a9570a90b/tests/e2e/specs) | 97/100 | A | PASS |
-| [shopify/hydrogen](https://github.com/shopify/hydrogen/tree/3ef7ec23096a/e2e/specs) | 97/100 | A | PASS |
-
-Bottom 5 scorers:
-
-| Repo (source scanned) | Score | Grade | Result |
-|---|---:|:-:|:-:|
-| [Flagsmith/flagsmith](https://github.com/Flagsmith/flagsmith/tree/ea5ad826e85b/frontend/e2e/tests) | 62/100 | D | FAIL |
-| [activepieces/activepieces](https://github.com/activepieces/activepieces/tree/9e493a87f471/packages/tests-e2e) | 58/100 | F | FAIL |
-| [th3cyb3rhub/TheCyberHub](https://github.com/th3cyb3rhub/TheCyberHub/tree/1cf418654f16/e2e) | 56/100 | F | FAIL |
-| [DataDog/documentation](https://github.com/DataDog/documentation/tree/6cd10f40cf46/hugo/e2e) | 50/100 | F | FAIL |
-| [getsentry/spotlight](https://github.com/getsentry/spotlight/tree/3dd5eb5b315f/packages/spotlight/tests) | 33/100 | F | FAIL |
-
-Repo names link to the exact commit scanned. Selected by a mix of
-mechanical GitHub search (real `@playwright/test` usage, hand-verified)
-and, for the most recent 16, hand-picked brand recognition — three of the
-100 are named competitors' own example suites (Checkly, Currents,
-LambdaTest), scored with no separate bar. Full methodology, the complete
-100-repo table, findings breakdown, and
-`scripts/validate-corpus.sh` to reproduce every number here yourself live
-in
-[VALIDATION.md](https://github.com/qa-guardian/playwright-score/blob/main/VALIDATION.md).
-A machine-readable
+Repo names in VALIDATION.md link to the exact commit scanned, with the full
+table, the findings breakdown and `scripts/validate-corpus.sh` to reproduce
+every number yourself. A machine-readable
 [`validation.json`](https://github.com/qa-guardian/playwright-score/blob/main/validation.json)
 carries the same per-repo data for tooling. See
 [CHANGELOG.md](https://github.com/qa-guardian/playwright-score/blob/main/CHANGELOG.md)
-for what changed release to release. A self-contained visual
-report of an earlier five-suite audit lives at
-[`docs/scorecard.html`](https://github.com/qa-guardian/playwright-score/blob/main/docs/scorecard.html) — host it wherever
-(GitHub Pages, qaguardian.com, ...).
+for what changed release to release, including "Upgrading from 2.x". A
+self-contained visual report of an earlier five-suite audit lives at
+[`docs/scorecard.html`](https://github.com/qa-guardian/playwright-score/blob/main/docs/scorecard.html).
 
 See [METHODOLOGY.md](https://github.com/qa-guardian/playwright-score/blob/main/METHODOLOGY.md) for the full scoring model, or the product write-up on the [landing page](https://qaguardian.com/open-source/playwright-score).
 
@@ -93,8 +149,11 @@ This project is not affiliated with Microsoft or the Playwright project.
 ## CLI
 
 ```bash
-# One-shot
-npx pwscore ./tests --profile standard --threshold 80
+# One-shot, default gate
+npx pwscore ./tests
+
+# Also fail on flake risk and on tests with no assertion, and keep a score bar
+npx pwscore ./tests --fail-on passes-regardless,flake-risk,unasserted --threshold 80
 
 # After local install
 npx pwscore ./flow.spec.ts --format json --out report.json
@@ -106,21 +165,28 @@ npx -p @qaguardian/playwright-score pwscore ./tests
 | Flag | Description |
 |---|---|
 | `--profile standard` | Scoring profile (default, and only, profile) |
-| `--fail-on <list>` | What fails the gate, comma-separated: `passes-regardless` (default; a certain finding that lets a test pass whatever the app does), `flake-risk` (a certain flake-risk finding, or a `page.pause()` or focused test), `unasserted` (a counted test with no assertion found), `shared` (a certain finding in a shared file a counted spec imports), `none`. `none` combines with nothing |
+| `--fail-on <list>` | What fails the gate, comma-separated: `passes-regardless` (default; a certain finding that lets a test pass whatever the app does), `flake-risk` (a certain flake-risk finding, or a `page.pause()` or focused test), `unasserted` (a counted test with no assertion found: `unasserted` or `unverified`), `shared` (a certain finding in a shared file a counted spec imports), `none`. A finding counts when it is in a counted test, in a hook that runs for one, or outside every test in a spec file with a counted test. `none` combines with nothing |
 | `--threshold <n>` | Also fail when the score is below n (0–100). Without it the score does not fail the gate |
 | `--allow-partial` | Let a partial result (a file was skipped) pass. A not-scored result never passes |
 | `--advice` | Also show advisory findings and the reasons for findings not decided automatically (text, markdown, report). JSON always has every finding |
-| `--format text\|json\|markdown\|sarif\|report` | Output format (`report` is a self-contained one-page HTML suite report) |
-| `--out <file>` | Write report to file |
+| `--format text\|json\|markdown\|sarif\|report` | Output format (default `text`; `report` is a self-contained one-page HTML suite report) |
+| `--out <file>`, `--output <file>` | Write the report to a file |
 | `--markdown-out <file>` | Also write the markdown report to file, from the same run (for example with `--format json --out <file>`) |
+| `--name <suite name>` | Suite name for the report headline (default: the directory basename) |
 | `--max-seconds <n>` | Time limit for the whole run, counted from the start. No default: without it a run is never cut short. Finding the files always finishes; after that no new step starts once the limit has passed. Files not analysed in time are skipped and the result is partial, or not scored (reason `limit-reached`) when no test was scored in time |
 | `--max-heap-mb <n>` | Heap limit of the analysis worker. Default 4608, the same on every machine; a whole number from 64 to 65536. Files in a batch that hits it are skipped |
-| `--no-shared` | Do not check the shared files the specs import (page objects, fixtures, helpers that are Playwright code). By default they are checked with the rules that hold outside a test body; their findings carry `scope: "shared"` and `usedBy` (the specs that reach the file) and never change the score. `--shared` restates the default |
-| `--version` | Print version |
+| `--no-shared` | Do not check the shared files the specs import (see [Shared code](#shared-code)) |
+| `--shared` | Check the shared files (the default) |
+| `--version`, `-v` | Print the version |
+| `--help`, `-h` | Show help |
 
-**Exit codes:** `0` pass (status scored, or partial with `--allow-partial`; nothing named by `--fail-on` found; score at or above `--threshold` when given) · `1` not pass, including **partial** without `--allow-partial` and every **not scored** result (no files matched, every file skipped, or no counted tests) · `2` tool or usage error (an unknown option or `--fail-on` value, or `none` combined with another value)  
+**Exit codes:**
 
-Every finding in the JSON carries `quotable`: true only for a certain finding whose check was measured to the release bar.
+| Code | Meaning |
+|---|---|
+| `0` | Pass: status `scored` (or `partial` with `--allow-partial`), nothing named by `--fail-on` found, and the score at or above `--threshold` when it is given |
+| `1` | Not pass, including a `partial` result without `--allow-partial` and every `not-scored` result (no files matched, every file skipped, or no counted test) |
+| `2` | Tool or usage error: an unknown option, an unknown `--fail-on` value or `none` combined with another value, or a limit that is not usable |
 
 ## Library
 
@@ -135,16 +201,16 @@ const result = await scorePaths({
   threshold: 80, // optional: without it the score does not gate
 });
 
-console.log(result.score, result.grade, result.pass, result.gate.reasons, result.findings);
+console.log(result.score, result.grade, result.pass, result.gate.reasons, result.testStates, result.findings);
 ```
 
 ## GitHub Action
 
 Drop this into a workflow to gate PRs, post a job summary, and keep a sticky
-PR comment with the full findings up to date. The gate is the CLI's: a result
-fails when a test would pass whatever the app does, when it is partial or not
-scored, or when the score is below a threshold you set (there is none by
-default):
+PR comment with the full findings up to date. The gate is the CLI's default
+gate: a result fails when a test would pass whatever the app does, when it
+is partial or not scored, or when the score is below a threshold you set
+(there is none by default):
 
 ```yaml
 - uses: qa-guardian/playwright-score@v3
@@ -169,12 +235,15 @@ default):
 Outputs: `score`, `grade`, `pass` — usable by downstream steps (e.g. a
 custom badge, a Slack notification on regression, etc).
 
+Upgrading from `@v2`: an empty `threshold` used to mean 80 and now means no
+score bar; set `threshold: 80` to keep the old bar.
+
 Prefer a raw CLI call, or a non-GitHub CI system? See the [CLI](#cli)
-section above — same score, same exit codes:
+section above — same gate, same exit codes:
 
 ```yaml
 - name: Playwright Spec Score
-  run: npx pwscore ./tests --profile standard --threshold 80 --format text
+  run: npx pwscore ./tests --format text
 ```
 
 ## QA Guardian integration

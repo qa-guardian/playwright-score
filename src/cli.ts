@@ -41,7 +41,7 @@ Exit codes:
      "none" combined with another --fail-on value)
 
 Website: https://qaguardian.com/open-source/playwright-score
-Methodology: METHODOLOGY.md (scoring model v4)
+Methodology: METHODOLOGY.md (scoring model v5)
 `);
 }
 

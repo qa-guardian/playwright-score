@@ -1,6 +1,6 @@
 # Playwright Spec Score Methodology
 
-**Scoring model:** v5 (3.0.0, unreleased; v4 from 2026-09-23 until then)  
+**Scoring model:** v5 (from 3.0.0; v4 from 2026-09-23 through 2.3.0)  
 **Package:** `playwright-score`  
 **Landing page:** https://qaguardian.com/open-source/playwright-score  
 **Maintainer:** [QA Guardian](https://qaguardian.com)  
@@ -85,6 +85,84 @@ result; it never changes a finding, a state or the score. The JSON `gate`
 object says which settings were used and lists every reason a result does
 not pass. Exit code 1 means not pass; 2 is a tool or usage error, such
 as an unknown `--fail-on` value or `none` combined with another value.
+
+### What counts as an assertion
+
+A test is asserted when one of these is reachable from its body or from a
+hook that runs for it (an assertion in a hook counts for every test in the
+hook's scope):
+
+1. a call to Playwright's `expect` with a matcher, including `expect.soft`,
+   `expect.poll` and `expect(...).toPass`. The `expect` must be traced to
+   `@playwright/test` (directly, through a local re-export, a single
+   `const` alias, or `expect.extend`, `expect.configure` or `mergeExpects`
+   on such an `expect`);
+2. a call into a known assertion library: `assert`, `assert/strict`,
+   `node:assert`, `node:assert/strict`, `chai`, `@jest/globals`, `vitest`,
+   `power-assert` or `uvu/assert`;
+3. a `throw` under a condition that is not a literal constant (a guard).
+
+An assertion that `no-weak-assertion` or `no-trivial-assertion` reports, in
+any tier, does not count: adding `expect(true).toBe(true)` does not make a
+test asserted, and deleting a real assertion cannot raise the score.
+
+### Resolved calls
+
+`unasserted` is a claim that no reachable code asserts, so it needs every
+call in the test to be followed. A call is resolved when it is:
+
+- **Playwright**: a method on a page, frame, locator, browser context,
+  `request` or another built-in fixture, or `test.step` (its callback is
+  followed);
+- **Node**: a built-in module or a standard global (`console`, `JSON`,
+  `Math`, `Date`, `Promise`, timers, `fetch`, array, object and string
+  methods);
+- **in the repository**: a function or method found through the imports of
+  the spec (relative paths, tsconfig `paths`, workspace packages), including
+  page objects built with `new` and fixtures whose factory is in the
+  repository; it is followed in turn, up to a fixed call-depth limit;
+- **a listed npm package**: the assertion libraries above, or a committed
+  list of packages that never assert (`@faker-js/faker`, `axios`,
+  `date-fns`, `dayjs`, `dotenv`, `lodash`, `nanoid`, `uuid`).
+
+Anything else is unresolved: a call into another npm package, a callback
+parameter, a dynamic import, a computed member on an unknown receiver, or a
+call past the depth limit. A test with no assertion and an unresolved call is
+`unverified`, not `unasserted`, and the entry names the call.
+
+### Tiers, forms and release paths
+
+A rule can report several shapes of code. Each shape is a **form**, and a
+rule and form (in a spec file or in a shared file) make a **cell**. Every
+finding carries its cell's **tier**:
+
+- `certain`: the committed precision file (`labels/precision.json`) lists
+  the cell as certain. Only certain findings charge a test, and only
+  certain findings fail the default gate.
+- `likely`: listed, never charged. Every cell the file does not list is
+  likely (or advisory, when the rule is advisory by design); it is never
+  certain.
+- `advisory`: listed for information, hidden behind a count line unless
+  `--advice` is given.
+- `needs-check`: the scorer cannot decide the finding, for example because
+  the `expect` it reads cannot be traced to Playwright's, or because a rule
+  with several forms cannot tell which form applies.
+
+The precision file is built from hand-checked findings, each labelled
+against the Playwright documentation, never from the scorer's own output.
+A cell becomes certain through one of two release paths:
+
+- **M (measured)**: the precision of the cell's hand-checked findings on
+  real suites reaches the release bar, judged by the lower end of the 95%
+  Wilson interval (shown as `confidence` once a cell has five decided
+  findings);
+- **BC (by construction)**: the defect follows from the code shape alone,
+  so every finding of the cell is a real one by definition, and fixtures
+  show the rule reports exactly that shape.
+
+`quotable` is true only for a certain finding whose cell passed the M path.
+A shared cell is certain only through its own measurement; until then
+shared findings are likely at most.
 
 The four dimensions below, `summary.cleanTests` and locator usage
 (`locators`, with `scored: false`) are still computed as before. They are
@@ -198,7 +276,7 @@ code scores identically regardless of which plugin version npm resolves.
 
 ### Tests that would miss a real bug
 
-Five rules (QAG-287) target tests that pass whatever the app does. Each
+These rules target tests that pass whatever the app does. Each
 matches one exact syntactic shape and stays silent when unsure.
 
 | Rule | Dimension, severity | Exact shape |
@@ -211,6 +289,16 @@ matches one exact syntactic shape and stays silent when unsure.
 | `pwscore/assertion-passes-anyway` | assertions, warning | Four forms. `root-content`: `toBeVisible()` / `toBeAttached()` (no option but `timeout`) or `not.toBeEmpty()` on `locator('body' \| 'html' \| ':root')` of a proven Page or Frame, also through `frameLocator(...)` or a const. `match-anything`: `toHaveText` / `toContainText` / `toHaveURL` / `toHaveTitle` given `/.*/`, `/^.*$/` or `/[\s\S]*/`, or `''` given to `toContainText` or to `toContain` on a string. `empty-fallback`: `X \|\| ''` or `X ?? ''` as the expected value of `toContainText`, of `toContain` on a string, or inside `toMatch(new RegExp(...))`. `form-control-text`: `toHaveText('')`, or a negated `toHaveText` / `toContainText` with a non-blank expected text, on `locator('<css>')` whose last compound is `input` with a `type=` other than `button` / `submit` / `reset` (also through `first()`, `last()`, `nth()` or a const); textarea, select, role and placeholder locators are not read. Other negated matchers and `expect.poll` are left alone; an `expect` from another assertion library is not reported. Always likely, never certain. |
 | `pwscore/unchecked-read` | assertions, warning | Two forms. `discarded`: an expression statement that is only `isVisible()` / `isHidden()` (awaited or not) on a syntactic Page, Frame or Locator (the page, a `.page` property, a locator chain, or a const bound to one). `unused-binding`: `const`/`let x = await <receiver>.<read>(...)` directly in a test, hook or `test.step` body, `<read>` one of `is*` (six states), `textContent`, `innerText`, `innerHTML`, `inputValue`, `getAttribute`, `count`, `allTextContents`, `allInnerTexts`, `title`, `url`, `boundingBox`, with no read of `x` in the scope; `_`-prefixed names, destructuring, `var`, helpers and nested callbacks are left alone. |
 
+
+Three report-only checks of the same kind list a test without charging it:
+`pwscore/unasserted` (one finding per test in state `unasserted`, at its
+declaration), `pwscore/loop-only-assertions` (every assertion of the test
+sits in a loop over `locator.all()`, `page.$$()` or a range bound to an
+awaited `count()`, with nothing before the loop that checks the list, so an
+empty list runs the loop zero times) and `pwscore/negative-only-test`
+(every assertion of the test checks that something is absent, such as
+`not.toBeVisible()`, `toBeHidden()` or `toHaveCount(0)`, after an action and
+with no wait for a result, so a blank page passes it).
 
 ---
 
@@ -281,7 +369,7 @@ real inputs:
 
 ---
 
-## Flake-risk rules (unreleased)
+## Flake-risk rules
 
 Five static checks for the patterns that make a test pass or fail by luck.
 Each is syntactic and conservative: when the receiver or value cannot be
