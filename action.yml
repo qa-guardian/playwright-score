@@ -1,5 +1,5 @@
 name: 'Playwright Spec Score'
-description: 'Lint and score Playwright test specs against best-practice rules (deterministic, AI-free). Posts a job summary and optional PR comment; gates CI on a threshold.'
+description: 'Lint and score Playwright test specs against best-practice rules (deterministic). Posts a job summary and optional PR comment; gates CI on the result.'
 author: 'QA Guardian'
 branding:
   icon: 'check-circle'
@@ -15,11 +15,19 @@ inputs:
     required: false
     default: 'standard'
   threshold:
-    description: 'Pass threshold 0-100. Leave empty to use the default (80).'
+    description: 'Optional score bar 0-100: the result also fails when the score is below it. Empty (the default) means no score bar; the score is reported and does not gate.'
+    required: false
+    default: ''
+  allow-partial:
+    description: 'true: a partial result (a file was skipped) can pass. A not-scored result never passes.'
+    required: false
+    default: 'false'
+  max-seconds:
+    description: 'Optional time limit for the run in seconds. Files not analysed when it passes are skipped, which makes the result partial. Empty (the default) means no limit.'
     required: false
     default: ''
   mode:
-    description: 'warn: report only, never fail the step. gate: fail the step when the score is below threshold.'
+    description: 'warn: report only, never fail the step. gate: fail the step when the result does not pass (see the pass output).'
     required: false
     default: 'gate'
   comment:
@@ -29,7 +37,7 @@ inputs:
   version:
     description: 'Version of @qaguardian/playwright-score to run (npm dist-tag or version range)'
     required: false
-    default: 'latest'
+    default: '3'
   github-token:
     description: 'Token used to post the PR comment. Defaults to the workflow''s GITHUB_TOKEN.'
     required: false
@@ -43,7 +51,7 @@ outputs:
     description: 'Letter grade, A-F'
     value: ${{ steps.score.outputs.grade }}
   pass:
-    description: '"true" or "false": true only when every file was scored and the score meets the threshold'
+    description: '"true" or "false": true when every file was scored (or the result is partial and allow-partial is true), no finding that lets a test pass whatever the app does was found, and the score meets the threshold when one is given'
     value: ${{ steps.score.outputs.pass }}
 
 runs:
@@ -61,22 +69,29 @@ runs:
         PWS_PATHS: ${{ inputs.paths }}
         PWS_PROFILE: ${{ inputs.profile }}
         PWS_THRESHOLD: ${{ inputs.threshold }}
+        PWS_ALLOW_PARTIAL: ${{ inputs.allow-partial }}
+        PWS_MAX_SECONDS: ${{ inputs.max-seconds }}
         PWS_VERSION: ${{ inputs.version }}
       run: |
         set -e
-        THRESHOLD_ARGS=()
+        GATE_ARGS=()
         if [ -n "$PWS_THRESHOLD" ]; then
-          THRESHOLD_ARGS=(--threshold "$PWS_THRESHOLD")
+          GATE_ARGS+=(--threshold "$PWS_THRESHOLD")
+        fi
+        if [ "$PWS_ALLOW_PARTIAL" = "true" ]; then
+          GATE_ARGS+=(--allow-partial)
+        fi
+        if [ -n "$PWS_MAX_SECONDS" ]; then
+          GATE_ARGS+=(--max-seconds "$PWS_MAX_SECONDS")
         fi
 
+        # One run writes both reports: JSON for the outputs, markdown for the summary and the comment.
         set +e
         npx --yes -p "@qaguardian/playwright-score@${PWS_VERSION}" playwright-score \
-          $PWS_PATHS --profile "$PWS_PROFILE" "${THRESHOLD_ARGS[@]}" \
-          --format json --out "$RUNNER_TEMP/pw-score.json"
+          $PWS_PATHS --profile "$PWS_PROFILE" "${GATE_ARGS[@]}" \
+          --format json --out "$RUNNER_TEMP/pw-score.json" \
+          --markdown-out "$RUNNER_TEMP/pw-score.md"
         SCORE_EXIT=$?
-        npx --yes -p "@qaguardian/playwright-score@${PWS_VERSION}" playwright-score \
-          $PWS_PATHS --profile "$PWS_PROFILE" "${THRESHOLD_ARGS[@]}" \
-          --format markdown --out "$RUNNER_TEMP/pw-score.md"
         set -e
 
         if [ "$SCORE_EXIT" -eq 2 ]; then
@@ -129,11 +144,11 @@ runs:
             });
           }
 
-    - name: Enforce threshold
+    - name: Enforce the gate
       if: ${{ inputs.mode == 'gate' }}
       shell: bash
       run: |
         if [ "${{ steps.score.outputs.pass }}" != "true" ]; then
-          echo "::error::Playwright Spec Score ${{ steps.score.outputs.score }}/100 (${{ steps.score.outputs.grade }}) did not pass: the score is below the threshold, or the result is partial or not scored (a file was skipped, or no tests were found). See the report for details. Set mode: warn to report without failing CI."
+          echo "::error::Playwright Spec Score ${{ steps.score.outputs.score }}/100 (${{ steps.score.outputs.grade }}) did not pass: a test would pass whatever the app does, the result is partial or not scored (a file was skipped, or no tests were found), or the score is below the threshold you set. See the report for details. Set mode: warn to report without failing CI."
           exit 1
         fi

@@ -103,7 +103,7 @@ async function main(): Promise<void> {
     process.exitCode = 2;
     return;
   }
-  const { paths, profile, threshold, format, out, name, maxSeconds, maxHeapMb, shared, failOn, allowPartial, advice } = parsed.options;
+  const { paths, profile, threshold, format, out, markdownOut, name, maxSeconds, maxHeapMb, shared, failOn, allowPartial, advice } = parsed.options;
 
   try {
     const result = await scorePaths({ paths, profile, threshold, maxSeconds, maxHeapMb, shared, failOn, allowPartial, advice });
@@ -145,6 +145,11 @@ async function main(): Promise<void> {
       fs.writeFileSync(out, body + '\n', 'utf8');
     } else {
       console.log(body);
+    }
+    if (markdownOut) {
+      // The same text as a separate `--format markdown --out <file>` run.
+      fs.mkdirSync(path.dirname(path.resolve(markdownOut)), { recursive: true });
+      fs.writeFileSync(markdownOut, formatMarkdown(result, { advice }) + '\n', 'utf8');
     }
 
     process.exitCode = result.pass ? 0 : 1;
