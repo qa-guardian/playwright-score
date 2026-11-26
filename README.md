@@ -186,7 +186,7 @@ npx -p @qaguardian/playwright-score pwscore ./tests
 | Code | Meaning |
 |---|---|
 | `0` | Pass: status `scored` (or `partial` with `--allow-partial`), nothing named by `--fail-on` found, and the score at or above `--threshold` when it is given |
-| `1` | Not pass, including a `partial` result without `--allow-partial` (also when a limit left no test counted) and every `not-scored` result (no files matched, every file skipped with no limit hit, or no counted test) |
+| `1` | Not pass, including a `partial` result without `--allow-partial` (a file was skipped: a syntax error, over 1 MB, binary, unreadable, a limit, or a worker error; also when a limit left no test counted) and every `not-scored` result (no files matched, every file skipped with no limit hit, or no counted test) |
 | `2` | Tool or usage error: an unknown option, an unknown `--fail-on` value or `none` combined with another value, or a limit that is not usable; with `--changed-since` also not a git repository, an unknown ref, or a shallow clone that lacks the ref |
 
 ### Scoring only what changed

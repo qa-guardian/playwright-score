@@ -33,7 +33,7 @@ case, and says so explicitly.
   (`"true"` when the result covers only the changed files, else `"false"`).
 - **`--changed-since` follows CommonJS `require()`.** A changed helper that a spec loads with `require()` (top level or inside a function) puts that spec in scope; a non-literal `require()` or `import()` anywhere in the graph means a changed source file cannot be ruled out, so the run is a full one.
 
-## 3.0.1 — unreleased
+### Fixed (3.0.1)
 
 Fixes to the causes behind three known precision and recall gaps. No rule weight, severity or tier changes.
 
@@ -42,7 +42,7 @@ Fixes to the causes behind three known precision and recall gaps. No rule weight
 - **`assertion-passes-anyway`, form `empty-fallback`, skips an optional chain.** `toContainText(x?.text ?? '')` is no longer reported: the `?.` is how strict TypeScript reads an element the test just made, not a sign the value can be missing. `x.text ?? ''` is still reported.
 - **`no-swallowed-assertion`: a repeated negated check is not a re-check after the page changed.** A negated assertion whose rejection a `.catch(() => {})` discards was exempt when a later assertion repeated the same negated check on the same subject. It is no longer exempt when an awaited call that can change the page (`page.evaluate`, `click()`) sits between the two; assertions, `waitFor*` calls and log lines do not count as a change.
 
-## 3.0.0 — unreleased
+## 3.0.0 — 2026-11-26
 
 3.0.0 is a new scoring model (v5) and a new gate. Most suites get a
 different score, and whether a result passes now depends on what its tests

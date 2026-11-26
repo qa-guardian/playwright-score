@@ -58,7 +58,9 @@ Score distribution: mean 96.7, median 100; grades 256 A / 9 B / 6 C / 3 D / 5 F.
 
 ## Performance
 
-Measured on the 3.0.0 release candidate against 2.x on the same machine:
+Last measured on release candidate 3.0.0-rc.1 (commit 22653be, 2026-11-25,
+Apple M1 Pro), against 2.x on the same machine. The final 3.0.0 build adds
+a worker-memory fix and has not been re-timed.
 
 - Summed CPU time over the corpus: 1.384x 2.x (1.413x on a paired sample
   of 20 heavy suites).
@@ -81,9 +83,9 @@ projects' own suites change.
 
 ## Regression benchmark
 
-Two fixed sets of synthetic specs, each spec written to contain one known
-defect. Neither is a measure of real-world recall. The development
-benchmark is scored on every change to catch regressions.
+Two fixed sets of synthetic specs. Neither is a measure of real-world
+recall. The development benchmark is scored on every change to catch
+regressions.
 
 - Development benchmark: 152 of 155 seeded defects reported (98.1%).
 - Sealed set: 210 of 234 hand-written cases reported (89.7%), none of

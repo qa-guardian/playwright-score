@@ -347,24 +347,35 @@ export async function analyzeIsolated(
         timer = setTimeout(onTimer, Math.min(Math.max(0, left), MAX_TIMER_MS));
       };
       arm();
+      // An uncaught error comes on the worker's internal port, so 'error' can
+      // be emitted before messages the worker posted earlier (a batch result,
+      // its setup report). Node delivers those before 'exit', so a death is
+      // only noted here and settled on 'exit' (QAG-287 FIX1 R1).
+      let death: WorkerEnd | undefined;
+      let inFlight = true;
       worker.on('message', (result: BatchResult | { setup: WorkerSetup }) => {
         if (settled) return;
         if ('setup' in result) return limits.onWorkerSetup?.(result.setup);
         done.push(result);
         next++;
+        inFlight = false;
         if (next >= batches.length) settle({ kind: 'finished' });
         else if (time.passed(`batch:${next}`)) settle({ kind: 'deadline' });
-        else worker.postMessage(batches[next]);
+        else if (!death) {
+          worker.postMessage(batches[next]);
+          inFlight = true;
+        }
       });
-      worker.on('error', (error) => settle(deathEnd(error, heapLimitMb)));
+      worker.on('error', (error) => {
+        death ??= deathEnd(error, heapLimitMb);
+      });
       // HEAP_LIMIT_EXIT: the worker's own heap guard ended it (heap-guard.ts).
-      worker.on('exit', (code) =>
-        settle(
-          code === HEAP_LIMIT_EXIT
-            ? { kind: 'died', detail: `heap limit ${heapLimitMb} MB`, heap: true }
-            : { kind: 'died', detail: 'worker error', heap: false }
-        )
-      );
+      worker.on('exit', (code) => {
+        const end: WorkerEnd =
+          code === HEAP_LIMIT_EXIT ? { kind: 'died', detail: `heap limit ${heapLimitMb} MB`, heap: true } : (death ?? { kind: 'died', detail: 'worker error', heap: false });
+        // Died of an error between batches: no batch was lost, a fresh worker takes the next one.
+        settle(end.kind === 'died' && !end.heap && !inFlight ? { kind: 'finished' } : end);
+      });
       worker.postMessage(batches[next]);
     });
 
