@@ -10,7 +10,7 @@ parsing accuracy, not grading policy — can still move a suite's score
 without itself being a new model version; 2.1.0 below is exactly that
 case, and says so explicitly.
 
-## Unreleased
+## 3.1.0 — Unreleased
 
 ### Added
 
@@ -33,7 +33,7 @@ case, and says so explicitly.
   (`"true"` when the result covers only the changed files, else `"false"`).
 - **`--changed-since` follows CommonJS `require()`.** A changed helper that a spec loads with `require()` (top level or inside a function) puts that spec in scope; a non-literal `require()` or `import()` anywhere in the graph means a changed source file cannot be ruled out, so the run is a full one.
 
-### Fixed (3.0.1)
+### Fixed
 
 Fixes to the causes behind three known precision and recall gaps. No rule weight, severity or tier changes.
 

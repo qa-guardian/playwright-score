@@ -779,7 +779,7 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
   const helperFacts: HelperFacts[] = [];
   const moduleResolver = createModuleResolver(importBoundary);
   const importEdges = new Map<string, string[]>();
-  /** `importEdges` minus the ones only a CommonJS `require()` creates: expect-expect evidence follows ES imports only (3.0.1). */
+  /** `importEdges` minus the ones only a CommonJS `require()` creates: expect-expect evidence follows ES imports only (3.1.0). */
   const esImportEdges = new Map<string, string[]>();
   let importedFiles = new Map<string, string>();
   // Shared files (shared-files.ts): reported in `coverage`, nothing else reads them.
