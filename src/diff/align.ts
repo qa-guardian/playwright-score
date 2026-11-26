@@ -74,7 +74,12 @@ export function alignPaths(base: SideData, head: SideData): { base: SideData; he
 export function matchRenames(base: SideData, head: SideData): Array<{ from: string; to: string }> {
   const signature = (s: SideData, file: string): string => {
     const keys: string[] = [];
-    for (const t of s.tests.values()) if (t.file === file) keys.push(t.titlePath.join('\u0000'));
+    for (const t of s.tests.values()) {
+      if (t.file !== file) continue;
+      // A line-keyed fallback title is no identity: two files can carry the same one.
+      if (t.titlePath.some((p) => p.startsWith('(test at line '))) return '';
+      keys.push(t.titlePath.join('\u0000'));
+    }
     return keys.length === 0 ? '' : keys.sort().join('\u0001');
   };
   const group = (s: SideData, files: string[]): Map<string, string[]> => {

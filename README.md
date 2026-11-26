@@ -227,7 +227,7 @@ apply to `diff` (a usage error).
 | Code | Meaning |
 |---|---|
 | `0` | No certain finding is new in the head, the score did not drop by more than `--max-drop` (when given), and the head was scored |
-| `1` | The head introduces a certain finding; or the score dropped past `--max-drop`; or, with `--fail-on-changes`, a test was deleted, newly skipped or lost assertions; or the head is not scored, or partial without `--allow-partial` |
+| `1` | The head introduces a certain finding; or the score dropped past `--max-drop`; or, with `--fail-on-changes`, a test was deleted, newly skipped or lost assertions; or the head is not scored, or partial without `--allow-partial`; or the base is partial or skipped files (for example a `--max-seconds` deadline) without `--allow-partial`, because findings in files the base did not score cannot be compared |
 | `2` | Tool or usage error: an unknown option, a side that is neither a directory nor a git ref, an export that failed |
 
 Without `--max-drop` the score is reported but does not gate; deleted, skipped
@@ -240,8 +240,8 @@ score, counted and charged tests), `scoreBefore`, `scoreAfter`, `scoreDrop`
 `after`, `drop`), `newFindings`, `resolvedFindings`, `testChanges` (`deleted`,
 `addedSkip`, `assertionsDropped`), `unscoredInBase` (certain findings in head
 files the base did not score, for example skipped by `--max-seconds`: reported,
-not counted as new, not gated), `renamedFiles` (`from`, `to`: a base file and a
-head file holding exactly the same tests are matched as a move), `warnings`
+not counted as new; with `--allow-partial` they are not gated, without it a partial base fails the diff with reason `base-partial`), `renamedFiles` (`from`, `to`: a base file and a
+head file holding exactly the same tests are matched as a move; anything else in a new file, including hook, shared, module and line-keyed findings, is new), `warnings`
 (for example when the two sides share no file path) and `gate` (`pass`,
 `reasons`, `maxDrop`, `failOnChanges`). A directory literally named `diff` must be written `./diff`.
 

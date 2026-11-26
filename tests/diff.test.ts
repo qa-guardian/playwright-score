@@ -288,27 +288,46 @@ ${pre}test(${title}, async ({ page }) => {
   });
   const none = { maxDrop: undefined, failOnChanges: false, allowPartial: false };
 
-  it('findings in files the base did not score are reported apart and do not gate', () => {
+  it('findings in files the base did not score are reported apart and do not gate with --allow-partial; without it the diff fails', () => {
     const base = mk(['a.spec.ts'], [['a.spec.ts', 't']], [], { skippedFiles: new Set(['big.spec.ts']) });
     const head = mk(['a.spec.ts', 'big.spec.ts'], [['a.spec.ts', 't'], ['big.spec.ts', 'u']], [['r', 'big.spec.ts', 'u']]);
-    const d = compareSides(base, head, none);
+    const d = compareSides(base, head, { ...none, allowPartial: true });
     assert.equal(d.newFindings.length, 0);
     assert.equal(d.unscoredInBase.length, 1);
     assert.equal(d.pass, true);
+    const strict = compareSides(base, head, none);
+    assert.deepEqual(strict.reasons, ['base-partial']);
+    assert.equal(strict.pass, false);
+    const partialBase = compareSides({ ...base, skippedFiles: undefined, status: 'partial' }, { ...head, findings: [] }, none);
+    assert.deepEqual(partialBase.reasons, ['base-partial']);
   });
 
-  it('a moved file with the same tests keeps its old findings; an unsure move is not new either', () => {
+  it('a deleted file with a hook finding does not hide the same rule in a hook of a new file', () => {
+    const base = mk(['legacy.spec.ts'], [['legacy.spec.ts', 'old']], [['r', 'legacy.spec.ts', '(hook)']]);
+    const head = mk(['checkout.spec.ts'], [['checkout.spec.ts', 'new']], [['r', 'checkout.spec.ts', '(hook)']]);
+    const d = compareSides(base, head, none);
+    assert.deepEqual(d.renamedFiles, []);
+    assert.equal(d.newFindings.length, 1);
+    assert.equal(d.pass, false);
+    assert.deepEqual(d.reasons, ['new-certain-findings']);
+    // Line-keyed fallback names collide across files in the same way.
+    const b2 = mk(['a.spec.ts'], [['a.spec.ts', '(test at line 3)']], [['r', 'a.spec.ts', '(test at line 3)']]);
+    const h2 = mk(['b.spec.ts'], [['b.spec.ts', '(test at line 3)']], [['r', 'b.spec.ts', '(test at line 3)']]);
+    assert.equal(compareSides(b2, h2, none).newFindings.length, 1);
+  });
+
+  it('a moved file with the same tests keeps its old findings; a move with a test added is not matched', () => {
     const base = mk(['old/a.spec.ts'], [['old/a.spec.ts', 't1'], ['old/a.spec.ts', 't2']], [['r', 'old/a.spec.ts', 't1']]);
     const head = mk(['new/a.spec.ts'], [['new/a.spec.ts', 't1'], ['new/a.spec.ts', 't2']], [['r', 'new/a.spec.ts', 't1']]);
     const d = compareSides(base, head, none);
     assert.deepEqual(d.renamedFiles, [{ from: 'old/a.spec.ts', to: 'new/a.spec.ts' }]);
     assert.equal(d.newFindings.length, 0);
     assert.equal(d.testChanges.deleted.length, 0);
-    // Moved and a test added: not matched as a rename, but the old finding is not new; a different one is.
+    // Moved and a test added: not a rename, so the findings in the new file are all new.
     const head2 = mk(['n/a.spec.ts'], [['n/a.spec.ts', 't1'], ['n/a.spec.ts', 't2'], ['n/a.spec.ts', 't3']], [['r', 'n/a.spec.ts', 't1'], ['r2', 'n/a.spec.ts', 't3']]);
     const d2 = compareSides(base, head2, none);
     assert.deepEqual(d2.renamedFiles, []);
-    assert.deepEqual(d2.newFindings.map((f) => f.rule), ['r2']);
+    assert.deepEqual(d2.newFindings.map((f) => f.rule), ['r', 'r2']);
   });
 });
 
@@ -370,7 +389,8 @@ describe('diff: comparison rules', () => {
   });
 
   it('counts a repeated finding of one rule in one test once per extra occurrence', () => {
-    const d = compareSides(side({ findings: [finding('r')] }), side({ findings: [finding('r'), finding('r'), finding('s')] }), none);
+    const files = new Map([['x.spec.ts', { counted: 1, charged: 0, score: 100 }]]);
+    const d = compareSides(side({ files, findings: [finding('r')] }), side({ files, findings: [finding('r'), finding('r'), finding('s')] }), none);
     assert.deepEqual(d.newFindings.map((f) => [f.rule, f.extra]), [['r', 1], ['s', 1]]);
   });
 

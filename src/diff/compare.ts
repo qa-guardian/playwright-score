@@ -32,7 +32,7 @@ export interface TestChanges {
   /** Matched, counted on both sides, fewer `expect()` calls in the head. */
   assertionsDropped: Array<TestRef & { before: number; after: number }>;
 }
-export type DiffReason = 'new-certain-findings' | 'score-drop' | 'test-changes' | 'head-not-scored' | 'head-partial';
+export type DiffReason = 'new-certain-findings' | 'score-drop' | 'test-changes' | 'head-not-scored' | 'head-partial' | 'base-partial';
 export interface DiffGateSettings {
   /** Undefined: the score does not gate. */
   maxDrop: number | undefined;
@@ -47,7 +47,7 @@ export interface DiffResult {
   files: FileChange[];
   newFindings: NewFinding[];
   resolvedFindings: SideFinding[];
-  /** Certain findings in head files the base did not score (skipped, unreadable): unknown, so not new and not gated. */
+  /** Certain findings in head files the base did not score (skipped, unreadable): unknown, so not new and not gated with `allowPartial` (without it a partial or skip-holding base fails the diff). */
   unscoredInBase: SideFinding[];
   /** Files matched as moved: the same tests under another path. */
   renamedFiles: Array<{ from: string; to: string }>;
@@ -58,11 +58,9 @@ export interface DiffResult {
 }
 
 const findingId = (f: SideFinding): string => `${f.rule}\u0000${f.file}\u0000${f.where}`;
-const findingIdAnyFile = (f: SideFinding): string => `${f.rule}\u0000${f.where}`;
 const cmp = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 
-function surplus(a: SideFinding[], b: SideFinding[], findingId_ = findingId): Array<{ finding: SideFinding; extra: number }> {
-  const findingId = findingId_;
+function surplus(a: SideFinding[], b: SideFinding[]): Array<{ finding: SideFinding; extra: number }> {
   const have = new Map<string, number>();
   for (const f of b) have.set(findingId(f), (have.get(findingId(f)) ?? 0) + 1);
   const total = new Map<string, { first: SideFinding; n: number }>();
@@ -102,8 +100,10 @@ export function compareSides(rawBase: SideData, rawHead: SideData, gate: DiffGat
   files.sort((a, b) => (b.drop ?? -Infinity) - (a.drop ?? -Infinity) || cmp(a.file, b.file));
 
   // Findings in a file the base skipped say nothing about what changed. A file only one side has is
-  // an added or deleted file (a move that is not recognised looks like both): its findings are new only
-  // when the other side's missing files did not already hold the same rule in the same test.
+  // an added or deleted file: its findings are new (head side) or resolved (base side). A move is
+  // recognised only by matchRenames (the same test keys in both files, then the file is re-keyed
+  // above); a hook, shared, module or line-keyed finding has no per-test identity, so it never
+  // matches across two different files.
   const baseSkipped = base.skippedFiles ?? new Set<string>();
   const headSkipped = head.skippedFiles ?? new Set<string>();
   const unscoredInBase = head.findings.filter((f) => baseSkipped.has(f.file) && !base.files.has(f.file));
@@ -114,10 +114,10 @@ export function compareSides(rawBase: SideData, rawHead: SideData, gate: DiffGat
   const headAdded = head.findings.filter(headOnly);
   const baseSame = base.findings.filter((f) => !baseOnly(f) && !headSkipped.has(f.file));
   const baseGone = base.findings.filter(baseOnly);
-  const newFindings = [...surplus(headSame, baseSame), ...surplus(headAdded, baseGone, findingIdAnyFile)]
+  const newFindings = [...surplus(headSame, baseSame), ...surplus(headAdded, [])]
     .map(({ finding, extra }) => ({ ...finding, extra }))
     .sort((x, y) => cmp(x.file, y.file) || cmp(x.where, y.where) || cmp(x.rule, y.rule));
-  const resolvedFindings = [...surplus(baseSame, headSame), ...surplus(baseGone, headAdded, findingIdAnyFile)]
+  const resolvedFindings = [...surplus(baseSame, headSame), ...surplus(baseGone, [])]
     .map(({ finding }) => finding)
     .sort((x, y) => cmp(x.file, y.file) || cmp(x.where, y.where) || cmp(x.rule, y.rule));
 
@@ -136,6 +136,7 @@ export function compareSides(rawBase: SideData, rawHead: SideData, gate: DiffGat
   const reasons: DiffReason[] = [];
   if (head.status === 'not-scored') reasons.push('head-not-scored');
   if (head.status === 'partial' && !gate.allowPartial) reasons.push('head-partial');
+  if (!gate.allowPartial && (base.status === 'partial' || baseSkipped.size > 0)) reasons.push('base-partial');
   if (newFindings.length > 0) reasons.push('new-certain-findings');
   if (gate.maxDrop !== undefined && scoreDrop !== null && scoreDrop > gate.maxDrop) reasons.push('score-drop');
   if (gate.failOnChanges && (testChanges.deleted.length > 0 || testChanges.addedSkip.length > 0 || testChanges.assertionsDropped.length > 0)) {

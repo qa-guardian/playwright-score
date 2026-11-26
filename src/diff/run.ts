@@ -137,6 +137,7 @@ const REASON_TEXT: Record<DiffReason, string> = {
   'test-changes': 'tests were deleted, skipped or lost assertions (--fail-on-changes)',
   'head-not-scored': 'the head is not scored (no files, or no counted test)',
   'head-partial': 'the head is partial: a file was skipped (use --allow-partial to accept)',
+  'base-partial': 'the base is partial or skipped files: findings in them cannot be compared (use --allow-partial to accept)',
 };
 
 export function diffText(base: ResolvedSide, head: ResolvedSide, b: SideData, h: SideData, d: DiffResult): string {

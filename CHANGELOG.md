@@ -27,7 +27,12 @@ case, and says so explicitly.
   aligned when they differ by a leading folder, files the base did not score
   are reported as `unscoredInBase` instead of new, moved files are matched
   (`renamedFiles`), and `warnings` says when the sides share no file. These
-  JSON fields are additive: `diffVersion` stays 1.
+  JSON fields are additive: `diffVersion` stays 1. A diff whose base is partial
+  or skipped files now fails (`gate.reasons` has `base-partial`) unless
+  `--allow-partial` is given, since findings in those files cannot be compared.
+  A finding in a new file is matched against a deleted file only through a
+  recognised move (same test keys), never by rule and a generic place such as
+  a hook, so a hook finding moved into a new file is new.
 
 ## 3.0.0 — 2026-11-26
 
