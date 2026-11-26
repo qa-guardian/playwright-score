@@ -188,6 +188,54 @@ npx -p @qaguardian/playwright-score pwscore ./tests
 | `1` | Not pass, including a `partial` result without `--allow-partial` (a file was skipped: a syntax error, over 1 MB, binary, unreadable, a limit, or a worker error; also when a limit left no test counted) and every `not-scored` result (no files matched, every file skipped with no limit hit, or no counted test) |
 | `2` | Tool or usage error: an unknown option, an unknown `--fail-on` value or `none` combined with another value, or a limit that is not usable |
 
+## Diff: what a change did to the score
+
+```bash
+npx pwscore diff main HEAD                 # two git refs of the repository you are in
+npx pwscore diff ./before ./after --json   # two directories
+npx pwscore diff origin/main HEAD --max-drop 5 --fail-on-changes
+```
+
+`diff <base> <head>` scores both sides with the same options and reports the
+score before and after, the certain findings the head introduces, the score
+change per file, and what happened to tests that exist on both sides. Each side
+is a directory or a git ref. A ref is exported with `git archive` into a
+temporary directory (removed afterwards), so your working tree and checked-out
+branch are never touched; an uncommitted edit is not part of any ref. A ref is
+scored from the folder you run the command in; `--path <dir>` picks another
+folder, the same one on both sides.
+
+A finding is the same finding on both sides when its rule, file and test title
+path agree, so moving code down a file never makes an old finding new. A rule
+that fires twice in a test counts twice. Tests are matched the same way, by file
+and title path (see [METHODOLOGY.md](./METHODOLOGY.md#diff-matching-tests-across-versions)).
+Reported per matched test: a test **deleted**, a test newly **skipped** (`skip`,
+`fixme` or a skipped describe), and a test whose body has **fewer `expect()`
+calls**.
+
+Options: `--json` (or `--format json`), `--out <file>`, `--max-drop <n>`,
+`--path <dir>`, `--fail-on-changes`, and the scoring options `--profile`,
+`--max-seconds`, `--max-heap-mb`, `--shared`, `--no-shared`, `--allow-partial`.
+`--threshold`, `--fail-on`, `--name`, `--advice` and `--markdown-out` do not
+apply to `diff` (a usage error).
+
+| Code | Meaning |
+|---|---|
+| `0` | No certain finding is new in the head, the score did not drop by more than `--max-drop` (when given), and the head was scored |
+| `1` | The head introduces a certain finding; or the score dropped past `--max-drop`; or, with `--fail-on-changes`, a test was deleted, newly skipped or lost assertions; or the head is not scored, or partial without `--allow-partial` |
+| `2` | Tool or usage error: an unknown option, a side that is neither a directory nor a git ref, an export that failed |
+
+Without `--max-drop` the score is reported but does not gate; deleted, skipped
+and weakened tests are reported but do not gate unless `--fail-on-changes` is
+given. A base that is not scored (no tests yet) never fails the diff.
+
+`--json` prints one document: `diffVersion`, `base` and `head` (label, status,
+score, counted and charged tests), `scoreBefore`, `scoreAfter`, `scoreDrop`
+(before minus after), `files` (the files whose score changed, with `before`,
+`after`, `drop`), `newFindings`, `resolvedFindings`, `testChanges` (`deleted`,
+`addedSkip`, `assertionsDropped`) and `gate` (`pass`, `reasons`, `maxDrop`,
+`failOnChanges`). A directory literally named `diff` must be written `./diff`.
+
 ## Library
 
 ```ts

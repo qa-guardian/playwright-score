@@ -10,6 +10,20 @@ parsing accuracy, not grading policy — can still move a suite's score
 without itself being a new model version; 2.1.0 below is exactly that
 case, and says so explicitly.
 
+## Unreleased
+
+### Added
+
+- **`pwscore diff <base> <head>`** (QAG-289): what a change did to the score.
+  Each side is a directory or a git ref (exported with `git archive`, the
+  working tree is not touched). Reports the score before and after, the certain
+  findings the head introduces (matched by rule, file and test title path, so a
+  line shift is not new), the score change per file, and per matched test a
+  deleted test, a newly skipped test and fewer `expect()` calls. `--json`,
+  `--max-drop <n>`, `--path <dir>`, `--fail-on-changes`. Exit 1 when the head
+  introduces a certain finding or the score drops past `--max-drop`. Scoring
+  itself is unchanged: no rule, weight or score moves.
+
 ## 3.0.0 — 2026-11-26
 
 3.0.0 is a new scoring model (v5) and a new gate. Most suites get a

@@ -172,6 +172,35 @@ for information and no longer feed the score.
 
 ---
 
+## Diff: matching tests across versions
+
+`pwscore diff` compares two scored versions of a suite. It never compares line
+numbers, because a line moves with any edit above it.
+
+- **Files** are matched by path relative to the root of each side.
+- **Tests** are matched by file plus *title path*: the titles of the enclosing
+  describe blocks, then the test's own title, taken from the source. A title
+  built from a template keeps `${}` where a value goes; two tests with the same
+  path in one file get ` [2]`, ` [3]` in source order. A test the scorer counts
+  but whose title cannot be read is named by its declaration line, so it matches
+  only if that line is unchanged. Renaming a test or its describe, or moving it
+  to another file, reads as a deleted test and an added one: the diff does not
+  guess at renames.
+- **Findings** are matched by rule, file and the title path of the test they sit
+  in (`(hook)`, `(module)` and `(shared)` stand in for a finding outside any
+  test). Only `certain` findings are compared. If the head has more of a rule in
+  a place than the base, the surplus is new.
+- **Deleted**: counted in the base, no test of that path in the head (also when the whole
+  file is gone). **Newly skipped**: counted in the base, `excluded-skipped` in
+  the head (a `skip` or `fixme` call, a skipped describe, a first-statement
+  skip). **Fewer assertions**: both counted, and fewer `expect()`,
+  `expect.soft()` or `expect.poll()` calls written in the test's own body;
+  assertions inside a helper the test calls are not counted, on either side.
+- A test that was already skipped, or empty, in the base is never reported.
+- Not compared yet: a weaker matcher, a changed expected value, a raised timeout.
+
+---
+
 ## How it works (v4, the dimensions)
 
 ### 1. Findings are attributed to tests
