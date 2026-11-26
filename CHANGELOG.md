@@ -10,7 +10,7 @@ parsing accuracy, not grading policy — can still move a suite's score
 without itself being a new model version; 2.1.0 below is exactly that
 case, and says so explicitly.
 
-## 3.0.0 — unreleased
+## 3.0.0 — 2026-11-26
 
 3.0.0 is a new scoring model (v5) and a new gate. Most suites get a
 different score, and whether a result passes now depends on what its tests

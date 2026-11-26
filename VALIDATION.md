@@ -58,12 +58,9 @@ Score distribution: mean 96.7, median 100; grades 256 A / 9 B / 6 C / 3 D / 5 F.
 
 ## Performance
 
-Measured on the 3.0.0 release candidate against 2.x on the same machine:
-
-- Summed CPU time over the corpus: 1.384x 2.x (1.413x on a paired sample
-  of 20 heavy suites).
-- Slowest suite: 160.5 s. Peak memory (RSS): 2.79 GiB.
-- One spec file, cold start: 2.79 s at the 99th percentile.
+No speed figure is given for 3.0.0. The timed corpus run for this release
+was waived by the owner, so its speed has not been measured. Any speed
+figure must name the build and date it was measured on.
 
 ## Running it yourself
 
@@ -81,9 +78,9 @@ projects' own suites change.
 
 ## Regression benchmark
 
-Two fixed sets of synthetic specs, each spec written to contain one known
-defect. Neither is a measure of real-world recall. The development
-benchmark is scored on every change to catch regressions.
+Two fixed sets of synthetic specs. Neither is a measure of real-world
+recall. The development benchmark is scored on every change to catch
+regressions.
 
 - Development benchmark: 152 of 155 seeded defects reported (98.1%).
 - Sealed set: 210 of 234 hand-written cases reported (89.7%), none of
