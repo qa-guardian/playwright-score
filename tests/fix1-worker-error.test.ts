@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
-import { BATCH_SIZE } from '../src/isolate.js';
+import { BATCH_SIZE, DEATH_GRACE_MS } from '../src/isolate.js';
 
 // QAG-287 FIX1 R2: a worker that dies of an error that is not the heap limit loses only the
 // batch it had; a fresh worker takes the later batches (src/isolate.ts, analyzeIsolated). The
@@ -24,7 +24,6 @@ after(() => {
   for (const d of tmpDirs) fs.rmSync(d, { recursive: true, force: true });
 });
 
-const MARK = 'a-00.spec.ts';
 const PRELOAD = `import fs from 'node:fs';
 import path from 'node:path';
 import { isMainThread, parentPort } from 'node:worker_threads';
@@ -51,7 +50,7 @@ const DRIVER = `import fs from 'node:fs';
 import path from 'node:path';
 import { Worker } from 'node:worker_threads';
 const [isolateUrl, indexUrl, dir, withScore] = process.argv.slice(2);
-const { analyzeIsolated, startTimeLimit, DEFAULT_MAX_HEAP_MB } = await import(isolateUrl);
+const { analyzeIsolated, startTimeLimit, DEFAULT_MAX_HEAP_MB, DEATH_GRACE_MS } = await import(isolateUrl);
 const { scorePaths } = await import(indexUrl);
 const abs = fs.readdirSync(dir).sort().map((f) => path.join(dir, f));
 const input = {
@@ -71,6 +70,8 @@ const input = {
 // no wait on wall time:
 // - error-first: the worker's messages are held until its 'error' has been emitted.
 // - result-first: its 'error' is held until a batch result has been emitted (or 'exit').
+// - error-first-grace: error-first-timer, and then the grace timer the timer arms (a worker whose
+//   'exit' never comes) is called too, before anything else is delivered.
 // - error-first-timer: error-first, and right after the error the time limit's timer callback is
 //   called (as if it fired in the window before the worker's messages and 'exit' come; the
 //   clock is a spy, see below), and only then are the held messages delivered.
@@ -83,10 +84,14 @@ let resultSeen = false;
 let heldError;
 let timerSeen = false;
 let timerFn;
+let timerRan = false;
+let graceFn;
+let graceRan = false;
 let flush = () => {};
 const setTimer = globalThis.setTimeout;
 globalThis.setTimeout = (fn, ms, ...rest) => {
   if (ms === 2) timerFn = fn;
+  if (ms === DEATH_GRACE_MS) graceFn = fn;
   return setTimer(fn, ms, ...rest);
 };
 const posts = [];
@@ -115,7 +120,16 @@ Worker.prototype.emit = function (event, ...args) {
   if (event === 'error') {
     errored = true;
     go(event, args);
-    if (order === 'error-first-timer' && timerFn) timerFn();
+    if (order.startsWith('error-first-') ) {
+      if (!timerFn) throw new Error('the time limit timer was never armed with the expected delay');
+      timerRan = true;
+      timerFn();
+      if (order === 'error-first-grace') {
+        if (!graceFn) throw new Error('no grace timer was armed for a dead worker');
+        graceRan = true;
+        graceFn();
+      }
+    }
     flush();
     return true;
   }
@@ -136,7 +150,7 @@ Worker.prototype.emit = function (event, ...args) {
 };
 // The timer's clock reads: with the timer order the limit "passes" once, after the dead worker's
 // error was seen.
-const time = order === 'error-first-timer'
+const time = order.startsWith('error-first-')
   ? {
       msLeft: (at) => (at === 'timer' ? 2 : Infinity),
       passed: (at) => {
@@ -152,6 +166,9 @@ const postsAfter = [...posts];
 const r = withScore === 'score' ? await scorePaths({ paths: [dir], cwd: dir }) : undefined;
 process.stdout.write(JSON.stringify({
   setups: setups.length,
+  timerRan,
+  timerSeen,
+  graceRan,
   posts: postsAfter,
   batches: out.batches.map((b) => b.facts.map((f) => f.rel)),
   skipped: out.skipped.map((s) => [path.basename(s.file), s.reason, s.detail]),
@@ -165,6 +182,9 @@ process.stdout.write(JSON.stringify({
 
 type Out = {
   setups: number;
+  timerRan: boolean;
+  timerSeen: boolean;
+  graceRan: boolean;
   posts: string[];
   batches: string[][];
   skipped: Array<[string, string, string]>;
@@ -187,9 +207,9 @@ const two = (i: number): string => String(i).padStart(2, '0');
 // Three batches: a-00..a-19 (holds the marked file), a-20..a-39, a-40..a-44.
 const names = Array.from({ length: 2 * BATCH_SIZE + 5 }, (_, i) => `a-${two(i)}.spec.ts`);
 
-type Order = 'error-first' | 'result-first' | 'error-first-timer';
+type Order = 'error-first' | 'result-first' | 'error-first-timer' | 'error-first-grace';
 
-async function run(mode: 'batch' | 'after-result', order: Order, withScore: boolean): Promise<Out> {
+async function run(mode: 'batch' | 'after-result', order: Order, withScore: boolean, mark = names[0]): Promise<Out> {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-worker-error-'));
   tmpDirs.push(tmp);
   const dir = path.join(tmp, 'suite');
@@ -202,7 +222,7 @@ async function run(mode: 'batch' | 'after-result', order: Order, withScore: bool
     process.execPath,
     [`--import=${pathToFileURL(path.join(tmp, 'preload.mjs')).href}`, path.join(tmp, 'driver.mjs'), new URL('isolate.js', src).href, new URL('index.js', src).href, dir, withScore ? 'score' : ''],
     {
-      env: { ...process.env, PWSCORE_TEST_FAIL_FILE: MARK, PWSCORE_TEST_FAIL_MODE: mode, PWSCORE_TEST_DEAD_MARK: path.join(tmp, 'dead'), PWSCORE_TEST_ORDER: order },
+      env: { ...process.env, PWSCORE_TEST_FAIL_FILE: mark, PWSCORE_TEST_FAIL_MODE: mode, PWSCORE_TEST_DEAD_MARK: path.join(tmp, 'dead'), PWSCORE_TEST_ORDER: order },
       maxBuffer: 16 * 1024 * 1024,
     }
   );
@@ -254,5 +274,27 @@ describe('QAG-287 FIX1 R2: a worker death that is not the heap limit', () => {
     assert.deepEqual(out.batches, [batch(0), batch(1), batch(2)]);
     assert.deepEqual(out.skipped, []);
     assert.equal(out.setups, 2);
+    // The timer really ran inside the death window, and the limit really passed there.
+    assert.equal(out.timerRan, true);
+    assert.equal(out.timerSeen, true);
+    assert.equal(out.graceRan, false);
+  });
+
+  it('QAG-287 3.0.1: a dead worker whose exit never comes is settled as worker-died after the grace period', async () => {
+    const out = await run('after-result', 'error-first-grace', false);
+    assert.equal(out.graceRan, true);
+    // The grace timer fired before the worker's result was delivered: its batch is the one in flight.
+    assert.deepEqual(out.skipped.map(([f, reason]) => `${f}|${reason}`), batch(0).map((f) => `${f}|worker-died`));
+    assert.deepEqual(out.batches, [batch(1), batch(2)]);
+  });
+
+  it('QAG-287 3.0.1: a batch re-sent to a fresh worker that kills it too is skipped once; every other batch is scored; the run ends', async () => {
+    const out = await run('batch', 'result-first', false, first(1));
+    // Workers: the first (dies after batch 0's result, holding batch 1), a second (batch 1 as its first
+    // batch: dies again), a third (batch 2). Never a fourth.
+    assert.deepEqual(out.posts, [first(0), first(1), first(1), first(2)]);
+    assert.deepEqual(out.skipped.map(([f, reason]) => `${f}|${reason}`), batch(1).map((f) => `${f}|worker-died`));
+    assert.deepEqual(out.batches, [batch(0), batch(2)]);
+    assert.equal(out.setups, 3);
   });
 });

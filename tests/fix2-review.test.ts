@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { scorePaths } from '../src/index.js';
 import { extractHelperFacts } from '../src/metrics.js';
 
@@ -106,7 +107,7 @@ describe('fix2 item S: publish-name restores package.json when interrupted', () 
     it(`${signal} during npm publish restores package.json and exits ${code}`, async (t) => {
       if (process.platform === 'win32') return t.skip('POSIX stub');
       const { spawn } = await import('node:child_process');
-      const root = path.resolve(import.meta.dirname ?? '.', '..', '..');
+      const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-pub-'));
       try {
         fs.mkdirSync(path.join(dir, 'scripts'));

@@ -277,6 +277,8 @@ const WORKER_MARK = 'pwscoreAnalysisWorker';
 
 /** The longest delay a timer takes (2^31 - 1 ms, about 24.8 days); Node turns a longer one into 1 ms. */
 export const MAX_TIMER_MS = 2 ** 31 - 1;
+/** How long a worker noted as dead may take to emit 'exit' once the time limit has passed. */
+export const DEATH_GRACE_MS = 2000;
 
 type WorkerEnd = { kind: 'finished' } | { kind: 'deadline' } | { kind: 'died'; detail: string; heap: boolean };
 
@@ -292,7 +294,8 @@ function deathEnd(error: unknown, maxHeapMb: number): WorkerEnd {
  * Runs the analysis in a worker thread, batch by batch.
  *
  * - The time limit passes (it is checked before each batch, and a timer stops
- *   a batch in flight): the worker is stopped, and the batch in flight and
+ *   a batch in flight; a worker already noted as dead is left to its 'exit',
+ *   for at most DEATH_GRACE_MS after the limit): the worker is stopped, and the batch in flight and
  *   every later one are skipped with `deadline`.
  * - The worker runs out of heap: the batch in flight and every later one are
  *   skipped with `worker-died` (QAG-287 FIX1: a fresh worker per batch under
@@ -349,8 +352,13 @@ export async function analyzeIsolated(
         // A worker whose death is noted is not stopped here: 'exit' is certain to follow,
         // and settling now would drop the results Node still delivers before it.
         const onTimer = (): void => {
+          if (settled) return;
           if (!time.passed('timer')) arm();
           else if (!death) settle({ kind: 'deadline' });
+          // Node runs a worker's JS exit work before it reports its error, so only native teardown
+          // is left in this window and 'exit' is not expected to stall. Should it, the limit still
+          // ends the call: after a grace period the death settles as if 'exit' had come.
+          else timer = setTimeout(() => finishDeath(undefined), DEATH_GRACE_MS);
         };
         timer = setTimeout(onTimer, Math.min(Math.max(0, left), MAX_TIMER_MS));
       };
@@ -382,14 +390,15 @@ export async function analyzeIsolated(
         death ??= deathEnd(error, heapLimitMb);
       });
       // HEAP_LIMIT_EXIT: the worker's own heap guard ended it (heap-guard.ts).
-      worker.on('exit', (code) => {
+      const finishDeath = (code: number | undefined): void => {
         const end: WorkerEnd =
           code === HEAP_LIMIT_EXIT ? { kind: 'died', detail: `heap limit ${heapLimitMb} MB`, heap: true } : (death ?? { kind: 'died', detail: 'worker error', heap: false });
         // Died of an error between batches, or with a batch that was sent after its last result was
         // read: that batch is not charged to the death, a fresh worker takes it as its first batch.
         // If it kills that worker too, it is the batch in flight there and is skipped (no loop).
         settle(end.kind === 'died' && !end.heap && (!inFlight || sentAfterResult) ? { kind: 'finished' } : end);
-      });
+      };
+      worker.on('exit', finishDeath);
       worker.postMessage(batches[next]);
     });
 
