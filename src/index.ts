@@ -779,6 +779,8 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
   const helperFacts: HelperFacts[] = [];
   const moduleResolver = createModuleResolver(importBoundary);
   const importEdges = new Map<string, string[]>();
+  /** `importEdges` minus the ones only a CommonJS `require()` creates: expect-expect evidence follows ES imports only (3.0.1). */
+  const esImportEdges = new Map<string, string[]>();
   let importedFiles = new Map<string, string>();
   // Shared files (shared-files.ts): reported in `coverage`, nothing else reads them.
   const sharedCollector = createSharedCollector(importBoundary, moduleResolver);
@@ -807,7 +809,7 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
     // any assertion-helper names) to the suite-level totals below.
     if (timeLimit.passed('import-graph')) break prePass;
     const specifierCache = new Map<string, string[]>();
-    importedFiles = collectLocallyImportedFiles(sources, importBoundary, sharedCollector.observing, importEdges, specifierCache);
+    importedFiles = collectLocallyImportedFiles(sources, importBoundary, sharedCollector.observing, importEdges, specifierCache, esImportEdges);
     for (const [file, source] of importedFiles) {
       helperFacts.push(...extractHelperFacts(source, file));
       // Counted here, while the file's tree is still in the parse cache.
@@ -819,7 +821,7 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
     // file boundaries (spec helper -> imported page object -> expect).
     // Names are scoped per spec file: own helpers plus helpers of files the spec
     // reaches through imports (see helper-scope.ts).
-    const helperNamesFor = createHelperScope(helperFacts, importEdges);
+    const helperNamesFor = createHelperScope(helperFacts, esImportEdges);
     const assertFunctionNamesByFile = new Map(files.map((f) => [f, helperNamesFor(f)] as const));
 
     // Identifiers bound to a `test.extend(...)`-derived fixture under a
