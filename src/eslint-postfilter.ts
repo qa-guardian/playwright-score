@@ -565,6 +565,125 @@ function collectedAndAwaited(t: Tree, node: N): boolean {
   return arrayAwaitedLater(t, scope, name, line);
 }
 
+
+const SPEC_FILE = /\.(spec|test)\.[cm]?[jt]sx?$/;
+const NOT_A_HAND_ON = /^(expect|assert|log|print|debug|info|warn|error|console|String|JSON|Boolean)$/;
+
+function patternHas(p: N | undefined | null, name: string): boolean {
+  if (!p) return false;
+  switch (p.type) {
+    case 'Identifier':
+      return p.name === name;
+    case 'ObjectPattern':
+      return (p.properties as N[]).some((x) => patternHas(x.type === 'Property' ? x.value : x.argument, name));
+    case 'ArrayPattern':
+      return (p.elements as (N | null)[]).some((x) => patternHas(x, name));
+    case 'AssignmentPattern':
+      return patternHas(p.left, name);
+    case 'RestElement':
+      return patternHas(p.argument, name);
+    case 'TSParameterProperty':
+      return patternHas(p.parameter, name);
+    default:
+      return false;
+  }
+}
+
+/** True when a scope between `ref` and `declScope` (exclusive) declares `name` itself, so the reference is not our variable. */
+function shadowed(t: Tree, ref: N, declScope: N | undefined, name: string, ours: Set<N>): boolean {
+  for (let c = t.parent(ref); c && c !== declScope; c = t.parent(c)) {
+    if (isFunction(c) && (c.params as N[]).some((x) => patternHas(x, name))) return true;
+    if (c.type === 'CatchClause' && patternHas(c.param, name)) return true;
+    const stmts: N[] =
+      c.type === 'BlockStatement' || c.type === 'Program' || c.type === 'StaticBlock'
+        ? (c.body as N[])
+        : c.type === 'ForStatement' && c.init
+          ? [c.init]
+          : (c.type === 'ForOfStatement' || c.type === 'ForInStatement') && c.left
+            ? [c.left]
+            : [];
+    if (ours.has(c)) continue;
+    for (const st of stmts) {
+      if (st.type === 'VariableDeclaration' && (st.declarations as N[]).some((d) => patternHas(d.id, name))) return true;
+      if ((st.type === 'FunctionDeclaration' || st.type === 'ClassDeclaration') && st.id?.name === name) return true;
+    }
+  }
+  return false;
+}
+
+/** Does a value expression (identifier, or object/array/spread built around it) end up returned, awaited or stored on `this`? */
+function flowsOut(t: Tree, n: N): boolean {
+  let cur = n;
+  for (;;) {
+    const q = t.parent(cur);
+    if (!q) return false;
+    switch (q.type) {
+      case 'ReturnStatement':
+      case 'AwaitExpression':
+        return true;
+      case 'ArrowFunctionExpression':
+        return q.body === cur;
+      case 'Property':
+        if (q.value !== cur) return false;
+        cur = t.parent(q) as N;
+        continue;
+      case 'ObjectExpression':
+      case 'ArrayExpression':
+      case 'SpreadElement':
+      case 'TSAsExpression':
+      case 'TSNonNullExpression':
+      case 'ParenthesizedExpression':
+        cur = q;
+        continue;
+      case 'AssignmentExpression':
+        return q.right === cur && q.left?.type === 'MemberExpression' && q.left.object?.type === 'ThisExpression';
+      case 'CallExpression': {
+        if (!(q.arguments as N[]).includes(cur)) return false;
+        const c = q.callee;
+        if (c?.type === 'MemberExpression' && c.object?.type === 'Identifier' && c.object.name === 'Promise' && /^(all|race|allSettled|any)$/.test(c.property?.name)) {
+          cur = q;
+          continue;
+        }
+        if (c?.type === 'Identifier') return !NOT_A_HAND_ON.test(c.name);
+        return c?.type === 'MemberExpression' && c.object?.type === 'ThisExpression' && !NOT_A_HAND_ON.test(c.property?.name ?? '');
+      }
+      default:
+        return false;
+    }
+  }
+}
+
+/**
+ * A promise made on purpose and handed on, in a shared (non-spec) file: `this.pending = page.waitForResponse(...)`, or
+ * `const sent = page.waitForRequest(...)` whose binding is later returned (bare or inside a returned object or array),
+ * awaited, stored on `this`, or passed to a helper on `this` or a plain function. The arming idiom of a page object:
+ * it is awaited by whoever receives it, so it is not a dropped `await`. A spec file never qualifies; nor does a
+ * variable that is never used again, one passed to `expect`/`console`/`push`, or a same-named shadow in a nested
+ * function. Actions only: an assertion keeps its finding.
+ */
+function promiseHandedOn(t: Tree, node: N, file: string): boolean {
+  if (SPEC_FILE.test(file)) return false;
+  const top = t.chainTop(node);
+  const p = t.parent(top);
+  if (!p) return false;
+  if (p.type === 'AssignmentExpression' && p.right === top && p.left?.type === 'MemberExpression') return p.left.object?.type === 'ThisExpression';
+  let name: string | undefined;
+  if (p.type === 'VariableDeclarator' && p.init === top && p.id?.type === 'Identifier') name = p.id.name;
+  else if (p.type === 'AssignmentExpression' && p.right === top && p.left?.type === 'Identifier') name = p.left.name;
+  if (!name) return false;
+  const scope = t.enclosingFunction(top) ?? t.root;
+  const after = (top.loc as { start: { line: number } }).start.line;
+  const ours = new Set<N>();
+  for (let c = t.parent(top); c; c = t.parent(c)) ours.add(c);
+  return t.some(scope, (n) => {
+    if (n.type !== 'Identifier' || n.name !== name || (n.loc as { start: { line: number } }).start.line < after || n === p.id || n === p.left) return false;
+    const q = t.parent(n);
+    if (!q || (q.type === 'MemberExpression' && q.property === n && !q.computed) || (q.type === 'Property' && q.key === n && q.value !== n)) return false;
+    if (shadowed(t, n, scope, name as string, ours)) return false;
+    return flowsOut(t, n);
+  });
+}
+
 // ---- no-wait-for-selector ----------------------------------------------
 
 /** A wait inside a try block or before `.catch(...)` is swallowed: the wait can silently do nothing. */
@@ -713,7 +832,8 @@ export function createPostFilter(source: () => string, file: string, aliases?: R
       case 'playwright/prefer-web-first-assertions':
         return insideRetryingBlock(tree, node, aliases) ? { drop: true } : undefined;
       case 'playwright/missing-playwright-await':
-        return collectedAndAwaited(tree, node) ? { drop: true } : undefined;
+        if (collectedAndAwaited(tree, node)) return { drop: true };
+        return missingAwaitForm(tree, node, aliases) === 'action' && promiseHandedOn(tree, node, file) ? { drop: true } : undefined;
       case 'playwright/no-conditional-expect':
         return conditionalExpectExempt(tree, node) ? { drop: true } : undefined;
       default:
