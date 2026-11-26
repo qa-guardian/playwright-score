@@ -121,17 +121,23 @@ describe('3.0.1 C: a swallowed negated probe repeated after the page changed', (
 });
 
 describe('3.0.1 C: expect-expect evidence follows ES imports only', () => {
-  const GOOD = `async function verifyBody(page) {\n  await expect(page.locator('body')).toBeVisible();\n}\n`;
+  const GOOD = `async function bodyIsThere(page) {\n  await expect(page.locator('body')).toBeVisible();\n}\n`;
   const noExpect = async (files: Record<string, string>, spec: string) =>
     (await run({ '.git/HEAD': 'ref: refs/heads/main\n', ...files }, spec)).findings.filter((f) => f.rule === 'playwright/expect-expect' && f.file.endsWith(spec)).length;
   it('a helper reached only through require() does not clear the test', async () => {
-    const cjs = `const { expect } = require('@playwright/test');\n${GOOD}module.exports = { verifyBody };\n`;
-    const spec = `const { test } = require('@playwright/test');\nconst { verifyBody } = require('./helper');\ntest('t', async ({ page }) => { await verifyBody(page); });\n`;
+    const cjs = `const { expect } = require('@playwright/test');\n${GOOD}module.exports = { bodyIsThere };\n`;
+    const spec = `const { test } = require('@playwright/test');\nconst { bodyIsThere } = require('./helper');\ntest('t', async ({ page }) => { await bodyIsThere(page); });\n`;
     assert.equal(await noExpect({ 'a.spec.js': spec, 'helper.js': cjs }, 'a.spec.js'), 1);
+  });
+  it('an ES file that requires a CommonJS helper lends no evidence either', async () => {
+    const cjs = `const { expect } = require('@playwright/test');\n${GOOD}module.exports = { bodyIsThere };\n`;
+    const mid = `const { bodyIsThere } = require('./helper');\nexport { bodyIsThere };\n`;
+    const spec = `import { test } from '@playwright/test';\nimport { bodyIsThere } from './mid';\ntest('t', async ({ page }) => { await bodyIsThere(page); });\n`;
+    assert.equal(await noExpect({ 'a.spec.ts': spec, 'mid.ts': mid, 'helper.js': cjs }, 'a.spec.ts'), 1);
   });
   it('an ES-imported asserting helper still clears it', async () => {
     const es = `import { expect } from '@playwright/test';\nexport ${GOOD}`;
-    const spec = `import { test } from '@playwright/test';\nimport { verifyBody } from './helper';\ntest('t', async ({ page }) => { await verifyBody(page); });\n`;
+    const spec = `import { test } from '@playwright/test';\nimport { bodyIsThere } from './helper';\ntest('t', async ({ page }) => { await bodyIsThere(page); });\n`;
     assert.equal(await noExpect({ 'a.spec.ts': spec, 'helper.ts': es }, 'a.spec.ts'), 0);
   });
 });
