@@ -69,8 +69,10 @@ export function resolveSide(spec: string, cwd: string, subPath: string | undefin
     execFileSync('git', ['-C', top, 'archive', '--format=tar', '-o', tar, sha], { stdio: ['ignore', 'ignore', 'pipe'] });
     execFileSync('tar', ['-xf', tar, '-C', root], { stdio: ['ignore', 'ignore', 'pipe'] });
     fs.rmSync(tar);
-    // Without --path, a ref is scored from the same folder of the repository the command runs in.
-    return { label: spec, kind: 'git-ref', root, scoreDir: sub(root, prefix), cleanup };
+    // A ref is measured from the folder of the repository the command runs in, exactly as a directory
+    // side is measured from itself, so a ref and a directory (or two refs) line up; --path is relative to it.
+    const here = path.resolve(root, prefix);
+    return { label: spec, kind: 'git-ref', root: here, scoreDir: sub(here, ''), cleanup };
   } catch (err) {
     cleanup();
     if (err instanceof DiffUsageError) throw err;
