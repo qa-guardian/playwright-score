@@ -58,7 +58,6 @@ export function createHelperScope(facts: HelperFacts[], edges: ImportEdges) {
     local.set(file, names);
   }
 
-  const cjsFiles = new Set(facts.filter((f) => f.cjs).map((f) => f.file));
   const reachMemo = new Map<string, string[]>();
   const reach = (file: string): string[] => {
     const hit = reachMemo.get(file);
@@ -78,38 +77,18 @@ export function createHelperScope(facts: HelperFacts[], edges: ImportEdges) {
     return out;
   };
 
-  // Cross-file fixed point over expect evidence only. Evidence is tracked per definition (`proven`) as well as per
-  // name: a method name shared by several page objects (`clickRefreshButton` on a logs page and on a metrics page)
-  // clears a spec only when every definition the spec can reach is proven, because the call site does not say which
-  // class it hits (3.0.1 C2: 12 openobserve tests cleared by an unrelated class's same-named expect).
+  // Cross-file fixed point over expect evidence only.
   const strong = new Map<string, Set<string>>();
-  const proven = new Set<HelperFacts>();
   for (const [file, list] of byFile) {
     strong.set(file, new Set(list.filter((f) => f.expect).map((f) => f.name)));
-    for (const f of list) if (f.expect) proven.add(f);
   }
-  const defsNamed = new Map<string, HelperFacts[]>();
-  for (const f of facts) {
-    const l = defsNamed.get(f.name);
-    if (l) l.push(f);
-    else defsNamed.set(f.name, [f]);
-  }
-  const unanimous = (file: string, name: string): boolean => {
-    const files = new Set(reach(file));
-    let any = false;
-    for (const d of defsNamed.get(name) ?? []) {
-      if (!files.has(d.file)) continue;
-      if (!proven.has(d)) return false;
-      any = true;
-    }
-    return any;
-  };
+  const sees = (file: string, name: string): boolean => reach(file).some((d) => strong.get(d)?.has(name));
   for (let added = true; added; ) {
     added = false;
     for (const [file, list] of byFile) {
       const mine = strong.get(file)!;
       for (const f of list) {
-        if (proven.has(f)) continue;
+        if (mine.has(f.name)) continue;
         let hit = false;
         for (const c of f.calls) {
           if (mine.has(c)) { hit = true; break; }
@@ -118,11 +97,10 @@ export function createHelperScope(facts: HelperFacts[], edges: ImportEdges) {
           // Cross-file evidence only through imported bindings or receivers
           // traceable to an import (never a bare property name on a parameter).
           for (const c of f.crossCalls) {
-            if (unanimous(file, c)) { hit = true; break; }
+            if (sees(file, c)) { hit = true; break; }
           }
         }
         if (hit) {
-          proven.add(f);
           mine.add(f.name);
           added = true;
         }
@@ -134,11 +112,9 @@ export function createHelperScope(facts: HelperFacts[], edges: ImportEdges) {
   return function namesFor(file: string): string[] {
     const out = new Set<string>();
     for (const d of reach(file)) {
-      for (const n of strong.get(d) ?? []) if (unanimous(file, n)) out.add(n);
+      for (const n of strong.get(d) ?? []) out.add(n);
+      for (const n of local.get(d) ?? []) out.add(n);
     }
-    for (const n of local.get(file) ?? []) out.add(n);
-    // A CommonJS file reached through `require()` was never followed before 3.0.1: it lends expect evidence only.
-    for (const d of reach(file)) if (d !== file && !cjsFiles.has(d)) for (const n of local.get(d) ?? []) out.add(n);
     return [...out].sort();
   };
 }

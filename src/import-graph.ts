@@ -45,6 +45,9 @@ function requiredAtTopLevel(node: Loose): string[] {
   return out;
 }
 
+/** Specifiers of a specifier list that only a CommonJS `require()` reaches (never an ES import/re-export of the same file). */
+const requireOnly = new WeakMap<readonly string[], Set<string>>();
+
 function extractImportSpecifiers(source: string, file: string): string[] {
   let ast: { body?: Array<Record<string, unknown>> } | undefined;
   try {
@@ -53,8 +56,14 @@ function extractImportSpecifiers(source: string, file: string): string[] {
     return [];
   }
   const specifiers: string[] = [];
+  const viaRequire = new Set<string>();
+  const viaEs = new Set<string>();
+  requireOnly.set(specifiers, viaRequire);
   for (const node of ast.body ?? []) {
-    for (const spec of requiredAtTopLevel(node)) specifiers.push(spec);
+    for (const spec of requiredAtTopLevel(node)) {
+      specifiers.push(spec);
+      viaRequire.add(spec);
+    }
     if (
       node.type !== 'ImportDeclaration' &&
       node.type !== 'ExportNamedDeclaration' &&
@@ -65,8 +74,10 @@ function extractImportSpecifiers(source: string, file: string): string[] {
     const source_ = node.source as { value?: unknown } | undefined;
     if (typeof source_?.value === 'string') {
       specifiers.push(source_.value);
+      viaEs.add(source_.value);
     }
   }
+  for (const spec of viaEs) viaRequire.delete(spec);
   return specifiers;
 }
 
@@ -132,7 +143,9 @@ export function collectLocallyImportedFiles(
   /** Optional out-param: file -> files it imports/re-exports (resolved), for scoping helper names. */
   edges?: Map<string, string[]>,
   /** Optional: file -> its import specifiers, filled and reused so a second traversal of the same sources parses nothing twice. */
-  specifierCache?: Map<string, string[]>
+  specifierCache?: Map<string, string[]>,
+  /** Optional out-param: like `edges` without the edges only a CommonJS `require()` creates (expect-expect evidence follows these only). */
+  esEdges?: Map<string, string[]>
 ): Map<string, string> {
   const collected = new Map<string, string>();
   const visited = new Set<string>(specSources.keys());
@@ -158,6 +171,11 @@ export function collectLocallyImportedFiles(
         const list = edges.get(file);
         if (list) list.push(resolved);
         else edges.set(file, [resolved]);
+      }
+      if (resolved && esEdges && !requireOnly.get(specifiers)?.has(specifier)) {
+        const list = esEdges.get(file);
+        if (list) list.push(resolved);
+        else esEdges.set(file, [resolved]);
       }
       if (!resolved || visited.has(resolved)) continue;
       visited.add(resolved);
