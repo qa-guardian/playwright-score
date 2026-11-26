@@ -297,8 +297,11 @@ function deathEnd(error: unknown, maxHeapMb: number): WorkerEnd {
  * - The worker runs out of heap: the batch in flight and every later one are
  *   skipped with `worker-died` (QAG-287 FIX1: a fresh worker per batch under
  *   the same limit only died again, batch after batch).
- * - The worker dies of any other error: the batch in flight is skipped with
- *   `worker-died`, and a fresh worker takes the later ones.
+ * - The worker dies of any other error: the batch it had as its first is
+ *   skipped with `worker-died`, and a fresh worker takes the later ones. A
+ *   batch sent after a result was read is handed to the fresh worker as its
+ *   first batch (the death may have come before it was received), and is
+ *   skipped only if it kills that worker too.
  *
  * Batches that came back before either event are kept.
  */
@@ -343,7 +346,12 @@ export async function analyzeIsolated(
       const arm = (): void => {
         const left = time.msLeft('timer');
         if (left === Infinity) return;
-        const onTimer = (): void => (time.passed('timer') ? settle({ kind: 'deadline' }) : arm());
+        // A worker whose death is noted is not stopped here: 'exit' is certain to follow,
+        // and settling now would drop the results Node still delivers before it.
+        const onTimer = (): void => {
+          if (!time.passed('timer')) arm();
+          else if (!death) settle({ kind: 'deadline' });
+        };
         timer = setTimeout(onTimer, Math.min(Math.max(0, left), MAX_TIMER_MS));
       };
       arm();
@@ -353,6 +361,9 @@ export async function analyzeIsolated(
       // only noted here and settled on 'exit' (QAG-287 FIX1 R1).
       let death: WorkerEnd | undefined;
       let inFlight = true;
+      // The batch in flight was posted after a result of this worker was read, so a death
+      // cannot be told apart from one that came before the batch was received.
+      let sentAfterResult = false;
       worker.on('message', (result: BatchResult | { setup: WorkerSetup }) => {
         if (settled) return;
         if ('setup' in result) return limits.onWorkerSetup?.(result.setup);
@@ -364,6 +375,7 @@ export async function analyzeIsolated(
         else if (!death) {
           worker.postMessage(batches[next]);
           inFlight = true;
+          sentAfterResult = true;
         }
       });
       worker.on('error', (error) => {
@@ -373,8 +385,10 @@ export async function analyzeIsolated(
       worker.on('exit', (code) => {
         const end: WorkerEnd =
           code === HEAP_LIMIT_EXIT ? { kind: 'died', detail: `heap limit ${heapLimitMb} MB`, heap: true } : (death ?? { kind: 'died', detail: 'worker error', heap: false });
-        // Died of an error between batches: no batch was lost, a fresh worker takes the next one.
-        settle(end.kind === 'died' && !end.heap && !inFlight ? { kind: 'finished' } : end);
+        // Died of an error between batches, or with a batch that was sent after its last result was
+        // read: that batch is not charged to the death, a fresh worker takes it as its first batch.
+        // If it kills that worker too, it is the batch in flight there and is skipped (no loop).
+        settle(end.kind === 'died' && !end.heap && (!inFlight || sentAfterResult) ? { kind: 'finished' } : end);
       });
       worker.postMessage(batches[next]);
     });

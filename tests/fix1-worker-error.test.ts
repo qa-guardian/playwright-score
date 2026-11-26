@@ -15,9 +15,9 @@ import { BATCH_SIZE } from '../src/isolate.js';
 // - mode `batch`: the first batch that names the marked file throws on arrival.
 // - mode `after-result`: the worker posts the result of the batch that names the marked file,
 //   then dies of an uncaught error before it is sent another batch.
-// QAG-287 FIX1 R1: the error comes on the worker's internal port, so when the main thread is
-// busy while the worker dies, 'error' can be dispatched ahead of what the worker posted before
-// it (its setup report, a batch result). The driver forces that order (see its 'online' hold).
+// QAG-287 FIX1 R1: the error comes on the worker's internal port, so 'error' can be read ahead of
+// what the worker posted before it (its setup report, a batch result), or after. The driver
+// forces each order (see its emit gate), so every test here pins one order exactly.
 
 const tmpDirs: string[] = [];
 after(() => {
@@ -43,7 +43,7 @@ if (!isMainThread && parentPort) {
   const post = parentPort.postMessage.bind(parentPort);
   parentPort.postMessage = (message, ...rest) => {
     post(message, ...rest);
-    if (mode === 'after-result' && Array.isArray(message?.facts) && message.facts.some((f) => path.basename(f.rel) === file)) setImmediate(die);
+    if (mode === 'after-result' && Array.isArray(message?.facts) && message.facts.some((f) => path.basename(f.rel) === file)) die();
   };
 }
 `;
@@ -65,28 +65,92 @@ const input = {
   assertFunctionNamesByFile: new Map(abs.map((f) => [f, []])),
   testAliasNames: [],
 };
-// Node reads a worker's internal port (where 'online' and its uncaught error come) and its
-// public port (its messages) separately, and goes on reading the internal port while messages
-// come in. So a thread busy in an 'online' listener while the worker posts and dies reads the
-// error before the earlier messages: hold here until the first worker is dead (and a little
-// longer, for its error to be posted) to make that order certain.
-let held = false;
+// Node reads a worker's internal port (its uncaught error) and its public port (its messages)
+// separately, so the order the main thread sees them in depends on timing. The driver fixes the
+// order of the FIRST worker (the one that dies) by holding events in Worker.prototype.emit, with
+// no wait on wall time:
+// - error-first: the worker's messages are held until its 'error' has been emitted.
+// - result-first: its 'error' is held until a batch result has been emitted (or 'exit').
+// - error-first-timer: error-first, and then every later event is held until the time limit's
+//   timer has read the clock and seen the limit passed (the timer is a spy, see below).
+// The driver also logs every batch posted to a worker (the first file of each).
+const order = process.env.PWSCORE_TEST_ORDER ?? '';
+const ids = new Map();
+const held = [];
+let errored = false;
+let resultSeen = false;
+let heldError;
+let timerSeen = false;
+let flush = () => {};
+const posts = [];
+const post = Worker.prototype.postMessage;
+Worker.prototype.postMessage = function (value, ...rest) {
+  if (Array.isArray(value)) posts.push(path.basename(value[0]));
+  return post.call(this, value, ...rest);
+};
 const emit = Worker.prototype.emit;
 Worker.prototype.emit = function (event, ...args) {
-  if (event === 'online' && !held) {
-    held = true;
-    const hold = new Int32Array(new SharedArrayBuffer(4));
-    const giveUp = Date.now() + 60_000;
-    while (!fs.existsSync(process.env.PWSCORE_TEST_DEAD_MARK) && Date.now() < giveUp) Atomics.wait(hold, 0, 0, 5);
-    Atomics.wait(hold, 0, 0, 500);
+  if (!ids.has(this)) ids.set(this, ids.size);
+  if (!order || ids.get(this) !== 0) return emit.call(this, event, ...args);
+  const go = (e, a) => emit.call(this, e, ...a);
+  flush = () => {
+    while (held.length) go(...held.shift());
+  };
+  if (event === 'error' && order === 'result-first' && !resultSeen) {
+    heldError = args;
+    return true;
   }
-  return emit.call(this, event, ...args);
+  if (event === 'exit' && heldError) {
+    const e = heldError;
+    heldError = undefined;
+    go('error', e);
+  }
+  if (event === 'error') {
+    errored = true;
+    go(event, args);
+    if (order === 'error-first') flush();
+    return true;
+  }
+  if (order !== 'result-first' && !errored && event === 'message') {
+    held.push([event, args]);
+    return true;
+  }
+  if (order === 'error-first-timer' && errored && (event === 'message' || event === 'exit') && !timerSeen) {
+    held.push([event, args]);
+    return true;
+  }
+  const r = go(event, args);
+  if (event === 'message' && args[0] && args[0].facts && order === 'result-first') {
+    resultSeen = true;
+    if (heldError) {
+      const e = heldError;
+      heldError = undefined;
+      go('error', e);
+    }
+  }
+  return r;
 };
+// The timer's clock reads: with the timer order the limit "passes" once, after the dead worker's
+// error was seen, and only then the held events go on (in a later turn, so the timer's own
+// callback has finished first).
+const time = order === 'error-first-timer'
+  ? {
+      msLeft: (at) => (at === 'timer' ? 2 : Infinity),
+      passed: (at) => {
+        if (at !== 'timer' || !errored || timerSeen) return false;
+        timerSeen = true;
+        setImmediate(() => flush());
+        return true;
+      },
+    }
+  : startTimeLimit(undefined);
 const setups = [];
-const out = await analyzeIsolated(input, { maxHeapMb: DEFAULT_MAX_HEAP_MB, time: startTimeLimit(undefined), onWorkerSetup: (s) => setups.push(s) });
+const out = await analyzeIsolated(input, { maxHeapMb: DEFAULT_MAX_HEAP_MB, time, onWorkerSetup: (s) => setups.push(s) });
+const postsAfter = [...posts];
 const r = withScore === 'score' ? await scorePaths({ paths: [dir], cwd: dir }) : undefined;
 process.stdout.write(JSON.stringify({
   setups: setups.length,
+  posts: postsAfter,
   batches: out.batches.map((b) => b.facts.map((f) => f.rel)),
   skipped: out.skipped.map((s) => [path.basename(s.file), s.reason, s.detail]),
   status: r?.status ?? null,
@@ -99,6 +163,7 @@ process.stdout.write(JSON.stringify({
 
 type Out = {
   setups: number;
+  posts: string[];
   batches: string[][];
   skipped: Array<[string, string, string]>;
   status: string | null;
@@ -120,7 +185,9 @@ const two = (i: number): string => String(i).padStart(2, '0');
 // Three batches: a-00..a-19 (holds the marked file), a-20..a-39, a-40..a-44.
 const names = Array.from({ length: 2 * BATCH_SIZE + 5 }, (_, i) => `a-${two(i)}.spec.ts`);
 
-async function run(mode: 'batch' | 'after-result', withScore: boolean): Promise<Out> {
+type Order = 'error-first' | 'result-first' | 'error-first-timer';
+
+async function run(mode: 'batch' | 'after-result', order: Order, withScore: boolean): Promise<Out> {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-worker-error-'));
   tmpDirs.push(tmp);
   const dir = path.join(tmp, 'suite');
@@ -132,41 +199,58 @@ async function run(mode: 'batch' | 'after-result', withScore: boolean): Promise<
   const { stdout } = await promisify(execFile)(
     process.execPath,
     [`--import=${pathToFileURL(path.join(tmp, 'preload.mjs')).href}`, path.join(tmp, 'driver.mjs'), new URL('isolate.js', src).href, new URL('index.js', src).href, dir, withScore ? 'score' : ''],
-    { env: { ...process.env, PWSCORE_TEST_FAIL_FILE: MARK, PWSCORE_TEST_FAIL_MODE: mode, PWSCORE_TEST_DEAD_MARK: path.join(tmp, 'dead') }, maxBuffer: 16 * 1024 * 1024 }
+    {
+      env: { ...process.env, PWSCORE_TEST_FAIL_FILE: MARK, PWSCORE_TEST_FAIL_MODE: mode, PWSCORE_TEST_DEAD_MARK: path.join(tmp, 'dead'), PWSCORE_TEST_ORDER: order },
+      maxBuffer: 16 * 1024 * 1024,
+    }
   );
   return JSON.parse(stdout) as Out;
 }
 
+const batch = (i: number): string[] => names.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+const first = (i: number): string => batch(i)[0];
+
 describe('QAG-287 FIX1 R2: a worker death that is not the heap limit', () => {
   it('skips only the batch in flight as worker-died; a second worker is set up and scores every later batch', async () => {
-    const out = await run('batch', true);
-    const first = names.slice(0, BATCH_SIZE);
+    const out = await run('batch', 'error-first', true);
     const later = names.slice(BATCH_SIZE);
     // R1: the dead worker's setup report was posted before its error, and is not dropped.
     assert.equal(out.setups, 2, 'a fresh worker was not set up after the error');
-    assert.deepEqual(out.batches, [names.slice(BATCH_SIZE, 2 * BATCH_SIZE), names.slice(2 * BATCH_SIZE)]);
-    assert.deepEqual(out.skipped.map(([f, reason]) => `${f}|${reason}`), first.map((f) => `${f}|worker-died`));
+    assert.deepEqual(out.batches, [batch(1), batch(2)]);
+    assert.deepEqual(out.skipped.map(([f, reason]) => `${f}|${reason}`), batch(0).map((f) => `${f}|worker-died`));
     for (const [, , detail] of out.skipped) assert.match(detail, /^worker error( \([A-Za-z]+\))?$/);
+    // The batch that killed its worker as that worker's first is never sent again.
+    assert.deepEqual(out.posts, [first(0), first(1), first(2)]);
     // scorePaths, through the same worker: partial with the later batches scored.
     assert.equal(out.status, 'partial');
     assert.equal(out.reason, null);
     assert.equal(out.filesScored, later.length);
     assert.equal(out.testsCounted, later.length);
-    assert.deepEqual(out.coverageSkipped!.map(([f, reason]) => `${f}|${reason}`), first.map((f) => `${f}|worker-died`));
+    assert.deepEqual(out.coverageSkipped!.map(([f, reason]) => `${f}|${reason}`), batch(0).map((f) => `${f}|worker-died`));
   });
 
-  it('QAG-287 FIX1 R1: keeps a batch whose result the worker posted before it died, and a fresh worker scores the rest', async () => {
-    const out = await run('after-result', false);
+  it('error read before the result: the result is kept, no batch is sent to the dying worker, nothing is skipped', async () => {
+    const out = await run('after-result', 'error-first', false);
     assert.equal(out.setups, 2, 'a fresh worker was not set up after the error');
-    // The result posted before the error is kept, not skipped as worker-died.
-    assert.deepEqual(out.batches[0], names.slice(0, BATCH_SIZE));
-    assert.deepEqual(out.batches.at(-1), names.slice(2 * BATCH_SIZE));
-    assert.ok(!out.skipped.some(([f]) => names.slice(0, BATCH_SIZE).includes(f)), 'a batch scored before the death was skipped');
-    // The error is read first (the driver's hold), so no batch is sent to the dying worker; at
-    // most that batch would be skipped if the hold ever missed the error.
-    const second = names.slice(BATCH_SIZE, 2 * BATCH_SIZE);
-    const lost = out.skipped.map(([f, reason]) => `${f}|${reason}`);
-    assert.ok(lost.length === 0 || lost.join() === second.map((f) => `${f}|worker-died`).join(), `unexpected skips: ${lost.join()}`);
-    assert.deepEqual([...out.batches.flat(), ...out.skipped.map(([f]) => f)].sort(), names);
+    assert.deepEqual(out.batches, [batch(0), batch(1), batch(2)]);
+    assert.deepEqual(out.skipped, []);
+    // Each batch posted exactly once: the `!death` guard kept batch 1 from the dying worker.
+    assert.deepEqual(out.posts, [first(0), first(1), first(2)]);
+  });
+
+  it('QAG-287 3.0.1: result read before the error: the batch sent meanwhile is handed to the fresh worker, nothing is skipped', async () => {
+    const out = await run('after-result', 'result-first', false);
+    assert.equal(out.setups, 2, 'a fresh worker was not set up after the error');
+    assert.deepEqual(out.batches, [batch(0), batch(1), batch(2)]);
+    assert.deepEqual(out.skipped, []);
+    // Batch 1 went to the dying worker and again, once, to the fresh one as its first batch.
+    assert.deepEqual(out.posts, [first(0), first(1), first(1), first(2)]);
+  });
+
+  it('QAG-287 3.0.1: the time limit passing between the death and its exit keeps the posted result and stops nothing', async () => {
+    const out = await run('after-result', 'error-first-timer', false);
+    assert.deepEqual(out.batches, [batch(0), batch(1), batch(2)]);
+    assert.deepEqual(out.skipped, []);
+    assert.equal(out.setups, 2);
   });
 });
