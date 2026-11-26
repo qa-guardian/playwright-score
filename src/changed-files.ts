@@ -12,6 +12,8 @@ import path from 'node:path';
 import type { ScopeInfo } from './types.js';
 
 export interface GitChanges {
+  /** Real absolute path of the repository top. */
+  top: string;
   /** Real absolute paths of every changed file that still exists (added, modified, untracked). */
   changed: string[];
   /** Real-path-style absolute paths of files deleted (a rename counts as delete + add). */
@@ -76,15 +78,34 @@ export function gitChanges(ref: string, paths: readonly string[], cwd: string): 
     if (fs.existsSync(abs)) changed.add(abs);
     else deleted.add(abs);
   }
-  return { changed: [...changed].sort(), deleted: [...deleted].sort() };
+  return { top: realTop, changed: [...changed].sort(), deleted: [...deleted].sort() };
 }
 
 function safeReal(p: string): string {
   try {
-    return fs.realpathSync(p);
+    return fs.realpathSync.native(p);
   } catch {
     return p;
   }
+}
+
+/** Playwright config files in `from` and every directory above it up to `top`. */
+export function findPlaywrightConfigs(from: string, top: string): string[] {
+  const found: string[] = [];
+  let dir = safeReal(from);
+  const stop = safeReal(top);
+  for (;;) {
+    try {
+      for (const name of fs.readdirSync(dir)) {
+        if (/^playwright[^/]*\.config\.[cm]?[jt]s$/.test(name)) found.push(path.join(dir, name));
+      }
+    } catch {
+      /* unreadable directory */
+    }
+    if (dir === stop || dir === path.dirname(dir) || !dir.startsWith(stop)) break;
+    dir = path.dirname(dir);
+  }
+  return found;
 }
 
 const LOCKFILES = new Set(['package-lock.json', 'npm-shrinkwrap.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lock', 'bun.lockb']);
@@ -94,6 +115,7 @@ export function fullRunReason(file: string): string | undefined {
   const base = path.basename(file);
   if (/^playwright[^/]*\.config\.[cm]?[jt]s$/.test(base)) return `the Playwright config changed (${base})`;
   if (/^[jt]sconfig([.-][^/]*)?\.json$/.test(base)) return `a TypeScript config changed (${base}), which can change how imports resolve`;
+  if (base === 'package.json' || base === 'pnpm-workspace.yaml') return `${base} changed, which can change workspace names, aliases and dependencies`;
   if (LOCKFILES.has(base)) return `a lockfile changed (${base})`;
   return undefined;
 }
@@ -106,7 +128,13 @@ export interface ScopeInput {
   edges: ReadonlyMap<string, string[]>;
   /** file -> its import specifiers as written (relative ones are matched against deleted files). */
   specifiers: ReadonlyMap<string, string[]>;
+  /** False when the graph could not be built in full (a file did not parse, a ceiling was hit). Default true. */
+  graphComplete?: boolean;
+  /** Playwright config files that apply to the scored paths; a change in what they import puts every spec in scope. */
+  configRoots?: readonly string[];
 }
+
+const SOURCE_RE = /\.(?:[cm]?[jt]sx?|json)$/;
 
 export interface ScopeOutcome {
   /** Specs in scope (a subset of `input.specs`, same path spelling). */
@@ -124,6 +152,13 @@ export function computeScope(input: ScopeInput): ScopeOutcome {
     if (reason) return { specs: all, fallback: reason };
   }
   const real = new Map<string, string>();
+  if (input.graphComplete === false) {
+    const specSet = new Set(all);
+    const unprovable = [...input.git.changed, ...input.git.deleted].find((f) => SOURCE_RE.test(f) && !specSet.has(f));
+    if (unprovable !== undefined) {
+      return { specs: all, fallback: `the import graph could not be built in full, so a change to ${path.basename(unprovable)} cannot be ruled out as reaching a spec` };
+    }
+  }
   const realOf = (f: string): string => {
     let r = real.get(f);
     if (r === undefined) {
@@ -133,6 +168,19 @@ export function computeScope(input: ScopeInput): ScopeOutcome {
     return r;
   };
   const changed = new Set(input.git.changed);
+  // A change in anything the Playwright config imports can change which specs are found and how they run.
+  if (input.configRoots?.length) {
+    const seenCfg = new Set<string>();
+    const stack = input.configRoots.map(realOf);
+    while (stack.length > 0) {
+      const cur = stack.pop()!;
+      if (seenCfg.has(cur)) continue;
+      seenCfg.add(cur);
+      for (const [from, tos] of input.edges) if (realOf(from) === cur) for (const to of tos) stack.push(realOf(to));
+    }
+    const hit = [...input.git.changed, ...input.git.deleted].find((f) => seenCfg.has(realOf(f)));
+    if (hit !== undefined) return { specs: all, fallback: `a file the Playwright config imports changed (${path.basename(hit)})` };
+  }
   const noExt = (p: string): string => p.replace(/\.[cm]?[jt]sx?$/, '');
   const deletedBases = new Set(input.git.deleted.flatMap((d) => [d, noExt(d)]));
 

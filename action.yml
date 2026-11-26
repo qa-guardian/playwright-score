@@ -49,14 +49,17 @@ inputs:
 
 outputs:
   score:
-    description: 'Overall score, 0-100'
+    description: 'Overall score, 0-100 (empty when changed-only found no spec to score)'
     value: ${{ steps.score.outputs.score }}
   grade:
-    description: 'Letter grade, A-F'
+    description: 'Letter grade, A-F (empty when changed-only found no spec to score)'
     value: ${{ steps.score.outputs.grade }}
   pass:
     description: '"true" or "false": true when every file was scored (or the result is partial and allow-partial is true), no finding that lets a test pass whatever the app does was found, and the score meets the threshold when one is given'
     value: ${{ steps.score.outputs.pass }}
+  scoped:
+    description: '"true" or "false": true when the result covers only the spec files changed since the PR base (changed-only), so the score is that of those files and not of the whole suite. "false" for a full run, including a changed-only run that fell back to every spec (a changed config, tsconfig or lockfile).'
+    value: ${{ steps.score.outputs.scoped }}
 
 runs:
   using: 'composite'
@@ -93,14 +96,17 @@ runs:
         fi
 
         if [ "$PWS_CHANGED_ONLY" = "true" ]; then
-          if [ "$PWS_EVENT_NAME" = "pull_request" ] || [ "$PWS_EVENT_NAME" = "pull_request_target" ]; then
-            if [ -z "$PWS_BASE_SHA" ] || ! git cat-file -e "${PWS_BASE_SHA}^{commit}" 2>/dev/null; then
+          if [ "$PWS_EVENT_NAME" = "pull_request" ]; then
+            # The check runs in the repository of the first path (the workspace root may not be a repository).
+            PWS_FIRST_PATH="${PWS_PATHS%% *}"
+            if [ -d "$PWS_FIRST_PATH" ]; then PWS_GIT_DIR="$PWS_FIRST_PATH"; else PWS_GIT_DIR="$(dirname "$PWS_FIRST_PATH")"; fi
+            if [ -z "$PWS_BASE_SHA" ] || ! git -C "$PWS_GIT_DIR" cat-file -e "${PWS_BASE_SHA}^{commit}" 2>/dev/null; then
               echo "::error::changed-only needs the pull request base commit (${PWS_BASE_SHA:-unknown}) in the checkout, and this clone does not have it (a shallow clone is the usual cause). Use actions/checkout with fetch-depth: 0, or set changed-only: false to score every spec."
               exit 2
             fi
             GATE_ARGS+=(--changed-since "$PWS_BASE_SHA")
           else
-            echo "::notice::changed-only applies to pull_request events only; scoring every spec on $PWS_EVENT_NAME."
+            echo "::notice::changed-only applies to pull_request events only; scoring every spec on $PWS_EVENT_NAME. (pull_request_target checks out the base branch by default, so a diff against the PR base would always be empty and every PR would pass.)"
           fi
         fi
 
@@ -123,9 +129,15 @@ runs:
         SCORE=$(jq -r '.score' "$RUNNER_TEMP/pw-score.json")
         GRADE=$(jq -r '.grade' "$RUNNER_TEMP/pw-score.json")
         PASS=$(jq -r '.pass' "$RUNNER_TEMP/pw-score.json")
+        if [ "$(jq -r '.scope.empty // false' "$RUNNER_TEMP/pw-score.json")" = "true" ]; then
+          # Nothing was scored: no score or grade, so a step that reads them does not see a failing F.
+          SCORE=""
+          GRADE=""
+        fi
         echo "score=$SCORE" >> "$GITHUB_OUTPUT"
         echo "grade=$GRADE" >> "$GITHUB_OUTPUT"
         echo "pass=$PASS" >> "$GITHUB_OUTPUT"
+        echo "scoped=$(jq -r '.scope.scoped // false' "$RUNNER_TEMP/pw-score.json")" >> "$GITHUB_OUTPUT"
         if [ "$(jq -r '.scope.empty // false' "$RUNNER_TEMP/pw-score.json")" = "true" ]; then
           echo "Playwright Spec Score: nothing to score (no spec file changed or affected) — pass=$PASS"
         else

@@ -13,11 +13,16 @@ const MAX_DEPTH = 6;
 const MAX_FILES = 300;
 
 function extractImportSpecifiers(source: string, file: string): string[] {
+  return parseImportSpecifiers(source, file) ?? [];
+}
+
+/** The import/re-export specifiers of a file, or undefined when it does not parse. */
+function parseImportSpecifiers(source: string, file: string): string[] | undefined {
   let ast: { body?: Array<Record<string, unknown>> } | undefined;
   try {
     ast = parseAst(source, file) as unknown as { body?: Array<Record<string, unknown>> };
   } catch {
-    return [];
+    return undefined;
   }
   const specifiers: string[] = [];
   for (const node of ast.body ?? []) {
@@ -138,4 +143,56 @@ export function collectLocallyImportedFiles(
     }
   }
   return collected;
+}
+
+/** A hard ceiling on the scoping traversal, so a runaway graph ends in "incomplete" and not in an endless walk. */
+const SCOPE_MAX_FILES = 50_000;
+
+/**
+ * The import graph for `--changed-since`. Unlike the scoring traversal it has no depth limit and no
+ * 300-file cap, and it is bounded by `boundaryDir` (the repository top), because here a missed edge
+ * drops a spec out of scope and can turn a real change into "nothing to score". `complete` is false
+ * when a file did not parse, could not be read, or the traversal hit its ceiling: the caller then
+ * cannot prove that a changed file is unreachable.
+ */
+export function collectScopeGraph(
+  roots: Iterable<readonly [string, string]>,
+  boundaryDir: string,
+  moduleResolver: ImportResolver,
+  edges: Map<string, string[]>,
+  specifiers: Map<string, string[]>
+): { complete: boolean } {
+  let complete = true;
+  const visited = new Set<string>();
+  const queue: Array<{ file: string; source: string }> = [];
+  for (const [file, source] of roots) {
+    visited.add(file);
+    queue.push({ file, source });
+  }
+  while (queue.length > 0) {
+    if (visited.size > SCOPE_MAX_FILES) return { complete: false };
+    const { file, source } = queue.shift()!;
+    const specs = parseImportSpecifiers(source, file);
+    if (specs === undefined) {
+      complete = false;
+      specifiers.set(file, []);
+      continue;
+    }
+    specifiers.set(file, specs);
+    for (const specifier of specs) {
+      const resolved = resolveImportSpecifier(file, specifier, boundaryDir, moduleResolver);
+      if (!resolved) continue;
+      const list = edges.get(file);
+      if (list) list.push(resolved);
+      else edges.set(file, [resolved]);
+      if (visited.has(resolved)) continue;
+      visited.add(resolved);
+      try {
+        queue.push({ file: resolved, source: fs.readFileSync(resolved, 'utf8') });
+      } catch {
+        complete = false;
+      }
+    }
+  }
+  return { complete };
 }

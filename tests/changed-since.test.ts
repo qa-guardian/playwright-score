@@ -23,7 +23,9 @@ const cli = path.join(packageRoot(), 'dist', 'cli.js');
 const R = '/r';
 const input = (over: Partial<ScopeInput> & { changed?: string[]; deleted?: string[] }): ScopeInput => ({
   specs: [`${R}/tests/a.spec.ts`, `${R}/tests/b.spec.ts`, `${R}/tests/c.spec.ts`],
-  git: { changed: over.changed ?? [], deleted: over.deleted ?? [] },
+  git: { top: R, changed: over.changed ?? [], deleted: over.deleted ?? [] },
+  ...(over.graphComplete === undefined ? {} : { graphComplete: over.graphComplete }),
+  ...(over.configRoots === undefined ? {} : { configRoots: over.configRoots }),
   edges: new Map([
     [`${R}/tests/a.spec.ts`, [`${R}/pages/page.ts`]],
     [`${R}/tests/b.spec.ts`, [`${R}/fixtures/base.ts`]],
@@ -49,6 +51,20 @@ describe('computeScope', () => {
     const r = computeScope(input({ changed: [`${R}/docs/readme.md`, `${R}/src/app.ts`] }));
     assert.deepEqual(r.specs, []);
   });
+  it('an incomplete graph cannot prove a changed source file unreachable: full run with the reason; a non-source change stays out', () => {
+    const r = computeScope(input({ changed: [`${R}/src/app.ts`], graphComplete: false }));
+    assert.equal(r.specs.length, 3);
+    assert.match(r.fallback ?? '', /import graph could not be built in full/);
+    assert.deepEqual(computeScope(input({ changed: [`${R}/docs/readme.md`], graphComplete: false })).specs, []);
+    assert.deepEqual(computeScope(input({ changed: [`${R}/src/app.ts`], graphComplete: true })).specs, []);
+  });
+  it('a change in a file the Playwright config imports is a full run; package.json and pnpm-workspace.yaml too', () => {
+    const edges = new Map([[`${R}/playwright.config.ts`, [`${R}/e2e/projects.ts`]]]);
+    const r = computeScope({ ...input({ changed: [`${R}/e2e/projects.ts`] }), edges, configRoots: [`${R}/playwright.config.ts`] });
+    assert.equal(r.specs.length, 3);
+    assert.match(r.fallback ?? '', /the Playwright config imports/);
+    for (const f of ['package.json', 'pnpm-workspace.yaml']) assert.match(computeScope(input({ changed: [`${R}/${f}`] })).fallback ?? '', /changed/, f);
+  });
   it('a deleted spec is not scored; a deleted helper puts its importers in scope', () => {
     const gone = computeScope(input({ deleted: [`${R}/tests/old.spec.ts`] }));
     assert.deepEqual(gone.specs, []);
@@ -69,7 +85,8 @@ describe('computeScope', () => {
       assert.match(r.fallback ?? '', /changed/, f);
     }
     assert.equal(computeScope(input({ deleted: [`${R}/playwright.config.ts`] })).specs.length, 3);
-    assert.equal(fullRunReason('/r/package.json'), undefined);
+    assert.match(fullRunReason('/r/package.json') ?? '', /package\.json changed/);
+    assert.equal(fullRunReason('/r/tests/helper.ts'), undefined);
     assert.equal(fullRunReason('/r/tests/a.spec.ts'), undefined);
   });
   it('scopeLine states SCOPED, the counts and the ref', () => {
@@ -83,7 +100,7 @@ describe('computeScope', () => {
 const GOOD = (title: string, extra = ''): string =>
   `import { test, expect } from '@playwright/test';\n${extra}test('${title}', async ({ page }) => {\n  await page.goto('/');\n  await expect(page.getByRole('heading')).toBeVisible();\n});\n`;
 const BAD = (title: string): string =>
-  `import { test, expect } from '@playwright/test';\ntest('${title}', async ({ page }) => {\n  await page.goto('/');\n  await expect(page.locator('x')).toBeTruthy();\n});\n`;
+  `import { test, expect } from '@playwright/test';\ntest('${title}', async ({ page }) => {\n  await page.goto('/');\n  const rows = await page.getByRole('row').count();\n  expect(rows).toBeGreaterThanOrEqual(0);\n});\n`;
 
 const GIT_ENV = {
   ...process.env,
@@ -188,7 +205,10 @@ describe('--changed-since in a git repo (CLI spawned)', () => {
     assert.match(text.out, /SCOPED to changes since base: 1 of 4 spec files scored/);
     const md = run(repo, ['--changed-since', 'base', '--format', 'markdown'], false);
     assert.match(md.out, /SCOPED to changes since base: 1 of 4 spec files scored/);
+    const html = run(repo, ['--changed-since', 'base', '--format', 'report'], false);
+    assert.match(html.out, /<p class="check">SCOPED to changes since base: 1 of 4 spec files scored/);
     assert.doesNotMatch(run(repo, [], false).out, /SCOPED/);
+    assert.doesNotMatch(run(repo, ['--format', 'report'], false).out, /SCOPED|Full run, not scoped/);
   });
 
   it('an uncommitted shared-file edit fans out to the specs that import it', () => {
@@ -328,5 +348,57 @@ describe('--changed-since in a git repo (CLI spawned)', () => {
     const pick = (j: typeof scoped): string[] => j.findings.filter((f) => f.file.endsWith('d.spec.ts')).map((f) => `${f.file}|${f.rule}`).sort();
     assert.ok(pick(scoped).length > 0);
     assert.deepEqual(pick(scoped), pick(full));
+  });
+});
+
+describe('--changed-since: files the scoring graph cannot see (CLI spawned)', () => {
+  let repo: string;
+  before(() => {
+    repo = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-changed-graph-'));
+    git(repo, 'init', '-q', '-b', 'main');
+    write(repo, 'src/test-utils/login.ts', `export const login = 1;\n`);
+    write(repo, 'e2e/a.spec.ts', GOOD('a', `import { login } from '../src/test-utils/login.js';\n`));
+    write(repo, 'e2e/b.spec.ts', GOOD('b'));
+    write(repo, 'e2e/projects.ts', `export const projects = ['./a'];\n`);
+    write(repo, 'playwright.config.ts', `import { projects } from './e2e/projects.js';\nexport default { testDir: './e2e', projects };\n`);
+    write(repo, 'src/app.ts', `export const app = 1;\n`);
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-q', '-m', 'base');
+    git(repo, 'branch', 'base');
+    git(repo, 'checkout', '-q', '-b', 'feature');
+  });
+  after(() => fs.rmSync(repo, { recursive: true, force: true }));
+  const e2e = (): string => path.join(repo, 'e2e');
+
+  it('a helper outside the scored directory that a spec imports puts that spec in scope', () => {
+    write(repo, 'src/test-utils/login.ts', `export const login = 2;\n`);
+    const r = run(e2e(), ['--changed-since', 'base']);
+    assert.equal(r.json?.scope?.empty, false);
+    assert.deepEqual(r.json?.scope?.files, ['a.spec.ts']);
+    git(repo, 'checkout', '-q', '--', 'src');
+  });
+  it('a changed source file no spec reaches is "nothing to score" when the graph is complete', () => {
+    write(repo, 'src/app.ts', `export const app = 2;\n`);
+    const r = run(e2e(), ['--changed-since', 'base']);
+    assert.equal(r.json?.scope?.empty, true);
+    git(repo, 'checkout', '-q', '--', 'src');
+  });
+  it('a file the Playwright config imports changed: full run, with the reason', () => {
+    write(repo, 'e2e/projects.ts', `export const projects = ['./a', './b'];\n`);
+    const r = run(e2e(), ['--changed-since', 'base']);
+    assert.equal(r.json?.scope?.scoped, false);
+    assert.match(String(r.json?.scope?.fallback), /Playwright config imports/);
+    git(repo, 'checkout', '-q', '--', 'e2e');
+  });
+  it('a helper that does not parse makes the graph incomplete: an unrelated source change is a full run', () => {
+    write(repo, 'e2e/broken.ts', `export const = ;\n`);
+    write(repo, 'e2e/b.spec.ts', GOOD('b', `import './broken.js';\n`));
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-q', '-m', 'broken helper');
+    git(repo, 'branch', '-f', 'base2');
+    write(repo, 'src/app.ts', `export const app = 3;\n`);
+    const r = run(e2e(), ['--changed-since', 'base2']);
+    assert.equal(r.json?.scope?.scoped, false);
+    assert.match(String(r.json?.scope?.fallback), /import graph could not be built in full/);
   });
 });

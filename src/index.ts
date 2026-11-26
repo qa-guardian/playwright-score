@@ -9,7 +9,7 @@ import {
   SkipLog,
   withCoverage,
 } from './coverage.js';
-import { collectLocallyImportedFiles, createModuleResolver } from './import-graph.js';
+import { collectLocallyImportedFiles, collectScopeGraph, createModuleResolver } from './import-graph.js';
 import { clearParseCache } from './parse-cache.js';
 import { createSharedCollector, sharedCoverage, type SharedFiles } from './shared-files.js';
 import { analysisFiles, finishSharedFindings, planSharedLint, sharedContext, type SharedLintPlan } from './shared-lint.js';
@@ -57,7 +57,7 @@ import {
   type AnalysisInput,
 } from './isolate.js';
 import { assertLimits } from './limits.js';
-import { computeScope, gitChanges, scopeInfo } from './changed-files.js';
+import { computeScope, findPlaywrightConfigs, gitChanges, scopeInfo } from './changed-files.js';
 import type { Coverage, Finding, ProfileName, ScopeInfo, ScoreOptions, ScoreResult } from './types.js';
 
 export type {
@@ -744,8 +744,18 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
     const edges = new Map<string, string[]>();
     const specifiers = new Map<string, string[]>();
     const specSources = new Map(allFound.filter((f) => !skips.has(f)).map((f) => [f, readSources.get(f) ?? ''] as const));
-    collectLocallyImportedFiles(specSources, importBoundary, createModuleResolver(importBoundary), edges, specifiers);
-    const outcome = computeScope({ specs: allFound, git: gitChange, edges, specifiers });
+    // Own traversal: bounded by the repository top, no depth or file cap (a missed edge here fails open).
+    const roots: Array<[string, string]> = [...specSources];
+    const configRoots = findPlaywrightConfigs(importBoundary, gitChange.top);
+    for (const c of configRoots) {
+      try {
+        roots.push([c, fs.readFileSync(c, 'utf8')]);
+      } catch {
+        /* unreadable config: its edges are simply absent */
+      }
+    }
+    const { complete } = collectScopeGraph(roots, gitChange.top, createModuleResolver(gitChange.top), edges, specifiers);
+    const outcome = computeScope({ specs: allFound, git: gitChange, edges, specifiers, graphComplete: complete, configRoots });
     scope = out.scope = scopeInfo(options.changedSince, allFound.length, outcome, gitChange.changed.length + gitChange.deleted.length, filesBase);
     const inScope = new Set(outcome.specs);
     found = allFound.filter((f) => inScope.has(f));

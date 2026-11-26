@@ -39,6 +39,12 @@ describe('action.yml (3.x)', () => {
     assert.ok(FLAGS.some((f) => f.names.includes('--changed-since')));
   });
 
+  it('has a scoped output ("true"/"false") read from the JSON scope', () => {
+    const out = /^outputs:\n((?:  .*\n)+)/m.exec(yml)![1]!;
+    assert.match(out, /^  scoped:\n    description: .*\n    value: \$\{\{ steps\.score\.outputs\.scoped \}\}/m);
+    assert.match(yml, /echo "scoped=\$\(jq -r '\.scope\.scoped \/\/ false' /);
+  });
+
   it('runs major version 3 by default', () => assert.equal(defaultOf('version'), "'3'"));
 
   it('an empty threshold means no score bar, and the description says so', () => {

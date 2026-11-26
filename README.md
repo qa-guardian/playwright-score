@@ -199,10 +199,10 @@ npx pwscore . --changed-since origin/main
 
 Run it from inside the repository. In scope are the spec files changed between the merge base of the ref and `HEAD` (the three-dot range), plus uncommitted and untracked files, plus every spec that imports a changed or deleted file (a page object, fixture or helper) directly or through other files. A rename counts as the new file only. Changes outside the scored paths are ignored.
 
-- **The result is labelled SCOPED.** Text and markdown say `SCOPED to changes since <ref>: n of N spec files scored`; JSON gets an extra `scope` object (`ref`, `scoped`, `specFiles`, `specFilesTotal`, `changedFiles`, `empty`, `files`, and `fallback` when set). Every other JSON field is unchanged, and a run without the flag has no `scope`. The score is the score of those files, not of the suite: do not compare it with a full run.
+- **The result is labelled SCOPED.** Text, markdown and the HTML report (`--format report`) say `SCOPED to changes since <ref>: n of N spec files scored`; JSON gets an extra `scope` object (`ref`, `scoped`, `specFiles`, `specFilesTotal`, `changedFiles`, `empty`, `files`, and `fallback` when set). Every other JSON field is unchanged, and a run without the flag has no `scope`. The score is the score of those files, not of the suite: do not compare it with a full run.
 - **Gate and exit codes** are the usual ones, applied to the files in scope only: a certain finding in a spec you did not touch cannot fail the check. When no spec file is in scope the result is "nothing to score" and the exit code is `0` (`scope.empty` is `true`; no score bar applies). When the scoped specs count no test, the result is not scored and the exit code is `1`, as in a full run.
-- **Fallback to a full run:** if the Playwright config (`playwright*.config.*`), a `tsconfig`/`jsconfig` file or a lockfile (`package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock`, `pnpm-lock.yaml`, `bun.lock`, `bun.lockb`) changed anywhere in the diff, every spec is scored and the output says `Full run, not scoped` (`scope.scoped` is `false`, `scope.fallback` says why).
-- **Errors (exit 2):** the paths are not inside a git repository, the ref does not exist, or the clone is shallow and does not hold the ref. Fetch the history (`git fetch --unshallow`, or `fetch-depth: 0` in `actions/checkout`).
+- **Fallback to a full run:** if the Playwright config (`playwright*.config.*`), a `tsconfig`/`jsconfig` file or a lockfile (`package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock`, `pnpm-lock.yaml`, `bun.lock`, `bun.lockb`) or a `package.json` / `pnpm-workspace.yaml`, or a file the Playwright config imports, changed anywhere in the diff, every spec is scored and the output says `Full run, not scoped` (`scope.scoped` is `false`, `scope.fallback` says why).
+- **Errors (exit 2):** the paths are not inside a git repository, the ref does not exist, or the clone is shallow and does not hold the ref. Fetch the full history (`fetch-depth: 0` in `actions/checkout`, or unshallow the clone with git).
 
 In the GitHub Action, `changed-only: true` does this on `pull_request` events with the PR base commit as the ref:
 
@@ -216,7 +216,7 @@ In the GitHub Action, `changed-only: true` does this on `pull_request` events wi
     changed-only: true
 ```
 
-The job summary and the PR comment carry the SCOPED line. On other events the input is ignored and every spec is scored. If the base commit is missing from the clone the step fails with a message that says to use `fetch-depth: 0`.
+The job summary and the PR comment carry the SCOPED line, and the Action output `scoped` is `"true"` when the result covers only the changed files and `"false"` for a full run (also when a changed config, tsconfig or lockfile made it fall back to every spec). The scope follows imports through the whole repository (no depth or file cap, and not limited to the scored directory); if a file does not parse the import graph is incomplete and any changed source file forces a full run. On other events (including `pull_request_target`, which checks out the base branch, so a diff against the PR base would always be empty) the input is ignored and every spec is scored. If the base commit is missing from the clone the step fails with a message that says to use `fetch-depth: 0`.
 
 ## Library
 

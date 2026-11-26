@@ -18,14 +18,19 @@ case, and says so explicitly.
   spec files changed since the merge base with the ref (plus uncommitted and
   untracked files) and the specs that import a changed or deleted shared
   file, so a pull request check on a large suite takes seconds. The result
-  is labelled SCOPED in text and markdown, and JSON gets an optional `scope`
+  is labelled SCOPED in text, markdown and the HTML report, and JSON gets an optional `scope`
   object (every existing field is unchanged; a run without the flag is
   byte-identical to before). The gate looks at the files in scope only; no
   spec in scope is "nothing to score" and exits 0. A changed Playwright
-  config, tsconfig or lockfile scores every spec ("Full run, not scoped").
+  config, tsconfig, lockfile, package.json, pnpm-workspace.yaml or a file the
+  config imports scores every spec; the import graph used for scoping has no
+  depth or file cap and spans the repository, and an incomplete graph (a file
+  that does not parse) also falls back to a full run. The Action ignores
+  `pull_request_target`; `score`/`grade` outputs are empty when nothing was scored ("Full run, not scoped").
   Not a git repository, an unknown ref or a shallow clone missing the ref
   exit 2. The Action gets `changed-only` (pull requests only, the PR base
-  commit as the ref; needs `fetch-depth: 0`).
+  commit as the ref; needs `fetch-depth: 0`) and an output `scoped`
+  (`"true"` when the result covers only the changed files, else `"false"`).
 
 ## 3.0.0 — unreleased
 
