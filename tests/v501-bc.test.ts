@@ -47,12 +47,42 @@ describe('3.0.1 B: a promise handed on is not a dropped await', () => {
   });
 });
 
+describe('3.0.1 B1: handed-on exemption is narrow', () => {
+  const specMissing = async (body: string) =>
+    missing(await run({ 'a.spec.ts': `import { test, expect } from '@playwright/test';\ntest('t', async ({ page }) => {\n${body}\n});\n` }), 'a.spec.ts').length;
+  it('never applies in a spec file', async () => {
+    assert.equal(await specMissing(`  const r = page.waitForResponse('**/a');\n  expect(r).toBeTruthy();`), 1);
+    assert.equal(await specMissing(`  const nav = page.waitForResponse('**/a');\n  const all = [nav];`), 1);
+    assert.equal(await specMissing(`  const ctx: any = {};\n  ctx.saved = page.waitForRequest('**/a');`), 1);
+  });
+  it('keeps the finding in a shared file for expect, shadows, push and unreturned literals', async () => {
+    const bodies = [
+      `  async go() { const r = this.page.waitForResponse('**/a'); expect(r).toBeTruthy(); }`,
+      `  async go() { const response = this.page.waitForResponse('**/a'); this.page.on('response', (response) => { console.log(response); }); }`,
+      `  async go() { const nav = this.page.waitForResponse('**/a'); const all = [nav]; void all; }`,
+      `  async go() { const ctx: any = {}; ctx.saved = this.page.waitForRequest('**/a'); }`,
+      `  async go() { const pending: unknown[] = []; const p = this.page.waitForRequest('**/a'); pending.push(p); }`,
+      `  async go() { const p = this.page.waitForRequest('**/a'); console.log({ p }); }`,
+    ];
+    for (const b of bodies) {
+      const text = `import { expect, type Page } from '@playwright/test';\nexport class Po {\n  constructor(readonly page: Page) {}\n${b}\n}\n`;
+      assert.equal(missing(await run({ 'a.spec.ts': SPEC, 'po.ts': text })).length, 1, b);
+    }
+  });
+});
+
 describe('3.0.1 B: empty fallback', () => {
   const spec = (expr: string) => `import { test, expect } from '@playwright/test';\ntest('t', async ({ page }) => {\n  const doc = { text: 'x' } as { text?: string } | undefined;\n  await expect(page.locator('p')).toContainText(${expr});\n});\n`;
   const empty = async (expr: string) => (await run({ 'a.spec.ts': spec(expr) })).findings.filter((f) => f.rule === 'pwscore/assertion-passes-anyway' && f.form === 'empty-fallback').length;
   it('reports a plain read, not an optional chain', async () => {
     assert.equal(await empty(`doc!.text ?? ''`), 1);
-    assert.equal(await empty(`doc?.text ?? ''`), 0);
+    assert.equal(await empty(`doc?.text ?? ''`), 1);
+  });
+  it('exempts an optional chain on an awaited const only', async () => {
+    const run2 = async (decl: string) =>
+      (await run({ 'a.spec.ts': `import { test, expect } from '@playwright/test';\ntest('t', async ({ page }) => {\n  ${decl}\n  await expect(page.locator('p')).toContainText(item?.name ?? '');\n});\n` })).findings.filter((f) => f.rule === 'pwscore/assertion-passes-anyway' && f.form === 'empty-fallback').length;
+    assert.equal(await run2(`const item = await page.evaluate(() => ({ name: 'x' }));`), 0);
+    assert.equal(await run2(`const item = [{ name: 'x' }].find((u) => u.name === 'x');`), 1);
   });
 });
 
@@ -84,6 +114,8 @@ describe('3.0.1 C: a swallowed negated probe repeated after the page changed', (
   });
   it('keeps the exemption when nothing changed the page in between', async () => {
     assert.equal(await swallowed(`${PROBE}\n${REPEAT}`), 0);
+    assert.equal(await swallowed(`${PROBE}\n  await bar.count();\n  await page.screenshot();\n${REPEAT}`), 0);
+    assert.equal(await swallowed(`${PROBE}\n  await test.step('verify', async () => {\n  ${REPEAT}\n  });`), 0);
     assert.equal(await swallowed(`${PROBE}\n  await page.waitForLoadState();\n  await expect(page).toHaveTitle('x');\n${REPEAT}`), 0);
   });
 });

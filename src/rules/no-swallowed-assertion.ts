@@ -112,14 +112,16 @@ function isHardAssertionNode(n: N, stop: N | undefined): boolean {
  * awaited call that is not itself an assertion, a `waitFor*` or a log line (`await page.evaluate(...)`, `await el.click()`).
  * The repeat then checks a later state, not the one the probe was dropped for, so it does not re-check the probe.
  */
+const READ_ONLY = new Set(['count', 'textContent', 'innerText', 'innerHTML', 'isVisible', 'isHidden', 'isEnabled', 'isDisabled', 'isChecked', 'isEditable', 'getAttribute', 'inputValue', 'title', 'url', 'screenshot', 'allTextContents', 'allInnerTexts', 'boundingBox']);
 function stateChangedBetween(later: N[], from: number, to: number): boolean {
   return later.some((n) => {
     const at = n.range?.[0] ?? -1;
     if (n.type !== 'AwaitExpression' || at < from || at >= to) return false;
+    if ((n.range?.[1] ?? -1) > to) return false; // a wrapper (`await test.step(...)`, `await Promise.all([...])`) that holds the repeat
     const call = unwrapCall(n.argument);
     if (!call) return false;
     const name = memberName(call.callee);
-    return !(parseMatcherCall(call) || isWaitForCall(call) || (name !== undefined && name.startsWith('waitFor')) || isLoggerCall(call.callee));
+    return !(name !== undefined && READ_ONLY.has(name) || parseMatcherCall(call) || isWaitForCall(call) || (name !== undefined && name.startsWith('waitFor')) || isLoggerCall(call.callee));
   });
 }
 

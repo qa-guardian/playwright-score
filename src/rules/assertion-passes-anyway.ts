@@ -114,12 +114,19 @@ function isStringSubject(context: Ctx, node: N | undefined, depth = 0): boolean 
 }
 
 /** `X || ''` or `X ?? ''`, where X is not itself a literal. */
-function isEmptyFallback(node: N | undefined): boolean {
+function isEmptyFallback(context: Ctx, node: N | undefined): boolean {
   const n = bare(node);
   if (n?.type !== 'LogicalExpression' || (n.operator !== '||' && n.operator !== '??')) return false;
   // `x?.text ?? ''` is how a strict-TypeScript read of an element the test just created or fetched is written: the `?.`
-  // satisfies the compiler, it does not say the value can be missing. Labelled FALSE 3 of 3; a plain `a.b ?? ''` keeps the finding.
-  if (n.left?.type === 'ChainExpression') return false;
+  // satisfies the compiler, it does not say the value can be missing. Labelled FALSE 3 of 3. Exempt only when the chain root is a
+  // const initialised by an awaited call (a read of what the test just created or fetched); `users.find(...)?.name ?? ''` and
+  // a plain `a.b ?? ''` keep the finding.
+  if (n.left?.type === 'ChainExpression') {
+    let root = bare(n.left.expression) as Loose | undefined;
+    while (root && (root.type === 'MemberExpression' || root.type === 'CallExpression')) root = bare(root.type === 'MemberExpression' ? root.object : root.callee) as Loose | undefined;
+    const init = root?.type === 'Identifier' ? (resolveConstInit(context, root) as Loose | undefined) : undefined;
+    if (init?.type === 'AwaitExpression') return false;
+  }
   const left = bare(n.left);
   return staticText(bare(n.right)) === '' && !!left && left.type !== 'Literal' && staticText(left) === undefined;
 }
@@ -187,9 +194,9 @@ export function classifyPassesAnyway(context: Ctx, call: N): PassesAnyway | unde
 
   if (TEXT_MATCHERS.has(m.matcher) && expected?.type === 'Literal' && regex && MATCH_ALL.has(String(regex.pattern))) return { form: 'match-anything' };
   if (containment && staticText(expected) === '') return { form: 'match-anything' };
-  if (containment && isEmptyFallback(expected)) return { form: 'empty-fallback' };
+  if (containment && isEmptyFallback(context, expected)) return { form: 'empty-fallback' };
   if (m.matcher === 'toMatch' && expected?.type === 'NewExpression' && expected.callee?.type === 'Identifier' && expected.callee.name === 'RegExp' &&
-      isEmptyFallback((expected.arguments ?? [])[0])) {
+      isEmptyFallback(context, (expected.arguments ?? [])[0])) {
     return { form: 'empty-fallback' };
   }
   return undefined;
