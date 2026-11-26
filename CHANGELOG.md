@@ -10,6 +10,23 @@ parsing accuracy, not grading policy — can still move a suite's score
 without itself being a new model version; 2.1.0 below is exactly that
 case, and says so explicitly.
 
+## Unreleased
+
+### Added
+
+- **`--changed-since <git-ref>`: score only what changed.** Scores the
+  spec files changed since the merge base with the ref (plus uncommitted and
+  untracked files) and the specs that import a changed or deleted shared
+  file, so a pull request check on a large suite takes seconds. The result
+  is labelled SCOPED in text and markdown, and JSON gets an optional `scope`
+  object (every existing field is unchanged; a run without the flag is
+  byte-identical to before). The gate looks at the files in scope only; no
+  spec in scope is "nothing to score" and exits 0. A changed Playwright
+  config, tsconfig or lockfile scores every spec ("Full run, not scoped").
+  Not a git repository, an unknown ref or a shallow clone missing the ref
+  exit 2. The Action gets `changed-only` (pull requests only, the PR base
+  commit as the ref; needs `fetch-depth: 0`).
+
 ## 3.0.0 — unreleased
 
 3.0.0 is a new scoring model (v5) and a new gate. Most suites get a

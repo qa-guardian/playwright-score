@@ -57,7 +57,8 @@ import {
   type AnalysisInput,
 } from './isolate.js';
 import { assertLimits } from './limits.js';
-import type { Coverage, Finding, ProfileName, ScoreOptions, ScoreResult } from './types.js';
+import { computeScope, gitChanges, scopeInfo } from './changed-files.js';
+import type { Coverage, Finding, ProfileName, ScopeInfo, ScoreOptions, ScoreResult } from './types.js';
 
 export type {
   ScoreResult,
@@ -600,8 +601,9 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   let result: ScoreResult;
   // QAG-287 S10a: the sources the run read, by absolute path; the excerpts come from them.
   const texts = new Map<string, string>();
+  const out: { scope?: ScopeInfo } = {};
   try {
-    result = await scorePathsInner(options, texts);
+    result = await scorePathsInner(options, texts, out);
   } finally {
     clearParseCache(); // nothing parsed for this run outlives it
   }
@@ -616,12 +618,20 @@ export async function scorePaths(options: ScoreOptions): Promise<ScoreResult> {
   settleQuotable(result.findings);
   // QAG-287 S9c: pass from the states, tiers, families and scopes above; nothing is re-analysed.
   applyGate(result, gate);
+  if (out.scope) {
+    result.scope = out.scope;
+    // An empty scope is a pass: no spec file changed, so there is nothing a gate could fail on.
+    if (out.scope.empty) {
+      result.pass = true;
+      if (result.gate) result.gate.reasons = [];
+    }
+  }
   const crashes = summarizeRuleCrashes();
   const withCrashes = crashes.length > 0 ? { ...result, ruleCrashes: crashes } : result;
   return { ...withCrashes, engine: getEngineVersions() };
 }
 
-async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>): Promise<ScoreResult> {
+async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>, out: { scope?: ScopeInfo }): Promise<ScoreResult> {
   // The time limit bounds the whole call. Without one the clock is never read.
   const timeLimit = startTimeLimit(options.isolate === false ? undefined : options.maxSeconds);
   const cwd = options.cwd ?? process.cwd();
@@ -633,6 +643,8 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
   // loop below, whether a candidate is a Playwright file and whether it is
   // scored, and it reads each candidate once (see admission.ts).
   const admission = new Admission();
+  // --changed-since: what git says changed; read before any file is looked at so a bad ref fails fast.
+  const gitChange = options.changedSince === undefined ? undefined : gitChanges(options.changedSince, options.paths, cwd);
   const { explicit, expanded, routes, scanRootDirs, inputDirs, configWarnings } = expandPaths(options.paths, cwd, admission);
 
   const NO_FILES: Coverage = { filesFound: 0, filesScored: 0, testsCounted: 0, skipped: [], ...sharedCoverage(undefined, cwd) };
@@ -683,10 +695,11 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
   for (const f of explicit) admit(f, 'E');
 
   // `found`: every Playwright file discovered. `files`: the ones that go to linting.
-  const found = [...explicit, ...acceptedExpanded].sort();
-  const files = found.filter((f) => !skips.has(f));
+  const allFound = [...explicit, ...acceptedExpanded].sort();
+  let found = allFound;
+  let files = found.filter((f) => !skips.has(f));
 
-  if (found.length === 0) {
+  if (allFound.length === 0) {
     return withCoverage(hardFail(
       profile,
       threshold,
@@ -711,7 +724,7 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
   // from the scored directory. Not the caller's cwd, which may be
   // unrelated: findings stay portable across machines/CI and
   // formatters/sarif.ts can emit repo-relative artifactLocation URIs.
-  const filesBase = reportBaseDir(inputDirs, found);
+  const filesBase = reportBaseDir(inputDirs, allFound);
 
   // Wider than filesBase on purpose: a Page Object Model's classes
   // typically live in a directory *sibling* to the specs themselves
@@ -721,7 +734,26 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
   // a real suite (n8n) where this was the exact reason locator counts from
   // its page objects were being discarded. Falls back to filesBase itself
   // when every input was an explicit file (no directory to widen to).
-  const importBoundary = commonAncestorDir([...found, ...scanRootDirs]);
+  const importBoundary = commonAncestorDir([...allFound, ...scanRootDirs]);
+
+  // --changed-since: narrow `found` to the specs in scope. Everything above (the base directory
+  // finding paths are relative to, the import boundary) stays that of the whole scan, so a scoped
+  // finding reads exactly as it does in a full run.
+  let scope: ScopeInfo | undefined;
+  if (gitChange !== undefined && options.changedSince !== undefined) {
+    const edges = new Map<string, string[]>();
+    const specifiers = new Map<string, string[]>();
+    const specSources = new Map(allFound.filter((f) => !skips.has(f)).map((f) => [f, readSources.get(f) ?? ''] as const));
+    collectLocallyImportedFiles(specSources, importBoundary, createModuleResolver(importBoundary), edges, specifiers);
+    const outcome = computeScope({ specs: allFound, git: gitChange, edges, specifiers });
+    scope = out.scope = scopeInfo(options.changedSince, allFound.length, outcome, gitChange.changed.length + gitChange.deleted.length, filesBase);
+    const inScope = new Set(outcome.specs);
+    found = allFound.filter((f) => inScope.has(f));
+    files = found.filter((f) => !skips.has(f));
+    if (found.length === 0) {
+      return withCoverage(hardFail(profile, threshold, [], {}, skippedFiles, configWarnings), NO_FILES);
+    }
+  }
 
   // Classification is finished: `found`, `files` and `skippedFiles` are final
   // whatever the time limit. From here on the limit is checked before each

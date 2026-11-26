@@ -27,6 +27,8 @@ export interface CliOptions {
   failOn?: FailOn[];
   allowPartial: boolean;
   advice: boolean;
+  /** `--changed-since`: score only what changed since this git ref. */
+  changedSince?: string;
 }
 
 interface Flag {
@@ -112,6 +114,25 @@ export const FLAGS: readonly Flag[] = [
     help: ['Also show advisory findings, and the reasons for findings not decided', 'automatically, in text, markdown and report output. JSON always has every finding.'],
     apply(o) {
       o.advice = true;
+      return undefined;
+    },
+  },
+  {
+    names: ['--changed-since'],
+    value: '<git-ref>',
+    help: [
+      'Score only the spec files changed since the',
+      'ref (merge base with HEAD, plus uncommitted',
+      'and untracked files) and the specs that',
+      'import a changed shared file. The result is',
+      'labelled SCOPED and its score is that of',
+      'those files. A changed playwright config,',
+      'tsconfig or lockfile scores every spec.',
+      'No changed spec: nothing to score, exit 0.',
+    ],
+    apply(o, v) {
+      if (!v || v.startsWith('-')) return '--changed-since requires a git ref';
+      o.changedSince = v;
       return undefined;
     },
   },

@@ -30,6 +30,15 @@ function input(name: string): string {
 const defaultOf = (name: string): string | undefined => /^ {4}default: (.*)$/m.exec(input(name))?.[1];
 
 describe('action.yml (3.x)', () => {
+  it('has changed-only (default false): pull requests use the PR base sha, with fetch-depth guidance when it is missing', () => {
+    assert.equal(defaultOf('changed-only'), "'false'");
+    assert.match(yml, /PWS_CHANGED_ONLY: \$\{\{ inputs\.changed-only \}\}/);
+    assert.match(yml, /PWS_BASE_SHA: \$\{\{ github\.event\.pull_request\.base\.sha \}\}/);
+    assert.match(yml, /GATE_ARGS\+=\(--changed-since "\$PWS_BASE_SHA"\)/);
+    assert.match(yml, /fetch-depth: 0/);
+    assert.ok(FLAGS.some((f) => f.names.includes('--changed-since')));
+  });
+
   it('runs major version 3 by default', () => assert.equal(defaultOf('version'), "'3'"));
 
   it('an empty threshold means no score bar, and the description says so', () => {

@@ -175,6 +175,7 @@ npx -p @qaguardian/playwright-score pwscore ./tests
 | `--name <suite name>` | Suite name for the report headline (default: the directory basename) |
 | `--max-seconds <n>` | Time limit for the whole run, counted from the start. No default: without it a run is never cut short. Finding the files always finishes; after that no new step starts once the limit has passed. Files not analysed in time are skipped and the result is partial (with reason `limit-reached` and score 0 when no test was scored in time) |
 | `--max-heap-mb <n>` | Heap limit of the analysis worker. Default 4608, the same on every machine; a whole number from 64 to 65536. The batch that hits it and every later batch are skipped (`worker-died`) |
+| `--changed-since <git-ref>` | Score only the spec files changed since the ref, and the specs that import a changed shared file. See [Scoring only what changed](#scoring-only-what-changed) |
 | `--no-shared` | Do not check the shared files the specs import (see [Shared code](#shared-code)) |
 | `--shared` | Check the shared files (the default) |
 | `--version`, `-v` | Print the version |
@@ -186,7 +187,36 @@ npx -p @qaguardian/playwright-score pwscore ./tests
 |---|---|
 | `0` | Pass: status `scored` (or `partial` with `--allow-partial`), nothing named by `--fail-on` found, and the score at or above `--threshold` when it is given |
 | `1` | Not pass, including a `partial` result without `--allow-partial` (also when a limit left no test counted) and every `not-scored` result (no files matched, every file skipped with no limit hit, or no counted test) |
-| `2` | Tool or usage error: an unknown option, an unknown `--fail-on` value or `none` combined with another value, or a limit that is not usable |
+| `2` | Tool or usage error: an unknown option, an unknown `--fail-on` value or `none` combined with another value, or a limit that is not usable; with `--changed-since` also not a git repository, an unknown ref, or a shallow clone that lacks the ref |
+
+### Scoring only what changed
+
+`--changed-since <git-ref>` scores the spec files changed since a ref instead of the whole suite, so a pull request check takes seconds on a large repo:
+
+```bash
+npx pwscore . --changed-since origin/main
+```
+
+Run it from inside the repository. In scope are the spec files changed between the merge base of the ref and `HEAD` (the three-dot range), plus uncommitted and untracked files, plus every spec that imports a changed or deleted file (a page object, fixture or helper) directly or through other files. A rename counts as the new file only. Changes outside the scored paths are ignored.
+
+- **The result is labelled SCOPED.** Text and markdown say `SCOPED to changes since <ref>: n of N spec files scored`; JSON gets an extra `scope` object (`ref`, `scoped`, `specFiles`, `specFilesTotal`, `changedFiles`, `empty`, `files`, and `fallback` when set). Every other JSON field is unchanged, and a run without the flag has no `scope`. The score is the score of those files, not of the suite: do not compare it with a full run.
+- **Gate and exit codes** are the usual ones, applied to the files in scope only: a certain finding in a spec you did not touch cannot fail the check. When no spec file is in scope the result is "nothing to score" and the exit code is `0` (`scope.empty` is `true`; no score bar applies). When the scoped specs count no test, the result is not scored and the exit code is `1`, as in a full run.
+- **Fallback to a full run:** if the Playwright config (`playwright*.config.*`), a `tsconfig`/`jsconfig` file or a lockfile (`package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock`, `pnpm-lock.yaml`, `bun.lock`, `bun.lockb`) changed anywhere in the diff, every spec is scored and the output says `Full run, not scoped` (`scope.scoped` is `false`, `scope.fallback` says why).
+- **Errors (exit 2):** the paths are not inside a git repository, the ref does not exist, or the clone is shallow and does not hold the ref. Fetch the history (`git fetch --unshallow`, or `fetch-depth: 0` in `actions/checkout`).
+
+In the GitHub Action, `changed-only: true` does this on `pull_request` events with the PR base commit as the ref:
+
+```yaml
+- uses: actions/checkout@v4
+  with:
+    fetch-depth: 0        # the PR base commit must be in the clone
+- uses: qa-guardian/playwright-score@v3
+  with:
+    paths: tests
+    changed-only: true
+```
+
+The job summary and the PR comment carry the SCOPED line. On other events the input is ignored and every spec is scored. If the base commit is missing from the clone the step fails with a message that says to use `fetch-depth: 0`.
 
 ## Library
 
@@ -229,6 +259,7 @@ is partial or not scored, or when the score is below a threshold you set
 | `max-seconds` | Optional time limit for the run; files not analysed in time are skipped | empty |
 | `mode` | `gate` (fail CI when the result does not pass) \| `warn` (report only) | `gate` |
 | `comment` | Post/update a sticky PR comment | `true` |
+| `changed-only` | `true`: on pull requests score only the specs changed since the PR base (SCOPED result; needs `fetch-depth: 0`). See [Scoring only what changed](#scoring-only-what-changed) | `false` |
 | `version` | `@qaguardian/playwright-score` version to run | `3` |
 | `github-token` | Token for the PR comment | `${{ github.token }}` |
 

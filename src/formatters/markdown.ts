@@ -1,3 +1,4 @@
+import { scopeLine } from '../changed-files.js';
 import type { ScoreResult } from '../types.js';
 import { INCOMPLETE_NOTE, notScoredHeadline, notScoredState, partialNote, plural } from '../report-model.js';
 import {
@@ -53,6 +54,9 @@ export function formatMarkdown(result: ScoreResult, opts: MarkdownOptions = {}):
   const state = notScoredState(result);
   const view = buildView(result, { advice: opts.advice, maxGroups: NOISE_BUDGET.markdownGroups });
   const lines: string[] = [];
+  if (result.scope?.empty) {
+    return [`**Nothing to score**`, '', `> ${escapeCell(scopeLine(result.scope))}`].join('\n');
+  }
   if (state) {
     lines.push(`**${escapeCell(notScoredHeadline(result).headline)}**`);
     const reason = result.reason ? NOT_SCORED_REASON_TEXT[result.reason] ?? result.reason : undefined;
@@ -63,7 +67,7 @@ export function formatMarkdown(result: ScoreResult, opts: MarkdownOptions = {}):
       `Score **${result.score}/100 (${result.grade})** · ${result.pass ? 'PASS' : 'FAIL'} · profile \`${result.profile}\` · threshold ${result.threshold} · playwright-score \`${result.scoreVersion}\``
     );
   }
-  const status = [partialNote(result), ...buildStateLines(view), result.ruleCrashes?.length ? INCOMPLETE_NOTE : undefined].filter(
+  const status = [result.scope ? scopeLine(result.scope) : undefined, partialNote(result), ...buildStateLines(view), result.ruleCrashes?.length ? INCOMPLETE_NOTE : undefined].filter(
     (l): l is string => !!l
   );
   if (status.length) {

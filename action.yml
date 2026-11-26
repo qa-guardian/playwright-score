@@ -34,6 +34,10 @@ inputs:
     description: 'Post/update a sticky PR comment with the score report (pull_request events only)'
     required: false
     default: 'true'
+  changed-only:
+    description: 'true: on pull_request events score only the spec files changed since the PR base (and the specs that import a changed shared file). The result is labelled SCOPED and its score is that of those files, not of the whole suite. A changed playwright config, tsconfig or lockfile scores every spec; no changed spec is "nothing to score" and passes. Needs the PR base commit in the clone: use actions/checkout with fetch-depth: 0. Ignored on other events.'
+    required: false
+    default: 'false'
   version:
     description: 'Version of @qaguardian/playwright-score to run (npm dist-tag or version range)'
     required: false
@@ -72,6 +76,9 @@ runs:
         PWS_ALLOW_PARTIAL: ${{ inputs.allow-partial }}
         PWS_MAX_SECONDS: ${{ inputs.max-seconds }}
         PWS_VERSION: ${{ inputs.version }}
+        PWS_CHANGED_ONLY: ${{ inputs.changed-only }}
+        PWS_EVENT_NAME: ${{ github.event_name }}
+        PWS_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       run: |
         set -e
         GATE_ARGS=()
@@ -83,6 +90,18 @@ runs:
         fi
         if [ -n "$PWS_MAX_SECONDS" ]; then
           GATE_ARGS+=(--max-seconds "$PWS_MAX_SECONDS")
+        fi
+
+        if [ "$PWS_CHANGED_ONLY" = "true" ]; then
+          if [ "$PWS_EVENT_NAME" = "pull_request" ] || [ "$PWS_EVENT_NAME" = "pull_request_target" ]; then
+            if [ -z "$PWS_BASE_SHA" ] || ! git cat-file -e "${PWS_BASE_SHA}^{commit}" 2>/dev/null; then
+              echo "::error::changed-only needs the pull request base commit (${PWS_BASE_SHA:-unknown}) in the checkout, and this clone does not have it (a shallow clone is the usual cause). Use actions/checkout with fetch-depth: 0, or set changed-only: false to score every spec."
+              exit 2
+            fi
+            GATE_ARGS+=(--changed-since "$PWS_BASE_SHA")
+          else
+            echo "::notice::changed-only applies to pull_request events only; scoring every spec on $PWS_EVENT_NAME."
+          fi
         fi
 
         # One run writes both reports: JSON for the outputs, markdown for the summary and the comment.
@@ -107,7 +126,11 @@ runs:
         echo "score=$SCORE" >> "$GITHUB_OUTPUT"
         echo "grade=$GRADE" >> "$GITHUB_OUTPUT"
         echo "pass=$PASS" >> "$GITHUB_OUTPUT"
-        echo "Playwright Spec Score: $SCORE/100 ($GRADE) — pass=$PASS"
+        if [ "$(jq -r '.scope.empty // false' "$RUNNER_TEMP/pw-score.json")" = "true" ]; then
+          echo "Playwright Spec Score: nothing to score (no spec file changed or affected) — pass=$PASS"
+        else
+          echo "Playwright Spec Score: $SCORE/100 ($GRADE) — pass=$PASS"
+        fi
 
     - name: Comment on PR
       if: ${{ inputs.comment == 'true' && github.event_name == 'pull_request' }}

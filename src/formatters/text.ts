@@ -1,4 +1,5 @@
 import type { ScoreResult } from '../types.js';
+import { scopeLine } from '../changed-files.js';
 import { notScoredHeadline, notScoredState, partialNote, plural, INCOMPLETE_NOTE } from '../report-model.js';
 import {
   advisoryLine,
@@ -64,6 +65,17 @@ export function formatText(result: ScoreResult, opts: TextOptions = {}): string 
   const view = buildView(result, { advice: opts.advice });
   const lines: string[] = [];
   const suite = opts.suiteName ? `  ·  ${opts.suiteName}` : '';
+  // --changed-since with nothing in scope: no score exists; say so and pass.
+  if (result.scope?.empty) {
+    return [
+      `Nothing to score${suite}`,
+      scopeLine(result.scope),
+      '',
+      opts.version
+        ? `QA Guardian playwright-score ${opts.version} (rules ${result.scoreVersion})`
+        : `QA Guardian playwright-score (rules ${result.scoreVersion})`,
+    ].join('\n');
+  }
   if (state) {
     lines.push(notScoredHeadline(result).headline);
     const reason = result.reason ? NOT_SCORED_REASON_TEXT[result.reason] ?? result.reason : undefined;
@@ -75,6 +87,7 @@ export function formatText(result: ScoreResult, opts: TextOptions = {}): string 
     lines.push(`Score ${result.score}/100 (${result.grade})  ·  ${result.pass ? 'PASS' : 'FAIL'}${bar}${suite}  ·  ${plural(summary.files, 'file')}`);
   }
 
+  if (result.scope) lines.push(scopeLine(result.scope));
   const partial = partialNote(result);
   if (partial) lines.push(partial);
   lines.push(...buildStateLines(view));
