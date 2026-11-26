@@ -12,6 +12,39 @@ export { createModuleResolver, type ImportResolver } from './module-resolution.j
 const MAX_DEPTH = 6;
 const MAX_FILES = 300;
 
+
+type Loose = { type?: string; [k: string]: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+/** `require('x')` through `await`, a type-only wrapper, or a member read (`require('x').y`): the specifier, when it is a plain string. */
+function requireSpecifier(expr: Loose | null | undefined): string | undefined {
+  let e = expr;
+  while (e && (e.type === 'AwaitExpression' || e.type === 'TSNonNullExpression' || e.type === 'TSAsExpression' || e.type === 'MemberExpression')) {
+    e = (e.type === 'AwaitExpression' ? e.argument : e.type === 'MemberExpression' ? e.object : e.expression) as Loose | undefined;
+  }
+  if (e?.type !== 'CallExpression' || e.callee?.type !== 'Identifier' || e.callee.name !== 'require') return undefined;
+  const arg = e.arguments?.[0] as Loose | undefined;
+  return arg?.type === 'Literal' && typeof arg.value === 'string' ? arg.value : undefined;
+}
+
+/**
+ * CommonJS imports, read like ES ones: a top-level `const x = require('./a')`, `const { y } = require('./a')`,
+ * `const z = require('./a').z` or a bare `require('./a')` statement. A `require` inside a function body is not followed
+ * (it is not an import of the module), and neither is a computed or templated specifier.
+ */
+function requiredAtTopLevel(node: Loose): string[] {
+  const out: string[] = [];
+  if (node.type === 'VariableDeclaration') {
+    for (const d of (node.declarations as Loose[] | undefined) ?? []) {
+      const spec = requireSpecifier(d.init as Loose | undefined);
+      if (spec !== undefined) out.push(spec);
+    }
+  } else if (node.type === 'ExpressionStatement') {
+    const spec = requireSpecifier(node.expression as Loose | undefined);
+    if (spec !== undefined) out.push(spec);
+  }
+  return out;
+}
+
 function extractImportSpecifiers(source: string, file: string): string[] {
   let ast: { body?: Array<Record<string, unknown>> } | undefined;
   try {
@@ -21,6 +54,7 @@ function extractImportSpecifiers(source: string, file: string): string[] {
   }
   const specifiers: string[] = [];
   for (const node of ast.body ?? []) {
+    for (const spec of requiredAtTopLevel(node)) specifiers.push(spec);
     if (
       node.type !== 'ImportDeclaration' &&
       node.type !== 'ExportNamedDeclaration' &&

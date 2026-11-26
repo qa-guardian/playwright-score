@@ -108,6 +108,22 @@ function isHardAssertionNode(n: N, stop: N | undefined): boolean {
 }
 
 /**
+ * An awaited call between a swallowed negated probe and a later repeat of the same check that can change the page: any
+ * awaited call that is not itself an assertion, a `waitFor*` or a log line (`await page.evaluate(...)`, `await el.click()`).
+ * The repeat then checks a later state, not the one the probe was dropped for, so it does not re-check the probe.
+ */
+function stateChangedBetween(later: N[], from: number, to: number): boolean {
+  return later.some((n) => {
+    const at = n.range?.[0] ?? -1;
+    if (n.type !== 'AwaitExpression' || at < from || at >= to) return false;
+    const call = unwrapCall(n.argument);
+    if (!call) return false;
+    const name = memberName(call.callee);
+    return !(parseMatcherCall(call) || isWaitForCall(call) || (name !== undefined && name.startsWith('waitFor')) || isLoggerCall(call.callee));
+  });
+}
+
+/**
  * True when the swallowed probe is followed by something that still fails
  * the test on a bad state: see the file header. `stmt` is the statement
  * holding the probe (TryStatement or the `.catch` expression statement),
@@ -134,6 +150,7 @@ function probeIsRechecked(
     const chain = parseMatcherCall(n);
     const subject = chain ? probeKey(source, chain) : isWaitForCall(n) && n.callee?.object ? source.getText(n.callee.object) : '';
     if (sameCheck !== undefined && (!chain || checkSignature(source, chain) !== sameCheck)) continue;
+    if (sameCheck !== undefined && stateChangedBetween(later, after, n.range?.[0] ?? Infinity)) continue;
     if (subject && keys.includes(subject)) return true;
   }
 

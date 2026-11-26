@@ -10,7 +10,7 @@
  *                  `toContainText`, or to `toContain` on a string.
  *  empty-fallback  the expected value of `toContainText`, of `toContain` on a string, or of
  *                  `toMatch(new RegExp(...))` is `X || ''` or `X ?? ''`: when X is null the check
- *                  contains the empty string, which every string does.
+ *                  contains the empty string, which every string does. Not when the left side is an optional chain (`x?.text ?? ''`).
  *
  *  form-control-text  `toHaveText('')`, or one `not` before `toHaveText` / `toContainText` with a non-blank
  *                  expected text, on a locator that is statically an `<input>` with a `type` other than button,
@@ -117,6 +117,9 @@ function isStringSubject(context: Ctx, node: N | undefined, depth = 0): boolean 
 function isEmptyFallback(node: N | undefined): boolean {
   const n = bare(node);
   if (n?.type !== 'LogicalExpression' || (n.operator !== '||' && n.operator !== '??')) return false;
+  // `x?.text ?? ''` is how a strict-TypeScript read of an element the test just created or fetched is written: the `?.`
+  // satisfies the compiler, it does not say the value can be missing. Labelled FALSE 3 of 3; a plain `a.b ?? ''` keeps the finding.
+  if (n.left?.type === 'ChainExpression') return false;
   const left = bare(n.left);
   return staticText(bare(n.right)) === '' && !!left && left.type !== 'Literal' && staticText(left) === undefined;
 }

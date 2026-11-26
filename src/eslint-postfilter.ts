@@ -565,6 +565,50 @@ function collectedAndAwaited(t: Tree, node: N): boolean {
   return arrayAwaitedLater(t, scope, name, line);
 }
 
+
+/**
+ * A promise made on purpose and handed on: `this.pending = page.waitForResponse(...)`, or
+ * `const sent = page.waitForRequest(...)` whose name is later returned (bare or inside a returned object or array),
+ * passed to another call or stored in a member. The arming idiom of a page object or helper: it is awaited by whoever
+ * receives it, so it is not a dropped `await`. A variable that is never used again, or only read for a property or
+ * a method other than `then`/`catch`, stays a finding. Actions only: an assertion keeps its finding.
+ */
+function promiseHandedOn(t: Tree, node: N): boolean {
+  const top = t.chainTop(node);
+  const p = t.parent(top);
+  if (!p) return false;
+  if (p.type === 'AssignmentExpression' && p.right === top && p.left?.type === 'MemberExpression') return true;
+  let name: string | undefined;
+  let after = (top.loc as { end: { line: number } }).end.line;
+  if (p.type === 'VariableDeclarator' && p.init === top && p.id?.type === 'Identifier') name = p.id.name;
+  else if (p.type === 'AssignmentExpression' && p.right === top && p.left?.type === 'Identifier') name = p.left.name;
+  if (!name) return false;
+  const scope = t.enclosingFunction(top) ?? t.root;
+  after = Math.min(after, (top.loc as { start: { line: number } }).start.line);
+  return t.some(scope, (n) => {
+    if (n.type !== 'Identifier' || n.name !== name || (n.loc as { start: { line: number } }).start.line <= after - 1 || n === p.id || n === p.left) return false;
+    const q = t.parent(n);
+    if (!q) return false;
+    switch (q.type) {
+      case 'ReturnStatement':
+      case 'SpreadElement':
+      case 'ArrayExpression':
+      case 'AwaitExpression':
+        return true;
+      case 'Property':
+        return q.value === n;
+      case 'CallExpression':
+        return (q.arguments as N[]).includes(n);
+      case 'AssignmentExpression':
+        return q.right === n && q.left?.type === 'MemberExpression';
+      case 'ArrowFunctionExpression':
+        return q.body === n;
+      default:
+        return false;
+    }
+  });
+}
+
 // ---- no-wait-for-selector ----------------------------------------------
 
 /** A wait inside a try block or before `.catch(...)` is swallowed: the wait can silently do nothing. */
@@ -713,7 +757,8 @@ export function createPostFilter(source: () => string, file: string, aliases?: R
       case 'playwright/prefer-web-first-assertions':
         return insideRetryingBlock(tree, node, aliases) ? { drop: true } : undefined;
       case 'playwright/missing-playwright-await':
-        return collectedAndAwaited(tree, node) ? { drop: true } : undefined;
+        if (collectedAndAwaited(tree, node)) return { drop: true };
+        return missingAwaitForm(tree, node, aliases) === 'action' && promiseHandedOn(tree, node) ? { drop: true } : undefined;
       case 'playwright/no-conditional-expect':
         return conditionalExpectExempt(tree, node) ? { drop: true } : undefined;
       default:

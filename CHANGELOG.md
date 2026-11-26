@@ -10,6 +10,15 @@ parsing accuracy, not grading policy — can still move a suite's score
 without itself being a new model version; 2.1.0 below is exactly that
 case, and says so explicitly.
 
+## 3.0.1 — unreleased
+
+Fixes to the causes behind three known precision and recall gaps. No rule weight, severity or tier changes.
+
+- **CommonJS helpers are discovered.** A top-level `const x = require('./helper')`, `const { y } = require('./helper')`, `require('./helper').y` or a bare `require('./helper')` statement now reaches the helper file like an ES `import` does, so a helper or fixture file that a CommonJS spec requires is linted as a shared file and counts in the import closure. A `require` inside a function and a computed specifier are not followed.
+- **`missing-playwright-await` no longer reports a promise that is handed on.** An unawaited Playwright call such as `page.waitForResponse(...)` that is stored in a member (`this.pending = ...`), or in a variable that is later returned, put in a returned object or array, passed to another call or stored in a member, is the arming idiom of a page object: whoever receives the promise awaits it. It is no longer reported. A promise that is never used again keeps its finding.
+- **`assertion-passes-anyway`, form `empty-fallback`, skips an optional chain.** `toContainText(x?.text ?? '')` is no longer reported: the `?.` is how strict TypeScript reads an element the test just made, not a sign the value can be missing. `x.text ?? ''` is still reported.
+- **`no-swallowed-assertion`: a repeated negated check is not a re-check after the page changed.** A negated assertion whose rejection a `.catch(() => {})` discards was exempt when a later assertion repeated the same negated check on the same subject. It is no longer exempt when an awaited call that can change the page (`page.evaluate`, `click()`) sits between the two; assertions, `waitFor*` calls and log lines do not count as a change.
+
 ## 3.0.0 — unreleased
 
 3.0.0 is a new scoring model (v5) and a new gate. Most suites get a
