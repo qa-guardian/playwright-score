@@ -5,6 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { FLAGS } from '../src/cli-args.js';
+import { DIFF_FLAGS } from '../src/diff/run.js';
 
 // The README documents the CLI: every option `--help` prints is in the README, and every
 // long flag the README names is an option the CLI accepts.
@@ -42,11 +43,12 @@ describe('README documents the CLI flags', () => {
   const run = spawnSync(process.execPath, [path.join(root, 'bin', 'playwright-score.js'), '--help'], { encoding: 'utf8' });
   const help = run.stdout;
   const options = helpOptions(help);
-  const known = new Set(FLAGS.flatMap((f) => f.names));
+  // `diff` has a few options of its own; the README names them in its diff section.
+  const known = new Set([...FLAGS.flatMap((f) => f.names), ...DIFF_FLAGS]);
 
   it('--help prints the options of the flag table', () => {
     assert.equal(run.status, 0, run.stderr);
-    assert.deepEqual([...options].sort(), [...known].sort());
+    assert.deepEqual([...options].sort(), FLAGS.flatMap((f) => f.names).sort());
     assert.ok(options.length >= 15, options.join(' '));
   });
 
@@ -59,6 +61,10 @@ describe('README documents the CLI flags', () => {
     const named = longFlags(readme);
     assert.ok(named.length >= 13, named.join(' '));
     assert.deepEqual(named.filter((f) => !known.has(f)), []);
+  });
+
+  it('every diff option is in the README', () => {
+    assert.deepEqual(DIFF_FLAGS.filter((f) => !mentions(readme, f)), []);
   });
 
   it('the checks see a missing or an unknown flag', () => {
