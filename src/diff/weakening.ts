@@ -48,7 +48,9 @@ export interface TestSignals {
   raisedTimeout: RaisedTimeout[];
 }
 
-const key = (a: AssertionFact): string => `${a.matcher}(${a.args.join(', ')})`;
+/** A plain literal compares by value (so 'a', "a" and `a` are one), anything else by its normalized text. */
+const argKey = (a: AssertionFact, i: number): string => (a.literals[i] !== undefined ? `L${typeof a.literals[i]}:${String(a.literals[i])}` : `T:${a.args[i]}`);
+const key = (a: AssertionFact): string => `${a.matcher}(${a.args.map((_, i) => argKey(a, i)).join(', ')})`;
 const clip = (s: string): string => (s.length > 120 ? `${s.slice(0, 117)}...` : s);
 
 function bySubject(list: AssertionFact[]): Map<string, AssertionFact[]> {
@@ -93,7 +95,7 @@ export function compareSignals(
     const after: string[] = [];
     let ok = true;
     for (let i = 0; i < a.args.length && ok; i++) {
-      if (a.args[i] === b.args[i]) continue;
+      if (argKey(a, i) === argKey(b, i)) continue;
       const [la, lb] = [a.literals[i], b.literals[i]];
       if (la === undefined || lb === undefined) ok = false;
       else {

@@ -96,7 +96,7 @@ describe('diff: findings and scores', () => {
     assert.equal(r.json.scoreBefore, 100);
     assert.equal(r.json.scoreAfter, 100);
     assert.equal(r.json.scoreDrop, 0);
-    assert.deepEqual(r.json.testChanges, { deleted: [], addedSkip: [], assertionsDropped: [] });
+    assert.deepEqual(r.json.testChanges, { deleted: [], addedSkip: [], assertionsDropped: [], weakerMatcher: [], changedExpectedLiteral: [], raisedTimeout: [] });
   });
 
   it('--max-drop adds a score bar on top of the new-finding gate', () => {
@@ -159,12 +159,12 @@ describe('diff: weakened tests (S2b)', () => {
     assert.equal(r.status, 0, r.err);
     const w = r.json.testChanges.weakerMatcher.map((x: any) => `${x.test.join(' > ')}: ${x.before} -> ${x.after}`);
     assert.deepEqual(w, [
-      'shows the saved banner: toHaveText -> toBeVisible',
-      'reads the user record: toEqual -> toBeTruthy',
       'lists three orders: toHaveCount -> toBeGreaterThan',
       'reads the plan: toBe -> toBeDefined',
+      'reads the user record: toEqual -> toBeTruthy',
+      'shows the saved banner: toHaveText -> toBeVisible',
     ]);
-    assert.equal(r.json.testChanges.weakerMatcher[2].subject, 'rows');
+    assert.equal(r.json.testChanges.weakerMatcher[0].subject, 'rows');
     // The renamed test is a deletion, nothing else.
     assert.deepEqual(r.json.testChanges.deleted.map((x: any) => x.test[0]), ['old name']);
     assert.deepEqual(r.json.testChanges.changedExpectedLiteral, []);
@@ -204,9 +204,9 @@ describe('diff: weakened tests (S2b)', () => {
     assert.deepEqual(
       r.json.testChanges.raisedTimeout.map((x: any) => [x.test[0], x.kind, x.before, x.after]),
       [
-        ['whole-test timeout', 'setTimeout', 30000, 90000],
         ['assertion timeout', 'expect', 5000, 15000],
         ['waitFor timeout', 'waitFor', 5000, 10000],
+        ['whole-test timeout', 'setTimeout', 30000, 90000],
       ]
     );
     const strict = pair('raised-timeout', ['--fail-on-changes']);
@@ -215,10 +215,11 @@ describe('diff: weakened tests (S2b)', () => {
     assert.match(diff([fx('raised-timeout', 'base'), fx('raised-timeout', 'head')]).out, /timeout 30000 -> 90000 ms \(test\.setTimeout\): slow\.spec\.ts > whole-test timeout/);
   });
 
-  it('swapping the sides of the weakening fixtures reports none of them (stronger, lowered)', () => {
+  it('swapping the sides reports only what became weaker or raised (lowered timeouts and the changed literal are not)', () => {
     for (const name of ['weaker-matcher', 'raised-timeout']) {
       const r = diff([fx(name, 'head'), fx(name, 'base'), '--json']);
-      assert.deepEqual(r.json.testChanges.weakerMatcher, [], name);
+      // Swapped, the stronger 'shows the title' of the base is the weaker one: the one expected hit.
+      assert.equal(r.json.testChanges.weakerMatcher.length, name === 'weaker-matcher' ? 1 : 0, name);
       assert.deepEqual(r.json.testChanges.raisedTimeout.length, name === 'raised-timeout' ? 2 : 0, name);
     }
   });
