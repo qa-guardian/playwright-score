@@ -31,6 +31,7 @@ case, and says so explicitly.
   exit 2. The Action gets `changed-only` (pull requests only, the PR base
   commit as the ref; needs `fetch-depth: 0`) and an output `scoped`
   (`"true"` when the result covers only the changed files, else `"false"`).
+- **`--changed-since` follows CommonJS `require()`.** A changed helper that a spec loads with `require()` (top level or inside a function) puts that spec in scope; a non-literal `require()` or `import()` anywhere in the graph means a changed source file cannot be ruled out, so the run is a full one.
 
 ## 3.0.1 — unreleased
 
