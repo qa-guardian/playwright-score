@@ -58,9 +58,14 @@ Score distribution: mean 96.7, median 100; grades 256 A / 9 B / 6 C / 3 D / 5 F.
 
 ## Performance
 
-No speed figure is given for 3.0.0. The timed corpus run for this release
-was waived by the owner, so its speed has not been measured. Any speed
-figure must name the build and date it was measured on.
+Last measured on release candidate 3.0.0-rc.1 (commit 22653be, 2026-11-25,
+Apple M1 Pro), against 2.x on the same machine. The final 3.0.0 build adds
+a worker-memory fix and has not been re-timed.
+
+- Summed CPU time over the corpus: 1.384x 2.x (1.413x on a paired sample
+  of 20 heavy suites).
+- Slowest suite: 160.5 s. Peak memory (RSS): 2.79 GiB.
+- One spec file, cold start: 2.79 s at the 99th percentile.
 
 ## Running it yourself
 
