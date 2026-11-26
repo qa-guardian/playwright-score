@@ -5,6 +5,7 @@
  * `expect()` calls the test body holds. A test is matched across two versions by file + title path.
  */
 import { parseAst } from '../parse-cache.js';
+import { readFacts, type AssertionFact, type TimeoutFact } from './assertions.js';
 
 type Node = { type: string; loc?: { start: { line: number } }; [key: string]: any };
 
@@ -15,6 +16,10 @@ export interface IndexedTest {
   line: number;
   /** Count of `expect(...)`, `expect.soft(...)` and `expect.poll(...)` calls written in the test's own body. */
   expects: number;
+  /** Plain `expect(x).matcher(args)` calls, in source order (see assertions.ts). */
+  assertions: AssertionFact[];
+  /** Explicit numeric timeouts written in the test body. */
+  timeouts: TimeoutFact[];
 }
 
 const SKIP_KEYS = new Set(['parent', 'loc', 'range', 'tokens', 'comments']);
@@ -91,7 +96,7 @@ export function indexTests(source: string, file: string, lines: ReadonlySet<numb
     const call = titledCall(n);
     const line = n.loc?.start.line;
     if (call && line !== undefined && lines.has(line) && !out.has(line)) {
-      out.set(line, { titlePath: [...path, call.title], line, expects: countExpects(call.fn) });
+      out.set(line, { titlePath: [...path, call.title], line, expects: countExpects(call.fn), ...readFacts(call.fn, source) });
     }
     const next = call ? [...path, call.title] : path;
     for (const c of children(n)) visit(c, next);

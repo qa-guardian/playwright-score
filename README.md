@@ -211,7 +211,34 @@ that fires twice in a test counts twice. Tests are matched the same way, by file
 and title path (see [METHODOLOGY.md](./METHODOLOGY.md#diff-matching-tests-across-versions)).
 Reported per matched test: a test **deleted**, a test newly **skipped** (`skip`,
 `fixme` or a skipped describe), and a test whose body has **fewer `expect()`
-calls**.
+calls**. Three more signals look inside a matched test that is counted on both
+sides, and report only what they can read with certainty:
+
+- **`weakerMatcher`**: an assertion on the same subject swapped for a weaker
+  matcher, such as `toHaveText` -> `toBeVisible`, `toEqual` -> `toBeTruthy`,
+  `toHaveCount(n)` -> `toBeGreaterThan(0)` (a trailing `.count()` on the subject
+  is ignored) or `toBe(x)` -> `toBeDefined`. Strength, strongest first: 4 pins
+  the whole value (`toBe`, `toEqual`, `toStrictEqual`, `toHaveText`, `toHaveValue`,
+  `toHaveValues`, `toHaveURL`, `toHaveTitle`, `toHaveCount`, `toHaveAttribute`,
+  `toHaveCSS`, `toHaveId`, `toHaveClass`, `toHaveJSProperty`, `toHaveLength`);
+  3 pins part of it (`toContain`, `toContainText`, `toContainEqual`, `toMatch`,
+  `toMatchObject`); 2 bounds it (`toBeGreaterThan`, `toBeGreaterThanOrEqual`,
+  `toBeLessThan`, `toBeLessThanOrEqual`, `toBeCloseTo`); 1 only checks that
+  something exists (`toBeVisible`, `toBeAttached`, `toBeTruthy`, `toBeDefined`).
+  Only a drop to a lower level counts; an unlisted matcher is never compared.
+- **`changedExpectedLiteral`**: the expected string, number or boolean of an
+  otherwise identical assertion changed (`toHaveText('Saved')` ->
+  `toHaveText('Save')`). It is a change to review, not a weakening, and never
+  fails `--fail-on-changes`.
+- **`raisedTimeout`**: an explicit `test.setTimeout(ms)`, an `expect` `{ timeout }`
+  option or a `waitFor*` `{ timeout }` option raised to 2x or more of the base
+  value (numbers and simple products like `5 * 1000` are read).
+
+Not flagged, on purpose: reordered or reformatted assertions, negated
+(`.not`) assertions, a change to a regex or a non-literal argument, a subject
+that changed, more than one changed assertion on one subject (the pairing would
+be a guess), a lowered timeout, a timeout newly added or removed, and a renamed
+test (it reads as deleted plus new).
 
 Options: `--json` (or `--format json`), `--out <file>`, `--max-drop <n>`,
 `--path <dir>`, `--fail-on-changes`, and the scoring options `--profile`,
@@ -222,7 +249,7 @@ apply to `diff` (a usage error).
 | Code | Meaning |
 |---|---|
 | `0` | No certain finding is new in the head, the score did not drop by more than `--max-drop` (when given), and the head was scored |
-| `1` | The head introduces a certain finding; or the score dropped past `--max-drop`; or, with `--fail-on-changes`, a test was deleted, newly skipped or lost assertions; or the head is not scored, or partial without `--allow-partial` |
+| `1` | The head introduces a certain finding; or the score dropped past `--max-drop`; or, with `--fail-on-changes`, a test was deleted, newly skipped, lost assertions, got a weaker matcher or a raised timeout; or the head is not scored, or partial without `--allow-partial` |
 | `2` | Tool or usage error: an unknown option, a side that is neither a directory nor a git ref, an export that failed |
 
 Without `--max-drop` the score is reported but does not gate; deleted, skipped
@@ -233,7 +260,8 @@ given. A base that is not scored (no tests yet) never fails the diff.
 score, counted and charged tests), `scoreBefore`, `scoreAfter`, `scoreDrop`
 (before minus after), `files` (the files whose score changed, with `before`,
 `after`, `drop`), `newFindings`, `resolvedFindings`, `testChanges` (`deleted`,
-`addedSkip`, `assertionsDropped`) and `gate` (`pass`, `reasons`, `maxDrop`,
+`addedSkip`, `assertionsDropped`, `weakerMatcher`, `changedExpectedLiteral`,
+`raisedTimeout`) and `gate` (`pass`, `reasons`, `maxDrop`,
 `failOnChanges`). A directory literally named `diff` must be written `./diff`.
 
 ## Library

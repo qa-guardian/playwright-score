@@ -23,6 +23,13 @@ case, and says so explicitly.
   `--max-drop <n>`, `--path <dir>`, `--fail-on-changes`. Exit 1 when the head
   introduces a certain finding or the score drops past `--max-drop`. Scoring
   itself is unchanged: no rule, weight or score moves.
+- **`pwscore diff` test-weakening signals** (QAG-289): per matched test,
+  `weakerMatcher` (an assertion swapped for a weaker matcher by a fixed strength
+  table), `changedExpectedLiteral` (the expected value of an otherwise identical
+  assertion changed; for review, never gates) and `raisedTimeout` (an explicit
+  test, expect or waitFor timeout raised 2x or more). `weakerMatcher` and
+  `raisedTimeout` fail `--fail-on-changes`. Additive keys in `testChanges`, so
+  `diffVersion` stays 1.
 
 ## 3.0.0 — 2026-11-26
 

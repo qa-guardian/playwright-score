@@ -5,6 +5,7 @@
  * line shift never makes one new; a rule that fires twice in a test counts twice. A test is the same
  * test when file and title path agree (see METHODOLOGY.md, "Diff: matching tests across versions").
  */
+import { compareSignals, type ChangedLiteral, type RaisedTimeout, type WeakerMatcher } from './weakening.js';
 import { testId, type SideData, type SideFinding } from './side.js';
 
 export interface FileChange {
@@ -30,6 +31,12 @@ export interface TestChanges {
   addedSkip: TestRef[];
   /** Matched, counted on both sides, fewer `expect()` calls in the head. */
   assertionsDropped: Array<TestRef & { before: number; after: number }>;
+  /** Matched, counted on both sides: an assertion swapped for a weaker matcher (table in weakening.ts). Gates. */
+  weakerMatcher: Array<TestRef & WeakerMatcher>;
+  /** Matched, counted on both sides: the expected literal of an otherwise identical assertion changed. For review; does not gate. */
+  changedExpectedLiteral: Array<TestRef & ChangedLiteral>;
+  /** Matched, counted on both sides: an explicit timeout raised 2x or more. Gates. */
+  raisedTimeout: Array<TestRef & RaisedTimeout>;
 }
 export type DiffReason = 'new-certain-findings' | 'score-drop' | 'test-changes' | 'head-not-scored' | 'head-partial';
 export interface DiffGateSettings {
@@ -90,7 +97,7 @@ export function compareSides(base: SideData, head: SideData, gate: DiffGateSetti
   const newFindings = surplus(head.findings, base.findings).map(({ finding, extra }) => ({ ...finding, extra }));
   const resolvedFindings = surplus(base.findings, head.findings).map(({ finding }) => finding);
 
-  const testChanges: TestChanges = { deleted: [], addedSkip: [], assertionsDropped: [] };
+  const testChanges: TestChanges = { deleted: [], addedSkip: [], assertionsDropped: [], weakerMatcher: [], changedExpectedLiteral: [], raisedTimeout: [] };
   for (const b of [...base.tests.values()].sort((x, y) => cmp(testId(x.file, x.titlePath), testId(y.file, y.titlePath)))) {
     if (!b.counted) continue;
     const ref: TestRef = { file: b.file, test: b.titlePath };
@@ -100,6 +107,12 @@ export function compareSides(base: SideData, head: SideData, gate: DiffGateSetti
     else if (h.counted && b.expects !== undefined && h.expects !== undefined && h.expects < b.expects) {
       testChanges.assertionsDropped.push({ ...ref, before: b.expects, after: h.expects });
     }
+    if (h && h.counted && b.assertions && h.assertions && b.timeouts && h.timeouts) {
+      const sig = compareSignals({ assertions: b.assertions, timeouts: b.timeouts }, { assertions: h.assertions, timeouts: h.timeouts });
+      for (const x of sig.weakerMatcher) testChanges.weakerMatcher.push({ ...ref, ...x });
+      for (const x of sig.changedExpectedLiteral) testChanges.changedExpectedLiteral.push({ ...ref, ...x });
+      for (const x of sig.raisedTimeout) testChanges.raisedTimeout.push({ ...ref, ...x });
+    }
   }
 
   const reasons: DiffReason[] = [];
@@ -107,7 +120,8 @@ export function compareSides(base: SideData, head: SideData, gate: DiffGateSetti
   if (head.status === 'partial' && !gate.allowPartial) reasons.push('head-partial');
   if (newFindings.length > 0) reasons.push('new-certain-findings');
   if (gate.maxDrop !== undefined && scoreDrop !== null && scoreDrop > gate.maxDrop) reasons.push('score-drop');
-  if (gate.failOnChanges && (testChanges.deleted.length > 0 || testChanges.addedSkip.length > 0 || testChanges.assertionsDropped.length > 0)) {
+  if (gate.failOnChanges && (testChanges.deleted.length > 0 || testChanges.addedSkip.length > 0 || testChanges.assertionsDropped.length > 0 ||
+      testChanges.weakerMatcher.length > 0 || testChanges.raisedTimeout.length > 0)) {
     reasons.push('test-changes');
   }
   return { scoreBefore, scoreAfter, scoreDrop, files, newFindings, resolvedFindings, testChanges, pass: reasons.length === 0, reasons };

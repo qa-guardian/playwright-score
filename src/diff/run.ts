@@ -22,7 +22,8 @@ Usage:
 this in (a branch, tag or commit: it is exported with git archive; the working
 tree is never touched). Both are scored with the same options. Reports the
 score before and after, certain findings the head introduces, the score drop
-per file and tests that were deleted, skipped or lost assertions.
+per file and tests that were deleted, skipped, lost assertions, got a weaker
+matcher or a raised timeout (changed expected values are listed for review).
 
 Options:
   --json                      JSON output (same as --format json)
@@ -30,7 +31,8 @@ Options:
   --path <dir>                Score this folder of each side (default: the folder
                               you run in, for a git ref; the directory itself)
   --fail-on-changes           Also fail on a deleted test, an added skip or fixme,
-                              or fewer assertions in a test
+                              fewer assertions, a weaker matcher or a timeout
+                              raised 2x or more in a test
 ${optionsHelp()
   .split('\n')
   .filter((l) => !/^ {2}--(threshold|fail-on|markdown-out|name|advice)\b/.test(l))
@@ -131,7 +133,7 @@ const where = (f: { file: string; test: string[] }): string => `${f.file} > ${f.
 const REASON_TEXT: Record<DiffReason, string> = {
   'new-certain-findings': 'the head introduces certain findings',
   'score-drop': 'the score dropped past --max-drop',
-  'test-changes': 'tests were deleted, skipped or lost assertions (--fail-on-changes)',
+  'test-changes': 'tests were deleted, skipped, lost assertions, got a weaker matcher or a raised timeout (--fail-on-changes)',
   'head-not-scored': 'the head is not scored (no files, or no counted test)',
   'head-partial': 'the head is partial: a file was skipped (use --allow-partial to accept)',
 };
@@ -156,10 +158,14 @@ export function diffText(base: ResolvedSide, head: ResolvedSide, b: SideData, h:
   }
   const t = d.testChanges;
   L.push('');
-  L.push(`Test changes: ${t.deleted.length} deleted, ${t.addedSkip.length} newly skipped, ${t.assertionsDropped.length} with fewer assertions`);
+  L.push(`Test changes: ${t.deleted.length} deleted, ${t.addedSkip.length} newly skipped, ${t.assertionsDropped.length} with fewer assertions, ${t.weakerMatcher.length} with a weaker matcher, ${t.raisedTimeout.length} with a raised timeout`);
   for (const x of t.deleted) L.push(`  deleted: ${where(x)}`);
   for (const x of t.addedSkip) L.push(`  skipped: ${where(x)}`);
   for (const x of t.assertionsDropped) L.push(`  assertions ${x.before} -> ${x.after}: ${where(x)}`);
+  for (const x of t.weakerMatcher) L.push(`  weaker matcher ${x.before} -> ${x.after} on ${x.subject}: ${where(x)}`);
+  for (const x of t.raisedTimeout) L.push(`  timeout ${x.before} -> ${x.after} ms (${x.target}): ${where(x)}`);
+  if (t.changedExpectedLiteral.length > 0) L.push(`Expected values changed (review, not a gate): ${t.changedExpectedLiteral.length}`);
+  for (const x of t.changedExpectedLiteral) L.push(`  ${x.matcher} on ${x.subject}: '${x.before}' -> '${x.after}': ${where(x)}`);
   L.push('');
   L.push(d.pass ? 'PASS' : `FAIL: ${d.reasons.map((r) => REASON_TEXT[r]).join('; ')}`);
   return L.join('\n');

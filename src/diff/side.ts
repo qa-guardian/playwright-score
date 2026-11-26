@@ -11,6 +11,7 @@ import { scorePaths } from '../index.js';
 import { isCharged, isCounted } from '../state-score.js';
 import { suiteLabel } from '../suite-name.js';
 import { indexTests } from './test-index.js';
+import type { AssertionFact, TimeoutFact } from './assertions.js';
 import type { ScoreOptions, ScoreResult, TestState } from '../types.js';
 
 export interface ResolvedSide {
@@ -84,6 +85,9 @@ export interface SideTest {
   counted: boolean;
   /** `expect()` calls in the test's own body; undefined when the file could not be read. */
   expects?: number;
+  /** Read from the test body; undefined when the file could not be read. */
+  assertions?: AssertionFact[];
+  timeouts?: TimeoutFact[];
 }
 
 export interface SideFinding {
@@ -151,7 +155,7 @@ export async function scoreSide(side: ResolvedSide, options: Omit<ScoreOptions, 
         titlePath: idx?.titlePath ?? [`(test at line ${e.line})`],
         state: e.state,
         counted: isCounted(e),
-        ...(idx ? { expects: idx.expects } : {}),
+        ...(idx ? { expects: idx.expects, assertions: idx.assertions, timeouts: idx.timeouts } : {}),
       };
       tests.set(testId(file, test.titlePath), test);
       byKey.set(e.testKey, test);

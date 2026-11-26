@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { indexTests } from '../src/diff/test-index.js';
 import { compareSides } from '../src/diff/compare.js';
+import { compareSignals, MATCHER_STRENGTH } from '../src/diff/weakening.js';
 import { parseDiffArgs } from '../src/diff/run.js';
 import type { SideData, SideFinding, SideTest } from '../src/diff/side.js';
 
@@ -149,6 +150,122 @@ describe('diff: tests matched by title path (S2)', () => {
       { file: 'checkout.spec.ts', test: ['pays for the order'], before: 3, after: 1 },
     ]);
     assert.equal(pair('assertions-dropped', ['--fail-on-changes']).status, 1);
+  });
+});
+
+describe('diff: weakened tests (S2b)', () => {
+  it('weakerMatcher: toHaveText, toEqual, toHaveCount and toBe swapped for weaker ones; stronger, reordered and renamed are not', () => {
+    const r = pair('weaker-matcher');
+    assert.equal(r.status, 0, r.err);
+    const w = r.json.testChanges.weakerMatcher.map((x: any) => `${x.test.join(' > ')}: ${x.before} -> ${x.after}`);
+    assert.deepEqual(w, [
+      'shows the saved banner: toHaveText -> toBeVisible',
+      'reads the user record: toEqual -> toBeTruthy',
+      'lists three orders: toHaveCount -> toBeGreaterThan',
+      'reads the plan: toBe -> toBeDefined',
+    ]);
+    assert.equal(r.json.testChanges.weakerMatcher[2].subject, 'rows');
+    // The renamed test is a deletion, nothing else.
+    assert.deepEqual(r.json.testChanges.deleted.map((x: any) => x.test[0]), ['old name']);
+    assert.deepEqual(r.json.testChanges.changedExpectedLiteral, []);
+    assert.deepEqual(r.json.testChanges.raisedTimeout, []);
+  });
+
+  it('weakerMatcher fails --fail-on-changes and is named in the text output', () => {
+    const strict = pair('weaker-matcher', ['--fail-on-changes']);
+    assert.equal(strict.status, 1);
+    assert.deepEqual(strict.json.gate.reasons, ['test-changes']);
+    assert.equal(pair('weaker-matcher').json.gate.pass, true);
+    const t = diff([fx('weaker-matcher', 'base'), fx('weaker-matcher', 'head')]);
+    assert.match(t.out, /4 with a weaker matcher/);
+    assert.match(t.out, /weaker matcher toHaveText -> toBeVisible on page\.getByTestId\('banner'\): orders\.spec\.ts > shows the saved banner/);
+  });
+
+  it('changedExpectedLiteral: a changed string is reported for review and never gates', () => {
+    const r = pair('changed-literal', ['--fail-on-changes']);
+    assert.equal(r.status, 0, r.err);
+    assert.deepEqual(
+      r.json.testChanges.changedExpectedLiteral.map((x: any) => [x.test[0], x.matcher, x.before, x.after]),
+      [
+        ['confirms the save', 'toHaveText', 'Saved', 'Save'],
+        ['links to the invoice', 'toHaveAttribute', '/invoices/1', '/invoices/2'],
+      ]
+    );
+    assert.deepEqual(r.json.testChanges.weakerMatcher, []);
+    assert.deepEqual(r.json.gate.reasons, []);
+    const t = diff([fx('changed-literal', 'base'), fx('changed-literal', 'head')]);
+    assert.match(t.out, /Expected values changed \(review, not a gate\): 2/);
+    assert.match(t.out, /toHaveText on page\.getByTestId\('status'\): 'Saved' -> 'Save'/);
+  });
+
+  it('raisedTimeout: setTimeout, an expect timeout and a waitFor timeout raised 2x or more; lowered, under 2x and newly added are not', () => {
+    const r = pair('raised-timeout');
+    assert.equal(r.status, 0, r.err);
+    assert.deepEqual(
+      r.json.testChanges.raisedTimeout.map((x: any) => [x.test[0], x.kind, x.before, x.after]),
+      [
+        ['whole-test timeout', 'setTimeout', 30000, 90000],
+        ['assertion timeout', 'expect', 5000, 15000],
+        ['waitFor timeout', 'waitFor', 5000, 10000],
+      ]
+    );
+    const strict = pair('raised-timeout', ['--fail-on-changes']);
+    assert.equal(strict.status, 1);
+    assert.deepEqual(strict.json.gate.reasons, ['test-changes']);
+    assert.match(diff([fx('raised-timeout', 'base'), fx('raised-timeout', 'head')]).out, /timeout 30000 -> 90000 ms \(test\.setTimeout\): slow\.spec\.ts > whole-test timeout/);
+  });
+
+  it('swapping the sides of the weakening fixtures reports none of them (stronger, lowered)', () => {
+    for (const name of ['weaker-matcher', 'raised-timeout']) {
+      const r = diff([fx(name, 'head'), fx(name, 'base'), '--json']);
+      assert.deepEqual(r.json.testChanges.weakerMatcher, [], name);
+      assert.deepEqual(r.json.testChanges.raisedTimeout.length, name === 'raised-timeout' ? 2 : 0, name);
+    }
+  });
+
+  it('the strength table has four levels and lists every matcher once', () => {
+    assert.deepEqual([...new Set(Object.values(MATCHER_STRENGTH))].sort(), [1, 2, 3, 4]);
+    assert.ok(MATCHER_STRENGTH.toHaveText! > MATCHER_STRENGTH.toContainText!);
+    assert.ok(MATCHER_STRENGTH.toContainText! > MATCHER_STRENGTH.toBeGreaterThan!);
+    assert.ok(MATCHER_STRENGTH.toBeGreaterThan! > MATCHER_STRENGTH.toBeVisible!);
+  });
+});
+
+describe('diff: weakening signals, pure (S2b)', () => {
+  const facts = (body: string) => {
+    const src = `test('t', async () => {\n${body}\n});`;
+    const t = indexTests(src, 'a.spec.ts', new Set([1])).get(1)!;
+    return { assertions: t.assertions, timeouts: t.timeouts };
+  };
+  const sig = (a: string, b: string) => compareSignals(facts(a), facts(b));
+
+  it('does not flag negated assertions, an unlisted matcher or a subject that differs', () => {
+    assert.deepEqual(sig('await expect(a).not.toHaveText("x");', 'await expect(a).not.toBeVisible();').weakerMatcher, []);
+    assert.deepEqual(sig('await expect(a).toBeChecked();', 'await expect(a).toBeVisible();').weakerMatcher, []);
+    assert.deepEqual(sig('await expect(a).toHaveText("x");', 'await expect(b).toBeVisible();').weakerMatcher, []);
+  });
+
+  it('does not guess when more than one assertion on a subject changed', () => {
+    const s = sig('await expect(a).toHaveText("x"); await expect(a).toHaveValue("y");', 'await expect(a).toBeVisible(); await expect(a).toBeAttached();');
+    assert.deepEqual(s.weakerMatcher, []);
+  });
+
+  it('same level is not weaker; a changed literal alongside a changed option is not reported', () => {
+    assert.deepEqual(sig('await expect(a).toBeVisible();', 'await expect(a).toBeAttached();').weakerMatcher, []);
+    assert.deepEqual(sig('await expect(a).toHaveText("x");', 'await expect(a).toHaveText("y", { timeout: 1 });').changedExpectedLiteral, []);
+    assert.deepEqual(sig('await expect(a).toHaveText("x");', 'await expect(a).toHaveText(y);').changedExpectedLiteral, []);
+  });
+
+  it('reads 5 * 1000 and ignores a non-numeric timeout and waitForTimeout', () => {
+    assert.equal(facts('test.setTimeout(5 * 1000);').timeouts[0]?.ms, 5000);
+    assert.equal(facts('test.setTimeout(limit);').timeouts.length, 0);
+    assert.equal(facts('await page.waitForTimeout(500);').timeouts.length, 0);
+  });
+
+  it('a timeout is paired only when both sides have the same count of it', () => {
+    assert.deepEqual(sig('test.setTimeout(1000);', 'test.setTimeout(9000); test.setTimeout(9000);').raisedTimeout, []);
+    assert.equal(sig('test.setTimeout(1000);', 'test.setTimeout(2000);').raisedTimeout.length, 1);
+    assert.equal(sig('test.setTimeout(1000);', 'test.setTimeout(1999);').raisedTimeout.length, 0);
   });
 });
 
@@ -304,7 +421,8 @@ describe('diff: test index', () => {
 
   it('gives the title path, the assertion count and a suffix for a repeated title', () => {
     const m = indexTests(src, 'x.spec.ts', new Set([4, 11, 13, 14]));
-    assert.deepEqual(m.get(4), { titlePath: ['outer', 'inner', 'one'], line: 4, expects: 3 });
+    assert.deepEqual({ ...m.get(4), assertions: undefined, timeouts: undefined }, { titlePath: ['outer', 'inner', 'one'], line: 4, expects: 3, assertions: undefined, timeouts: undefined });
+    assert.deepEqual(m.get(4)?.assertions.map((a) => a.matcher), ['toHaveURL', 'toBeVisible', 'toBe']);
     assert.deepEqual(m.get(11)?.titlePath, ['outer', 'case ${}']);
     assert.deepEqual(m.get(13)?.titlePath, ['outer', 'dup']);
     assert.deepEqual(m.get(14)?.titlePath, ['outer', 'dup [2]']);
