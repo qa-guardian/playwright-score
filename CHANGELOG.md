@@ -22,7 +22,12 @@ case, and says so explicitly.
   deleted test, a newly skipped test and fewer `expect()` calls. `--json`,
   `--max-drop <n>`, `--path <dir>`, `--fail-on-changes`. Exit 1 when the head
   introduces a certain finding or the score drops past `--max-drop`. Scoring
-  itself is unchanged: no rule, weight or score moves.
+  itself is unchanged: no rule, weight or score moves. Tests with a non-literal
+  title are keyed by the title's source text, a ref and a directory side are
+  aligned when they differ by a leading folder, files the base did not score
+  are reported as `unscoredInBase` instead of new, moved files are matched
+  (`renamedFiles`), and `warnings` says when the sides share no file. These
+  JSON fields are additive: `diffVersion` stays 1.
 
 ## 3.0.0 — 2026-11-26
 

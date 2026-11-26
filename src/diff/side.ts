@@ -115,6 +115,8 @@ export interface SideData {
   tests: Map<string, SideTest>;
   /** Certain findings only. */
   findings: SideFinding[];
+  /** Files found but left out of the score (deadline, unreadable, too large...): nothing is known about them. */
+  skippedFiles?: Set<string>;
 }
 
 const slash = (p: string): string => p.split(path.sep).join('/');
@@ -128,10 +130,15 @@ export async function scoreSide(side: ResolvedSide, options: Omit<ScoreOptions, 
 
   const states = result.testStates ?? [];
   const linesByFile = new Map<string, Set<number>>();
+  const statesByFile = new Map<string, typeof states>();
   for (const e of states) {
-    const set = linesByFile.get(rel(e.file)) ?? new Set<number>();
+    const f = rel(e.file);
+    const set = linesByFile.get(f) ?? new Set<number>();
     set.add(e.line);
-    linesByFile.set(rel(e.file), set);
+    linesByFile.set(f, set);
+    const list = statesByFile.get(f) ?? [];
+    list.push(e);
+    statesByFile.set(f, list);
   }
   const tests = new Map<string, SideTest>();
   const byKey = new Map<string, SideTest>();
@@ -146,7 +153,7 @@ export async function scoreSide(side: ResolvedSide, options: Omit<ScoreOptions, 
     const index = source === undefined ? new Map() : indexTests(source, file, lines);
     let counted = 0;
     let charged = 0;
-    for (const e of states.filter((s) => rel(s.file) === file)) {
+    for (const e of statesByFile.get(file) ?? []) {
       const idx = index.get(e.line);
       const test: SideTest = {
         file,
@@ -186,5 +193,6 @@ export async function scoreSide(side: ResolvedSide, options: Omit<ScoreOptions, 
     files,
     tests,
     findings,
+    skippedFiles: new Set((result.coverage?.skipped ?? []).map((f) => rel(f.file))),
   };
 }

@@ -206,7 +206,12 @@ scored from the folder you run the command in; `--path <dir>` picks another
 folder, the same one on both sides.
 
 A finding is the same finding on both sides when its rule, file and test title
-path agree, so moving code down a file never makes an old finding new. A rule
+path agree, so moving code down a file never makes an old finding new (a test
+whose title is not a literal, such as `test(NAME, ...)`, is keyed by the source
+text of that title). A ref side and a directory side that name the same files
+with a different leading folder (`e2e/x.spec.ts` against `x.spec.ts`) are lined
+up; a file moved to a new path is matched when it holds the same tests, and a
+move that is not recognised does not turn the old path's findings into new ones. A rule
 that fires twice in a test counts twice. Tests are matched the same way, by file
 and title path (see [METHODOLOGY.md](./METHODOLOGY.md#diff-matching-tests-across-versions)).
 Reported per matched test: a test **deleted**, a test newly **skipped** (`skip`,
@@ -233,8 +238,12 @@ given. A base that is not scored (no tests yet) never fails the diff.
 score, counted and charged tests), `scoreBefore`, `scoreAfter`, `scoreDrop`
 (before minus after), `files` (the files whose score changed, with `before`,
 `after`, `drop`), `newFindings`, `resolvedFindings`, `testChanges` (`deleted`,
-`addedSkip`, `assertionsDropped`) and `gate` (`pass`, `reasons`, `maxDrop`,
-`failOnChanges`). A directory literally named `diff` must be written `./diff`.
+`addedSkip`, `assertionsDropped`), `unscoredInBase` (certain findings in head
+files the base did not score, for example skipped by `--max-seconds`: reported,
+not counted as new, not gated), `renamedFiles` (`from`, `to`: a base file and a
+head file holding exactly the same tests are matched as a move), `warnings`
+(for example when the two sides share no file path) and `gate` (`pass`,
+`reasons`, `maxDrop`, `failOnChanges`). A directory literally named `diff` must be written `./diff`.
 
 ## Library
 

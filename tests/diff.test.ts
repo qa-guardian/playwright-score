@@ -185,6 +185,18 @@ describe('diff: git refs', () => {
       // A directory and a ref can be mixed; --path narrows both.
       const mixed = diff(['v1', path.join(repo, 'e2e'), '--json'], repo);
       assert.equal(mixed.status, 1, mixed.err);
+      assert.equal(mixed.json.newFindings.length, 1);
+      assert.equal(mixed.json.newFindings[0].file, 'cart.spec.ts');
+      assert.deepEqual(mixed.json.files.map((f: any) => f.file), ['cart.spec.ts']);
+      assert.deepEqual(mixed.json.warnings, []);
+      // Same content on a ref side and a directory side: nothing new, from the root and from the folder.
+      for (const cwd of [repo, path.join(repo, 'e2e')]) {
+        const same = diff(['HEAD', path.join(repo, 'e2e'), '--json'], cwd);
+        assert.equal(same.status, 0, same.err);
+        assert.equal(same.json.newFindings.length, 0);
+        assert.deepEqual(same.json.warnings, []);
+        assert.equal(same.json.base.countedTests, same.json.head.countedTests);
+      }
       const narrowed = diff(['v1', 'HEAD', '--path', 'e2e', '--json'], repo);
       assert.equal(narrowed.json.newFindings.length, 1);
       // Run from a sub folder, a ref is scored from that folder.
@@ -201,6 +213,102 @@ describe('diff: git refs', () => {
     const r = diff([fx('unchanged', 'base'), 'no-such-ref-anywhere'], fx('unchanged', 'base'));
     assert.equal(r.status, 2);
     assert.match(r.err, /not a directory, and not a git ref/);
+  });
+});
+
+describe('diff: path alignment, moved and unscored files', () => {
+  const tmp = (): string => fs.mkdtempSync(path.join(os.tmpdir(), 'pw-diff-nl-'));
+  const write = (dir: string, file: string, body: string): void => {
+    fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+    fs.writeFileSync(path.join(dir, file), body);
+  };
+  const SPEC = (title: string, pre = ''): string => `import { test, expect } from '@playwright/test';
+const NAME = 'removes an item';
+const c = { name: 'adds an item' };
+${pre}test(${title}, async ({ page }) => {
+  await page.goto('/cart');
+  page.getByRole('button', { name: 'Remove' }).click();
+  await expect(page.getByText('Your cart is empty')).toBeVisible();
+});
+`;
+  it('a test whose title is not a literal keeps its key when code above it moves', () => {
+    for (const title of ['NAME', 'c.name']) {
+      const a = tmp();
+      const b = tmp();
+      try {
+        write(a, 'cart.spec.ts', SPEC(title));
+        write(b, 'cart.spec.ts', SPEC(title, '// a comment\n'));
+        const r = diff([a, b, '--json']);
+        assert.equal(r.status, 0, r.out + r.err);
+        assert.equal(r.json.newFindings.length, 0);
+        assert.equal(r.json.resolvedFindings.length, 0);
+        assert.equal(r.json.testChanges.deleted.length, 0);
+      } finally {
+        fs.rmSync(a, { recursive: true, force: true });
+        fs.rmSync(b, { recursive: true, force: true });
+      }
+    }
+  });
+
+  it('a path prefix one side carries is aligned; sides sharing nothing warn', () => {
+    const a = tmp();
+    const b = tmp();
+    try {
+      write(a, 'cart.spec.ts', SPEC("'removes an item'"));
+      write(b, 'e2e/cart.spec.ts', SPEC("'removes an item'"));
+      const r = diff([a, b, '--json']);
+      assert.equal(r.status, 0, r.out + r.err);
+      assert.deepEqual(r.json.warnings, []);
+      assert.equal(r.json.newFindings.length, 0);
+      write(b, 'e2e/cart.spec.ts', SPEC("'something else entirely'"));
+      write(b, 'e2e/other.spec.ts', SPEC("'removes an item'"));
+      fs.rmSync(path.join(b, 'e2e', 'cart.spec.ts'));
+      write(a, 'cart.spec.ts', SPEC("'removes an item'"));
+      write(b, 'e2e/cart2.spec.ts', SPEC("'x'"));
+      fs.rmSync(path.join(b, 'e2e', 'other.spec.ts'));
+      const none = diff([a, b, '--json']);
+      assert.equal(none.json.warnings.length, 1);
+      assert.match(none.err, /share no file path/);
+    } finally {
+      fs.rmSync(a, { recursive: true, force: true });
+      fs.rmSync(b, { recursive: true, force: true });
+    }
+  });
+
+  const mk = (files: string[], tests: Array<[string, string]>, findings: Array<[string, string, string]> = [], over: Partial<SideData> = {}): SideData => ({
+    status: 'scored',
+    score: 100,
+    grade: 'A',
+    countedTests: tests.length,
+    chargedTests: 0,
+    files: new Map(files.map((f) => [f, { counted: 1, charged: 0, score: 100 }])),
+    tests: new Map(tests.map(([file, t]) => [`${file}\u0000${t}`, { file, titlePath: [t], state: 'clean', counted: true } as SideTest])),
+    findings: findings.map(([rule, file, where]) => ({ rule, file, where, message: rule })),
+    ...over,
+  });
+  const none = { maxDrop: undefined, failOnChanges: false, allowPartial: false };
+
+  it('findings in files the base did not score are reported apart and do not gate', () => {
+    const base = mk(['a.spec.ts'], [['a.spec.ts', 't']], [], { skippedFiles: new Set(['big.spec.ts']) });
+    const head = mk(['a.spec.ts', 'big.spec.ts'], [['a.spec.ts', 't'], ['big.spec.ts', 'u']], [['r', 'big.spec.ts', 'u']]);
+    const d = compareSides(base, head, none);
+    assert.equal(d.newFindings.length, 0);
+    assert.equal(d.unscoredInBase.length, 1);
+    assert.equal(d.pass, true);
+  });
+
+  it('a moved file with the same tests keeps its old findings; an unsure move is not new either', () => {
+    const base = mk(['old/a.spec.ts'], [['old/a.spec.ts', 't1'], ['old/a.spec.ts', 't2']], [['r', 'old/a.spec.ts', 't1']]);
+    const head = mk(['new/a.spec.ts'], [['new/a.spec.ts', 't1'], ['new/a.spec.ts', 't2']], [['r', 'new/a.spec.ts', 't1']]);
+    const d = compareSides(base, head, none);
+    assert.deepEqual(d.renamedFiles, [{ from: 'old/a.spec.ts', to: 'new/a.spec.ts' }]);
+    assert.equal(d.newFindings.length, 0);
+    assert.equal(d.testChanges.deleted.length, 0);
+    // Moved and a test added: not matched as a rename, but the old finding is not new; a different one is.
+    const head2 = mk(['n/a.spec.ts'], [['n/a.spec.ts', 't1'], ['n/a.spec.ts', 't2'], ['n/a.spec.ts', 't3']], [['r', 'n/a.spec.ts', 't1'], ['r2', 'n/a.spec.ts', 't3']]);
+    const d2 = compareSides(base, head2, none);
+    assert.deepEqual(d2.renamedFiles, []);
+    assert.deepEqual(d2.newFindings.map((f) => f.rule), ['r2']);
   });
 });
 
