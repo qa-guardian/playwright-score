@@ -368,6 +368,8 @@ export interface HelperFacts {
   expect: boolean;
   /** Body holds a `.waitFor(...)` call. */
   waitFor: boolean;
+  /** The file is CommonJS (`require` / `module.exports`, no ES import or export). */
+  cjs?: boolean;
   /** Names called (callee identifier or member property name). Same-file evidence only. */
   calls: Set<string>;
   /**
@@ -440,11 +442,64 @@ function receiverIsTraceable(callee: any, imported: Set<string>): boolean {
   return false;
 }
 
+/** A handler (catch block or `.catch(fn)` callback) that does not rethrow or fail the test: whatever it guards cannot fail it. */
+function handlerSwallows(handler: N): boolean {
+  if (!handler) return true;
+  let rethrows = false;
+  walk(handler, (n) => {
+    if (rethrows) return;
+    if (n.type === 'ThrowStatement') rethrows = true;
+    else if (n.type === 'CallExpression') {
+      const c = (n as N).callee;
+      const name = c?.type === 'Identifier' ? c.name : c?.type === 'MemberExpression' ? c.property?.name : undefined;
+      if (typeof name === 'string' && /fail|skip|throw/i.test(name)) rethrows = true;
+    }
+  });
+  return !rethrows;
+}
+
+/**
+ * Is `call` (an expect or a `.waitFor()`) unable to fail its helper: chained into `.catch(handler)` /
+ * `.then(ok, handler)` with a handler that does not rethrow, or inside a `try` block whose `catch` does not
+ * rethrow? Such a call is no evidence that whoever calls the helper asserts anything.
+ */
+function callSwallowed(tree: Tree, call: N, fnNode: N): boolean {
+  let cur: N = call;
+  // The walk also visits the outer `.catch(...)` call of `expect(x).toBeVisible().catch(...)`, which is itself expect-rooted.
+  const own = (call as any).callee;
+  if (own?.type === 'MemberExpression' && !own.computed) {
+    const args = (call as any).arguments ?? [];
+    if (own.property?.name === 'catch' && handlerSwallows(args[0])) return true;
+    if (own.property?.name === 'then' && args.length >= 2 && handlerSwallows(args[1])) return true;
+  }
+  for (let p = tree.parent(cur); p && cur !== fnNode; cur = p, p = tree.parent(cur)) {
+    if (p.type === 'MemberExpression' && p.object === cur && !p.computed) {
+      const g = tree.parent(p);
+      if (g?.type === 'CallExpression' && g.callee === p) {
+        const prop = p.property?.name;
+        if (prop === 'catch' && handlerSwallows(g.arguments?.[0])) return true;
+        if (prop === 'then' && g.arguments?.length >= 2 && handlerSwallows(g.arguments[1])) return true;
+      }
+    }
+    if (p.type === 'TryStatement' && p.block === cur && p.handler && handlerSwallows(p.handler.body)) return true;
+    if (p === fnNode) break;
+  }
+  return false;
+}
+
 export function extractHelperFacts(source: string, file: string): HelperFacts[] {
   const ast = parseSource(source, file);
   if (!ast) return [];
   const imported = importedBindingNames(ast);
   const tree = new Tree(ast as N);
+  let esSyntax = false;
+  let cjsSyntax = false;
+  walk(ast, (n) => {
+    if (/^(Import|Export)/.test(n.type as string) && n.type !== 'ImportExpression') esSyntax = true;
+    else if (n.type === 'CallExpression' && (n as any).callee?.type === 'Identifier' && (n as any).callee.name === 'require') cjsSyntax = true;
+    else if (n.type === 'MemberExpression' && (n as any).object?.type === 'Identifier' && ['module', 'exports'].includes((n as any).object.name)) cjsSyntax = true;
+  });
+  const cjs = cjsSyntax && !esSyntax;
   return candidatesFromAst(ast).map((c) => {
     // A matcher-less `return expect(x)` is evidence only when a caller chains
     // the matcher (same rule as the valid-expect post-filter).
@@ -460,7 +515,7 @@ export function extractHelperFacts(source: string, file: string): HelperFacts[] 
     walk(c.body, (n) => {
       if (n.type !== 'CallExpression') return;
       const callee = (n as { callee?: Record<string, unknown> }).callee;
-      if (!expectFound && !ignored.has(n) && isExpectCallee(callee)) expectFound = true;
+      if (!expectFound && !ignored.has(n) && isExpectCallee(callee) && !callSwallowed(tree, n as N, fnNode)) expectFound = true;
       if (callee?.type === 'Identifier') {
         const name = (callee as { name: string }).name;
         calls.add(name);
@@ -470,11 +525,11 @@ export function extractHelperFacts(source: string, file: string): HelperFacts[] 
         if (property?.type === 'Identifier' && property.name) {
           calls.add(property.name);
           if (receiverIsTraceable(callee, imported)) crossCalls.add(property.name);
-          if (property.name === 'waitFor') waitFor = true;
+          if (property.name === 'waitFor' && !callSwallowed(tree, n as N, fnNode)) waitFor = true;
         }
       }
     });
-    return { name: c.name, file, expect: expectFound, waitFor, calls, crossCalls };
+    return { name: c.name, file, expect: expectFound, waitFor, cjs, calls, crossCalls };
   });
 }
 
