@@ -34,6 +34,10 @@ inputs:
     description: 'Post/update a sticky PR comment with the score report (pull_request events only)'
     required: false
     default: 'true'
+  changed-only:
+    description: 'true: on pull_request events score only the spec files changed since the PR base (and the specs that import a changed shared file). The result is labelled SCOPED and its score is that of those files, not of the whole suite. A changed playwright config, tsconfig or lockfile scores every spec; no changed spec is "nothing to score" and passes. Needs the PR base commit in the clone: use actions/checkout with fetch-depth: 0. Ignored on other events.'
+    required: false
+    default: 'false'
   version:
     description: 'Version of @qaguardian/playwright-score to run (npm dist-tag or version range)'
     required: false
@@ -45,14 +49,17 @@ inputs:
 
 outputs:
   score:
-    description: 'Overall score, 0-100'
+    description: 'Overall score, 0-100 (empty when changed-only found no spec to score)'
     value: ${{ steps.score.outputs.score }}
   grade:
-    description: 'Letter grade, A-F'
+    description: 'Letter grade, A-F (empty when changed-only found no spec to score)'
     value: ${{ steps.score.outputs.grade }}
   pass:
     description: '"true" or "false": true when every file was scored (or the result is partial and allow-partial is true), no finding that lets a test pass whatever the app does was found, and the score meets the threshold when one is given'
     value: ${{ steps.score.outputs.pass }}
+  scoped:
+    description: '"true" or "false": true when the result covers only the spec files changed since the PR base (changed-only), so the score is that of those files and not of the whole suite. "false" for a full run, including a changed-only run that fell back to every spec (a changed config, tsconfig or lockfile).'
+    value: ${{ steps.score.outputs.scoped }}
 
 runs:
   using: 'composite'
@@ -72,6 +79,9 @@ runs:
         PWS_ALLOW_PARTIAL: ${{ inputs.allow-partial }}
         PWS_MAX_SECONDS: ${{ inputs.max-seconds }}
         PWS_VERSION: ${{ inputs.version }}
+        PWS_CHANGED_ONLY: ${{ inputs.changed-only }}
+        PWS_EVENT_NAME: ${{ github.event_name }}
+        PWS_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       run: |
         set -e
         GATE_ARGS=()
@@ -83,6 +93,21 @@ runs:
         fi
         if [ -n "$PWS_MAX_SECONDS" ]; then
           GATE_ARGS+=(--max-seconds "$PWS_MAX_SECONDS")
+        fi
+
+        if [ "$PWS_CHANGED_ONLY" = "true" ]; then
+          if [ "$PWS_EVENT_NAME" = "pull_request" ]; then
+            # The check runs in the repository of the first path (the workspace root may not be a repository).
+            PWS_FIRST_PATH="${PWS_PATHS%% *}"
+            if [ -d "$PWS_FIRST_PATH" ]; then PWS_GIT_DIR="$PWS_FIRST_PATH"; else PWS_GIT_DIR="$(dirname "$PWS_FIRST_PATH")"; fi
+            if [ -z "$PWS_BASE_SHA" ] || ! git -C "$PWS_GIT_DIR" cat-file -e "${PWS_BASE_SHA}^{commit}" 2>/dev/null; then
+              echo "::error::changed-only needs the pull request base commit (${PWS_BASE_SHA:-unknown}) in the checkout, and this clone does not have it (a shallow clone is the usual cause). Use actions/checkout with fetch-depth: 0, or set changed-only: false to score every spec."
+              exit 2
+            fi
+            GATE_ARGS+=(--changed-since "$PWS_BASE_SHA")
+          else
+            echo "::notice::changed-only applies to pull_request events only; scoring every spec on $PWS_EVENT_NAME. (pull_request_target checks out the base branch by default, so a diff against the PR base would always be empty and every PR would pass.)"
+          fi
         fi
 
         # One run writes both reports: JSON for the outputs, markdown for the summary and the comment.
@@ -104,10 +129,20 @@ runs:
         SCORE=$(jq -r '.score' "$RUNNER_TEMP/pw-score.json")
         GRADE=$(jq -r '.grade' "$RUNNER_TEMP/pw-score.json")
         PASS=$(jq -r '.pass' "$RUNNER_TEMP/pw-score.json")
+        if [ "$(jq -r '.scope.empty // false' "$RUNNER_TEMP/pw-score.json")" = "true" ]; then
+          # Nothing was scored: no score or grade, so a step that reads them does not see a failing F.
+          SCORE=""
+          GRADE=""
+        fi
         echo "score=$SCORE" >> "$GITHUB_OUTPUT"
         echo "grade=$GRADE" >> "$GITHUB_OUTPUT"
         echo "pass=$PASS" >> "$GITHUB_OUTPUT"
-        echo "Playwright Spec Score: $SCORE/100 ($GRADE) — pass=$PASS"
+        echo "scoped=$(jq -r '.scope.scoped // false' "$RUNNER_TEMP/pw-score.json")" >> "$GITHUB_OUTPUT"
+        if [ "$(jq -r '.scope.empty // false' "$RUNNER_TEMP/pw-score.json")" = "true" ]; then
+          echo "Playwright Spec Score: nothing to score (no spec file changed or affected) — pass=$PASS"
+        else
+          echo "Playwright Spec Score: $SCORE/100 ($GRADE) — pass=$PASS"
+        fi
 
     - name: Comment on PR
       if: ${{ inputs.comment == 'true' && github.event_name == 'pull_request' }}

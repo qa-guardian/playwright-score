@@ -327,6 +327,31 @@ export interface ScoreResult {
   coverage?: Coverage;
   /** Always set by `scorePaths`: the gate settings and why the result does not pass. */
   gate?: GateOutcome;
+  /** Set only by a `--changed-since` run (see `ScopeInfo`). Absent on every other run. */
+  scope?: ScopeInfo;
+}
+
+/**
+ * A `--changed-since <ref>` run: the result covers only the spec files changed since the ref (and
+ * the specs that import a changed shared file), so its score is the score of that subset, not of
+ * the repo. Additive: a run without the flag has no `scope`.
+ */
+export interface ScopeInfo {
+  kind: 'changed-since';
+  ref: string;
+  /** False when the run fell back to every spec file (`fallback` says why). */
+  scoped: boolean;
+  /** Why the run covers every spec file: the playwright config, a tsconfig or a lockfile changed. */
+  fallback?: string;
+  /** Spec files in scope (all of them on a fallback), and the spec files found under the paths. */
+  specFiles: number;
+  specFilesTotal: number;
+  /** Files git reports as changed since the ref (deleted ones included), anywhere in the repo. */
+  changedFiles: number;
+  /** True when no spec file is in scope: nothing was scored and the gate passes. */
+  empty: boolean;
+  /** The spec files in scope, relative to the scored directory, sorted. */
+  files: string[];
 }
 
 export interface ScoreOptions {
@@ -348,6 +373,12 @@ export interface ScoreOptions {
   /** Read by the text, markdown and report formatters (they show advisory findings and needs-check reasons); no effect on the result. Default false. */
   advice?: boolean;
   cwd?: string;
+  /**
+   * Score only the spec files changed since this git ref (merge base with HEAD, plus uncommitted
+   * and untracked files) and the specs that import a changed shared file. See `ScopeInfo`.
+   * Throws when the paths are not in a git repository or the ref does not exist.
+   */
+  changedSince?: string;
   /**
    * Time limit for the whole call, in seconds, counted from the call. No
    * default: a run without it is never cut short. Finding and classifying the

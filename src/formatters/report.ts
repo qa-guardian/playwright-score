@@ -1,5 +1,6 @@
 import type { ScoreResult } from '../types.js';
 import { REPORT_CSS } from './report-css.js';
+import { scopeLine } from '../changed-files.js';
 import {
   barText,
   gradeBandText,
@@ -84,6 +85,7 @@ export function formatReport(result: ScoreResult, opts: ReportOptions): string {
   const advisoryHtml = advisoryText ? `\n<p class="check">${escapeHtml(advisoryText)}</p>` : '';
   const crashLine = result.ruleCrashes?.length ? `\n<p class="check">${escapeHtml(INCOMPLETE_NOTE)}</p>` : '';
   const partial = partialNote(result);
+  const scopeHtml = result.scope ? `\n<p class="check">${escapeHtml(scopeLine(result.scope))}</p>` : '';
   const partialLine = partial ? `\n<p class="check">${escapeHtml(partial)}</p>` : '';
   const meta = state
     ? plural(result.coverage?.filesFound ?? summary.files, 'file')
@@ -96,7 +98,7 @@ export function formatReport(result: ScoreResult, opts: ReportOptions): string {
 ${scoreBox}
 <div>
 <h1>${srScore}${escapeHtml(headline)}</h1>
-<p class="explain">${escapeHtml(explain)}</p>${humanLine}${advisoryHtml}${crashLine}${partialLine}
+<p class="explain">${escapeHtml(explain)}</p>${humanLine}${advisoryHtml}${scopeHtml}${crashLine}${partialLine}
 <p class="meta">${meta} · scored ${escapeHtml(longDate(opts.date))}</p>
 </div>
 </div>

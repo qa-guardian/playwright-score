@@ -38,7 +38,12 @@ Exit codes:
      test was counted) and every not-scored result (no files matched,
      every file skipped with no limit hit, or no counted tests)
   2  tool or usage error (an unknown option or --fail-on value, or
-     "none" combined with another --fail-on value)
+     "none" combined with another --fail-on value; with
+     --changed-since also: not a git repository, unknown
+     ref, or a shallow clone missing the ref)
+
+With --changed-since the exit code follows the same rules for the files in
+scope only; no spec file in scope is nothing to score and exits 0.
 
 Website: https://qaguardian.com/open-source/playwright-score
 Methodology: METHODOLOGY.md (scoring model v5)
@@ -103,10 +108,10 @@ async function main(): Promise<void> {
     process.exitCode = 2;
     return;
   }
-  const { paths, profile, threshold, format, out, markdownOut, name, maxSeconds, maxHeapMb, shared, failOn, allowPartial, advice } = parsed.options;
+  const { paths, profile, threshold, format, out, markdownOut, name, maxSeconds, maxHeapMb, shared, failOn, allowPartial, advice, changedSince } = parsed.options;
 
   try {
-    const result = await scorePaths({ paths, profile, threshold, maxSeconds, maxHeapMb, shared, failOn, allowPartial, advice });
+    const result = await scorePaths({ paths, profile, threshold, maxSeconds, maxHeapMb, shared, failOn, allowPartial, advice, ...(changedSince !== undefined ? { changedSince } : {}) });
     for (const c of result.ruleCrashes ?? []) {
       console.error(`warning: rule ${c.rule} crashed on ${c.count} node(s); results may be incomplete`);
     }
