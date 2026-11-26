@@ -71,8 +71,9 @@ const input = {
 // no wait on wall time:
 // - error-first: the worker's messages are held until its 'error' has been emitted.
 // - result-first: its 'error' is held until a batch result has been emitted (or 'exit').
-// - error-first-timer: error-first, and then every later event is held until the time limit's
-//   timer has read the clock and seen the limit passed (the timer is a spy, see below).
+// - error-first-timer: error-first, and right after the error the time limit's timer callback is
+//   called (as if it fired in the window before the worker's messages and 'exit' come; the
+//   clock is a spy, see below), and only then are the held messages delivered.
 // The driver also logs every batch posted to a worker (the first file of each).
 const order = process.env.PWSCORE_TEST_ORDER ?? '';
 const ids = new Map();
@@ -81,7 +82,13 @@ let errored = false;
 let resultSeen = false;
 let heldError;
 let timerSeen = false;
+let timerFn;
 let flush = () => {};
+const setTimer = globalThis.setTimeout;
+globalThis.setTimeout = (fn, ms, ...rest) => {
+  if (ms === 2) timerFn = fn;
+  return setTimer(fn, ms, ...rest);
+};
 const posts = [];
 const post = Worker.prototype.postMessage;
 Worker.prototype.postMessage = function (value, ...rest) {
@@ -108,14 +115,11 @@ Worker.prototype.emit = function (event, ...args) {
   if (event === 'error') {
     errored = true;
     go(event, args);
-    if (order === 'error-first') flush();
+    if (order === 'error-first-timer' && timerFn) timerFn();
+    flush();
     return true;
   }
   if (order !== 'result-first' && !errored && event === 'message') {
-    held.push([event, args]);
-    return true;
-  }
-  if (order === 'error-first-timer' && errored && (event === 'message' || event === 'exit') && !timerSeen) {
     held.push([event, args]);
     return true;
   }
@@ -131,15 +135,13 @@ Worker.prototype.emit = function (event, ...args) {
   return r;
 };
 // The timer's clock reads: with the timer order the limit "passes" once, after the dead worker's
-// error was seen, and only then the held events go on (in a later turn, so the timer's own
-// callback has finished first).
+// error was seen.
 const time = order === 'error-first-timer'
   ? {
       msLeft: (at) => (at === 'timer' ? 2 : Infinity),
       passed: (at) => {
         if (at !== 'timer' || !errored || timerSeen) return false;
         timerSeen = true;
-        setImmediate(() => flush());
         return true;
       },
     }
