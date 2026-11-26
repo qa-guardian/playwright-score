@@ -130,6 +130,8 @@ export interface ScopeInput {
   specifiers: ReadonlyMap<string, string[]>;
   /** False when the graph could not be built in full (a file did not parse, a ceiling was hit). Default true. */
   graphComplete?: boolean;
+  /** A file in the graph loads a module through a non-literal require() or import(): any file may be reached. */
+  dynamicLoad?: string;
   /** Playwright config files that apply to the scored paths; a change in what they import puts every spec in scope. */
   configRoots?: readonly string[];
 }
@@ -157,6 +159,13 @@ export function computeScope(input: ScopeInput): ScopeOutcome {
     const unprovable = [...input.git.changed, ...input.git.deleted].find((f) => SOURCE_RE.test(f) && !specSet.has(f));
     if (unprovable !== undefined) {
       return { specs: all, fallback: `the import graph could not be built in full, so a change to ${path.basename(unprovable)} cannot be ruled out as reaching a spec` };
+    }
+  }
+  if (input.dynamicLoad !== undefined) {
+    const specSet = new Set(all);
+    const unprovable = [...input.git.changed, ...input.git.deleted].find((f) => SOURCE_RE.test(f) && !specSet.has(f));
+    if (unprovable !== undefined) {
+      return { specs: all, fallback: `${path.basename(input.dynamicLoad)} loads a module through a non-literal require() or import(), so a change to ${path.basename(unprovable)} cannot be ruled out as reaching a spec` };
     }
   }
   const realOf = (f: string): string => {

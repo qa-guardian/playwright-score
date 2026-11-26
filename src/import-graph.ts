@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { parseAst } from './parse-cache.js';
+import { walk } from './test-syntax.js';
 import { createModuleResolver, firstExistingFile, type ImportResolver } from './module-resolution.js';
 
 export { createModuleResolver, type ImportResolver } from './module-resolution.js';
@@ -43,6 +44,35 @@ function requiredAtTopLevel(node: Loose): string[] {
     if (spec !== undefined) out.push(spec);
   }
   return out;
+}
+
+/**
+ * Every module load in a file, for the `--changed-since` graph, where a missed edge fails open: the static imports
+ * and top-level requires of `parseImportSpecifiers`, plus a literal `require('x')` or `import('x')` anywhere (a
+ * function body included; over-following is safe here). `dynamic` is true when a load has a non-literal specifier:
+ * it can reach any file, so the caller cannot prove that a changed file is unreachable. Undefined when unparsable.
+ */
+function parseScopeLoads(source: string, file: string): { specs: string[]; dynamic: boolean } | undefined {
+  const base = parseImportSpecifiers(source, file);
+  if (base === undefined) return undefined;
+  const specs = new Set(base);
+  let dynamic = false;
+  let ast: Loose;
+  try {
+    ast = parseAst(source, file) as unknown as Loose;
+  } catch {
+    return undefined;
+  }
+  walk(ast as never, (n: Loose) => {
+    let arg: Loose | undefined;
+    if (n.type === 'ImportExpression') arg = n.source as Loose;
+    else if (n.type === 'CallExpression' && n.callee?.type === 'Identifier' && n.callee.name === 'require') arg = n.arguments?.[0] as Loose | undefined;
+    else return;
+    if (arg?.type === 'Literal' && typeof arg.value === 'string') specs.add(arg.value);
+    else if (arg?.type === 'TemplateLiteral' && arg.expressions?.length === 0 && arg.quasis?.length === 1) specs.add(String(arg.quasis[0].value?.cooked ?? ''));
+    else dynamic = true;
+  });
+  return { specs: [...specs], dynamic };
 }
 
 function extractImportSpecifiers(source: string, file: string): string[] {
@@ -195,8 +225,9 @@ export function collectScopeGraph(
   moduleResolver: ImportResolver,
   edges: Map<string, string[]>,
   specifiers: Map<string, string[]>
-): { complete: boolean } {
+): { complete: boolean; dynamicLoad?: string } {
   let complete = true;
+  let dynamicLoad: string | undefined;
   const visited = new Set<string>();
   const queue: Array<{ file: string; source: string }> = [];
   for (const [file, source] of roots) {
@@ -204,14 +235,16 @@ export function collectScopeGraph(
     queue.push({ file, source });
   }
   while (queue.length > 0) {
-    if (visited.size > SCOPE_MAX_FILES) return { complete: false };
+    if (visited.size > SCOPE_MAX_FILES) return { complete: false, ...(dynamicLoad ? { dynamicLoad } : {}) };
     const { file, source } = queue.shift()!;
-    const specs = parseImportSpecifiers(source, file);
-    if (specs === undefined) {
+    const loads = parseScopeLoads(source, file);
+    if (loads === undefined) {
       complete = false;
       specifiers.set(file, []);
       continue;
     }
+    if (loads.dynamic && dynamicLoad === undefined) dynamicLoad = file;
+    const specs = loads.specs;
     specifiers.set(file, specs);
     for (const specifier of specs) {
       const resolved = resolveImportSpecifier(file, specifier, boundaryDir, moduleResolver);
@@ -228,5 +261,5 @@ export function collectScopeGraph(
       }
     }
   }
-  return { complete };
+  return { complete, ...(dynamicLoad ? { dynamicLoad } : {}) };
 }

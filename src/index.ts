@@ -754,8 +754,8 @@ async function scorePathsInner(options: ScoreOptions, texts: Map<string, string>
         /* unreadable config: its edges are simply absent */
       }
     }
-    const { complete } = collectScopeGraph(roots, gitChange.top, createModuleResolver(gitChange.top), edges, specifiers);
-    const outcome = computeScope({ specs: allFound, git: gitChange, edges, specifiers, graphComplete: complete, configRoots });
+    const { complete, dynamicLoad } = collectScopeGraph(roots, gitChange.top, createModuleResolver(gitChange.top), edges, specifiers);
+    const outcome = computeScope({ specs: allFound, git: gitChange, edges, specifiers, graphComplete: complete, dynamicLoad, configRoots });
     scope = out.scope = scopeInfo(options.changedSince, allFound.length, outcome, gitChange.changed.length + gitChange.deleted.length, filesBase);
     const inScope = new Set(outcome.specs);
     found = allFound.filter((f) => inScope.has(f));

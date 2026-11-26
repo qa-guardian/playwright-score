@@ -402,3 +402,51 @@ describe('--changed-since: files the scoring graph cannot see (CLI spawned)', ()
     assert.match(String(r.json?.scope?.fallback), /import graph could not be built in full/);
   });
 });
+
+describe('--changed-since: CommonJS require() (CLI spawned)', () => {
+  let repo: string;
+  before(() => {
+    repo = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-score-changed-cjs-'));
+    git(repo, 'init', '-q', '-b', 'main');
+    write(repo, 'helpers/cjs.js', `module.exports = { v: 1 };\n`);
+    write(repo, 'helpers/inner.js', `module.exports = { v: 1 };\n`);
+    write(repo, 'helpers/outer.js', `const inner = require('./inner');\nmodule.exports = inner;\n`);
+    write(repo, 'helpers/lazy.js', `module.exports = { v: 1 };\n`);
+    write(repo, 'helpers/other.js', `module.exports = { v: 1 };\n`);
+    write(repo, 'e2e/a.spec.ts', GOOD('a', `const cjs = require('../helpers/cjs');\n`));
+    write(repo, 'e2e/b.spec.ts', GOOD('b', `const outer = require('../helpers/outer');\n`));
+    write(repo, 'e2e/c.spec.ts', GOOD('c', `export function lazy() { return require('../helpers/lazy'); }\n`));
+    write(repo, 'e2e/d.spec.ts', GOOD('d'));
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-q', '-m', 'base');
+    git(repo, 'branch', 'base');
+    git(repo, 'checkout', '-q', '-b', 'feature');
+  });
+  after(() => fs.rmSync(repo, { recursive: true, force: true }));
+  const e2e = (): string => path.join(repo, 'e2e');
+
+  it('a changed require()d helper scopes in the spec that requires it, not "nothing to score"', () => {
+    write(repo, 'helpers/cjs.js', `module.exports = { v: 2 };\n`);
+    const r = run(e2e(), ['--changed-since', 'base']);
+    assert.equal(r.json?.scope?.empty, false);
+    assert.deepEqual(r.json?.scope?.files, ['a.spec.ts']);
+    git(repo, 'checkout', '-q', '--', 'helpers');
+  });
+  it('a require() chain through a CommonJS helper and a require() in a function body are followed', () => {
+    write(repo, 'helpers/inner.js', `module.exports = { v: 2 };\n`);
+    write(repo, 'helpers/lazy.js', `module.exports = { v: 2 };\n`);
+    const r = run(e2e(), ['--changed-since', 'base']);
+    assert.deepEqual(r.json?.scope?.files, ['b.spec.ts', 'c.spec.ts']);
+    git(repo, 'checkout', '-q', '--', 'helpers');
+  });
+  it('a non-literal require() makes a changed helper unprovable: full run, with the reason', () => {
+    write(repo, 'e2e/d.spec.ts', GOOD('d', `const name = 'other';\nconst dyn = require('../helpers/' + name);\n`));
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-q', '-m', 'dynamic require');
+    git(repo, 'branch', '-f', 'base3');
+    write(repo, 'helpers/other.js', `module.exports = { v: 2 };\n`);
+    const r = run(e2e(), ['--changed-since', 'base3']);
+    assert.equal(r.json?.scope?.scoped, false);
+    assert.match(String(r.json?.scope?.fallback), /non-literal require\(\) or import\(\)/);
+  });
+});
