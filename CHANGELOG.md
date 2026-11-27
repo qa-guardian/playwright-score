@@ -10,7 +10,12 @@ parsing accuracy, not grading policy — can still move a suite's score
 without itself being a new model version; 2.1.0 below is exactly that
 case, and says so explicitly.
 
-## 3.1.0 — Unreleased
+## 3.1.0 — 2026-11-26
+
+Scoring model v5 is unchanged: no rule weight, severity or tier moved, so 3.1.0
+is not a new scoring-model version. What changes is which files are scanned
+(`--changed-since`, CommonJS `require()` discovery), the findings of three rules
+in the cases named under Fixed, and how a worker death is handled.
 
 ### Added
 
@@ -26,7 +31,7 @@ case, and says so explicitly.
   config imports scores every spec; the import graph used for scoping has no
   depth or file cap and spans the repository, and an incomplete graph (a file
   that does not parse) also falls back to a full run. The Action ignores
-  `pull_request_target`; `score`/`grade` outputs are empty when nothing was scored ("Full run, not scoped").
+  `pull_request_target`. When no spec is in scope the Action reports "nothing to score" and passes.
   Not a git repository, an unknown ref or a shallow clone missing the ref
   exit 2. The Action gets `changed-only` (pull requests only, the PR base
   commit as the ref; needs `fetch-depth: 0`) and an output `scoped`
@@ -64,7 +69,7 @@ case, and says so explicitly.
 
 ### Fixed
 
-Fixes to the causes behind three known precision and recall gaps. No rule weight, severity or tier changes.
+Five fixes. No rule weight, severity or tier changes.
 
 - **CommonJS helpers are discovered.** A top-level `const x = require('./helper')`, `const { y } = require('./helper')`, `require('./helper').y` or a bare `require('./helper')` statement now reaches the helper file like an ES `import` does, so a helper or fixture file that a CommonJS spec requires is linted as a shared file and counts in the import closure. A `require` inside a function and a computed specifier are not followed.
 - **`missing-playwright-await` no longer reports a promise that is handed on.** An unawaited Playwright call such as `page.waitForResponse(...)` that is stored in a member (`this.pending = ...`), or in a variable that is later returned, put in a returned object or array, passed to another call or stored in a member, is the arming idiom of a page object: whoever receives the promise awaits it. It is no longer reported. A promise that is never used again keeps its finding.
