@@ -92,7 +92,7 @@ regressions.
   them used during development. This is below the
   development figure: the rules do less well on code they were not built
   from, and work to make them generalise is planned for 3.0.x.
-- The package's own test suite: 2,861 of 2,861 tests pass.
+- The package's own test suite: 2,912 of 2,912 tests pass.
 
 ## Known limitations
 
