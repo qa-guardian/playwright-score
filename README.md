@@ -226,6 +226,13 @@ sides, and report only what they can read with certainty:
   `toBeLessThan`, `toBeLessThanOrEqual`, `toBeCloseTo`); 1 only checks that
   something exists (`toBeVisible`, `toBeAttached`, `toBeTruthy`, `toBeDefined`).
   Only a drop to a lower level counts; an unlisted matcher is never compared.
+  The base assertion must take no argument or only plain literals (string,
+  number, boolean, `null`): `toHaveText(/re/)` or `toEqual(expect.objectContaining(..))`
+  are never judged. It is not flagged when the same matcher and arguments
+  reappear on another subject in the head test, nor for `toBe(true)` /
+  `toEqual(true)` -> `toBeTruthy()`, nor for `toHaveCount(n)` -> `toBeVisible()` /
+  `toBeAttached()` (a strict-mode visibility check on the locator already needs
+  a single match; precision beats catching that one).
 - **`changedExpectedLiteral`**: the expected string, number or boolean of an
   otherwise identical assertion changed (`toHaveText('Saved')` ->
   `toHaveText('Save')`). It is a change to review, not a weakening, and never
@@ -235,8 +242,9 @@ sides, and report only what they can read with certainty:
   value (numbers and simple products like `5 * 1000` are read).
 
 Not flagged, on purpose: reordered or reformatted assertions, negated
-(`.not`) assertions, a change to a regex or a non-literal argument, a subject
-that changed, more than one changed assertion on one subject (the pairing would
+(`.not`) assertions, a change to a regex or a non-literal argument, an
+assertion that moved to another subject (or a swap whose base argument is a
+regex, object or expression), a subject that changed, more than one changed assertion on one subject (the pairing would
 be a guess), a lowered timeout, a timeout newly added or removed, and a renamed
 test (it reads as deleted plus new).
 

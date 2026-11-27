@@ -30,6 +30,9 @@ case, and says so explicitly.
   test, expect or waitFor timeout raised 2x or more). `weakerMatcher` and
   `raisedTimeout` fail `--fail-on-changes`. Additive keys in `testChanges`, so
   `diffVersion` stays 1.
+  `weakerMatcher` is judged only when every base argument is a plain literal, and
+  is not raised when the assertion moved to another subject, for `toBe(true)` ->
+  `toBeTruthy()` or for `toHaveCount(n)` -> `toBeVisible()`.
 
 ## 3.0.0 — 2026-11-26
 

@@ -7,7 +7,7 @@ test('shows the saved banner', async ({ page }) => {
 
 test('reads the user record', async ({ page }) => {
   const user = { name: 'Ada', admin: false };
-  expect(user).toEqual({ name: 'Ada', admin: false });
+  expect(user.name).toEqual('Ada');
 });
 
 test('lists three orders', async ({ page }) => {

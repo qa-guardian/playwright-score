@@ -171,6 +171,14 @@ describe('diff: weakened tests (S2b)', () => {
     assert.deepEqual(r.json.testChanges.raisedTimeout, []);
   });
 
+  it('weakerMatcher: a moved subject, a regex or object argument, true read as truthy and a single count read as visible are not weakening', () => {
+    const r = pair('weaker-matcher-moved', ['--fail-on-changes']);
+    assert.deepEqual(r.json.testChanges.weakerMatcher.map((x: any) => `${x.test.join(' > ')}: ${x.before} -> ${x.after}`), [
+      'genuine weakening on the same subject: toHaveText -> toBeVisible',
+    ]);
+    assert.equal(r.status, 1);
+  });
+
   it('weakerMatcher fails --fail-on-changes and is named in the text output', () => {
     const strict = pair('weaker-matcher', ['--fail-on-changes']);
     assert.equal(strict.status, 1);
@@ -244,6 +252,19 @@ describe('diff: weakening signals, pure (S2b)', () => {
     assert.deepEqual(sig('await expect(a).not.toHaveText("x");', 'await expect(a).not.toBeVisible();').weakerMatcher, []);
     assert.deepEqual(sig('await expect(a).toBeChecked();', 'await expect(a).toBeVisible();').weakerMatcher, []);
     assert.deepEqual(sig('await expect(a).toHaveText("x");', 'await expect(b).toBeVisible();').weakerMatcher, []);
+  });
+
+  it('the five reviewed false positives are not flagged; a plain literal on the same subject still is', () => {
+    const w = (a: string, b: string) => sig(a, b).weakerMatcher;
+    assert.deepEqual(w('await expect(row).toHaveText("x");', 'await expect(row).toBeVisible(); await expect(row.getByRole("cell")).toHaveText("x");'), []);
+    assert.deepEqual(w('await expect(a).toHaveText(/Welcome/);', 'await expect(a).toContainText("Welcome back");'), []);
+    assert.deepEqual(w('expect(u).toEqual(expect.objectContaining({ a: 1 }));', 'expect(u).toMatchObject({ a: 1 });'), []);
+    assert.deepEqual(w('expect(await x.isEnabled()).toBe(true);', 'expect(await x.isEnabled()).toBeTruthy();'), []);
+    assert.deepEqual(w('await expect(a).toHaveCount(1);', 'await expect(a).toBeVisible();'), []);
+    assert.equal(w('await expect(a).toHaveText("Order #123");', 'await expect(a).toBeVisible();').length, 1);
+    assert.equal(w('expect(n).toBe(null);', 'expect(n).toBeDefined();').length, 1);
+    assert.equal(w('expect(n).toBe(false);', 'expect(n).toBeTruthy();').length, 1);
+    assert.equal(w('await expect(a).toHaveCount(3);', 'expect(await a.count()).toBeGreaterThan(0);').length, 1);
   });
 
   it('does not guess when more than one assertion on a subject changed', () => {

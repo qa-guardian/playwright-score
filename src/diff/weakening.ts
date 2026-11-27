@@ -71,6 +71,25 @@ function leftovers(b: AssertionFact[], h: AssertionFact[]): [AssertionFact[], As
   return [onlyBase, rest];
 }
 
+/** A plain literal (string, number, boolean, null) or no argument at all: the only base a swap is judged on. */
+const plainArgs = (a: AssertionFact): boolean => a.args.every((t, i) => a.literals[i] !== undefined || t === 'null');
+
+/**
+ * Is `b` (head) a certainly weaker replacement for `a` (base) on the same subject? Needs every base
+ * argument to be a plain literal: a regex, an object or an expression can be restated by another
+ * matcher with the same strength, so a swap there is not judged.
+ */
+function isWeaker(a: AssertionFact, b: AssertionFact): boolean {
+  const [sa, sb] = [MATCHER_STRENGTH[a.matcher], MATCHER_STRENGTH[b.matcher]];
+  if (sa === undefined || sb === undefined || sb >= sa) return false;
+  if (!plainArgs(a)) return false;
+  // `toBe(true)` and `toBeTruthy()` on a boolean say the same thing.
+  if ((a.matcher === 'toBe' || a.matcher === 'toEqual') && a.args.length === 1 && a.args[0] === 'true' && b.matcher === 'toBeTruthy') return false;
+  // A locator that must match exactly one element is already checked by a strict-mode visibility or attached check.
+  if (a.matcher === 'toHaveCount' && (b.matcher === 'toBeVisible' || b.matcher === 'toBeAttached')) return false;
+  return true;
+}
+
 export function compareSignals(
   base: { assertions: AssertionFact[]; timeouts: TimeoutFact[] },
   head: { assertions: AssertionFact[]; timeouts: TimeoutFact[] }
@@ -86,8 +105,10 @@ export function compareSignals(
     if (ob.length !== 1 || oh.length !== 1) continue;
     const [a, b] = [ob[0]!, oh[0]!];
     if (a.matcher !== b.matcher) {
-      const [sa, sb] = [MATCHER_STRENGTH[a.matcher], MATCHER_STRENGTH[b.matcher]];
-      if (sa !== undefined && sb !== undefined && sb < sa) out.weakerMatcher.push({ subject: clip(subject), before: a.matcher, after: b.matcher });
+      if (!isWeaker(a, b)) continue;
+      // The same check on another subject in the head: the assertion moved, it was not weakened.
+      if (head.assertions.some((x) => x.subject !== subject && key(x) === key(a))) continue;
+      out.weakerMatcher.push({ subject: clip(subject), before: a.matcher, after: b.matcher });
       continue;
     }
     if (a.args.length !== b.args.length) continue;
