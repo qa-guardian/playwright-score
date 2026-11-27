@@ -13,11 +13,13 @@ import { formatReport } from './formatters/report.js';
 import { makeSourceReader } from './report-source.js';
 import { suiteLabel } from './suite-name.js';
 import { optionsHelp, parseArgs } from './cli-args.js';
+import { runDiff } from './diff/run.js';
 
 function printHelp(): void {
   console.log(`pwscore — deterministic Playwright spec quality score
 
 Usage:
+  npx pwscore diff <base> <head> [options]   (see: pwscore diff --help)
   npx pwscore <dir> [options]
   # the same tool is also published as @qaguardian/playwright-score:
   npx -p @qaguardian/playwright-score pwscore <dir> [options]
@@ -86,6 +88,10 @@ function suiteName(paths: string[]): string {
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
+  if (args[0] === 'diff') {
+    process.exitCode = await runDiff(args.slice(1));
+    return;
+  }
   if (args.includes('--version') || args.includes('-v')) {
     try {
       const { createRequire } = await import('node:module');

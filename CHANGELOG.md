@@ -32,6 +32,35 @@ case, and says so explicitly.
   commit as the ref; needs `fetch-depth: 0`) and an output `scoped`
   (`"true"` when the result covers only the changed files, else `"false"`).
 - **`--changed-since` follows CommonJS `require()`.** A changed helper that a spec loads with `require()` (top level or inside a function) puts that spec in scope; a non-literal `require()` or `import()` anywhere in the graph means a changed source file cannot be ruled out, so the run is a full one.
+- **`pwscore diff <base> <head>`** (QAG-289): what a change did to the score.
+  Each side is a directory or a git ref (exported with `git archive`, the
+  working tree is not touched). Reports the score before and after, the certain
+  findings the head introduces (matched by rule, file and test title path, so a
+  line shift is not new), the score change per file, and per matched test a
+  deleted test, a newly skipped test and fewer `expect()` calls. `--json`,
+  `--max-drop <n>`, `--path <dir>`, `--fail-on-changes`. Exit 1 when the head
+  introduces a certain finding or the score drops past `--max-drop`. Scoring
+  itself is unchanged: no rule, weight or score moves. Tests with a non-literal
+  title are keyed by the title's source text, a ref and a directory side are
+  aligned when they differ by a leading folder, files the base did not score
+  are reported as `unscoredInBase` instead of new, moved files are matched
+  (`renamedFiles`), and `warnings` says when the sides share no file. These
+  JSON fields are additive: `diffVersion` stays 1. A diff whose base is partial
+  or skipped files now fails (`gate.reasons` has `base-partial`) unless
+  `--allow-partial` is given, since findings in those files cannot be compared.
+  A finding in a new file is matched against a deleted file only through a
+  recognised move (same test keys), never by rule and a generic place such as
+  a hook, so a hook finding moved into a new file is new.
+- **`pwscore diff` test-weakening signals** (QAG-289): per matched test,
+  `weakerMatcher` (an assertion swapped for a weaker matcher by a fixed strength
+  table), `changedExpectedLiteral` (the expected value of an otherwise identical
+  assertion changed; for review, never gates) and `raisedTimeout` (an explicit
+  test, expect or waitFor timeout raised 2x or more). `weakerMatcher` and
+  `raisedTimeout` fail `--fail-on-changes`. Additive keys in `testChanges`, so
+  `diffVersion` stays 1.
+  `weakerMatcher` is judged only when every base argument is a plain literal, and
+  is not raised when the assertion moved to another subject, for `toBe(true)` ->
+  `toBeTruthy()` or for `toHaveCount(n)` -> `toBeVisible()`.
 
 ### Fixed
 

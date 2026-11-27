@@ -218,6 +218,99 @@ In the GitHub Action, `changed-only: true` does this on `pull_request` events wi
 
 The job summary and the PR comment carry the SCOPED line, and the Action output `scoped` is `"true"` when the result covers only the changed files and `"false"` for a full run (also when a changed config, tsconfig or lockfile made it fall back to every spec). The scope follows imports through the whole repository (no depth or file cap, and not limited to the scored directory); if a file does not parse the import graph is incomplete and any changed source file forces a full run. On other events (including `pull_request_target`, which checks out the base branch, so a diff against the PR base would always be empty) the input is ignored and every spec is scored. If the base commit is missing from the clone the step fails with a message that says to use `fetch-depth: 0`.
 
+## Diff: what a change did to the score
+
+```bash
+npx pwscore diff main HEAD                 # two git refs of the repository you are in
+npx pwscore diff ./before ./after --json   # two directories
+npx pwscore diff origin/main HEAD --max-drop 5 --fail-on-changes
+```
+
+`diff <base> <head>` scores both sides with the same options and reports the
+score before and after, the certain findings the head introduces, the score
+change per file, and what happened to tests that exist on both sides. Each side
+is a directory or a git ref. A ref is exported with `git archive` into a
+temporary directory (removed afterwards), so your working tree and checked-out
+branch are never touched; an uncommitted edit is not part of any ref. A ref is
+scored from the folder you run the command in; `--path <dir>` picks another
+folder, the same one on both sides.
+
+A finding is the same finding on both sides when its rule, file and test title
+path agree, so moving code down a file never makes an old finding new (a test
+whose title is not a literal, such as `test(NAME, ...)`, is keyed by the source
+text of that title). A ref side and a directory side that name the same files
+with a different leading folder (`e2e/x.spec.ts` against `x.spec.ts`) are lined
+up; a file moved to a new path is matched when it holds the same tests, and a
+move that is not recognised does not turn the old path's findings into new ones. A rule
+that fires twice in a test counts twice. Tests are matched the same way, by file
+and title path (see [METHODOLOGY.md](./METHODOLOGY.md#diff-matching-tests-across-versions)).
+Reported per matched test: a test **deleted**, a test newly **skipped** (`skip`,
+`fixme` or a skipped describe), and a test whose body has **fewer `expect()`
+calls**. Three more signals look inside a matched test that is counted on both
+sides, and report only what they can read with certainty:
+
+- **`weakerMatcher`**: an assertion on the same subject swapped for a weaker
+  matcher, such as `toHaveText` -> `toBeVisible`, `toEqual` -> `toBeTruthy`,
+  `toHaveCount(n)` -> `toBeGreaterThan(0)` (a trailing `.count()` on the subject
+  is ignored) or `toBe(x)` -> `toBeDefined`. Strength, strongest first: 4 pins
+  the whole value (`toBe`, `toEqual`, `toStrictEqual`, `toHaveText`, `toHaveValue`,
+  `toHaveValues`, `toHaveURL`, `toHaveTitle`, `toHaveCount`, `toHaveAttribute`,
+  `toHaveCSS`, `toHaveId`, `toHaveClass`, `toHaveJSProperty`, `toHaveLength`);
+  3 pins part of it (`toContain`, `toContainText`, `toContainEqual`, `toMatch`,
+  `toMatchObject`); 2 bounds it (`toBeGreaterThan`, `toBeGreaterThanOrEqual`,
+  `toBeLessThan`, `toBeLessThanOrEqual`, `toBeCloseTo`); 1 only checks that
+  something exists (`toBeVisible`, `toBeAttached`, `toBeTruthy`, `toBeDefined`).
+  Only a drop to a lower level counts; an unlisted matcher is never compared.
+  The base assertion must take no argument or only plain literals (string,
+  number, boolean, `null`): `toHaveText(/re/)` or `toEqual(expect.objectContaining(..))`
+  are never judged. It is not flagged when the same matcher and arguments
+  reappear on another subject in the head test, nor for `toBe(true)` /
+  `toEqual(true)` -> `toBeTruthy()`, nor for `toHaveCount(n)` -> `toBeVisible()` /
+  `toBeAttached()` (a strict-mode visibility check on the locator already needs
+  a single match; precision beats catching that one).
+- **`changedExpectedLiteral`**: the expected string, number or boolean of an
+  otherwise identical assertion changed (`toHaveText('Saved')` ->
+  `toHaveText('Save')`). It is a change to review, not a weakening, and never
+  fails `--fail-on-changes`.
+- **`raisedTimeout`**: an explicit `test.setTimeout(ms)`, an `expect` `{ timeout }`
+  option or a `waitFor*` `{ timeout }` option raised to 2x or more of the base
+  value (numbers and simple products like `5 * 1000` are read).
+
+Not flagged, on purpose: reordered or reformatted assertions, negated
+(`.not`) assertions, a change to a regex or a non-literal argument, an
+assertion that moved to another subject (or a swap whose base argument is a
+regex, object or expression), a subject that changed, more than one changed assertion on one subject (the pairing would
+be a guess), a lowered timeout, a timeout newly added or removed, and a renamed
+test (it reads as deleted plus new).
+
+Options: `--json` (or `--format json`), `--out <file>`, `--max-drop <n>`,
+`--path <dir>`, `--fail-on-changes`, and the scoring options `--profile`,
+`--max-seconds`, `--max-heap-mb`, `--shared`, `--no-shared`, `--allow-partial`.
+`--threshold`, `--fail-on`, `--name`, `--advice` and `--markdown-out` do not
+apply to `diff` (a usage error).
+
+| Code | Meaning |
+|---|---|
+| `0` | No certain finding is new in the head, the score did not drop by more than `--max-drop` (when given), and the head was scored |
+| `1` | The head introduces a certain finding; or the score dropped past `--max-drop`; or, with `--fail-on-changes`, a test was deleted, newly skipped, lost assertions, got a weaker matcher or a raised timeout; or the head is not scored, or partial without `--allow-partial`; or the base is partial or skipped files (for example a `--max-seconds` deadline) without `--allow-partial`, because findings in files the base did not score cannot be compared |
+| `2` | Tool or usage error: an unknown option, a side that is neither a directory nor a git ref, an export that failed |
+
+Without `--max-drop` the score is reported but does not gate; deleted, skipped
+and weakened tests are reported but do not gate unless `--fail-on-changes` is
+given. A base that is not scored (no tests yet) never fails the diff.
+
+`--json` prints one document: `diffVersion`, `base` and `head` (label, status,
+score, counted and charged tests), `scoreBefore`, `scoreAfter`, `scoreDrop`
+(before minus after), `files` (the files whose score changed, with `before`,
+`after`, `drop`), `newFindings`, `resolvedFindings`, `testChanges` (`deleted`,
+`addedSkip`, `assertionsDropped`, `weakerMatcher`, `changedExpectedLiteral`,
+`raisedTimeout`), `unscoredInBase` (certain findings in head
+files the base did not score, for example skipped by `--max-seconds`: reported,
+not counted as new; with `--allow-partial` they are not gated, without it a partial base fails the diff with reason `base-partial`), `renamedFiles` (`from`, `to`: a base file and a
+head file holding exactly the same tests are matched as a move; anything else in a new file, including hook, shared, module and line-keyed findings, is new), `warnings`
+(for example when the two sides share no file path) and `gate` (`pass`,
+`reasons`, `maxDrop`, `failOnChanges`). A directory literally named `diff` must be written `./diff`.
+
 ## Library
 
 ```ts
