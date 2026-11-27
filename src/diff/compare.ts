@@ -6,6 +6,7 @@
  * test when file and title path agree (see METHODOLOGY.md, "Diff: matching tests across versions").
  */
 import { compareSignals, type ChangedLiteral, type RaisedTimeout, type WeakerMatcher } from './weakening.js';
+import { alignPaths, matchRenames, rekey } from './align.js';
 import { testId, type SideData, type SideFinding } from './side.js';
 
 export interface FileChange {
@@ -38,7 +39,7 @@ export interface TestChanges {
   /** Matched, counted on both sides: an explicit timeout raised 2x or more. Gates. */
   raisedTimeout: Array<TestRef & RaisedTimeout>;
 }
-export type DiffReason = 'new-certain-findings' | 'score-drop' | 'test-changes' | 'head-not-scored' | 'head-partial';
+export type DiffReason = 'new-certain-findings' | 'score-drop' | 'test-changes' | 'head-not-scored' | 'head-partial' | 'base-partial';
 export interface DiffGateSettings {
   /** Undefined: the score does not gate. */
   maxDrop: number | undefined;
@@ -53,6 +54,11 @@ export interface DiffResult {
   files: FileChange[];
   newFindings: NewFinding[];
   resolvedFindings: SideFinding[];
+  /** Certain findings in head files the base did not score (skipped, unreadable): unknown, so not new and not gated with `allowPartial` (without it a partial or skip-holding base fails the diff). */
+  unscoredInBase: SideFinding[];
+  /** Files matched as moved: the same tests under another path. */
+  renamedFiles: Array<{ from: string; to: string }>;
+  warnings: string[];
   testChanges: TestChanges;
   pass: boolean;
   reasons: DiffReason[];
@@ -78,7 +84,13 @@ function surplus(a: SideFinding[], b: SideFinding[]): Array<{ finding: SideFindi
   return out.sort((x, y) => cmp(x.finding.file, y.finding.file) || cmp(x.finding.where, y.finding.where) || cmp(x.finding.rule, y.finding.rule));
 }
 
-export function compareSides(base: SideData, head: SideData, gate: DiffGateSettings): DiffResult {
+export function compareSides(rawBase: SideData, rawHead: SideData, gate: DiffGateSettings): DiffResult {
+  const aligned = alignPaths(rawBase, rawHead);
+  const warnings = aligned.warnings;
+  const renamedFiles = matchRenames(aligned.base, aligned.head);
+  const renameTo = new Map(renamedFiles.map((r) => [r.from, r.to]));
+  const base = renameTo.size > 0 ? rekey(aligned.base, (f) => renameTo.get(f) ?? f) : aligned.base;
+  const head = aligned.head;
   const scored = (s: SideData): boolean => s.status !== 'not-scored';
   const scoreBefore = scored(base) ? base.score : null;
   const scoreAfter = scored(head) ? head.score : null;
@@ -94,8 +106,27 @@ export function compareSides(base: SideData, head: SideData, gate: DiffGateSetti
   // Largest drop first; a file that lost all its counted tests, or is new, follows by name.
   files.sort((a, b) => (b.drop ?? -Infinity) - (a.drop ?? -Infinity) || cmp(a.file, b.file));
 
-  const newFindings = surplus(head.findings, base.findings).map(({ finding, extra }) => ({ ...finding, extra }));
-  const resolvedFindings = surplus(base.findings, head.findings).map(({ finding }) => finding);
+  // Findings in a file the base skipped say nothing about what changed. A file only one side has is
+  // an added or deleted file: its findings are new (head side) or resolved (base side). A move is
+  // recognised only by matchRenames (the same test keys in both files, then the file is re-keyed
+  // above); a hook, shared, module or line-keyed finding has no per-test identity, so it never
+  // matches across two different files.
+  const baseSkipped = base.skippedFiles ?? new Set<string>();
+  const headSkipped = head.skippedFiles ?? new Set<string>();
+  const unscoredInBase = head.findings.filter((f) => baseSkipped.has(f.file) && !base.files.has(f.file));
+  const unscored = new Set(unscoredInBase);
+  const headOnly = (f: SideFinding): boolean => !base.files.has(f.file) && !baseSkipped.has(f.file);
+  const baseOnly = (f: SideFinding): boolean => !head.files.has(f.file) && !headSkipped.has(f.file);
+  const headSame = head.findings.filter((f) => !headOnly(f) && !unscored.has(f));
+  const headAdded = head.findings.filter(headOnly);
+  const baseSame = base.findings.filter((f) => !baseOnly(f) && !headSkipped.has(f.file));
+  const baseGone = base.findings.filter(baseOnly);
+  const newFindings = [...surplus(headSame, baseSame), ...surplus(headAdded, [])]
+    .map(({ finding, extra }) => ({ ...finding, extra }))
+    .sort((x, y) => cmp(x.file, y.file) || cmp(x.where, y.where) || cmp(x.rule, y.rule));
+  const resolvedFindings = [...surplus(baseSame, headSame), ...surplus(baseGone, [])]
+    .map(({ finding }) => finding)
+    .sort((x, y) => cmp(x.file, y.file) || cmp(x.where, y.where) || cmp(x.rule, y.rule));
 
   const testChanges: TestChanges = { deleted: [], addedSkip: [], assertionsDropped: [], weakerMatcher: [], changedExpectedLiteral: [], raisedTimeout: [] };
   for (const b of [...base.tests.values()].sort((x, y) => cmp(testId(x.file, x.titlePath), testId(y.file, y.titlePath)))) {
@@ -118,11 +149,12 @@ export function compareSides(base: SideData, head: SideData, gate: DiffGateSetti
   const reasons: DiffReason[] = [];
   if (head.status === 'not-scored') reasons.push('head-not-scored');
   if (head.status === 'partial' && !gate.allowPartial) reasons.push('head-partial');
+  if (!gate.allowPartial && (base.status === 'partial' || baseSkipped.size > 0)) reasons.push('base-partial');
   if (newFindings.length > 0) reasons.push('new-certain-findings');
   if (gate.maxDrop !== undefined && scoreDrop !== null && scoreDrop > gate.maxDrop) reasons.push('score-drop');
   if (gate.failOnChanges && (testChanges.deleted.length > 0 || testChanges.addedSkip.length > 0 || testChanges.assertionsDropped.length > 0 ||
       testChanges.weakerMatcher.length > 0 || testChanges.raisedTimeout.length > 0)) {
     reasons.push('test-changes');
   }
-  return { scoreBefore, scoreAfter, scoreDrop, files, newFindings, resolvedFindings, testChanges, pass: reasons.length === 0, reasons };
+  return { scoreBefore, scoreAfter, scoreDrop, files, newFindings, resolvedFindings, unscoredInBase, renamedFiles, warnings, testChanges, pass: reasons.length === 0, reasons };
 }

@@ -206,7 +206,12 @@ scored from the folder you run the command in; `--path <dir>` picks another
 folder, the same one on both sides.
 
 A finding is the same finding on both sides when its rule, file and test title
-path agree, so moving code down a file never makes an old finding new. A rule
+path agree, so moving code down a file never makes an old finding new (a test
+whose title is not a literal, such as `test(NAME, ...)`, is keyed by the source
+text of that title). A ref side and a directory side that name the same files
+with a different leading folder (`e2e/x.spec.ts` against `x.spec.ts`) are lined
+up; a file moved to a new path is matched when it holds the same tests, and a
+move that is not recognised does not turn the old path's findings into new ones. A rule
 that fires twice in a test counts twice. Tests are matched the same way, by file
 and title path (see [METHODOLOGY.md](./METHODOLOGY.md#diff-matching-tests-across-versions)).
 Reported per matched test: a test **deleted**, a test newly **skipped** (`skip`,
@@ -257,7 +262,7 @@ apply to `diff` (a usage error).
 | Code | Meaning |
 |---|---|
 | `0` | No certain finding is new in the head, the score did not drop by more than `--max-drop` (when given), and the head was scored |
-| `1` | The head introduces a certain finding; or the score dropped past `--max-drop`; or, with `--fail-on-changes`, a test was deleted, newly skipped, lost assertions, got a weaker matcher or a raised timeout; or the head is not scored, or partial without `--allow-partial` |
+| `1` | The head introduces a certain finding; or the score dropped past `--max-drop`; or, with `--fail-on-changes`, a test was deleted, newly skipped, lost assertions, got a weaker matcher or a raised timeout; or the head is not scored, or partial without `--allow-partial`; or the base is partial or skipped files (for example a `--max-seconds` deadline) without `--allow-partial`, because findings in files the base did not score cannot be compared |
 | `2` | Tool or usage error: an unknown option, a side that is neither a directory nor a git ref, an export that failed |
 
 Without `--max-drop` the score is reported but does not gate; deleted, skipped
@@ -269,8 +274,12 @@ score, counted and charged tests), `scoreBefore`, `scoreAfter`, `scoreDrop`
 (before minus after), `files` (the files whose score changed, with `before`,
 `after`, `drop`), `newFindings`, `resolvedFindings`, `testChanges` (`deleted`,
 `addedSkip`, `assertionsDropped`, `weakerMatcher`, `changedExpectedLiteral`,
-`raisedTimeout`) and `gate` (`pass`, `reasons`, `maxDrop`,
-`failOnChanges`). A directory literally named `diff` must be written `./diff`.
+`raisedTimeout`), `unscoredInBase` (certain findings in head
+files the base did not score, for example skipped by `--max-seconds`: reported,
+not counted as new; with `--allow-partial` they are not gated, without it a partial base fails the diff with reason `base-partial`), `renamedFiles` (`from`, `to`: a base file and a
+head file holding exactly the same tests are matched as a move; anything else in a new file, including hook, shared, module and line-keyed findings, is new), `warnings`
+(for example when the two sides share no file path) and `gate` (`pass`,
+`reasons`, `maxDrop`, `failOnChanges`). A directory literally named `diff` must be written `./diff`.
 
 ## Library
 

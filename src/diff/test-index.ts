@@ -7,7 +7,7 @@
 import { parseAst } from '../parse-cache.js';
 import { readFacts, type AssertionFact, type TimeoutFact } from './assertions.js';
 
-type Node = { type: string; loc?: { start: { line: number } }; [key: string]: any };
+type Node = { type: string; loc?: { start: { line: number } }; range?: [number, number]; [key: string]: any };
 
 export interface IndexedTest {
   /** Enclosing describe titles, then the test title. */
@@ -34,13 +34,29 @@ function titleOf(n: Node | undefined): string | undefined {
   return undefined;
 }
 
-/** A call written `something('title', ..., () => {})`: a describe, a test, a step or a wrapper of them. */
-function titledCall(n: Node): { title: string; fn: Node } | undefined {
+const TEST_ROOTS = new Set(['test', 'it', 'describe', 'suite']);
+const rootName = (n: Node | undefined): string | undefined => {
+  let c = n;
+  while (c && c.type === 'MemberExpression') c = c.object;
+  return c && c.type === 'Identifier' ? c.name : undefined;
+};
+
+/**
+ * A call written `something('title', ..., () => {})`: a describe, a test, a step or a wrapper of them.
+ * A title that is not a literal (`test(NAME, ...)`, `test(c.name, ...)`) is its source text, so the key
+ * does not move with the line; that is only trusted on a declaration line or a test/describe call.
+ */
+function titledCall(n: Node, source: string, declaration: boolean): { title: string; fn: Node } | undefined {
   if (n.type !== 'CallExpression') return undefined;
   const args = n.arguments as Node[];
-  const title = titleOf(args[0]);
   const fn = [...args].reverse().find(isFn);
-  return title !== undefined && fn !== undefined ? { title, fn } : undefined;
+  if (fn === undefined) return undefined;
+  let title = titleOf(args[0]);
+  const a0 = args[0];
+  if (title === undefined && a0 && a0.range && (declaration || TEST_ROOTS.has(rootName(n.callee) ?? ''))) {
+    title = '${' + source.slice(a0.range[0], a0.range[1]).replace(/\s+/g, ' ').trim() + '}';
+  }
+  return title !== undefined ? { title, fn } : undefined;
 }
 
 function isExpectCall(n: Node): boolean {
@@ -93,8 +109,8 @@ export function indexTests(source: string, file: string, lines: ReadonlySet<numb
     return out;
   }
   const visit = (n: Node, path: string[]): void => {
-    const call = titledCall(n);
     const line = n.loc?.start.line;
+    const call = titledCall(n, source, line !== undefined && lines.has(line));
     if (call && line !== undefined && lines.has(line) && !out.has(line)) {
       out.set(line, { titlePath: [...path, call.title], line, expects: countExpects(call.fn), ...readFacts(call.fn, source) });
     }

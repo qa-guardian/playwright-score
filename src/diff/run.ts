@@ -123,6 +123,9 @@ export function diffJson(base: ResolvedSide, head: ResolvedSide, b: SideData, h:
     files: d.files,
     newFindings: d.newFindings,
     resolvedFindings: d.resolvedFindings,
+    unscoredInBase: d.unscoredInBase,
+    renamedFiles: d.renamedFiles,
+    warnings: d.warnings,
     testChanges: d.testChanges,
     gate: { pass: d.pass, reasons: d.reasons, maxDrop: a.maxDrop ?? null, failOnChanges: a.failOnChanges },
   };
@@ -136,6 +139,7 @@ const REASON_TEXT: Record<DiffReason, string> = {
   'test-changes': 'tests were deleted, skipped, lost assertions, got a weaker matcher or a raised timeout (--fail-on-changes)',
   'head-not-scored': 'the head is not scored (no files, or no counted test)',
   'head-partial': 'the head is partial: a file was skipped (use --allow-partial to accept)',
+  'base-partial': 'the base is partial or skipped files: findings in them cannot be compared (use --allow-partial to accept)',
 };
 
 export function diffText(base: ResolvedSide, head: ResolvedSide, b: SideData, h: SideData, d: DiffResult): string {
@@ -151,6 +155,9 @@ export function diffText(base: ResolvedSide, head: ResolvedSide, b: SideData, h:
     L.push(`    ${f.where}: ${f.message}`);
   }
   if (d.resolvedFindings.length > 0) L.push(`Resolved certain findings: ${d.resolvedFindings.length}`);
+  if (d.unscoredInBase.length > 0) L.push(`Certain findings in files the base did not score (not counted as new): ${d.unscoredInBase.length}`);
+  for (const r of d.renamedFiles) L.push(`Renamed: ${r.from} -> ${r.to}`);
+  for (const w of d.warnings) L.push(`WARNING: ${w}`);
   L.push('');
   L.push(`Files with a different score: ${d.files.length}`);
   for (const f of d.files) {
@@ -194,6 +201,7 @@ export async function runDiff(args: readonly string[]): Promise<number> {
     const b = await scoreSide(base, opts);
     const h = await scoreSide(head, opts);
     const d = compareSides(b, h, { maxDrop: a.maxDrop, failOnChanges: a.failOnChanges, allowPartial });
+    for (const w of d.warnings) console.error(`warning: ${w}`);
     const body = a.json ? JSON.stringify(diffJson(base, head, b, h, d, a), null, 2) : diffText(base, head, b, h, d);
     if (a.out) {
       fs.mkdirSync(path.dirname(path.resolve(a.out)), { recursive: true });
