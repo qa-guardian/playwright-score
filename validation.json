@@ -1,7 +1,7 @@
 {
-  "version": "3.0.0",
+  "version": "3.1.0",
   "model": "v5",
-  "testedOn": "2026-11-25",
+  "testedOn": "2026-11-26",
   "threshold": 0,
   "gate": {
     "failOn": [
@@ -30,7 +30,7 @@
     "repos": 279,
     "files": 17019,
     "tests": 86200,
-    "findings": 145521,
+    "findings": 145694,
     "passing": 264,
     "scored": 278,
     "partial": 0,

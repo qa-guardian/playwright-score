@@ -2,11 +2,11 @@
 
 `playwright-score` is checked against real, public Playwright suites, not
 just its own fixtures. This file documents how, and the results for
-3.0.0. The 2.x write-up (a 100-repo corpus scored with model v4, and the
+3.1.0. The 2.x write-up (a 100-repo corpus scored with model v4, and the
 scorer bugs found that way) is kept in
 [docs/validation-2.1.0.md](docs/validation-2.1.0.md).
 
-**Tested on 2026-11-25**: 3.0.0, scoring model v5, default gate
+**Tested on 2026-11-26**: 3.1.0, scoring model v5, default gate
 (`--fail-on passes-regardless`, no score bar, without `--allow-partial`),
 279-suite corpus.
 
@@ -21,6 +21,7 @@ scorer's output.
   a rule targets are reported by the scorer).
 - The other 9 are defects a rule targets that it did not report. Defects
   that no rule targets are listed under "Known limitations".
+- The recall figures are the 3.0.0 measurement and were not re-measured for 3.1.0.
 
 ## Precision of certain findings
 
@@ -28,7 +29,7 @@ Only certain findings charge a test or fail the default gate. A rule
 becomes certain when the precision of its hand-checked findings on real
 suites reaches the release bar. In 3.0.0 three rules are certain, in spec
 files only; every other rule, and every finding in a shared file, is
-likely or advisory.
+likely or advisory. The table is the 3.0.0 measurement, not re-measured for 3.1.0.
 
 | Rule | Hand-checked | True | False | Precision | 95% lower bound |
 |---|---:|---:|---:|---:|---:|
@@ -41,22 +42,38 @@ The lower bound is the Wilson score interval.
 ## Corpus results
 
 - 279 suites · 17,019 files · 86,200 tests · 264/279 pass the default gate.
-- Status: 278 scored, 0 partial, 1 not scored (its files hold no test the scorer counts); no crash and no timeout.
+- Status: 278 scored, 0 partial, 1 not scored (its files hold no test the scorer counts); no crash and no timeout. (Status carried from the 3.0.0 run; not re-aggregated for 3.1.0.)
 - Tests by state: 68,982 clean, 1,976 issue, 368 unasserted, 13,565 unverified, 1,309 excluded.
-- Findings by tier: 2,016 certain, 20,623 likely, 122,329 advisory, 553 not decided automatically (`needs-check`).
-- Determinism: the output was byte-identical on two machines, and when
+- Findings by tier: 2,016 certain, 20,801 likely, 122,324 advisory, 553 not decided automatically (`needs-check`).
+- Determinism (3.1.0): 20 suites scored twice, byte-identical (`deterministic: true`).
+- Determinism (3.0.0): the output was byte-identical on two machines, and when
   scored from the packed tarball under Node 20 and 22, installed with npm
   and with pnpm.
+- Provenance: the 3.1.0 corpus run was made at commit 89b9a50 (the version bump). The QAG-289 merge (fa35891) came after it and adds only `src/diff`; it does not touch scoring. A run at fa35891 is pending.
 
-## Results (last run: 2026-11-25, 3.0.0, scoring model v5, `standard` profile, threshold 0)
+## Results (last run: 2026-11-26, 3.1.0, scoring model v5, `standard` profile, threshold 0)
 
 The pass count and score distribution of the same corpus run. Threshold 0
 means no score bar: "pass" is the default gate.
 
-**264 pass / 15 fail / 279 total (94.6%).** 17,019 files, 86,200 tests, 145,521 findings.
-Score distribution: mean 96.7, median 100; grades 256 A / 9 B / 6 C / 3 D / 5 F.
+**264 pass / 15 fail / 279 total (94.6%).** 17,019 files, 86,200 tests, 145,694 findings.
+Score distribution: mean 96.7, median 100; grades 256 A / 9 B / 6 C / 3 D / 5 F (unchanged vs 3.0.0).
+
+### Changes against 3.0.0
+
+Comparison of the 3.1.0 run with the 3.0.0 results for the same 279 suites.
+
+- Suites whose score or grade changed: 0. Gate changes: 0.
+- Certain findings: 2,016, no change.
+- Likely findings: +178, all in helper files reached through `require()` (openobserve 139, unopim 18, Open-Web-Analytics 12, metasfresh 4, rcourtman-Pulse 4, apolloconfig 1). No score effect: likely findings never cost points.
+- Advisory `missing-playwright-await`: -5 (promises that are now stored or handed on).
+- Other likely deltas: `no-wait-for-timeout` +94, `no-networkidle` +55, `no-wait-for-selector` +18, `no-swallowed-assertion` +7, `no-wait-for-navigation` +2, `prefer-web-first-assertions` +2.
+- `--changed-since` check: not re-measured for 3.1.0; no figure is given.
 
 ## Performance
+
+3.1.0 corpus run: wall time 1,185 s on 2 slots, remote runner, commit 89b9a50.
+Peak memory was not re-measured for 3.1.0.
 
 Last measured on release candidate 3.0.0-rc.1 (commit 22653be, 2026-11-25,
 Apple M1 Pro), against 2.x on the same machine. The final 3.0.0 build adds
