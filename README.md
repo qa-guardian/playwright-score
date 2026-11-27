@@ -117,7 +117,7 @@ output: 27 of the 36 defect classes they found that a rule targets are
 reported.
 
 **279 suites · 17,019 files · 86,200 tests · 264/279 pass (default gate) ·
-tested on 2026-11-25**
+tested on 2026-11-26**
 
 [VALIDATION.md](https://github.com/qa-guardian/playwright-score/blob/main/VALIDATION.md)
 has the recall measured by hand, the precision of the certain rules, the
